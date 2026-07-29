@@ -43,7 +43,7 @@ begin
   if p_creator_id is null or p_gift_id is null or p_quantity is null or p_quantity not between 1 and 100 then raise exception using errcode='22023',message='invalid_gift_request'; end if;
   if (p_conversation_id is null)<>(p_client_message_id is null) then raise exception using errcode='22023',message='conversation_and_client_message_id_must_be_paired'; end if;
   perform pg_advisory_xact_lock(hashtextextended(v_sender::text||':'||p_idempotency_key::text,0));
-  select * into v_existing from public.gift_transactions where sender_id=v_sender and idempotency_key=p_idempotency_key;
+  select gt.* into v_existing from public.gift_transactions gt where gt.sender_id=v_sender and gt.idempotency_key=p_idempotency_key;
   if found then
     select fp.* into v_progress from public.fan_progress fp where fp.creator_id=v_existing.creator_id and fp.fan_user_id=v_sender;
     select ha.* into v_account from private.heart_accounts ha where ha.user_id=v_sender;
@@ -54,10 +54,10 @@ begin
   end if;
   if v_sender=p_creator_id then raise exception using errcode='22023',message='cannot_gift_self'; end if;
   if not private.is_active_adult(v_sender) then raise exception using errcode='42501',message='active_adult_sender_required'; end if;
-  select * into v_creator from public.creator_profiles where user_id=p_creator_id and creator_status='approved' and approved_at is not null;
+  select cp.* into v_creator from public.creator_profiles cp where cp.user_id=p_creator_id and cp.creator_status='approved' and cp.approved_at is not null;
   if not found or not private.is_active_adult(p_creator_id) then raise exception using errcode='42501',message='approved_creator_required'; end if;
   if private.users_are_blocked(v_sender,p_creator_id) then raise exception using errcode='42501',message='gifting_blocked'; end if;
-  select * into v_gift from public.gift_catalog where id=p_gift_id and is_active and deleted_at is null;
+  select gc.* into v_gift from public.gift_catalog gc where gc.id=p_gift_id and gc.is_active and gc.deleted_at is null;
   if not found then raise exception using errcode='22023',message='gift_not_active'; end if;
   v_units_per_heart:=private.config_integer('heart_units_per_heart');
   v_creator_bps:=private.config_integer('creator_share_bps');
@@ -77,8 +77,8 @@ begin
   end if;
   perform private.ensure_economy_accounts(v_sender);
   perform private.ensure_economy_accounts(p_creator_id);
-  select * into v_account from private.heart_accounts where user_id=v_sender for update;
-  select * into v_existing from public.gift_transactions where sender_id=v_sender and idempotency_key=p_idempotency_key;
+  select ha.* into v_account from private.heart_accounts ha where ha.user_id=v_sender for update;
+  select gt.* into v_existing from public.gift_transactions gt where gt.sender_id=v_sender and gt.idempotency_key=p_idempotency_key;
   if found then
     select fp.* into v_progress from public.fan_progress fp where fp.creator_id=v_existing.creator_id and fp.fan_user_id=v_sender;
     select fm.status::text into v_fan_status from public.fan_memberships fm where fm.creator_id=v_existing.creator_id and fm.fan_user_id=v_sender;
@@ -88,7 +88,7 @@ begin
   end if;
   if v_account.available_units<v_gross then raise exception using errcode='22023',message='insufficient_heart_balance'; end if;
   insert into private.creator_earning_accounts(creator_id) values(p_creator_id) on conflict(creator_id) do nothing;
-  select * into v_creator_account from private.creator_earning_accounts where creator_id=p_creator_id for update;
+  select cea.* into v_creator_account from private.creator_earning_accounts cea where cea.creator_id=p_creator_id for update;
   if v_creator_account.is_frozen then raise exception using errcode='42501',message='creator_reward_account_frozen'; end if;
   insert into public.gift_transactions(
     sender_id,creator_id,gift_id,gift_slug_snapshot,gift_name_vi_snapshot,gift_name_en_snapshot,quantity,unit_heart_units,gross_heart_units,
@@ -98,20 +98,20 @@ begin
     v_creator_bps::integer,v_platform_bps::integer,v_reward,v_platform,p_idempotency_key
   ) returning * into v_gift_tx;
   v_remaining:=v_gross;
-  for v_lot in select * from private.heart_lots where user_id=v_sender and available_units>0 order by created_at,purchase_id for update loop
+  for v_lot in select hl.* from private.heart_lots hl where hl.user_id=v_sender and hl.available_units>0 order by hl.created_at,hl.purchase_id for update loop
     exit when v_remaining=0;
     v_take:=least(v_lot.available_units,v_remaining);
-    update private.heart_lots set available_units=available_units-v_take,spent_units=spent_units+v_take where purchase_id=v_lot.purchase_id;
+    update private.heart_lots hl set available_units=hl.available_units-v_take,spent_units=hl.spent_units+v_take where hl.purchase_id=v_lot.purchase_id;
     insert into private.gift_funding_allocations(gift_transaction_id,purchase_id,allocated_units) values(v_gift_tx.id,v_lot.purchase_id,v_take);
     v_remaining:=v_remaining-v_take;
   end loop;
   if v_remaining<>0 then raise exception using errcode='23514',message='heart_lot_balance_invariant_failed'; end if;
-  update private.heart_accounts set available_units=available_units-v_gross,lifetime_spent_units=lifetime_spent_units+v_gross,version=version+1
-  where user_id=v_sender returning * into v_account;
+  update private.heart_accounts ha set available_units=ha.available_units-v_gross,lifetime_spent_units=ha.lifetime_spent_units+v_gross,version=ha.version+1
+  where ha.user_id=v_sender returning ha.* into v_account;
   insert into private.heart_ledger(user_id,entry_type,amount_units,balance_after_units,reference_type,reference_id,idempotency_key,metadata_json)
   values(v_sender,'gift_debit',-v_gross,v_account.available_units,'gift_transaction',v_gift_tx.id,p_idempotency_key,jsonb_build_object('creator_id',p_creator_id,'gift_id',p_gift_id,'quantity',p_quantity));
-  update private.creator_earning_accounts set pending_units=pending_units+v_reward,version=version+1
-  where creator_id=p_creator_id returning * into v_creator_account;
+  update private.creator_earning_accounts cea set pending_units=cea.pending_units+v_reward,version=cea.version+1
+  where cea.creator_id=p_creator_id returning cea.* into v_creator_account;
   insert into private.creator_reward_positions(gift_transaction_id,creator_id,original_units,pending_units,available_at)
   values(v_gift_tx.id,p_creator_id,v_reward,v_reward,v_available_at);
   insert into private.creator_reward_ledger(creator_id,gift_transaction_id,entry_type,amount_units,available_at,reference_type,reference_id,idempotency_key,metadata_json)
@@ -136,10 +136,10 @@ begin
     ) then raise exception using errcode='42501',message='accepted_creator_friendship_conversation_required'; end if;
     insert into public.messages(conversation_id,sender_id,message_type,body,gift_transaction_id,client_message_id,moderation_status)
     values(p_conversation_id,v_sender,'gift',null,v_gift_tx.id,p_client_message_id,'approved') returning id into v_message_id;
-    update public.gift_transactions set message_id=v_message_id where id=v_gift_tx.id returning * into v_gift_tx;
+    update public.gift_transactions gt set message_id=v_message_id where gt.id=v_gift_tx.id returning gt.* into v_gift_tx;
   end if;
-  update public.economy_sync set heart_account_version=v_account.version,updated_at=now() where user_id=v_sender;
-  update public.economy_sync set creator_account_version=v_creator_account.version,updated_at=now() where user_id=p_creator_id;
+  update public.economy_sync es set heart_account_version=v_account.version,updated_at=now() where es.user_id=v_sender;
+  update public.economy_sync es set creator_account_version=v_creator_account.version,updated_at=now() where es.user_id=p_creator_id;
   return query select v_gift_tx.id,v_sender,p_creator_id,v_gift.id,p_quantity,v_gross,v_reward,v_platform,v_account.available_units,v_available_at,v_progress.eligible_units,v_progress.threshold_units,v_fan_status,v_message_id,false;
 end $$;
 revoke all on function public.send_gift(uuid,uuid,integer,uuid,uuid,uuid) from public,anon;
@@ -161,16 +161,16 @@ begin
       and exists(select 1 from public.gift_transactions g where g.id=rp.gift_transaction_id and g.status<>'reversed')
     order by rp.available_at,rp.gift_transaction_id limit least(greatest(coalesce(p_limit,500),1),5000) for update of rp skip locked
   loop
-    select * into v_account from private.creator_earning_accounts where creator_id=v_position.creator_id for update;
+    select cea.* into v_account from private.creator_earning_accounts cea where cea.creator_id=v_position.creator_id for update;
     if v_account.is_frozen then continue; end if;
     v_amount:=v_position.pending_units;
-    update private.creator_reward_positions set pending_units=0,available_units=available_units+v_amount,status=case when reversed_units>0 then 'partially_reversed'::private.reward_position_status else 'available'::private.reward_position_status end
-    where gift_transaction_id=v_position.gift_transaction_id;
-    update private.creator_earning_accounts set pending_units=pending_units-v_amount,available_units=available_units+v_amount,version=version+1
-    where creator_id=v_position.creator_id returning * into v_account;
+    update private.creator_reward_positions rp set pending_units=0,available_units=rp.available_units+v_amount,status=case when rp.reversed_units>0 then 'partially_reversed'::private.reward_position_status else 'available'::private.reward_position_status end
+    where rp.gift_transaction_id=v_position.gift_transaction_id;
+    update private.creator_earning_accounts cea set pending_units=cea.pending_units-v_amount,available_units=cea.available_units+v_amount,version=cea.version+1
+    where cea.creator_id=v_position.creator_id returning cea.* into v_account;
     insert into private.creator_reward_ledger(creator_id,gift_transaction_id,entry_type,amount_units,available_at,reference_type,reference_id,idempotency_key,metadata_json)
     values(v_position.creator_id,v_position.gift_transaction_id,'reward_released',v_amount,now(),'gift_transaction',v_position.gift_transaction_id,extensions.gen_random_uuid(),'{}');
-    update public.economy_sync set creator_account_version=v_account.version,updated_at=now() where user_id=v_position.creator_id;
+    update public.economy_sync es set creator_account_version=v_account.version,updated_at=now() where es.user_id=v_position.creator_id;
     v_count:=v_count+1; v_units:=v_units+v_amount;
   end loop;
   return query select v_count,v_units;
