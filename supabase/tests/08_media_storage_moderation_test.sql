@@ -80,11 +80,13 @@ select is((select count(*) from public.list_profile_album_media('40000000-0000-0
 select is(public.can_view_media((select id from public.media_assets where moderation_status='rejected')),false,'rejected media is never viewable');
 reset role;
 
-create table public.fan_memberships(creator_id uuid not null,fan_user_id uuid not null,status text not null,revoked_at timestamptz,primary key(creator_id,fan_user_id));
-insert into public.fan_memberships values('40000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000003','active',null);
+insert into public.creator_profiles(user_id,creator_status,fan_threshold_units,approved_at)
+values('40000000-0000-0000-0000-000000000001','approved',1000,now());
+insert into public.fan_memberships(creator_id,fan_user_id,achieved_at,status)
+values('40000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000003',now(),'active');
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"40000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
-select is((select count(*) from public.list_profile_album_media('40000000-0000-0000-0000-000000000001','fan')),1::bigint,'future active Fan membership can view approved Fan media');
+select is((select count(*) from public.list_profile_album_media('40000000-0000-0000-0000-000000000001','fan')),1::bigint,'authoritative active Fan membership can view approved Fan media');
 select lives_ok($$select public.block_user('40000000-0000-0000-0000-000000000001','safety')$$,'fan blocks Creator');
 select is((select count(*) from public.list_profile_album_media('40000000-0000-0000-0000-000000000001','fan')),0::bigint,'blocked fan cannot view Fan album');
 reset role;
