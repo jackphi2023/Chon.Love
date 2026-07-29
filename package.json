@@ -20,7 +20,13 @@
     "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
     "validate:workspace": "node scripts/validate-workspace.mjs",
     "validate:environments": "node scripts/validate-environments.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments"
+    "validate": "pnpm validate:workspace && pnpm validate:environments",
+    "supabase:help": "supabase --help && supabase migration --help && supabase db --help",
+    "supabase:start": "supabase start",
+    "supabase:reset": "supabase db reset --local",
+    "supabase:test": "supabase test db --local",
+    "supabase:lint": "supabase db lint --local --schema public --schema private --level warning",
+    "supabase:types": "supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
