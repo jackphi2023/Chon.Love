@@ -18,7 +18,9 @@
     "build": "pnpm build:web && pnpm build:mobile:web",
     "build:web": "pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build",
     "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
-    "validate:workspace": "node scripts/validate-workspace.mjs"
+    "validate:workspace": "node scripts/validate-workspace.mjs",
+    "validate:environments": "node scripts/validate-environments.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

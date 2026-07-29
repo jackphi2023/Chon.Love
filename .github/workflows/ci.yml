@@ -38,6 +38,9 @@ jobs:
       - name: Validate workspace
         run: pnpm validate:workspace
 
+      - name: Validate environments
+        run: pnpm validate:environments
+
       - name: Lint
         run: pnpm lint
 

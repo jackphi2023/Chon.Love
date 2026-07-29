@@ -1,0 +1,11 @@
+{
+  "name": "staging",
+  "gitBranch": "release/staging",
+  "supabaseProjectRef": "fciyrjtqnifapafqythy",
+  "supabaseUrl": "https://fciyrjtqnifapafqythy.supabase.co",
+  "supabaseRegion": "ap-southeast-1",
+  "supabaseLifecycle": "paused-on-free-plan",
+  "netlifyContext": "release/staging",
+  "deployPolicy": "branch-deploy",
+  "production": false
+}
