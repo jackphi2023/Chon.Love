@@ -1,0 +1,3 @@
+# Repository bootstrap
+
+This marker initializes the previously empty repository so feature branches can be created. It may be removed when the monorepo foundation is added in Phase A Session 4.
