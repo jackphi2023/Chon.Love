@@ -6,6 +6,7 @@ export * from './account';
 export * from './social';
 export * from './media';
 export * from './economy';
+export * from './payout';
 export type { CompositeTypes, Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { Constants } from './database.types';
 
