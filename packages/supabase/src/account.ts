@@ -66,17 +66,19 @@ export async function completeAdultOnboarding(
   client: SupabaseClient<Database>,
   input: AdultOnboardingInput,
 ): Promise<AdultOnboardingResult> {
-  const { data, error } = await client.rpc('complete_adult_onboarding', {
+  const args: Database['public']['Functions']['complete_adult_onboarding']['Args'] = {
     p_date_of_birth: input.dateOfBirth,
     p_confirms_18: input.confirms18,
     p_terms_version: input.termsVersion,
     p_community_rules_version: input.communityRulesVersion,
     p_username: input.username,
     p_display_name: input.displayName,
-    p_bio: input.bio ?? undefined,
-    p_gender: input.gender ?? undefined,
-    p_province_id: input.provinceId ?? undefined,
-  });
+    ...(input.bio == null ? {} : { p_bio: input.bio }),
+    ...(input.gender == null ? {} : { p_gender: input.gender }),
+    ...(input.provinceId == null ? {} : { p_province_id: input.provinceId }),
+  };
+
+  const { data, error } = await client.rpc('complete_adult_onboarding', args);
   if (error) throw error;
   return firstOrThrow(data, 'complete_adult_onboarding');
 }
@@ -97,10 +99,12 @@ export async function applyForCreator(
   creatorBio: string,
   fanThresholdUnits?: number | null,
 ): Promise<'pending'> {
-  const { data, error } = await client.rpc('apply_for_creator', {
+  const args: Database['public']['Functions']['apply_for_creator']['Args'] = {
     p_creator_bio: creatorBio,
-    p_fan_threshold_units: fanThresholdUnits ?? undefined,
-  });
+    ...(fanThresholdUnits == null ? {} : { p_fan_threshold_units: fanThresholdUnits }),
+  };
+
+  const { data, error } = await client.rpc('apply_for_creator', args);
   if (error) throw error;
   if (data !== 'pending') {
     throw new Error('Unexpected Creator application status.');
