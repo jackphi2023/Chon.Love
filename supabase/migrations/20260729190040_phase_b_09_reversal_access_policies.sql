@@ -42,96 +42,96 @@ begin
   if p_reason_code is null or p_reason_code!~'^[a-z][a-z0-9_]{1,63}$' then raise exception using errcode='22023',message='invalid_reversal_reason'; end if;
   v_event_type:=p_event_type::private.purchase_reversal_type;
   perform pg_advisory_xact_lock(hashtextextended(p_purchase_token_hash,0));
-  select * into v_existing from private.purchase_reversal_events where idempotency_key=p_idempotency_key;
+  select pre.* into v_existing from private.purchase_reversal_events pre where pre.idempotency_key=p_idempotency_key;
   if found then
-    select * into v_purchase from private.play_purchases where id=v_existing.purchase_id;
+    select pp.* into v_purchase from private.play_purchases pp where pp.id=v_existing.purchase_id;
     return query select v_purchase.id,v_purchase.purchase_state::text,v_existing.unspent_debited_units,v_existing.spent_reversed_units,v_existing.creator_reward_reversed_units,v_existing.creator_liability_units,true;
     return;
   end if;
-  select * into v_purchase from private.play_purchases where purchase_token_hash=p_purchase_token_hash for update;
+  select pp.* into v_purchase from private.play_purchases pp where pp.purchase_token_hash=p_purchase_token_hash for update;
   if not found then raise exception using errcode='23503',message='play_purchase_not_found'; end if;
-  select * into v_existing from private.purchase_reversal_events where purchase_id=v_purchase.id and event_type=v_event_type;
+  select pre.* into v_existing from private.purchase_reversal_events pre where pre.purchase_id=v_purchase.id and pre.event_type=v_event_type;
   if found then
     return query select v_purchase.id,v_purchase.purchase_state::text,v_existing.unspent_debited_units,v_existing.spent_reversed_units,v_existing.creator_reward_reversed_units,v_existing.creator_liability_units,true;
     return;
   end if;
-  select * into v_account from private.heart_accounts where user_id=v_purchase.user_id for update;
-  select * into v_lot from private.heart_lots where purchase_id=v_purchase.id for update;
+  select ha.* into v_account from private.heart_accounts ha where ha.user_id=v_purchase.user_id for update;
+  select hl.* into v_lot from private.heart_lots hl where hl.purchase_id=v_purchase.id for update;
   v_unspent:=v_lot.available_units;
   if v_unspent>0 then
-    update private.heart_lots set available_units=0,reversed_units=reversed_units+v_unspent where purchase_id=v_purchase.id;
-    update private.heart_accounts set available_units=available_units-v_unspent,lifetime_reversed_units=lifetime_reversed_units+v_unspent,version=version+1
-    where user_id=v_purchase.user_id returning * into v_account;
+    update private.heart_lots hl set available_units=0,reversed_units=hl.reversed_units+v_unspent where hl.purchase_id=v_purchase.id;
+    update private.heart_accounts ha set available_units=ha.available_units-v_unspent,lifetime_reversed_units=ha.lifetime_reversed_units+v_unspent,version=ha.version+1
+    where ha.user_id=v_purchase.user_id returning ha.* into v_account;
     insert into private.heart_ledger(user_id,entry_type,amount_units,balance_after_units,reference_type,reference_id,idempotency_key,metadata_json)
     values(v_purchase.user_id,'refund_debit',-v_unspent,v_account.available_units,'play_purchase',v_purchase.id,p_idempotency_key,jsonb_build_object('event_type',p_event_type,'reason_code',p_reason_code));
   end if;
-  for v_alloc in select * from private.gift_funding_allocations where purchase_id=v_purchase.id and reversed_units<allocated_units order by gift_transaction_id for update loop
+  for v_alloc in select gfa.* from private.gift_funding_allocations gfa where gfa.purchase_id=v_purchase.id and gfa.reversed_units<gfa.allocated_units order by gfa.gift_transaction_id for update loop
     v_reverse_gross:=v_alloc.allocated_units-v_alloc.reversed_units;
-    select * into v_gift from public.gift_transactions where id=v_alloc.gift_transaction_id for update;
+    select gt.* into v_gift from public.gift_transactions gt where gt.id=v_alloc.gift_transaction_id for update;
     v_reverse_reward:=(v_reverse_gross*v_gift.creator_share_bps)/10000;
     v_reverse_platform:=v_reverse_gross-v_reverse_reward;
-    select * into v_position from private.creator_reward_positions where gift_transaction_id=v_gift.id for update;
-    select * into v_creator_account from private.creator_earning_accounts where creator_id=v_gift.creator_id for update;
+    select crp.* into v_position from private.creator_reward_positions crp where crp.gift_transaction_id=v_gift.id for update;
+    select cea.* into v_creator_account from private.creator_earning_accounts cea where cea.creator_id=v_gift.creator_id for update;
     v_remaining_reward:=v_reverse_reward;
     v_from_pending:=least(v_position.pending_units,v_remaining_reward); v_remaining_reward:=v_remaining_reward-v_from_pending;
     v_from_available:=least(v_position.available_units,v_remaining_reward); v_remaining_reward:=v_remaining_reward-v_from_available;
     v_from_held:=least(v_position.held_units,v_remaining_reward); v_remaining_reward:=v_remaining_reward-v_from_held;
     v_from_paid:=least(v_position.paid_units,v_remaining_reward); v_remaining_reward:=v_remaining_reward-v_from_paid;
     if v_remaining_reward<>0 then raise exception using errcode='23514',message='creator_reward_position_invariant_failed'; end if;
-    update private.creator_reward_positions set
-      pending_units=pending_units-v_from_pending,
-      available_units=available_units-v_from_available,
-      held_units=held_units-v_from_held,
-      paid_units=paid_units-v_from_paid,
-      reversed_units=reversed_units+v_reverse_reward,
-      status=case when reversed_units+v_reverse_reward=original_units then 'reversed'::private.reward_position_status else 'partially_reversed'::private.reward_position_status end
-    where gift_transaction_id=v_gift.id;
-    update private.creator_earning_accounts set
-      pending_units=pending_units-v_from_pending,
-      available_units=available_units-v_from_available,
-      held_units=held_units-v_from_held,
-      paid_units=paid_units-v_from_paid,
-      reversed_units=reversed_units+v_reverse_reward,
-      version=version+1
-    where creator_id=v_gift.creator_id returning * into v_creator_account;
+    update private.creator_reward_positions crp set
+      pending_units=crp.pending_units-v_from_pending,
+      available_units=crp.available_units-v_from_available,
+      held_units=crp.held_units-v_from_held,
+      paid_units=crp.paid_units-v_from_paid,
+      reversed_units=crp.reversed_units+v_reverse_reward,
+      status=case when crp.reversed_units+v_reverse_reward=crp.original_units then 'reversed'::private.reward_position_status else 'partially_reversed'::private.reward_position_status end
+    where crp.gift_transaction_id=v_gift.id;
+    update private.creator_earning_accounts cea set
+      pending_units=cea.pending_units-v_from_pending,
+      available_units=cea.available_units-v_from_available,
+      held_units=cea.held_units-v_from_held,
+      paid_units=cea.paid_units-v_from_paid,
+      reversed_units=cea.reversed_units+v_reverse_reward,
+      version=cea.version+1
+    where cea.creator_id=v_gift.creator_id returning cea.* into v_creator_account;
     if v_from_paid>0 then
       insert into private.creator_reward_liabilities(creator_id,purchase_id,gift_transaction_id,amount_units,reason_code)
       values(v_gift.creator_id,v_purchase.id,v_gift.id,v_from_paid,'paid_reward_purchase_reversal')
-      on conflict(purchase_id,gift_transaction_id) do update set amount_units=private.creator_reward_liabilities.amount_units+excluded.amount_units;
+      on conflict on constraint creator_reward_liabilities_purchase_id_gift_transaction_id_key do update set amount_units=private.creator_reward_liabilities.amount_units+excluded.amount_units;
       v_liability_total:=v_liability_total+v_from_paid;
     end if;
     insert into private.creator_reward_ledger(creator_id,gift_transaction_id,entry_type,amount_units,available_at,reference_type,reference_id,idempotency_key,metadata_json)
     values(v_gift.creator_id,v_gift.id,'reward_reversed',-v_reverse_reward,now(),'play_purchase',v_purchase.id,extensions.gen_random_uuid(),
       jsonb_build_object('pending_units',v_from_pending,'available_units',v_from_available,'held_units',v_from_held,'paid_units',v_from_paid,'reason_code',p_reason_code));
-    update private.gift_funding_allocations set reversed_units=allocated_units where gift_transaction_id=v_alloc.gift_transaction_id and purchase_id=v_alloc.purchase_id;
-    update private.heart_lots set spent_units=spent_units-v_reverse_gross,reversed_units=reversed_units+v_reverse_gross where purchase_id=v_purchase.id;
+    update private.gift_funding_allocations gfa set reversed_units=gfa.allocated_units where gfa.gift_transaction_id=v_alloc.gift_transaction_id and gfa.purchase_id=v_alloc.purchase_id;
+    update private.heart_lots hl set spent_units=hl.spent_units-v_reverse_gross,reversed_units=hl.reversed_units+v_reverse_gross where hl.purchase_id=v_purchase.id;
     v_new_reversed_gross:=v_gift.reversed_heart_units+v_reverse_gross;
     v_new_reversed_reward:=v_gift.reversed_creator_reward_units+v_reverse_reward;
     v_new_reversed_platform:=v_gift.reversed_platform_units+v_reverse_platform;
     v_new_status:=case when v_new_reversed_gross=v_gift.gross_heart_units then 'reversed'::public.gift_transaction_status else 'partially_reversed'::public.gift_transaction_status end;
-    update public.gift_transactions set reversed_heart_units=v_new_reversed_gross,reversed_creator_reward_units=v_new_reversed_reward,reversed_platform_units=v_new_reversed_platform,status=v_new_status,reversed_at=now()
-    where id=v_gift.id;
-    update public.fan_progress set eligible_units=greatest(eligible_units-v_reverse_gross,0)
-    where creator_id=v_gift.creator_id and fan_user_id=v_gift.sender_id returning * into v_progress;
+    update public.gift_transactions gt set reversed_heart_units=v_new_reversed_gross,reversed_creator_reward_units=v_new_reversed_reward,reversed_platform_units=v_new_reversed_platform,status=v_new_status,reversed_at=now()
+    where gt.id=v_gift.id;
+    update public.fan_progress fp set eligible_units=greatest(fp.eligible_units-v_reverse_gross,0)
+    where fp.creator_id=v_gift.creator_id and fp.fan_user_id=v_gift.sender_id returning fp.* into v_progress;
     if found and v_progress.eligible_units<v_progress.threshold_units then
-      update public.fan_memberships set status='revoked',revoked_at=coalesce(revoked_at,now())
-      where creator_id=v_gift.creator_id and fan_user_id=v_gift.sender_id and status='active';
+      update public.fan_memberships fm set status='revoked',revoked_at=coalesce(fm.revoked_at,now())
+      where fm.creator_id=v_gift.creator_id and fm.fan_user_id=v_gift.sender_id and fm.status='active';
     end if;
-    update public.economy_sync set creator_account_version=v_creator_account.version,updated_at=now() where user_id=v_gift.creator_id;
+    update public.economy_sync es set creator_account_version=v_creator_account.version,updated_at=now() where es.user_id=v_gift.creator_id;
     v_spent:=v_spent+v_reverse_gross;
     v_reward_total:=v_reward_total+v_reverse_reward;
   end loop;
-  update private.play_purchases set
+  update private.play_purchases pp set
     purchase_state=case when v_event_type='refund' then 'refunded'::private.play_purchase_state else 'revoked'::private.play_purchase_state end,
-    refunded_at=case when v_event_type='refund' then now() else refunded_at end,
-    revoked_at=case when v_event_type='revocation' then now() else revoked_at end
-  where id=v_purchase.id returning * into v_purchase;
+    refunded_at=case when v_event_type='refund' then now() else pp.refunded_at end,
+    revoked_at=case when v_event_type='revocation' then now() else pp.revoked_at end
+  where pp.id=v_purchase.id returning pp.* into v_purchase;
   if v_unspent=0 then
-    update private.heart_accounts set lifetime_reversed_units=lifetime_reversed_units+v_spent,version=version+1 where user_id=v_purchase.user_id returning * into v_account;
+    update private.heart_accounts ha set lifetime_reversed_units=ha.lifetime_reversed_units+v_spent,version=ha.version+1 where ha.user_id=v_purchase.user_id returning ha.* into v_account;
   else
-    update private.heart_accounts set lifetime_reversed_units=lifetime_reversed_units+v_spent where user_id=v_purchase.user_id returning * into v_account;
+    update private.heart_accounts ha set lifetime_reversed_units=ha.lifetime_reversed_units+v_spent where ha.user_id=v_purchase.user_id returning ha.* into v_account;
   end if;
-  update public.economy_sync set heart_account_version=v_account.version,updated_at=now() where user_id=v_purchase.user_id;
+  update public.economy_sync es set heart_account_version=v_account.version,updated_at=now() where es.user_id=v_purchase.user_id;
   insert into private.purchase_reversal_events(purchase_id,event_type,reason_code,unspent_debited_units,spent_reversed_units,creator_reward_reversed_units,creator_liability_units,idempotency_key)
   values(v_purchase.id,v_event_type,p_reason_code,v_unspent,v_spent,v_reward_total,v_liability_total,p_idempotency_key);
   return query select v_purchase.id,v_purchase.purchase_state::text,v_unspent,v_spent,v_reward_total,v_liability_total,false;
