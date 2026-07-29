@@ -80,12 +80,12 @@ create temporary table gift_hundred as select * from public.send_gift(
 );
 select is((select creator_reward_units from gift_hundred),7000::bigint,'100-heart gift gives Creator 7000 units');
 select is((select platform_gross_units from gift_hundred),3000::bigint,'100-heart gift gives platform 3000 units');
+reset role;
 select is((select pending_units from private.creator_earning_accounts where creator_id='49000000-0000-0000-0000-000000000002'),7770::bigint,'Creator pending account equals exact integer rewards');
 select is((select count(*) from private.creator_reward_ledger where entry_type='gift_reward_pending'),3::bigint,'each gift writes one Creator reward ledger entry');
 select is((select count(*) from private.gift_funding_allocations),3::bigint,'gift spending is attributed to purchase lots');
 select is((select available_units from private.heart_accounts where user_id='49000000-0000-0000-0000-000000000001'),38900::bigint,'balance conserves purchase minus gifts');
 select is((select lifetime_spent_units from private.heart_accounts where user_id='49000000-0000-0000-0000-000000000001'),11100::bigint,'lifetime spent tracks all completed gifts');
-reset role;
 
 update public.gift_catalog set heart_price_units=200,display_hearts=2 where id=(select gift_id from public.gift_transactions where id=(select gift_transaction_id from gift_one));
 select is((select unit_heart_units from public.gift_transactions where id=(select gift_transaction_id from gift_one)),100::bigint,'catalog price change does not mutate transaction snapshot');
