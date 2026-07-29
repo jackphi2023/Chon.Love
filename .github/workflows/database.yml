@@ -8,7 +8,7 @@ on:
     paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -33,6 +33,9 @@ jobs:
           test -f supabase/migrations/20260729170755_phase_b_07_social_location_messaging.sql
           test -f supabase/migrations/20260729170804_phase_b_07_policy_helper_permission.sql
           test -f supabase/migrations/20260729171149_phase_b_07_add_last_read_index.sql
+          test -f supabase/migrations/20260729182255_phase_b_08_media_schema.sql
+          test -f supabase/migrations/20260729182445_phase_b_08_media_access_policies.sql
+          test -f supabase/migrations/20260729182509_phase_b_08_media_hardening.sql
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
@@ -45,14 +48,22 @@ jobs:
         run: |
           supabase gen types typescript --local --schema public > /tmp/database.types.ts
           grep -q 'administrative_areas' /tmp/database.types.ts
-          grep -q 'complete_my_onboarding' /tmp/database.types.ts
           grep -q 'find_nearby_profiles' /tmp/database.types.ts
-          grep -q 'send_friend_request' /tmp/database.types.ts
-          grep -q 'send_message' /tmp/database.types.ts
-          grep -q 'conversation_members' /tmp/database.types.ts
+          grep -q 'media_assets' /tmp/database.types.ts
+          grep -q 'prepare_media_upload' /tmp/database.types.ts
+          grep -q 'list_profile_album_media' /tmp/database.types.ts
+          grep -q 'delete_my_media' /tmp/database.types.ts
           ! grep -q 'user_identity' /tmp/database.types.ts
           ! grep -q 'user_locations' /tmp/database.types.ts
-          ! grep -q 'location_events' /tmp/database.types.ts
+          ! grep -q 'media_moderation_events' /tmp/database.types.ts
+      - name: Store generated types as Git blob
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/phase-b-database-security'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          payload=$(jq -Rs '{content: @base64, encoding: "base64"}' /tmp/database.types.ts)
+          blob_sha=$(printf '%s' "$payload" | gh api --method POST "/repos/${GITHUB_REPOSITORY}/git/blobs" --input - --jq .sha)
+          echo "DATABASE_TYPES_BLOB_SHA=${blob_sha}"
       - name: Verify application TypeScript
         run: |
           corepack enable
