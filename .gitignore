@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Expo / React Native
+.expo/
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/android/
+apps/mobile/ios/
+
+# Next.js
+.next/
+out/
+apps/*/.next/
+apps/*/out/
+
+# Tests and coverage
+coverage/
+
+# Build output
+build/
+dist/
+*.tsbuildinfo
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Credentials
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+service-account*.json
+google-services.json
+GoogleService-Info.plist

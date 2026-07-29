@@ -1,0 +1,1 @@
+-- Session 4 placeholder. Business schema begins in Phase B.

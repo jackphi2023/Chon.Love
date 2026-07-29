@@ -1,0 +1,32 @@
+{
+  "name": "myfan",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=10.15.0 <11"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @myfan/mobile --filter @myfan/admin --filter @myfan/public-web dev",
+    "dev:mobile": "pnpm --filter @myfan/mobile dev",
+    "dev:admin": "pnpm --filter @myfan/admin dev",
+    "dev:public": "pnpm --filter @myfan/public-web dev",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "build": "pnpm build:web && pnpm build:mobile:web",
+    "build:web": "pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build",
+    "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
+    "validate:workspace": "node scripts/validate-workspace.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "24.0.15",
+    "eslint": "9.39.5",
+    "globals": "17.7.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
+  }
+}

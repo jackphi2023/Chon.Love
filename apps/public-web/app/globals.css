@@ -1,0 +1,7 @@
+:root { font-family: Arial, sans-serif; background: #f7fafc; color: #111827; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main, footer { max-width: 960px; margin: auto; padding: 24px; }
+header { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+header a { text-decoration: none; }
+.hero, .card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px; }

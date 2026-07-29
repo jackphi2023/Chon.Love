@@ -1,0 +1,26 @@
+{
+  "name": "@myfan/admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@myfan/config": "workspace:*",
+    "@myfan/domain": "workspace:*",
+    "@myfan/supabase": "workspace:*",
+    "@myfan/ui": "workspace:*",
+    "next": "16.2.11",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.0.15",
+    "@types/react": "~19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "catalog:"
+  }
+}

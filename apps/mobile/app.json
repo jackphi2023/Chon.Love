@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "MyFan Dev",
+    "slug": "myfan-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "myfan",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "com.myfan.mobile.dev"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    }
+  }
+}

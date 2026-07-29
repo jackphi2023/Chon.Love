@@ -1,0 +1,10 @@
+:root { color-scheme: light; font-family: Arial, sans-serif; background: #f7fafc; color: #111827; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: inherit; }
+.shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+nav { background: #111827; color: white; padding: 24px; }
+nav a { display: block; margin: 12px 0; text-decoration: none; }
+main { padding: 32px; }
+.card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
+@media (max-width: 760px) { .shell { grid-template-columns: 1fr; } nav { position: static; } }
