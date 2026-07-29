@@ -1,5 +1,5 @@
 begin;
-select plan(28);
+select plan(33);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token) values
 ('00000000-0000-0000-0000-000000000000','20000000-0000-0000-0000-000000000001','authenticated','authenticated','social-a@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
