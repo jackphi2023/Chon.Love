@@ -16,7 +16,7 @@ concurrency:
 jobs:
   local-database:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v2
@@ -47,9 +47,24 @@ jobs:
           test -f supabase/migrations/20260729200911_phase_b_09_edge_function_marker.sql
           test -f supabase/migrations/20260729200945_phase_b_09_noop_history_alignment.sql
           test -f supabase/migrations/20260729201435_phase_b_09_add_liability_gift_index.sql
+          test -f supabase/migrations/20260729204001_phase_b_10_kyc_withdrawal_schema.sql
+          test -f supabase/migrations/20260729204002_phase_b_10_kyc_bank_user_operations.sql
+          test -f supabase/migrations/20260729204003_phase_b_10_withdrawal_request_operations.sql
+          test -f supabase/migrations/20260729204004_phase_b_10_kyc_bank_review_operations.sql
+          test -f supabase/migrations/20260729204005_phase_b_10_withdrawal_admin_operations.sql
+          test -f supabase/migrations/20260729204006_phase_b_10_account_hold_operations.sql
+          test -f supabase/migrations/20260729204007_phase_b_10_account_deletion_operations.sql
+          test -f supabase/migrations/20260729204008_phase_b_10_access_sync_admin_payloads.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
           test -f supabase/functions/play-purchase-verify/index.ts
+          test -f supabase/functions/payout-profile-submit/index.ts
+          test -f supabase/functions/payout-profile-submit/crypto.ts
+          test -f supabase/functions/payout-admin/index.ts
+          test -f supabase/functions/payout-admin/crypto.ts
+          test -f supabase/functions/account-deletion/index.ts
+          test -f supabase/tests/10_kyc_withdrawals_audit_test.sql
+          test -f supabase/tests/10_withdrawal_concurrency.sh
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
@@ -58,26 +73,31 @@ jobs:
         run: supabase test db --local
       - name: Run Session 9 concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
+      - name: Run Session 10 concurrent withdrawal test
+        run: bash supabase/tests/10_withdrawal_concurrency.sh
       - name: Lint schemas
         run: supabase db lint --local --schema public --schema private --level warning
-      - name: Verify generated public contract
+      - name: Generate and verify public contract
         run: |
           supabase gen types typescript --local --schema public > /tmp/database.types.ts
-          grep -q 'administrative_areas' /tmp/database.types.ts
-          grep -q 'media_assets' /tmp/database.types.ts
-          grep -q 'heart_products' /tmp/database.types.ts
-          grep -q 'gift_catalog' /tmp/database.types.ts
-          grep -q 'gift_transactions' /tmp/database.types.ts
-          grep -q 'fan_memberships' /tmp/database.types.ts
-          grep -q 'send_gift' /tmp/database.types.ts
-          grep -q 'get_my_economy_summary' /tmp/database.types.ts
-          ! grep -q 'user_identity' /tmp/database.types.ts
-          ! grep -q 'user_locations' /tmp/database.types.ts
-          ! grep -q 'media_moderation_events' /tmp/database.types.ts
-          ! grep -q 'play_purchases' /tmp/database.types.ts
-          ! grep -q 'heart_ledger' /tmp/database.types.ts
-          ! grep -q 'creator_reward_ledger' /tmp/database.types.ts
-          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
+          grep -q 'payout_sync' /tmp/database.types.ts
+          grep -q 'get_my_payout_summary' /tmp/database.types.ts
+          grep -q 'get_my_kyc_status' /tmp/database.types.ts
+          grep -q 'request_withdrawal' /tmp/database.types.ts
+          grep -q 'request_account_deletion' /tmp/database.types.ts
+          grep -q 'server_submit_kyc_profile' /tmp/database.types.ts
+          ! grep -q '^      kyc_profiles:' /tmp/database.types.ts
+          ! grep -q '^      bank_accounts:' /tmp/database.types.ts
+          ! grep -q '^      withdrawals:' /tmp/database.types.ts
+          ! grep -q '^      admin_audit_logs:' /tmp/database.types.ts
+      - name: Upload generated public contract
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-types
+          path: /tmp/database.types.ts
+          retention-days: 1
+      - name: Verify exact generated types
+        run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
       - name: Verify application TypeScript
         run: |
           corepack enable
