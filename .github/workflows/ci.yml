@@ -30,9 +30,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
+          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Validate workspace
         run: pnpm validate:workspace
@@ -48,11 +49,3 @@ jobs:
 
       - name: Build web applications and Expo web
         run: pnpm build
-
-      - name: Upload generated lockfile for foundation commit
-        if: always() && hashFiles('pnpm-lock.yaml') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: pnpm-lockfile
-          path: pnpm-lock.yaml
-          retention-days: 3
