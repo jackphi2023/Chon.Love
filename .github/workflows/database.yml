@@ -37,11 +37,11 @@ jobs:
           test -f supabase/migrations/20260729182445_phase_b_08_media_access_policies.sql
           test -f supabase/migrations/20260729182509_phase_b_08_media_hardening.sql
           test -f supabase/migrations/20260729183126_phase_b_08_add_fk_indexes.sql
-          test -f supabase/migrations/20260729190000_phase_b_09_catalog_purchase_heart_schema.sql
-          test -f supabase/migrations/20260729190010_phase_b_09_gifts_rewards_fan_schema.sql
-          test -f supabase/migrations/20260729190020_phase_b_09_economy_purchase_operations.sql
-          test -f supabase/migrations/20260729190030_phase_b_09_gift_reward_operations.sql
-          test -f supabase/migrations/20260729190040_phase_b_09_reversal_access_policies.sql
+          test -f supabase/migrations/20260729195413_phase_b_09_catalog_purchase_heart_schema.sql
+          test -f supabase/migrations/20260729195524_phase_b_09_gifts_rewards_fan_schema.sql
+          test -f supabase/migrations/20260729195622_phase_b_09_economy_purchase_operations.sql
+          test -f supabase/migrations/20260729195731_phase_b_09_gift_reward_operations.sql
+          test -f supabase/migrations/20260729195833_phase_b_09_reversal_access_policies.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
           test -f supabase/functions/play-purchase-verify/index.ts
