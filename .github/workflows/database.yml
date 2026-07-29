@@ -22,7 +22,7 @@ jobs:
       - uses: supabase/setup-cli@v2
         with:
           version: 2.110.0
-      - name: Verify CLI
+      - name: Verify CLI and migration inventory
         run: |
           supabase --version
           supabase migration --help >/dev/null
@@ -30,6 +30,9 @@ jobs:
           test -f supabase/migrations/20260729160331_phase_b_06_core_profiles.sql
           test -f supabase/migrations/20260729160609_phase_b_06_fix_onboarding_rpc.sql
           test -f supabase/migrations/20260729160726_phase_b_06_add_fk_indexes.sql
+          test -f supabase/migrations/20260729170755_phase_b_07_social_location_messaging.sql
+          test -f supabase/migrations/20260729170804_phase_b_07_policy_helper_permission.sql
+          test -f supabase/migrations/20260729171149_phase_b_07_add_last_read_index.sql
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
@@ -43,8 +46,13 @@ jobs:
           supabase gen types typescript --local --schema public > /tmp/database.types.ts
           grep -q 'administrative_areas' /tmp/database.types.ts
           grep -q 'complete_my_onboarding' /tmp/database.types.ts
-          grep -q 'update_my_profile' /tmp/database.types.ts
+          grep -q 'find_nearby_profiles' /tmp/database.types.ts
+          grep -q 'send_friend_request' /tmp/database.types.ts
+          grep -q 'send_message' /tmp/database.types.ts
+          grep -q 'conversation_members' /tmp/database.types.ts
           ! grep -q 'user_identity' /tmp/database.types.ts
+          ! grep -q 'user_locations' /tmp/database.types.ts
+          ! grep -q 'location_events' /tmp/database.types.ts
       - name: Verify application TypeScript
         run: |
           corepack enable
