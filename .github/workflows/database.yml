@@ -8,7 +8,7 @@ on:
     paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -37,6 +37,8 @@ jobs:
           test -f supabase/migrations/20260729182445_phase_b_08_media_access_policies.sql
           test -f supabase/migrations/20260729182509_phase_b_08_media_hardening.sql
           test -f supabase/migrations/20260729183126_phase_b_08_add_fk_indexes.sql
+          test -f supabase/functions/media-access/index.ts
+          test -f supabase/functions/media-moderation/index.ts
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
@@ -57,13 +59,7 @@ jobs:
           ! grep -q 'user_identity' /tmp/database.types.ts
           ! grep -q 'user_locations' /tmp/database.types.ts
           ! grep -q 'media_moderation_events' /tmp/database.types.ts
-      - name: Store generated types as Git blob
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          payload=$(jq -Rs '{content: @base64, encoding: "base64"}' /tmp/database.types.ts)
-          blob_sha=$(printf '%s' "$payload" | gh api --method POST "/repos/${GITHUB_REPOSITORY}/git/blobs" --input - --jq .sha)
-          echo "DATABASE_TYPES_BLOB_SHA=${blob_sha}"
+          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
       - name: Verify application TypeScript
         run: |
           corepack enable
