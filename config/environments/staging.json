@@ -1,11 +1,1 @@
-{
-  "name": "staging",
-  "gitBranch": "release/staging",
-  "supabaseProjectRef": "fciyrjtqnifapafqythy",
-  "supabaseUrl": "https://fciyrjtqnifapafqythy.supabase.co",
-  "supabaseRegion": "ap-southeast-1",
-  "supabaseLifecycle": "paused-on-free-plan",
-  "netlifyContext": "release/staging",
-  "deployPolicy": "branch-deploy",
-  "production": false
-}
+{"name":"staging","gitBranch":"release/staging","supabaseProjectRef":"asnydvqsduonyidjyyzq","supabaseUrl":"https://asnydvqsduonyidjyyzq.supabase.co","supabaseRegion":"ap-southeast-1","supabaseLifecycle":"active-shared-project","supabaseMode":"single-project","netlifyContext":"release/staging","deployPolicy":"branch-deploy","production":false}

@@ -1,23 +1,18 @@
 [build]
-  command = "corepack enable && pnpm --filter @myfan/public-web build"
-  publish = "apps/public-web/out"
-
+command="corepack enable && pnpm --filter @myfan/public-web build"
+publish="apps/public-web/out"
 [build.environment]
-  NODE_VERSION = "22.13.0"
-  PNPM_VERSION = "10.15.1"
-
+NODE_VERSION="22.13.0"
+PNPM_VERSION="10.15.1"
 [context.production.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "production"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-
+NEXT_PUBLIC_MYFAN_ENV="production"
+NEXT_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
 [context.develop.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://qxsqrtnelbqquqgbamjo.supabase.co"
-
+NEXT_PUBLIC_MYFAN_ENV="development"
+NEXT_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
 [context."release/staging".environment]
-  NEXT_PUBLIC_MYFAN_ENV = "staging"
-  NEXT_PUBLIC_SUPABASE_URL = "https://fciyrjtqnifapafqythy.supabase.co"
-
+NEXT_PUBLIC_MYFAN_ENV="staging"
+NEXT_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
 [context.deploy-preview.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://qxsqrtnelbqquqgbamjo.supabase.co"
+NEXT_PUBLIC_MYFAN_ENV="development"
+NEXT_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"

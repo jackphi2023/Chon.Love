@@ -1,11 +1,1 @@
-{
-  "name": "production",
-  "gitBranch": "main",
-  "supabaseProjectRef": "asnydvqsduonyidjyyzq",
-  "supabaseUrl": "https://asnydvqsduonyidjyyzq.supabase.co",
-  "supabaseRegion": "ap-southeast-1",
-  "supabaseLifecycle": "active",
-  "netlifyContext": "production",
-  "deployPolicy": "manual-approval",
-  "production": true
-}
+{"name":"production","gitBranch":"main","supabaseProjectRef":"asnydvqsduonyidjyyzq","supabaseUrl":"https://asnydvqsduonyidjyyzq.supabase.co","supabaseRegion":"ap-southeast-1","supabaseLifecycle":"active-shared-project","supabaseMode":"single-project","netlifyContext":"production","deployPolicy":"manual-approval","production":true}

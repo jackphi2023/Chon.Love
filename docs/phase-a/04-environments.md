@@ -1,19 +1,7 @@
-# Phase A / Session 5 — Environment architecture
+# MyFan environment decision
 
-This file is the canonical Phase A environment entry point requested by Phase B.
+**Effective 2026-07-29:** MyFan uses only Supabase project `asnydvqsduonyidjyyzq` at `https://asnydvqsduonyidjyyzq.supabase.co` in `ap-southeast-1`.
 
-The full provisioning runbook is maintained in:
+Expo Web, Android, iOS, Admin Web and Public Web consume the same Auth users, public API, Realtime, Storage, RPCs and generated TypeScript contract. `development`, `staging` and `production` are Git/build labels, not database-isolation boundaries.
 
-```text
-docs/phase-a/session-5-environments.md
-```
-
-Environment mapping:
-
-| Environment | Git branch | Supabase project ref |
-|---|---|---|
-| Development | `develop` | `qxsqrtnelbqquqgbamjo` |
-| Staging | `release/staging` | `fciyrjtqnelbqquqgbamjo` |
-| Production | `main` | `asnydvqsduonyidjyyzq` |
-
-Phase B migrations must be tested and applied to Development first. Nothing in Phase B is deployed directly to Production.
+The experimental refs `qxsqrtnelbqquqgbamjo` and `fciyrjtqnifapafqythy` are retired from MyFan configuration. Only project URL and publishable key may enter clients; service-role and database credentials remain server-side.

@@ -1,41 +1,11 @@
 {
-  "name": "myfan",
-  "version": "0.1.0",
-  "private": true,
-  "packageManager": "pnpm@10.15.1",
-  "engines": {
-    "node": ">=22.13.0",
-    "pnpm": ">=10.15.0 <11"
+  "name":"myfan","version":"0.1.0","private":true,"packageManager":"pnpm@10.15.1",
+  "engines":{"node":">=22.13.0","pnpm":">=10.15.0 <11"},
+  "scripts":{
+    "dev":"pnpm --parallel --filter @myfan/mobile --filter @myfan/admin --filter @myfan/public-web dev","dev:mobile":"pnpm --filter @myfan/mobile dev","dev:admin":"pnpm --filter @myfan/admin dev","dev:public":"pnpm --filter @myfan/public-web dev",
+    "lint":"eslint . --max-warnings=0","typecheck":"pnpm -r --if-present typecheck","test":"vitest run","build":"pnpm build:web && pnpm build:mobile:web","build:web":"pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build","build:mobile:web":"pnpm --filter @myfan/mobile build:web",
+    "validate:workspace":"node scripts/validate-workspace.mjs","validate:environments":"node scripts/validate-environments.mjs","validate":"pnpm validate:workspace && pnpm validate:environments",
+    "supabase:help":"supabase --help && supabase migration --help && supabase db --help","supabase:start":"supabase start","supabase:stop":"supabase stop --no-backup","supabase:reset":"supabase db reset --local","supabase:test":"supabase test db --local","supabase:lint":"supabase db lint --local --schema public --schema private --level warning","supabase:types":"supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts","supabase:types:remote":"supabase gen types typescript --project-id asnydvqsduonyidjyyzq --schema public > packages/supabase/src/database.types.ts"
   },
-  "scripts": {
-    "dev": "pnpm --parallel --filter @myfan/mobile --filter @myfan/admin --filter @myfan/public-web dev",
-    "dev:mobile": "pnpm --filter @myfan/mobile dev",
-    "dev:admin": "pnpm --filter @myfan/admin dev",
-    "dev:public": "pnpm --filter @myfan/public-web dev",
-    "lint": "eslint . --max-warnings=0",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "test": "vitest run",
-    "build": "pnpm build:web && pnpm build:mobile:web",
-    "build:web": "pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build",
-    "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
-    "validate:workspace": "node scripts/validate-workspace.mjs",
-    "validate:environments": "node scripts/validate-environments.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments",
-    "supabase:help": "supabase --help && supabase migration --help && supabase db --help",
-    "supabase:start": "supabase start",
-    "supabase:reset": "supabase db reset --local",
-    "supabase:test": "supabase test db --local",
-    "supabase:lint": "supabase db lint --local --schema public --schema private --level warning",
-    "supabase:types": "supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts"
-  },
-  "devDependencies": {
-    "@eslint/js": "9.39.5",
-    "@types/node": "24.0.15",
-    "eslint": "9.39.5",
-    "globals": "17.7.0",
-    "typescript": "~6.0.3",
-    "typescript-eslint": "8.65.0",
-    "vite": "7.3.6",
-    "vitest": "4.1.10"
-  }
+  "devDependencies":{"@eslint/js":"9.39.5","@types/node":"24.0.15","eslint":"9.39.5","globals":"17.7.0","typescript":"~6.0.3","typescript-eslint":"8.65.0","vite":"7.3.6","vitest":"4.1.10"}
 }

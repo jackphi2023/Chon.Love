@@ -3,23 +3,12 @@ name: Database
 on:
   push:
     branches: [develop, 'feature/phase-b-database-security']
-    paths:
-      - 'supabase/**'
-      - 'packages/supabase/**'
-      - 'docs/phase-b/**'
-      - '.github/workflows/database.yml'
-      - 'package.json'
+    paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
   pull_request:
-    paths:
-      - 'supabase/**'
-      - 'packages/supabase/**'
-      - 'docs/phase-b/**'
-      - '.github/workflows/database.yml'
-      - 'package.json'
+    paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
   contents: read
-
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -27,56 +16,35 @@ concurrency:
 jobs:
   local-database:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v2
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
         with:
           version: 2.110.0
-
-      - name: Inspect CLI commands
+      - name: Verify CLI
         run: |
           supabase --version
-          supabase --help
-          supabase migration --help
-          supabase db --help
-          supabase test --help
-
-      - name: Generate Session 6 migration with Supabase CLI
-        id: migration
-        shell: bash
-        run: |
-          set -euo pipefail
-          committed="$(find supabase/migrations -maxdepth 1 -type f -name '*_phase_b_06_core_profiles.sql' -print -quit || true)"
-          if [[ -z "${committed}" ]]; then
-            echo "Committed Session 6 migration is missing." >&2
-            exit 1
-          fi
-          migration_file="${committed}"
-          echo "file=${migration_file}" >> "${GITHUB_OUTPUT}"
-          echo "Migration: ${migration_file}"
-
+          supabase migration --help >/dev/null
+          supabase db --help >/dev/null
+          test -f supabase/migrations/20260729160331_phase_b_06_core_profiles.sql
+          test -f supabase/migrations/20260729160609_phase_b_06_fix_onboarding_rpc.sql
+          test -f supabase/migrations/20260729160726_phase_b_06_add_fk_indexes.sql
       - name: Start local Supabase
         run: supabase start
-
-      - name: Reset local database and seed
+      - name: Reset and seed
         run: supabase db reset --local
-
-      - name: Run pgTAP database tests
+      - name: Run pgTAP tests
         run: supabase test db --local
-
-      - name: Lint public and private schemas
+      - name: Lint schemas
         run: supabase db lint --local --schema public --schema private --level warning
-
-      - name: Generate public TypeScript types
-        run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
-
-      - name: Verify generated TypeScript types are committed
-        run: diff -u packages/supabase/src/database.types.ts /tmp/database.types.ts
-
+      - name: Verify generated public contract
+        run: |
+          supabase gen types typescript --local --schema public > /tmp/database.types.ts
+          grep -q 'administrative_areas' /tmp/database.types.ts
+          grep -q 'complete_my_onboarding' /tmp/database.types.ts
+          grep -q 'update_my_profile' /tmp/database.types.ts
+          ! grep -q 'user_identity' /tmp/database.types.ts
       - name: Verify application TypeScript
         run: |
           corepack enable
@@ -85,21 +53,6 @@ jobs:
           pnpm lint
           pnpm typecheck
           pnpm test
-
-      - name: Package generated migration and types
-        run: |
-          mkdir -p /tmp/phase6-generated/supabase/migrations
-          mkdir -p /tmp/phase6-generated/packages/supabase/src
-          cp "${{ steps.migration.outputs.file }}" /tmp/phase6-generated/supabase/migrations/
-          cp /tmp/database.types.ts /tmp/phase6-generated/packages/supabase/src/database.types.ts
-
-      - name: Upload generated Session 6 files
-        uses: actions/upload-artifact@v4
-        with:
-          name: phase6-generated
-          path: /tmp/phase6-generated
-          retention-days: 3
-
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup

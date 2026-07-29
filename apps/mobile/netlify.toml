@@ -1,23 +1,18 @@
 [build]
-  command = "corepack enable && pnpm --filter @myfan/mobile build:web"
-  publish = "apps/mobile/dist"
-
+command="corepack enable && pnpm --filter @myfan/mobile build:web"
+publish="apps/mobile/dist"
 [build.environment]
-  NODE_VERSION = "22.13.0"
-  PNPM_VERSION = "10.15.1"
-
+NODE_VERSION="22.13.0"
+PNPM_VERSION="10.15.1"
 [context.production.environment]
-  EXPO_PUBLIC_MYFAN_ENV = "production"
-  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-
+EXPO_PUBLIC_MYFAN_ENV="production"
+EXPO_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
 [context.develop.environment]
-  EXPO_PUBLIC_MYFAN_ENV = "development"
-  EXPO_PUBLIC_SUPABASE_URL = "https://qxsqrtnelbqquqgbamjo.supabase.co"
-
+EXPO_PUBLIC_MYFAN_ENV="development"
+EXPO_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
 [context."release/staging".environment]
-  EXPO_PUBLIC_MYFAN_ENV = "staging"
-  EXPO_PUBLIC_SUPABASE_URL = "https://fciyrjtqnifapafqythy.supabase.co"
-
+EXPO_PUBLIC_MYFAN_ENV="staging"
+EXPO_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
 [context.deploy-preview.environment]
-  EXPO_PUBLIC_MYFAN_ENV = "development"
-  EXPO_PUBLIC_SUPABASE_URL = "https://qxsqrtnelbqquqgbamjo.supabase.co"
+EXPO_PUBLIC_MYFAN_ENV="development"
+EXPO_PUBLIC_SUPABASE_URL="https://asnydvqsduonyidjyyzq.supabase.co"
