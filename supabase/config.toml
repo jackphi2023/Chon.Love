@@ -54,3 +54,9 @@ secure_password_change = true
 [edge_runtime]
 enabled = true
 policy = "oneshot"
+
+[functions.media-access]
+verify_jwt = true
+
+[functions.media-moderation]
+verify_jwt = true
