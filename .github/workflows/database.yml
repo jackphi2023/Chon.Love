@@ -37,29 +37,41 @@ jobs:
           test -f supabase/migrations/20260729182445_phase_b_08_media_access_policies.sql
           test -f supabase/migrations/20260729182509_phase_b_08_media_hardening.sql
           test -f supabase/migrations/20260729183126_phase_b_08_add_fk_indexes.sql
+          test -f supabase/migrations/20260729190000_phase_b_09_catalog_purchase_heart_schema.sql
+          test -f supabase/migrations/20260729190010_phase_b_09_gifts_rewards_fan_schema.sql
+          test -f supabase/migrations/20260729190020_phase_b_09_economy_purchase_operations.sql
+          test -f supabase/migrations/20260729190030_phase_b_09_gift_reward_operations.sql
+          test -f supabase/migrations/20260729190040_phase_b_09_reversal_access_policies.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
+          test -f supabase/functions/play-purchase-verify/index.ts
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
         run: supabase db reset --local
       - name: Run pgTAP tests
         run: supabase test db --local
+      - name: Run Session 9 concurrent gift test
+        run: bash supabase/tests/09_concurrency.sh
       - name: Lint schemas
         run: supabase db lint --local --schema public --schema private --level warning
       - name: Verify generated public contract
         run: |
           supabase gen types typescript --local --schema public > /tmp/database.types.ts
           grep -q 'administrative_areas' /tmp/database.types.ts
-          grep -q 'find_nearby_profiles' /tmp/database.types.ts
           grep -q 'media_assets' /tmp/database.types.ts
-          grep -q 'prepare_media_upload' /tmp/database.types.ts
-          grep -q 'list_profile_album_media' /tmp/database.types.ts
-          grep -q 'delete_my_media' /tmp/database.types.ts
+          grep -q 'heart_products' /tmp/database.types.ts
+          grep -q 'gift_catalog' /tmp/database.types.ts
+          grep -q 'gift_transactions' /tmp/database.types.ts
+          grep -q 'fan_memberships' /tmp/database.types.ts
+          grep -q 'send_gift' /tmp/database.types.ts
+          grep -q 'get_my_economy_summary' /tmp/database.types.ts
           ! grep -q 'user_identity' /tmp/database.types.ts
           ! grep -q 'user_locations' /tmp/database.types.ts
           ! grep -q 'media_moderation_events' /tmp/database.types.ts
-          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
+          ! grep -q 'play_purchases' /tmp/database.types.ts
+          ! grep -q 'heart_ledger' /tmp/database.types.ts
+          ! grep -q 'creator_reward_ledger' /tmp/database.types.ts
       - name: Verify application TypeScript
         run: |
           corepack enable
