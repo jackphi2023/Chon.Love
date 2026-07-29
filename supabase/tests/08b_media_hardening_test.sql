@@ -16,7 +16,10 @@ select set_config('request.jwt.claims','{"sub":"41000000-0000-0000-0000-00000000
 select is(public.can_view_media('61000000-0000-0000-0000-000000000001'),false,'owner cannot use general media access for KYC');
 select lives_ok($$select public.delete_my_media('61000000-0000-0000-0000-000000000002','62000000-0000-0000-0000-000000000001')$$,'owner soft-deletes media');
 select is((select moderation_status::text from public.media_assets where id='61000000-0000-0000-0000-000000000002'),'deleted','deleted media is no longer active');
+reset role;
 select is((select count(*) from private.media_moderation_events where media_id='61000000-0000-0000-0000-000000000002' and reason_code='user_deleted'),1::bigint,'owner deletion has immutable audit event');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"41000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select lives_ok($$select public.delete_my_media('61000000-0000-0000-0000-000000000002','62000000-0000-0000-0000-000000000001')$$,'same deletion request is idempotent');
 
 select * from finish();
