@@ -51,13 +51,11 @@ jobs:
         run: |
           set -euo pipefail
           committed="$(find supabase/migrations -maxdepth 1 -type f -name '*_phase_b_06_core_profiles.sql' -print -quit || true)"
-          if [[ -n "${committed}" ]]; then
-            migration_file="${committed}"
-          else
-            supabase migration new phase_b_06_core_profiles
-            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_phase_b_06_core_profiles.sql' -print -quit)"
-            cp supabase/migration_sources/phase_b_06_core_profiles.sql "${migration_file}"
+          if [[ -z "${committed}" ]]; then
+            echo "Committed Session 6 migration is missing." >&2
+            exit 1
           fi
+          migration_file="${committed}"
           echo "file=${migration_file}" >> "${GITHUB_OUTPUT}"
           echo "Migration: ${migration_file}"
 
@@ -75,6 +73,9 @@ jobs:
 
       - name: Generate public TypeScript types
         run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
+
+      - name: Verify generated TypeScript types are committed
+        run: diff -u packages/supabase/src/database.types.ts /tmp/database.types.ts
 
       - name: Verify application TypeScript
         run: |

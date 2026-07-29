@@ -21,6 +21,10 @@ out/
 apps/*/.next/
 apps/*/out/
 
+# Supabase local runtime
+supabase/.temp/
+supabase/.branches/
+
 # Tests and coverage
 coverage/
 

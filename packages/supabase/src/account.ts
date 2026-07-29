@@ -73,9 +73,9 @@ export async function completeAdultOnboarding(
     p_community_rules_version: input.communityRulesVersion,
     p_username: input.username,
     p_display_name: input.displayName,
-    p_bio: input.bio ?? null,
-    p_gender: input.gender ?? null,
-    p_province_id: input.provinceId ?? null,
+    p_bio: input.bio ?? undefined,
+    p_gender: input.gender ?? undefined,
+    p_province_id: input.provinceId ?? undefined,
   });
   if (error) throw error;
   return firstOrThrow(data, 'complete_adult_onboarding');
@@ -99,7 +99,7 @@ export async function applyForCreator(
 ): Promise<'pending'> {
   const { data, error } = await client.rpc('apply_for_creator', {
     p_creator_bio: creatorBio,
-    p_fan_threshold_units: fanThresholdUnits ?? null,
+    p_fan_threshold_units: fanThresholdUnits ?? undefined,
   });
   if (error) throw error;
   if (data !== 'pending') {
