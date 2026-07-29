@@ -25,7 +25,8 @@ select throws_ok($$insert into private.user_roles(user_id,role) values('10000000
 select throws_ok($$update private.app_config set value_json='9999'::jsonb where key='creator_share_bps'$$,'42501',null,'authenticated client cannot modify app config');
 reset role;
 select set_config('request.jwt.claims','',true);
+delete from private.heart_accounts where user_id='10000000-0000-0000-0000-000000000002' and available_units=0 and held_units=0 and lifetime_purchased_units=0 and lifetime_spent_units=0;
 delete from auth.users where id='10000000-0000-0000-0000-000000000002';
-select is((select count(*) from public.profiles where id='10000000-0000-0000-0000-000000000002'),0::bigint,'deleting auth user cascades the pre-finance core profile');
+select is((select count(*) from public.profiles where id='10000000-0000-0000-0000-000000000002'),0::bigint,'deleting auth user cascades the pre-finance core profile after empty finance account cleanup');
 select * from finish();
 rollback;
