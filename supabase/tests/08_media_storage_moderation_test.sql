@@ -60,10 +60,10 @@ create temporary table public_album as select * from public.create_album('Public
 create temporary table fan_album as select * from public.create_album('Fan album','fan',1000);
 reset role;
 
-insert into public.media_assets(owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,visibility,moderation_status,uploaded_at,approved_at,approved_by)
+insert into public.media_assets(owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,visibility,moderation_status,uploaded_at,approved_at,approved_by,rejected_at)
 values
-('40000000-0000-0000-0000-000000000001','profile-media','40000000-0000-0000-0000-000000000001/60000000-0000-0000-0000-000000000001/approved.jpg','image/jpeg',1000,800,800,'public','approved',now(),now(),'40000000-0000-0000-0000-000000000004'),
-('40000000-0000-0000-0000-000000000001','profile-media','40000000-0000-0000-0000-000000000001/60000000-0000-0000-0000-000000000002/approved.jpg','image/jpeg',1000,800,800,'fan','approved',now(),now(),'40000000-0000-0000-0000-000000000004'),
+('40000000-0000-0000-0000-000000000001','profile-media','40000000-0000-0000-0000-000000000001/60000000-0000-0000-0000-000000000001/approved.jpg','image/jpeg',1000,800,800,'public','approved',now(),now(),'40000000-0000-0000-0000-000000000004',null),
+('40000000-0000-0000-0000-000000000001','profile-media','40000000-0000-0000-0000-000000000001/60000000-0000-0000-0000-000000000002/approved.jpg','image/jpeg',1000,800,800,'fan','approved',now(),now(),'40000000-0000-0000-0000-000000000004',null),
 ('40000000-0000-0000-0000-000000000001','pending-media','40000000-0000-0000-0000-000000000001/60000000-0000-0000-0000-000000000003/original.jpg','image/jpeg',1000,800,800,'public','rejected',now(),null,null,now());
 
 set local role authenticated;
