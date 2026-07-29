@@ -20,7 +20,7 @@ Seven Google Play consumable IDs are seeded for 5, 10, 20, 50, 100, 200 and 500 
 
 ## Google Play verification
 
-`play-purchase-verify` is JWT-protected. It verifies `ProductPurchaseV2`, requires `PURCHASED`, matches product ID and SHA-256-bound `obfuscatedExternalAccountId`, hashes the token, credits through a service-role-only RPC, consumes the product and records the consumed state.
+`play-purchase-verify` version 2 is ACTIVE and JWT-protected. It verifies `ProductPurchaseV2`, requires `PURCHASED`, matches product ID and SHA-256-bound `obfuscatedExternalAccountId`, hashes the token, credits through a service-role-only RPC, consumes the product and records the consumed state.
 
 Required deployment configuration:
 
