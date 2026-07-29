@@ -8,7 +8,7 @@ on:
     paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -55,6 +55,12 @@ jobs:
           test -f supabase/migrations/20260729204006_phase_b_10_account_hold_operations.sql
           test -f supabase/migrations/20260729204007_phase_b_10_account_deletion_operations.sql
           test -f supabase/migrations/20260729204008_phase_b_10_access_sync_admin_payloads.sql
+          test -f supabase/migrations/20260729204009_phase_b_10_fix_kyc_submit_ambiguity.sql
+          test -f supabase/migrations/20260729204010_phase_b_10_fix_kyc_review_ambiguity.sql
+          test -f supabase/migrations/20260729204011_phase_b_10_fix_withdrawal_request_ambiguity.sql
+          test -f supabase/migrations/20260729204012_phase_b_10_fix_withdrawal_admin_ambiguity.sql
+          test -f supabase/migrations/20260729204013_phase_b_10_fix_kyc_document_access_ambiguity.sql
+          test -f supabase/migrations/20260729204014_phase_b_10_fix_deletion_admin_ambiguity.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
           test -f supabase/functions/play-purchase-verify/index.ts
@@ -96,6 +102,15 @@ jobs:
           name: database-types
           path: /tmp/database.types.ts
           retention-days: 1
+      - name: Publish generated public contract
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/phase-b-database-security'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha=$(gh api "repos/${GITHUB_REPOSITORY}/contents/packages/supabase/src/database.types.ts?ref=feature/phase-b-database-security" --jq .sha)
+          content=$(base64 -w0 /tmp/database.types.ts)
+          jq -n --arg message 'chore: sync Session 10 database types' --arg content "$content" --arg sha "$current_sha" --arg branch 'feature/phase-b-database-security' '{message:$message,content:$content,sha:$sha,branch:$branch}' > /tmp/types-update.json
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/packages/supabase/src/database.types.ts" --input /tmp/types-update.json
       - name: Verify exact generated types
         run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
       - name: Verify application TypeScript
