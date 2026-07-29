@@ -55,6 +55,7 @@ create temporary table submitted_bank as select * from public.server_upsert_bank
 select is((select status from submitted_bank),'pending','encrypted bank account enters pending review');
 select is((select account_number_last4 from submitted_bank),'1234','client contract returns only bank last four');
 select is((select already_processed from public.server_upsert_bank_account('4b000000-0000-0000-0000-000000000002',null,'VCB','v1.EEEEEEEEEEEEEEEE.FFFFFFFFFFFFFFFF','1234','v1.GGGGGGGGGGGGGGGG.HHHHHHHHHHHHHHHH',true,'4b100000-0000-0000-0000-000000000002')),true,'bank submission is idempotent');
+grant select on submitted_bank to authenticated;
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"4b000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
