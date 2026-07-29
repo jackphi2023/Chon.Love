@@ -865,6 +865,41 @@ export type Database = {
           },
         ]
       }
+      payout_sync: {
+        Row: {
+          bank_version: number
+          deletion_version: number
+          kyc_version: number
+          updated_at: string
+          user_id: string
+          withdrawal_version: number
+        }
+        Insert: {
+          bank_version?: number
+          deletion_version?: number
+          kyc_version?: number
+          updated_at?: string
+          user_id: string
+          withdrawal_version?: number
+        }
+        Update: {
+          bank_version?: number
+          deletion_version?: number
+          kyc_version?: number
+          updated_at?: string
+          user_id?: string
+          withdrawal_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_sync_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_media_id: string | null
@@ -1065,15 +1100,125 @@ export type Database = {
         Args: { p_album_id: string; p_media_id: string; p_sort_order?: number }
         Returns: boolean
       }
+      admin_create_account_hold: {
+        Args: {
+          p_actor_user_id: string
+          p_ends_at: string
+          p_hold_type: string
+          p_reason_code: string
+          p_request_id: string
+          p_scope: string
+          p_user_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          ends_at: string
+          hold_id: string
+          scope: string
+          starts_at: string
+        }[]
+      }
+      admin_decide_withdrawal: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_payment_reference: string
+          p_reason_code: string
+          p_request_id: string
+          p_withdrawal_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          held_balance_units: number
+          paid_balance_units: number
+          status: string
+          withdrawal_id: string
+        }[]
+      }
+      admin_process_account_deletion: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_deletion_request_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          deletion_request_id: string
+          status: string
+        }[]
+      }
+      admin_release_account_hold: {
+        Args: {
+          p_actor_user_id: string
+          p_hold_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          hold_id: string
+          released_at: string
+        }[]
+      }
+      admin_review_bank_account: {
+        Args: {
+          p_actor_user_id: string
+          p_bank_account_id: string
+          p_decision: string
+          p_reason_code: string
+          p_request_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          bank_account_id: string
+          payout_eligible: boolean
+          status: string
+        }[]
+      }
+      admin_review_kyc: {
+        Args: {
+          p_actor_user_id: string
+          p_decision: string
+          p_expires_at: string
+          p_kyc_profile_id: string
+          p_reason_code: string
+          p_request_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          kyc_profile_id: string
+          payout_eligible: boolean
+          status: string
+        }[]
+      }
       block_user: {
         Args: { p_blocked_id: string; p_reason_code?: string }
         Returns: boolean
       }
       can_moderate_content: { Args: never; Returns: boolean }
       can_view_media: { Args: { p_media_id: string }; Returns: boolean }
+      cancel_account_deletion: {
+        Args: { p_deletion_request_id: string; p_request_id: string }
+        Returns: {
+          already_processed: boolean
+          deletion_request_id: string
+          status: string
+        }[]
+      }
       cancel_friend_request: {
         Args: { p_friendship_id: string }
         Returns: boolean
+      }
+      cancel_my_withdrawal: {
+        Args: { p_request_id: string; p_withdrawal_id: string }
+        Returns: {
+          already_processed: boolean
+          available_balance_units: number
+          status: string
+          withdrawal_id: string
+        }[]
       }
       complete_my_onboarding: {
         Args: {
@@ -1156,6 +1301,14 @@ export type Database = {
         }
       }
       disable_my_location: { Args: never; Returns: boolean }
+      finalize_kyc_document_upload: {
+        Args: { p_document_side: string; p_media_id: string }
+        Returns: {
+          kyc_document_id: string
+          media_id: string
+          status: string
+        }[]
+      }
       finalize_media_upload: {
         Args: { p_media_id: string }
         Returns: {
@@ -1228,6 +1381,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_my_account_deletion_status: {
+        Args: never
+        Returns: {
+          cancelled_at: string
+          id: string
+          legal_hold: boolean
+          processed_at: string
+          requested_at: string
+          scheduled_delete_at: string
+          status: string
+        }[]
+      }
       get_my_economy_summary: {
         Args: never
         Returns: {
@@ -1247,6 +1412,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_my_kyc_status: {
+        Args: never
+        Returns: {
+          country_code: string
+          document_count: number
+          document_number_last4: string
+          document_type: string
+          expires_at: string
+          kyc_profile_id: string
+          rejection_reason_code: string
+          reviewed_at: string
+          status: string
+          submitted_at: string
+        }[]
+      }
       get_my_onboarding_status: {
         Args: never
         Returns: {
@@ -1256,6 +1436,22 @@ export type Database = {
           policies_accepted: boolean
           profile_status: string
           user_id: string
+        }[]
+      }
+      get_my_payout_summary: {
+        Args: never
+        Returns: {
+          active_financial_hold: boolean
+          creator_available_units: number
+          creator_held_units: number
+          creator_paid_units: number
+          creator_status: string
+          deletion_status: string
+          kyc_status: string
+          payout_eligible: boolean
+          pending_withdrawals: number
+          user_id: string
+          verified_bank_accounts: number
         }[]
       }
       get_my_reports: {
@@ -1279,6 +1475,20 @@ export type Database = {
         }[]
       }
       is_current_user_adult: { Args: never; Returns: boolean }
+      list_my_bank_accounts: {
+        Args: never
+        Returns: {
+          account_number_last4: string
+          bank_code: string
+          created_at: string
+          id: string
+          is_default: boolean
+          rejection_reason_code: string
+          status: string
+          updated_at: string
+          verified_at: string
+        }[]
+      }
       list_my_gifts: {
         Args: { p_cursor?: string; p_limit?: number }
         Returns: {
@@ -1355,6 +1565,26 @@ export type Database = {
           verified_at: string
         }[]
       }
+      list_my_withdrawals: {
+        Args: { p_cursor?: string; p_limit?: number }
+        Returns: {
+          amount_vnd: number
+          approved_at: string
+          bank_account_id: string
+          bank_account_last4_snapshot: string
+          bank_code_snapshot: string
+          created_at: string
+          heart_vnd_rate_snapshot: number
+          id: string
+          paid_at: string
+          payment_reference: string
+          rejection_reason_code: string
+          requested_at: string
+          requested_reward_units: number
+          reviewed_at: string
+          status: string
+        }[]
+      }
       list_profile_album_media: {
         Args: {
           p_album_type?: Database["public"]["Enums"]["album_type"]
@@ -1422,6 +1652,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      prepare_kyc_document_upload: {
+        Args: {
+          p_document_side: string
+          p_extension?: string
+          p_file_size_bytes: number
+          p_height?: number
+          p_mime_type: string
+          p_sha256?: string
+          p_width?: number
+        }
+        Returns: {
+          document_side: string
+          media_id: string
+          storage_bucket: string
+          storage_path: string
+        }[]
+      }
       prepare_media_upload: {
         Args: {
           p_extension?: string
@@ -1469,6 +1716,31 @@ export type Database = {
       remove_media_from_album: {
         Args: { p_album_id: string; p_media_id: string }
         Returns: boolean
+      }
+      request_account_deletion: {
+        Args: { p_idempotency_key: string; p_reason: string }
+        Returns: {
+          already_processed: boolean
+          deletion_request_id: string
+          legal_hold: boolean
+          scheduled_delete_at: string
+          status: string
+        }[]
+      }
+      request_withdrawal: {
+        Args: {
+          p_bank_account_id: string
+          p_idempotency_key: string
+          p_requested_reward_units: number
+        }
+        Returns: {
+          already_processed: boolean
+          amount_vnd: number
+          held_balance_units: number
+          requested_reward_units: number
+          status: string
+          withdrawal_id: string
+        }[]
       }
       respond_to_friend_request: {
         Args: { p_accept: boolean; p_friendship_id: string }
@@ -1584,6 +1856,94 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      server_authorize_kyc_document_access: {
+        Args: {
+          p_actor_user_id: string
+          p_kyc_document_id: string
+          p_request_id: string
+        }
+        Returns: {
+          document_side: string
+          kyc_document_id: string
+          mime_type: string
+          storage_bucket: string
+          storage_path: string
+        }[]
+      }
+      server_get_bank_review_payload: {
+        Args: {
+          p_actor_user_id: string
+          p_bank_account_id: string
+          p_request_id: string
+        }
+        Returns: {
+          account_holder_ciphertext: string
+          account_number_ciphertext: string
+          account_number_last4: string
+          bank_account_id: string
+          bank_code: string
+          is_default: boolean
+          status: string
+          user_id: string
+        }[]
+      }
+      server_get_kyc_review_payload: {
+        Args: {
+          p_actor_user_id: string
+          p_kyc_profile_id: string
+          p_request_id: string
+        }
+        Returns: {
+          country_code: string
+          document_ids: string[]
+          document_number_ciphertext: string
+          document_number_last4: string
+          document_type: string
+          kyc_profile_id: string
+          legal_name_ciphertext: string
+          status: string
+          submitted_at: string
+          user_id: string
+        }[]
+      }
+      server_submit_kyc_profile: {
+        Args: {
+          p_country_code: string
+          p_document_ids: string[]
+          p_document_number_ciphertext: string
+          p_document_number_last4: string
+          p_document_type: string
+          p_legal_name_ciphertext: string
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          kyc_profile_id: string
+          status: string
+          submitted_at: string
+        }[]
+      }
+      server_upsert_bank_account: {
+        Args: {
+          p_account_holder_ciphertext: string
+          p_account_number_ciphertext: string
+          p_account_number_last4: string
+          p_bank_account_id: string
+          p_bank_code: string
+          p_is_default: boolean
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: {
+          account_number_last4: string
+          already_processed: boolean
+          bank_account_id: string
+          bank_code: string
+          is_default: boolean
+          status: string
+        }[]
+      }
       set_album_active: {
         Args: { p_album_id: string; p_is_active: boolean }
         Returns: {
@@ -1682,7 +2042,7 @@ export type Database = {
         | "rejected"
         | "quarantined"
         | "deleted"
-      media_type: "image"
+      media_type: "image" | "document"
       media_visibility: "avatar" | "public" | "fan" | "private" | "kyc"
       message_moderation_status:
         | "unreviewed"
@@ -1878,7 +2238,7 @@ export const Constants = {
         "quarantined",
         "deleted",
       ],
-      media_type: ["image"],
+      media_type: ["image", "document"],
       media_visibility: ["avatar", "public", "fan", "private", "kyc"],
       message_moderation_status: [
         "unreviewed",
