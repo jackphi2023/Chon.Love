@@ -1,0 +1,1 @@
+create index if not exists creator_reward_liabilities_gift_idx on private.creator_reward_liabilities(gift_transaction_id);
