@@ -77,4 +77,4 @@ for (const file of netlifyFiles) {
   }
 }
 
-console.log('Environment matrix is isolated and contains no committed Supabase keys.');
+console.warn('Environment matrix is isolated and contains no committed Supabase keys.');
