@@ -36,6 +36,7 @@ jobs:
           test -f supabase/migrations/20260729182255_phase_b_08_media_schema.sql
           test -f supabase/migrations/20260729182445_phase_b_08_media_access_policies.sql
           test -f supabase/migrations/20260729182509_phase_b_08_media_hardening.sql
+          test -f supabase/migrations/20260729183126_phase_b_08_add_fk_indexes.sql
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
@@ -57,7 +58,6 @@ jobs:
           ! grep -q 'user_locations' /tmp/database.types.ts
           ! grep -q 'media_moderation_events' /tmp/database.types.ts
       - name: Store generated types as Git blob
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/phase-b-database-security'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
