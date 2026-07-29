@@ -103,7 +103,7 @@ create table public.moderation_cases (
   constraint moderation_cases_rule_codes_length check (cardinality(rule_codes)<=50),
   constraint moderation_cases_score_object check (jsonb_typeof(automated_score_json)='object'),
   constraint moderation_cases_notes_length check (decision_notes is null or char_length(decision_notes)<=4000),
-  constraint moderation_cases_resolution_check ((status in ('resolved','dismissed') and resolved_at is not null) or (status not in ('resolved','dismissed') and resolved_at is null))
+  constraint moderation_cases_resolution_check check ((status in ('resolved','dismissed') and resolved_at is not null) or (status not in ('resolved','dismissed') and resolved_at is null))
 );
 create index moderation_cases_queue_idx on public.moderation_cases(status,priority,created_at);
 create index moderation_cases_media_idx on public.moderation_cases(media_id,created_at desc) where media_id is not null;
