@@ -276,6 +276,125 @@ export type Database = {
           },
         ]
       }
+      economy_sync: {
+        Row: {
+          creator_account_version: number
+          heart_account_version: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          creator_account_version?: number
+          heart_account_version?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          creator_account_version?: number
+          heart_account_version?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "economy_sync_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fan_memberships: {
+        Row: {
+          achieved_at: string
+          created_at: string
+          creator_id: string
+          fan_user_id: string
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["fan_membership_status"]
+          updated_at: string
+        }
+        Insert: {
+          achieved_at: string
+          created_at?: string
+          creator_id: string
+          fan_user_id: string
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["fan_membership_status"]
+          updated_at?: string
+        }
+        Update: {
+          achieved_at?: string
+          created_at?: string
+          creator_id?: string
+          fan_user_id?: string
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["fan_membership_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fan_memberships_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creator_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fan_memberships_fan_user_id_fkey"
+            columns: ["fan_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fan_progress: {
+        Row: {
+          created_at: string
+          creator_id: string
+          eligible_units: number
+          fan_user_id: string
+          lifetime_supported_units: number
+          threshold_units: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          eligible_units?: number
+          fan_user_id: string
+          lifetime_supported_units?: number
+          threshold_units: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          eligible_units?: number
+          fan_user_id?: string
+          lifetime_supported_units?: number
+          threshold_units?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fan_progress_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creator_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fan_progress_fan_user_id_fkey"
+            columns: ["fan_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           addressee_id: string
@@ -329,6 +448,199 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gift_catalog: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          display_hearts: number
+          heart_price_units: number
+          icon_media_id: string | null
+          id: string
+          is_active: boolean
+          name_en: string
+          name_vi: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          display_hearts: number
+          heart_price_units: number
+          icon_media_id?: string | null
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_vi: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          display_hearts?: number
+          heart_price_units?: number
+          icon_media_id?: string | null
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_vi?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_catalog_icon_media_id_fkey"
+            columns: ["icon_media_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_transactions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          creator_id: string
+          creator_reward_units: number
+          creator_share_bps: number
+          gift_id: string
+          gift_name_en_snapshot: string
+          gift_name_vi_snapshot: string
+          gift_slug_snapshot: string
+          gross_heart_units: number
+          id: string
+          idempotency_key: string
+          message_id: string | null
+          platform_gross_units: number
+          platform_share_bps: number
+          quantity: number
+          reversed_at: string | null
+          reversed_creator_reward_units: number
+          reversed_heart_units: number
+          reversed_platform_units: number
+          sender_id: string
+          status: Database["public"]["Enums"]["gift_transaction_status"]
+          unit_heart_units: number
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          creator_id: string
+          creator_reward_units: number
+          creator_share_bps: number
+          gift_id: string
+          gift_name_en_snapshot: string
+          gift_name_vi_snapshot: string
+          gift_slug_snapshot: string
+          gross_heart_units: number
+          id?: string
+          idempotency_key: string
+          message_id?: string | null
+          platform_gross_units: number
+          platform_share_bps: number
+          quantity: number
+          reversed_at?: string | null
+          reversed_creator_reward_units?: number
+          reversed_heart_units?: number
+          reversed_platform_units?: number
+          sender_id: string
+          status?: Database["public"]["Enums"]["gift_transaction_status"]
+          unit_heart_units: number
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          creator_id?: string
+          creator_reward_units?: number
+          creator_share_bps?: number
+          gift_id?: string
+          gift_name_en_snapshot?: string
+          gift_name_vi_snapshot?: string
+          gift_slug_snapshot?: string
+          gross_heart_units?: number
+          id?: string
+          idempotency_key?: string
+          message_id?: string | null
+          platform_gross_units?: number
+          platform_share_bps?: number
+          quantity?: number
+          reversed_at?: string | null
+          reversed_creator_reward_units?: number
+          reversed_heart_units?: number
+          reversed_platform_units?: number
+          sender_id?: string
+          status?: Database["public"]["Enums"]["gift_transaction_status"]
+          unit_heart_units?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_transactions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_transactions_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gift_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_transactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_transactions_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      heart_products: {
+        Row: {
+          created_at: string
+          display_hearts: number
+          google_product_id: string
+          heart_units: number
+          id: string
+          is_active: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_hearts: number
+          google_product_id: string
+          heart_units: number
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_hearts?: number
+          google_product_id?: string
+          heart_units?: number
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       media_assets: {
         Row: {
@@ -459,6 +771,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_gift_transaction_id_fkey"
+            columns: ["gift_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "gift_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -909,6 +1228,25 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_my_economy_summary: {
+        Args: never
+        Returns: {
+          creator_available_units: number
+          creator_frozen: boolean
+          creator_held_units: number
+          creator_paid_units: number
+          creator_pending_units: number
+          creator_reversed_units: number
+          creator_version: number
+          heart_available_units: number
+          heart_held_units: number
+          heart_version: number
+          lifetime_purchased_units: number
+          lifetime_reversed_units: number
+          lifetime_spent_units: number
+          user_id: string
+        }[]
+      }
       get_my_onboarding_status: {
         Args: never
         Returns: {
@@ -941,6 +1279,40 @@ export type Database = {
         }[]
       }
       is_current_user_adult: { Args: never; Returns: boolean }
+      list_my_gifts: {
+        Args: { p_cursor?: string; p_limit?: number }
+        Returns: {
+          completed_at: string
+          created_at: string
+          creator_id: string
+          creator_reward_units: number
+          creator_share_bps: number
+          gift_id: string
+          gift_name_en_snapshot: string
+          gift_name_vi_snapshot: string
+          gift_slug_snapshot: string
+          gross_heart_units: number
+          id: string
+          idempotency_key: string
+          message_id: string | null
+          platform_gross_units: number
+          platform_share_bps: number
+          quantity: number
+          reversed_at: string | null
+          reversed_creator_reward_units: number
+          reversed_heart_units: number
+          reversed_platform_units: number
+          sender_id: string
+          status: Database["public"]["Enums"]["gift_transaction_status"]
+          unit_heart_units: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "gift_transactions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       list_my_media: {
         Args: { p_cursor?: string; p_limit?: number }
         Returns: {
@@ -960,6 +1332,27 @@ export type Database = {
           uploaded_at: string
           visibility: Database["public"]["Enums"]["media_visibility"]
           width: number
+        }[]
+      }
+      list_my_play_purchases: {
+        Args: { p_cursor?: string; p_limit?: number }
+        Returns: {
+          acknowledged_at: string
+          consumed_at: string
+          country_code: string
+          created_at: string
+          currency_code: string
+          google_order_id: string
+          google_product_id: string
+          gross_amount_micros: number
+          heart_units: number
+          id: string
+          is_test_purchase: boolean
+          product_id: string
+          purchase_state: string
+          refunded_at: string
+          revoked_at: string
+          verified_at: string
         }[]
       }
       list_profile_album_media: {
@@ -984,6 +1377,10 @@ export type Database = {
       }
       mark_conversation_read: {
         Args: { p_conversation_id: string; p_message_id?: string }
+        Returns: boolean
+      }
+      mark_play_purchase_consumed: {
+        Args: { p_consumed_at?: string; p_purchase_token_hash: string }
         Returns: boolean
       }
       moderate_media: {
@@ -1042,6 +1439,33 @@ export type Database = {
           storage_path: string
         }[]
       }
+      record_verified_play_purchase: {
+        Args: {
+          p_country_code: string
+          p_google_order_id: string
+          p_google_product_id: string
+          p_idempotency_key: string
+          p_is_test_purchase: boolean
+          p_obfuscated_external_account_id: string
+          p_purchase_token_hash: string
+          p_raw_response_encrypted?: string
+          p_user_id: string
+        }
+        Returns: {
+          already_recorded: boolean
+          balance_after_units: number
+          heart_units: number
+          purchase_id: string
+          purchase_state: string
+        }[]
+      }
+      release_due_creator_rewards: {
+        Args: { p_limit?: number }
+        Returns: {
+          released_positions: number
+          released_units: number
+        }[]
+      }
       remove_media_from_album: {
         Args: { p_album_id: string; p_media_id: string }
         Returns: boolean
@@ -1067,6 +1491,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reverse_play_purchase: {
+        Args: {
+          p_event_type: string
+          p_idempotency_key: string
+          p_purchase_token_hash: string
+          p_reason_code: string
+        }
+        Returns: {
+          already_processed: boolean
+          creator_liability_units: number
+          creator_reward_reversed_units: number
+          purchase_id: string
+          purchase_state: string
+          spent_reversed_units: number
+          unspent_debited_units: number
+        }[]
+      }
       send_friend_request: {
         Args: { p_addressee_id: string; p_greeting_message?: string }
         Returns: {
@@ -1087,6 +1528,33 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      send_gift: {
+        Args: {
+          p_client_message_id?: string
+          p_conversation_id?: string
+          p_creator_id: string
+          p_gift_id: string
+          p_idempotency_key: string
+          p_quantity: number
+        }
+        Returns: {
+          already_processed: boolean
+          creator_id: string
+          creator_reward_units: number
+          fan_eligible_units: number
+          fan_status: string
+          fan_threshold_units: number
+          gift_id: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          platform_gross_units: number
+          quantity: number
+          reward_available_at: string
+          sender_balance_units: number
+          sender_id: string
+        }[]
       }
       send_message: {
         Args: {
@@ -1198,6 +1666,7 @@ export type Database = {
         | "rejected"
         | "suspended"
         | "closed"
+      fan_membership_status: "active" | "revoked"
       friendship_status: "pending" | "accepted" | "declined" | "cancelled"
       gender_identity:
         | "female"
@@ -1205,6 +1674,7 @@ export type Database = {
         | "non_binary"
         | "other"
         | "prefer_not_to_say"
+      gift_transaction_status: "completed" | "partially_reversed" | "reversed"
       media_moderation_status:
         | "pending_upload"
         | "pending_review"
@@ -1390,6 +1860,7 @@ export const Constants = {
         "suspended",
         "closed",
       ],
+      fan_membership_status: ["active", "revoked"],
       friendship_status: ["pending", "accepted", "declined", "cancelled"],
       gender_identity: [
         "female",
@@ -1398,6 +1869,7 @@ export const Constants = {
         "other",
         "prefer_not_to_say",
       ],
+      gift_transaction_status: ["completed", "partially_reversed", "reversed"],
       media_moderation_status: [
         "pending_upload",
         "pending_review",

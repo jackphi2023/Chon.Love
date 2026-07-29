@@ -8,7 +8,7 @@ on:
     paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -43,6 +43,10 @@ jobs:
           test -f supabase/migrations/20260729195731_phase_b_09_gift_reward_operations.sql
           test -f supabase/migrations/20260729195833_phase_b_09_reversal_access_policies.sql
           test -f supabase/migrations/20260729200109_phase_b_09_add_fk_indexes.sql
+          test -f supabase/migrations/20260729200855_phase_b_09_edge_function_marker.sql
+          test -f supabase/migrations/20260729200911_phase_b_09_edge_function_marker.sql
+          test -f supabase/migrations/20260729200945_phase_b_09_noop_history_alignment.sql
+          test -f supabase/migrations/20260729201435_phase_b_09_add_liability_gift_index.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
           test -f supabase/functions/play-purchase-verify/index.ts
@@ -73,13 +77,7 @@ jobs:
           ! grep -q 'play_purchases' /tmp/database.types.ts
           ! grep -q 'heart_ledger' /tmp/database.types.ts
           ! grep -q 'creator_reward_ledger' /tmp/database.types.ts
-      - name: Store generated types as Git blob
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          payload=$(jq -Rs '{content: @base64, encoding: "base64"}' /tmp/database.types.ts)
-          blob_sha=$(printf '%s' "$payload" | gh api --method POST "/repos/${GITHUB_REPOSITORY}/git/blobs" --input - --jq .sha)
-          echo "DATABASE_TYPES_BLOB_SHA=${blob_sha}"
+          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
       - name: Verify application TypeScript
         run: |
           corepack enable
