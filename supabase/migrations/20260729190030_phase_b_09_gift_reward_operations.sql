@@ -87,7 +87,7 @@ begin
     return;
   end if;
   if v_account.available_units<v_gross then raise exception using errcode='22023',message='insufficient_heart_balance'; end if;
-  insert into private.creator_earning_accounts(creator_id) values(p_creator_id) on conflict(creator_id) do nothing;
+  insert into private.creator_earning_accounts(creator_id) values(p_creator_id) on conflict on constraint creator_earning_accounts_pkey do nothing;
   select cea.* into v_creator_account from private.creator_earning_accounts cea where cea.creator_id=p_creator_id for update;
   if v_creator_account.is_frozen then raise exception using errcode='42501',message='creator_reward_account_frozen'; end if;
   insert into public.gift_transactions(
@@ -118,7 +118,7 @@ begin
   values(p_creator_id,v_gift_tx.id,'gift_reward_pending',v_reward,v_available_at,'gift_transaction',v_gift_tx.id,p_idempotency_key,jsonb_build_object('gross_heart_units',v_gross,'creator_share_bps',v_creator_bps));
   insert into public.fan_progress(creator_id,fan_user_id,lifetime_supported_units,eligible_units,threshold_units)
   values(p_creator_id,v_sender,v_gross,v_gross,greatest(v_creator.fan_threshold_units,1))
-  on conflict(creator_id,fan_user_id) do update set
+  on conflict on constraint fan_progress_pkey do update set
     lifetime_supported_units=public.fan_progress.lifetime_supported_units+excluded.lifetime_supported_units,
     eligible_units=public.fan_progress.eligible_units+excluded.eligible_units,
     threshold_units=excluded.threshold_units
@@ -126,7 +126,7 @@ begin
   if v_progress.eligible_units>=v_progress.threshold_units then
     insert into public.fan_memberships(creator_id,fan_user_id,achieved_at,status)
     values(p_creator_id,v_sender,now(),'active')
-    on conflict(creator_id,fan_user_id) do update set status='active',revoked_at=null,achieved_at=case when public.fan_memberships.status='revoked' then now() else public.fan_memberships.achieved_at end;
+    on conflict on constraint fan_memberships_pkey do update set status='active',revoked_at=null,achieved_at=case when public.fan_memberships.status='revoked' then now() else public.fan_memberships.achieved_at end;
     v_fan_status:='active';
   else v_fan_status:='none'; end if;
   if p_conversation_id is not null then
