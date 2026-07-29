@@ -8,7 +8,7 @@ on:
     paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -96,21 +96,6 @@ jobs:
           ! grep -q '^      bank_accounts:' /tmp/database.types.ts
           ! grep -q '^      withdrawals:' /tmp/database.types.ts
           ! grep -q '^      admin_audit_logs:' /tmp/database.types.ts
-      - name: Upload generated public contract
-        uses: actions/upload-artifact@v4
-        with:
-          name: database-types
-          path: /tmp/database.types.ts
-          retention-days: 1
-      - name: Publish generated public contract
-        if: github.event_name == 'pull_request' && github.head_ref == 'feature/phase-b-database-security'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          current_sha=$(gh api "repos/${GITHUB_REPOSITORY}/contents/packages/supabase/src/database.types.ts?ref=feature/phase-b-database-security" --jq .sha)
-          content=$(base64 -w0 /tmp/database.types.ts)
-          jq -n --arg message 'chore: sync Session 10 database types' --arg content "$content" --arg sha "$current_sha" --arg branch 'feature/phase-b-database-security' '{message:$message,content:$content,sha:$sha,branch:$branch}' > /tmp/types-update.json
-          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/packages/supabase/src/database.types.ts" --input /tmp/types-update.json
       - name: Verify exact generated types
         run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
       - name: Verify application TypeScript
