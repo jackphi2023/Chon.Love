@@ -10,6 +10,8 @@ export default tseslint.config(
       '**/.expo/**',
       '**/dist/**',
       '**/coverage/**',
+      'supabase/.temp/**',
+      'supabase/.branches/**',
       '**/*.d.ts',
     ],
   },
