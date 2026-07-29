@@ -5,6 +5,7 @@ import type { Database } from './database.types';
 export * from './account';
 export * from './social';
 export * from './media';
+export * from './economy';
 export type { CompositeTypes, Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { Constants } from './database.types';
 
