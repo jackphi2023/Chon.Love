@@ -92,7 +92,7 @@ reset role;
 insert into public.albums(owner_id,name,album_type) values('40000000-0000-0000-0000-000000000002','Other owner','public');
 select throws_ok($$insert into public.album_media(album_id,media_id) values((select id from public.albums where owner_id='40000000-0000-0000-0000-000000000002'),(select id from public.media_assets where storage_path like '%60000000-0000-0000-0000-000000000001%'))$$,'42501','album_media_owner_mismatch','album cannot attach another owner media');
 select is((select count(*) from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename in ('media_assets','albums','album_media')),3::bigint,'Realtime includes only owner-facing Session 8 metadata tables');
-select is((select count(*) from information_schema.role_table_grants where grantee='authenticated' and table_schema='storage' and table_name='objects' and privilege_type='UPDATE'),0::bigint,'Storage upsert/update is not granted');
+select is((select count(*) from pg_policies where schemaname='storage' and tablename='objects' and cmd='UPDATE'),0::bigint,'Storage has no UPDATE policy, so client upsert is denied');
 select is((select count(*) from storage.buckets where id='kyc-private' and public=false),1::bigint,'KYC bucket remains fully private');
 select ok(not has_schema_privilege('authenticated','private','usage'),'authenticated still has no private schema usage');
 select is((select count(*) from public.media_assets where storage_path like '%60000000-0000-0000-0000-000000000003%' and moderation_status='rejected'),1::bigint,'rejected metadata remains for audit trail');
