@@ -118,7 +118,7 @@ select is((select already_processed from public.reverse_play_purchase(repeat('a'
 select is((select count(*) from private.purchase_reversal_events),1::bigint,'refund retry creates no duplicate event');
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"49000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
-select throws_ok($$select public.send_gift('49000000-0000-0000-0000-000000000002',(select id from public.gift_catalog where display_hearts=2 order by sort_order limit 1),1,'49500000-0000-0000-0000-000000000001',null,null)$$,'22003','insufficient_heart_balance','user cannot gift beyond available balance');
+select throws_ok($$select public.send_gift('49000000-0000-0000-0000-000000000002',(select id from public.gift_catalog where display_hearts=2 order by sort_order limit 1),1,'49500000-0000-0000-0000-000000000001',null,null)$$,'22023','insufficient_heart_balance','user cannot gift beyond available balance');
 reset role;
 select ok(not exists(select 1 from public.gift_transactions where creator_reward_units+platform_gross_units<>gross_heart_units),'all completed and reversed gifts preserve integer split');
 select ok(not exists(select 1 from private.heart_accounts where available_units<0 or held_units<0),'heart account balances never become negative');
