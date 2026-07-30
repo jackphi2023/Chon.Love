@@ -25,12 +25,14 @@ export type Database = {
         bio: string | null;
         gender: Database['public']['Enums']['gender_identity'];
         province_id: number | null;
+        interests: string[];
         avatar_media_id: string | null;
         profile_status: Database['public']['Enums']['profile_status'];
         discovery_enabled: boolean;
         nearby_enabled: boolean;
         is_creator: boolean;
         last_active_at: string | null;
+        username_changed_at: string | null;
         created_at: string;
         updated_at: string;
         deleted_at: string | null;
@@ -133,11 +135,13 @@ export type Database = {
         file_size_bytes: number;
         width: number | null;
         height: number | null;
+        sha256: string | null;
         visibility: Database['public']['Enums']['media_visibility'];
         moderation_status: Database['public']['Enums']['media_moderation_status'];
         moderation_reason_code: string | null;
         uploaded_at: string | null;
         approved_at: string | null;
+        approved_by: string | null;
         rejected_at: string | null;
         deleted_at: string | null;
         created_at: string;
@@ -147,12 +151,18 @@ export type Database = {
         id: string;
         owner_id: string;
         name: string;
-        album_type: 'public' | 'fan';
+        album_type: Database['public']['Enums']['album_type'];
         fan_threshold_units: number;
         is_active: boolean;
         created_at: string;
         updated_at: string;
         deleted_at: string | null;
+      }>;
+      album_media: TableDefinition<{
+        album_id: string;
+        media_id: string;
+        sort_order: number;
+        created_at: string;
       }>;
       gift_catalog: TableDefinition<{
         id: string;
@@ -191,7 +201,79 @@ export type Database = {
         account_status: string;
         completed_at: string;
       }>>;
-      update_my_profile: RpcDefinition<Record<string, unknown>, Database['public']['Tables']['profiles']['Row']>;
+      update_my_profile: RpcDefinition<{
+        p_username: string;
+        p_display_name: string;
+        p_bio?: string | null;
+        p_gender?: Database['public']['Enums']['gender_identity'];
+        p_province_id?: number | null;
+        p_interests?: string[];
+        p_discovery_enabled?: boolean;
+        p_nearby_enabled?: boolean;
+      }, Database['public']['Tables']['profiles']['Row']>;
+      prepare_media_upload: RpcDefinition<{
+        p_visibility: Database['public']['Enums']['media_visibility'];
+        p_mime_type: string;
+        p_file_size_bytes: number;
+        p_width: number;
+        p_height: number;
+        p_sha256?: string | null;
+        p_extension?: string;
+      }, Array<{
+        media_id: string;
+        storage_bucket: string;
+        storage_path: string;
+        moderation_status: Database['public']['Enums']['media_moderation_status'];
+      }>>;
+      finalize_media_upload: RpcDefinition<{
+        p_media_id: string;
+      }, Database['public']['Tables']['media_assets']['Row']>;
+      list_my_media: RpcDefinition<{
+        p_limit?: number;
+        p_cursor?: string | null;
+      }, Array<{
+        id: string;
+        storage_bucket: string;
+        storage_path: string;
+        media_type: 'image' | 'document';
+        mime_type: string;
+        file_size_bytes: number;
+        width: number | null;
+        height: number | null;
+        visibility: Database['public']['Enums']['media_visibility'];
+        moderation_status: Database['public']['Enums']['media_moderation_status'];
+        moderation_reason_code: string | null;
+        uploaded_at: string | null;
+        approved_at: string | null;
+        rejected_at: string | null;
+        deleted_at: string | null;
+        created_at: string;
+      }>>;
+      list_profile_album_media: RpcDefinition<{
+        p_owner_id: string;
+        p_album_type?: Database['public']['Enums']['album_type'] | null;
+      }, Array<{
+        album_id: string;
+        album_name: string;
+        album_type: Database['public']['Enums']['album_type'];
+        fan_threshold_units: number;
+        media_id: string;
+        storage_bucket: string;
+        storage_path: string;
+        media_type: 'image' | 'document';
+        mime_type: string;
+        width: number | null;
+        height: number | null;
+        visibility: Database['public']['Enums']['media_visibility'];
+        sort_order: number;
+        uploaded_at: string | null;
+        approved_at: string | null;
+      }>>;
+      set_my_avatar: RpcDefinition<{ p_media_id: string }, boolean>;
+      delete_my_media: RpcDefinition<{
+        p_media_id: string;
+        p_request_id: string;
+      }, Database['public']['Tables']['media_assets']['Row']>;
       set_my_location: RpcDefinition<Record<string, unknown>, Array<{
         is_enabled: boolean;
         captured_at: string;
@@ -251,6 +333,7 @@ export type Database = {
       friendship_status: 'pending' | 'accepted' | 'declined' | 'cancelled';
       media_visibility: 'avatar' | 'public' | 'fan' | 'private' | 'kyc';
       media_moderation_status: 'pending_upload' | 'pending_review' | 'approved' | 'rejected' | 'quarantined' | 'deleted';
+      album_type: 'public' | 'fan';
       message_type: 'text' | 'gift' | 'system';
       message_moderation_status: 'unreviewed' | 'approved' | 'flagged' | 'removed';
       report_status: 'submitted' | 'triaged' | 'in_review' | 'resolved' | 'dismissed';
