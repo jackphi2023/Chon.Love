@@ -213,10 +213,10 @@ export async function cancelMyAccountDeletion(
   deletionRequestId: string,
   requestId: string,
 ): Promise<z.infer<typeof deletionCancelSchema>> {
-  const { data, error } = await client.rpc('cancel_account_deletion', {
-    p_deletion_request_id: deletionRequestId,
-    p_request_id: requestId,
-  });
+  const { data, error } = await client.rpc(
+    'cancel_account_deletion' as never,
+    { p_deletion_request_id: deletionRequestId, p_request_id: requestId } as never,
+  );
   if (error) throw error;
   const row = z.array(deletionCancelSchema).parse(data)[0];
   if (!row) throw new Error('deletion_request_not_cancelled');
