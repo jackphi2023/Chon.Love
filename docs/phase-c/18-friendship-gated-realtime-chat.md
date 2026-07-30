@@ -10,6 +10,7 @@ Included:
 
 - Conversation list with unread count and safe preview.
 - Direct conversation detail.
+- Chat entry from an accepted friend profile and the Connections tab.
 - Exact-conversation Supabase Realtime subscription.
 - Message history keyset pagination.
 - Optimistic text send with retry and rollback state.
@@ -49,7 +50,7 @@ The database trigger remains a final enforcement layer in addition to the harden
 - Messages are returned newest first.
 - The client does not load the full history at once.
 
-## Idempotency and optimistic UI
+## Idempotency and rate limits
 
 Each client send generates a UUID `client_message_id`.
 
@@ -67,7 +68,7 @@ Realtime and optimistic rows are deduplicated by:
 sender_id + client_message_id
 ```
 
-## Rate limits
+Sending is serialized per sender with a transaction advisory lock, preventing concurrent requests from bypassing the rate counters.
 
 Configured in `private.app_config`:
 
@@ -85,12 +86,20 @@ The client subscribes only to:
 
 ```text
 messages where conversation_id = the opened conversation
+conversation_members where conversation_id = the opened conversation
 conversations where id = the opened conversation
 ```
 
 It never subscribes to all messages.
 
-The channel is removed when leaving the screen. Reconnect invalidates only the current conversation history, retention setting and conversation-list cache.
+Realtime covers:
+
+- New and moderated message rows.
+- Physical message deletion.
+- Read-receipt changes.
+- Seven-day retention-setting changes made by the other participant.
+
+The channel is removed when leaving the screen. Stable query keys prevent unnecessary reconnects. Reconnect invalidates only the current conversation history, retention setting and conversation-list cache.
 
 ## Seven-day physical deletion
 
@@ -100,35 +109,40 @@ Each conversation has one shared setting:
 auto_delete_messages_after_days = null | 7
 ```
 
-Either participant may toggle it from that conversation. The setting applies to both participants.
+Either participant may toggle it from that conversation. The setting applies to both participants and is synchronized to both open clients.
 
 ### When enabled
 
-- Messages reaching seven days are physically deleted from `public.messages`.
-- The server purge runs every five minutes through `pg_cron`.
-- Messages already at least seven days old are deleted immediately when enabling.
-- The current screen also removes expired rows at the exact local deadline and refetches the server.
+- Messages reaching seven days stop being readable at the exact server-side boundary through RPC and RLS filters.
+- The open client removes the row at the exact local deadline and refetches the server.
+- A server `pg_cron` job physically deletes expired rows every minute.
+- Each purge transaction processes at most 5,000 rows using `SKIP LOCKED` to reduce long locks.
+- Messages already at least seven days old are physically deleted immediately when enabling.
 - Realtime `DELETE` removes the row from both open clients.
-- Deleted messages cannot be restored.
-- No message body snapshot is created by the retention feature.
-- A report whose only target is that message is deleted through `ON DELETE CASCADE`, so the report cannot retain or block the expired message.
+- Deleted messages cannot be restored through the application.
+- No application-level message body snapshot or archive is created.
+- A report whose target is that message is deleted through `ON DELETE CASCADE`, so a report cannot retain or block the expired message.
 - Per-user hide records are removed by cascade.
 - Read pointers are cleared by the existing `ON DELETE SET NULL` foreign key.
 
 ### When disabled
 
 - Remaining messages stop expiring automatically.
-- Messages already deleted from the server cannot be restored.
+- Messages already deleted from the live database cannot be restored by this feature.
 
 ### Server job
 
 ```text
 job name: myfan-purge-ephemeral-chat
-schedule: */5 * * * *
+schedule: * * * * *
 command: select private.purge_expired_conversation_messages();
 ```
 
-The purge function is executable only by `service_role`/database infrastructure, not by authenticated clients.
+The purge function is executable only by database infrastructure/service role, not by authenticated clients. Cron run history was verified as `succeeded` repeatedly on the development project.
+
+### Managed-backup boundary
+
+The feature deletes the live database row and all application references described above. It does not create an application archive. Supabase-managed backups or point-in-time recovery, if enabled for the project, are infrastructure retention mechanisms outside this application migration and must be reviewed separately before making an absolute regulatory promise that no historical backup can contain an earlier row.
 
 ## Storage and privacy
 
@@ -151,6 +165,9 @@ Migrations:
 20260730071716_phase_c_18_friendship_gated_realtime_chat.sql
 20260730073359_phase_c_18_ephemeral_chat_retention.sql
 20260730073459_phase_c_18_ephemeral_chat_realtime_sync.sql
+20260730074758_phase_c_18_chat_rls_helper_execution.sql
+20260730075557_phase_c_18_ephemeral_chat_read_barrier.sql
+20260730080834_phase_c_18_retention_actor_index.sql
 ```
 
 Client RPCs:
@@ -173,6 +190,25 @@ Private server function:
 private.purge_expired_conversation_messages
 ```
 
+## Advisor review
+
+Security Advisor reports the project-wide expected warning category for authenticated `SECURITY DEFINER` gateway RPCs. Session 18 RPCs were explicitly verified to:
+
+- Require `auth.uid()` and an active adult account.
+- Validate exact conversation membership.
+- Use a fixed empty `search_path`.
+- Reject `anon` and `PUBLIC` execution.
+
+The private `message_user_hides` table intentionally has RLS enabled with no direct policies; clients access it only through validated RPCs and a private RLS helper.
+
+Performance Advisor's new unindexed retention-actor foreign key notice was resolved by `conversations_message_retention_updated_by_idx`. Development-only `unused_index` notices are expected while the database contains no conversation/message fixtures.
+
+Advisor references:
+
+- https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+- https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+- https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
+
 ## Rollback guidance
 
 Use forward migrations rather than editing applied migration history.
@@ -185,7 +221,7 @@ A safe rollback may:
 4. Leave the retention columns in place to avoid destructive schema rollback.
 5. Restore the reports foreign key only after deciding how reports should behave when a message is deleted.
 
-Messages already physically deleted cannot be restored by a database migration unless an external backup exists. No such restoration path is promised by this feature.
+Messages already physically deleted cannot be restored by an application migration unless an external infrastructure backup exists. No restoration path is promised by this feature.
 
 ## QA still required
 
@@ -193,7 +229,8 @@ Messages already physically deleted cannot be restored by a database migration u
 - Reconnect and duplicate-delivery testing under unstable mobile networks.
 - Toggle retention from both participants simultaneously.
 - Confirm immediate deletion of test messages older than seven days.
-- Confirm cron deletion and conversation preview refresh.
+- Confirm cron deletion, exact read barrier and conversation preview refresh.
 - Confirm reports cascade when their message expires.
 - Android physical-device keyboard/composer behavior.
 - Chrome/Safari mobile-web behavior.
+- Review Supabase backup/PITR retention before publishing absolute deletion language externally.
