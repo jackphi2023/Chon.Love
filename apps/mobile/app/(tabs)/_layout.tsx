@@ -35,6 +35,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" options={{ title: 'Khám phá' }} />
+      <Tabs.Screen name="activity" options={{ title: 'Hoạt động' }} />
       <Tabs.Screen name="friends" options={{ title: 'Kết nối' }} />
       <Tabs.Screen name="gifts" options={{ title: 'Quà' }} />
       <Tabs.Screen name="balance" options={{ title: '❤️' }} />
