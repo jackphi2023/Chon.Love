@@ -26,7 +26,7 @@ export default function OnboardingHome() {
   const [acceptedCommunityStandards, setAcceptedCommunityStandards] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accountBlocked, setAccountBlocked] = useState(false);
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function OnboardingHome() {
       .then((status) => {
         if (!active) return;
         if (status?.account_status && status.account_status !== 'active') {
-          setAccountBlocked(true);
+          setAccountStatus(status.account_status);
         } else if (status?.age_verified && status.policies_accepted) {
           router.replace('/(tabs)');
         }
@@ -83,12 +83,26 @@ export default function OnboardingHome() {
     );
   }
 
-  if (accountBlocked) {
+  if (accountStatus) {
+    const deletionRequested = accountStatus === 'deletion_requested';
     return (
       <Screen
-        title="Tài khoản chưa thể truy cập"
-        description="Tài khoản đang bị đình chỉ, vô hiệu hóa hoặc chờ xóa. Gửi lại onboarding không thể tự mở khóa tài khoản."
+        title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
+        description={
+          deletionRequested
+            ? 'Hồ sơ và tính năng xã hội đang tắt. Bạn có thể xem trạng thái hoặc hủy yêu cầu nếu vẫn còn trong thời gian cho phép.'
+            : 'Tài khoản đang bị đình chỉ hoặc vô hiệu hóa. Gửi lại onboarding không thể tự mở khóa tài khoản.'
+        }
       >
+        {deletionRequested ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/settings/account-deletion')}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Xem hoặc hủy yêu cầu xóa</Text>
+          </Pressable>
+        ) : null}
         <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>Đăng xuất</Text>
         </Pressable>
@@ -189,7 +203,7 @@ const styles = StyleSheet.create({
   error: { color: colors.danger, fontSize: 14, lineHeight: 21, marginTop: spacing.md },
   primaryButton: { minHeight: 52, marginTop: spacing.lg, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingHorizontal: spacing.lg },
   primaryButtonText: { color: colors.surface, fontSize: 16, fontWeight: '800' },
-  secondaryButton: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  secondaryButton: { minHeight: 50, marginTop: spacing.md, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   pressed: { opacity: 0.8 },
   disabled: { opacity: 0.55 },
