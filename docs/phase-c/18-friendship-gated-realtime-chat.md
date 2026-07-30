@@ -1,5 +1,7 @@
 # Phase C / Session 18 — Friendship-gated realtime chat
 
+**Status:** Draft implementation on PR #8; automated CI and multi-account device QA are required before merge.
+
 ## Scope
 
 Session 18 delivers text-only realtime chat for Android and Expo Web after an accepted friendship.
