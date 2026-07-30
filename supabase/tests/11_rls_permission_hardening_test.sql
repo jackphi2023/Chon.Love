@@ -116,7 +116,10 @@ select is((
 ),0::bigint,'KYC objects have no direct client read policy');
 
 select is((select public from storage.buckets where id='kyc-private'),false,'KYC bucket is private');
-select is((select public from storage.buckets where id='media-private'),false,'Fan/private media bucket is private');
+select is((
+  select count(*) from storage.buckets
+  where id in ('pending-media','profile-media') and public=false
+),2::bigint,'moderated media buckets are private');
 
 select is((
   select count(*) from pg_publication_tables
