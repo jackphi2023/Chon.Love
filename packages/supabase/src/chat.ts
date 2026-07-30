@@ -8,6 +8,8 @@ export const CHAT_DEFAULT_PAGE_SIZE = 40;
 export const CHAT_MAX_PAGE_SIZE = 50;
 export const CHAT_MESSAGE_MAX_CHARACTERS = 2_000;
 export const CHAT_CONVERSATION_PAGE_SIZE = 30;
+export const CHAT_AUTO_DELETE_DAYS = 7;
+export const CHAT_AUTO_DELETE_MS = CHAT_AUTO_DELETE_DAYS * 24 * 60 * 60 * 1_000;
 
 const friendshipStatusSchema = z.enum(['pending', 'accepted', 'declined', 'cancelled']);
 const messageTypeSchema = z.enum(['text', 'gift', 'system']);
@@ -55,6 +57,17 @@ const conversationDetailSchema = z.object({
   last_read_at: z.string().nullable(),
 });
 
+const conversationRetentionSchema = z.object({
+  conversation_id: z.string().uuid(),
+  auto_delete_enabled: z.boolean(),
+  auto_delete_after_days: z.literal(CHAT_AUTO_DELETE_DAYS).nullable(),
+  updated_at: z.string().nullable(),
+});
+
+const conversationRetentionUpdateSchema = conversationRetentionSchema.extend({
+  deleted_messages: z.coerce.number().int().nonnegative(),
+});
+
 const chatMessageSchema = z.object({
   id: z.string().uuid(),
   conversation_id: z.string().uuid(),
@@ -84,8 +97,21 @@ const sentMessageRowSchema = z.object({
   deleted_at: z.string().nullable(),
 });
 
+const deletedMessageRowSchema = z.object({
+  id: z.string().uuid(),
+  conversation_id: z.string().uuid(),
+});
+
+const realtimeConversationSchema = z.object({
+  id: z.string().uuid(),
+  auto_delete_messages_after_days: z.union([z.literal(CHAT_AUTO_DELETE_DAYS), z.null()]),
+  message_retention_updated_at: z.string().nullable(),
+});
+
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 export type ConversationDetail = z.infer<typeof conversationDetailSchema>;
+export type ConversationRetention = z.infer<typeof conversationRetentionSchema>;
+export type ConversationRetentionUpdate = z.infer<typeof conversationRetentionUpdateSchema>;
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 export type ChatMessageCursor = { sentAt: string; id: string };
 export type ChatRealtimeStatus = 'connecting' | 'connected' | 'reconnecting' | 'error' | 'closed';
@@ -119,6 +145,35 @@ export async function getConversationDetail(client: Client, conversationId: stri
   );
   if (error) throw error;
   const row = z.array(conversationDetailSchema).parse(data)[0];
+  if (!row) throw new Error('conversation_not_available');
+  return row;
+}
+
+export async function getConversationRetention(
+  client: Client,
+  conversationId: string,
+): Promise<ConversationRetention> {
+  const { data, error } = await client.rpc(
+    'get_conversation_retention' as never,
+    { p_conversation_id: conversationId } as never,
+  );
+  if (error) throw error;
+  const row = z.array(conversationRetentionSchema).parse(data)[0];
+  if (!row) throw new Error('conversation_not_available');
+  return row;
+}
+
+export async function setConversationAutoDelete(
+  client: Client,
+  conversationId: string,
+  enabled: boolean,
+): Promise<ConversationRetentionUpdate> {
+  const { data, error } = await client.rpc(
+    'set_conversation_auto_delete' as never,
+    { p_conversation_id: conversationId, p_enabled: enabled } as never,
+  );
+  if (error) throw error;
+  const row = z.array(conversationRetentionUpdateSchema).parse(data)[0];
   if (!row) throw new Error('conversation_not_available');
   return row;
 }
@@ -222,6 +277,31 @@ export function mergeChatMessagesNewestFirst(
   });
 }
 
+export function filterExpiredChatMessages(
+  messages: readonly ChatMessage[],
+  retention: ConversationRetention | null | undefined,
+  nowMs = Date.now(),
+): ChatMessage[] {
+  if (!retention?.auto_delete_enabled) return [...messages];
+  const cutoff = nowMs - CHAT_AUTO_DELETE_MS;
+  return messages.filter((message) => new Date(message.sent_at).getTime() > cutoff);
+}
+
+export function getNextChatExpiryMs(
+  messages: readonly ChatMessage[],
+  retention: ConversationRetention | null | undefined,
+  nowMs = Date.now(),
+): number | null {
+  if (!retention?.auto_delete_enabled) return null;
+  let next: number | null = null;
+  for (const message of messages) {
+    const expiry = new Date(message.sent_at).getTime() + CHAT_AUTO_DELETE_MS;
+    if (expiry <= nowMs) continue;
+    if (next === null || expiry < next) next = expiry;
+  }
+  return next;
+}
+
 export function formatConversationPreview(conversation: ConversationSummary): string {
   if (!conversation.last_message_id) return conversation.can_send ? 'Bắt đầu trò chuyện' : 'Chưa có tin nhắn';
   if (conversation.last_message_type === 'gift') return 'Đã gửi một món quà';
@@ -249,6 +329,8 @@ export function subscribeToConversationMessages(
     conversationId: string;
     viewerUserId: string;
     onMessage: (message: ChatMessage) => void;
+    onDelete?: (messageId: string) => void;
+    onRetentionChange?: (retention: ConversationRetention) => void;
     onStatus: (status: ChatRealtimeStatus) => void;
   },
 ): RealtimeChannel {
@@ -283,6 +365,38 @@ export function subscribeToConversationMessages(
         });
       },
     )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${input.conversationId}`,
+      },
+      (payload) => {
+        const parsed = deletedMessageRowSchema.safeParse(payload.old);
+        if (parsed.success) input.onDelete?.(parsed.data.id);
+      },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'conversations',
+        filter: `id=eq.${input.conversationId}`,
+      },
+      (payload) => {
+        const parsed = realtimeConversationSchema.safeParse(payload.new);
+        if (!parsed.success) return;
+        input.onRetentionChange?.({
+          conversation_id: parsed.data.id,
+          auto_delete_enabled: parsed.data.auto_delete_messages_after_days === CHAT_AUTO_DELETE_DAYS,
+          auto_delete_after_days: parsed.data.auto_delete_messages_after_days,
+          updated_at: parsed.data.message_retention_updated_at,
+        });
+      },
+    )
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') input.onStatus('connected');
       else if (status === 'TIMED_OUT') input.onStatus('reconnecting');
@@ -304,6 +418,7 @@ export function getReadableChatError(error: unknown): string {
   if (message.includes('message_rate_limited')) return 'Bạn đang gửi quá nhanh. Hãy đợi một lúc rồi thử lại.';
   if (message.includes('invalid_message_body')) return `Tin nhắn phải có nội dung và tối đa ${CHAT_MESSAGE_MAX_CHARACTERS.toLocaleString('vi-VN')} ký tự.`;
   if (message.includes('client_message_id_conflict')) return 'Không thể gửi lại tin nhắn vì mã chống trùng không khớp.';
+  if (message.includes('auto_delete_setting_required')) return 'Không thể cập nhật chế độ tự động xóa.';
   if (message.includes('conversation_not_available') || message.includes('sender_not_conversation_member')) return 'Bạn không có quyền truy cập cuộc trò chuyện này.';
   if (message.includes('authentication_required')) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.';
   return 'Không thể hoàn tất thao tác chat. Hãy kiểm tra kết nối và thử lại.';
