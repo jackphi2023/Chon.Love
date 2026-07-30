@@ -27,6 +27,9 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 type FriendsTab = SocialConnectionView | 'blocked';
+type FriendsRow =
+  | { kind: 'connection'; data: SocialConnection }
+  | { kind: 'blocked'; data: BlockedProfile };
 
 const tabs: Array<{ value: FriendsTab; label: string }> = [
   { value: 'friends', label: 'Bạn bè' },
@@ -45,15 +48,16 @@ export default function FriendsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const queryKey = ['social-connections', auth.userId, tab] as const;
-  const listQuery = useQuery({
+  const listQuery = useQuery<FriendsRow[]>({
     queryKey,
     enabled: Boolean(client && auth.userId),
     staleTime: 30_000,
     queryFn: async () => {
       if (!client) throw new Error('supabase_not_configured');
-      return tab === 'blocked'
-        ? listMyBlockedProfiles(client)
-        : listMySocialConnections(client, tab);
+      if (tab === 'blocked') {
+        return (await listMyBlockedProfiles(client)).map((data) => ({ kind: 'blocked' as const, data }));
+      }
+      return (await listMySocialConnections(client, tab)).map((data) => ({ kind: 'connection' as const, data }));
     },
   });
 
@@ -113,9 +117,7 @@ export default function FriendsPage() {
       <FlatList
         contentContainerStyle={styles.content}
         data={rows}
-        keyExtractor={(item) => tab === 'blocked'
-          ? (item as BlockedProfile).blocked_user_id
-          : (item as SocialConnection).friendship_id}
+        keyExtractor={(row) => row.kind === 'blocked' ? row.data.blocked_user_id : row.data.friendship_id}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text accessibilityRole="header" style={styles.title}>Kết nối</Text>
@@ -153,19 +155,19 @@ export default function FriendsPage() {
         }
         onRefresh={() => void listQuery.refetch()}
         refreshing={listQuery.isRefetching}
-        renderItem={({ item }) => tab === 'blocked' ? (
+        renderItem={({ item }) => item.kind === 'blocked' ? (
           <BlockedRow
-            busy={busyId === (item as BlockedProfile).blocked_user_id}
-            item={item as BlockedProfile}
-            onUnblock={() => handleUnblock(item as BlockedProfile)}
+            busy={busyId === item.data.blocked_user_id}
+            item={item.data}
+            onUnblock={() => handleUnblock(item.data)}
           />
         ) : (
           <ConnectionRow
-            busy={busyId === (item as SocialConnection).friendship_id}
-            item={item as SocialConnection}
-            onAccept={() => handleResponse(item as SocialConnection, true)}
-            onCancel={() => handleCancel(item as SocialConnection)}
-            onDecline={() => handleResponse(item as SocialConnection, false)}
+            busy={busyId === item.data.friendship_id}
+            item={item.data}
+            onAccept={() => handleResponse(item.data, true)}
+            onCancel={() => handleCancel(item.data)}
+            onDecline={() => handleResponse(item.data, false)}
           />
         )}
       />
