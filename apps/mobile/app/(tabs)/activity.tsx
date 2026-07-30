@@ -3,7 +3,8 @@ import { getMyProfile } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CreatorActivityList } from '@/components/creator-activity';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -12,6 +13,7 @@ export default function ActivityTabPage() {
   const router = useRouter();
   const auth = useAuth();
   const client = getMobileSupabaseClient();
+  const [creatorUsername, setCreatorUsername] = useState('');
   const profileQuery = useQuery({
     queryKey: ['profile', 'me', auth.userId],
     enabled: Boolean(client && auth.userId),
@@ -22,15 +24,41 @@ export default function ActivityTabPage() {
   });
 
   const profile = profileQuery.data;
+  function openCreatorActivity() {
+    const username = creatorUsername.replace(/^@/, '').trim();
+    if (!username) return;
+    router.push({ pathname: '/activity/[username]', params: { username } });
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text accessibilityRole="header" style={styles.title}>Hoạt động</Text>
-            <Text style={styles.description}>Bảng tin Creator theo phong cách gọn, ưu tiên nội dung, ảnh hoặc link video an toàn.</Text>
+            <Text style={styles.description}>Bảng tin Creator theo phong cách gọn, ưu tiên nội dung, một ảnh hoặc một link video an toàn.</Text>
           </View>
           <Text style={styles.ageBadge}>18+</Text>
+        </View>
+
+        <View style={styles.lookupCard}>
+          <Text style={styles.lookupTitle}>Xem Hoạt động Creator</Text>
+          <Text style={styles.lookupNote}>Nhập username để mở bảng tin công khai đã kiểm duyệt.</Text>
+          <View style={styles.lookupRow}>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={setCreatorUsername}
+              onSubmitEditing={openCreatorActivity}
+              placeholder="@username"
+              returnKeyType="go"
+              style={styles.lookupInput}
+              value={creatorUsername}
+            />
+            <Pressable accessibilityRole="button" onPress={openCreatorActivity} style={styles.lookupButton}>
+              <Text style={styles.lookupButtonText}>Mở</Text>
+            </Pressable>
+          </View>
         </View>
 
         {profileQuery.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
@@ -68,6 +96,13 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 28, fontWeight: '900' },
   description: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   ageBadge: { color: colors.primary, fontSize: 13, fontWeight: '900', backgroundColor: '#FCE7F3', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  lookupCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.sm },
+  lookupTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  lookupNote: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  lookupRow: { flexDirection: 'row', gap: spacing.sm },
+  lookupInput: { flex: 1, minHeight: 44, color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: spacing.md, backgroundColor: '#F9FAFB' },
+  lookupButton: { minWidth: 66, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.primary },
+  lookupButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   creatorBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.surface, padding: spacing.md },
   creatorCopy: { flex: 1, gap: 3 },
   creatorTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
