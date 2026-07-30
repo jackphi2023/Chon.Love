@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHAT_AUTO_DELETE_MS,
   createChatClientMessageId,
+  filterExpiredChatMessages,
   formatConversationPreview,
+  getNextChatExpiryMs,
   getOlderMessageCursor,
   mergeChatMessagesNewestFirst,
   type ChatMessage,
+  type ConversationRetention,
   type ConversationSummary,
 } from './chat';
 
@@ -28,6 +32,13 @@ const conversation: ConversationSummary = {
   last_message_sender_id: null,
   last_message_sent_at: null,
   unread_count: 0,
+};
+
+const retention: ConversationRetention = {
+  conversation_id: conversation.conversation_id,
+  auto_delete_enabled: true,
+  auto_delete_after_days: 7,
+  updated_at: '2026-07-30T07:00:00.000Z',
 };
 
 function message(overrides: Partial<ChatMessage> = {}): ChatMessage {
@@ -71,6 +82,25 @@ describe('chat helpers', () => {
     const optimistic = message({ id: '77777777-7777-4777-8777-777777777777', sent_at: '2026-07-30T07:00:00.000Z' });
     const server = message({ id: '88888888-8888-4888-8888-888888888888', sent_at: '2026-07-30T07:00:01.000Z' });
     expect(mergeChatMessagesNewestFirst([optimistic, server])).toEqual([server]);
+  });
+
+  it('physically expires client-visible messages at seven days when enabled', () => {
+    const now = Date.parse('2026-07-30T07:00:00.000Z');
+    const expired = message({ sent_at: new Date(now - CHAT_AUTO_DELETE_MS).toISOString() });
+    const fresh = message({
+      id: '99999999-9999-4999-8999-999999999999',
+      client_message_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      sent_at: new Date(now - CHAT_AUTO_DELETE_MS + 1).toISOString(),
+    });
+    expect(filterExpiredChatMessages([expired, fresh], retention, now)).toEqual([fresh]);
+    expect(filterExpiredChatMessages([expired, fresh], { ...retention, auto_delete_enabled: false, auto_delete_after_days: null }, now)).toHaveLength(2);
+  });
+
+  it('returns the next local expiry deadline for an open conversation', () => {
+    const now = Date.parse('2026-07-30T07:00:00.000Z');
+    const fresh = message({ sent_at: new Date(now - 1_000).toISOString() });
+    expect(getNextChatExpiryMs([fresh], retention, now)).toBe(now - 1_000 + CHAT_AUTO_DELETE_MS);
+    expect(getNextChatExpiryMs([fresh], { ...retention, auto_delete_enabled: false, auto_delete_after_days: null }, now)).toBeNull();
   });
 
   it('formats safe conversation previews', () => {
