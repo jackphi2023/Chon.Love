@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import './activity.css';
 import { PublicCreatorActivity } from './public-creator-activity';
 
 export const metadata: Metadata = {
