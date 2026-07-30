@@ -108,9 +108,9 @@ Only feed and media access RPCs are callable by `anon`. Creator write, gift, rep
 
 ### Public web
 
-- `/u/[username]/hoat-dong`
+- `/hoat-dong?u=username`
 
-The public route is noindex and never permits anonymous gift transactions.
+The public site is configured for static export, so the username is passed as a query parameter instead of an unbounded dynamic route. The page is noindex and never permits anonymous gift transactions.
 
 ### Admin
 
