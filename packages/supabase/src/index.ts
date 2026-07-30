@@ -52,4 +52,5 @@ export function createPublicSupabaseClient(
 
 export * from './discovery';
 export * from './profile-media';
+export * from './social-safety';
 export type { Database } from './database.types';
