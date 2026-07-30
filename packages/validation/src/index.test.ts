@@ -4,6 +4,9 @@ import {
   emailSchema,
   isAtLeastAge,
   minimumOnboardingSchema,
+  normalizeInterests,
+  profileEditorSchema,
+  profileImageMetadataSchema,
   usernameSchema,
 } from './index';
 
@@ -34,6 +37,48 @@ describe('shared validation', () => {
     expect(minimumOnboardingSchema.safeParse({ ...valid, acceptedTerms: false }).success).toBe(false);
     expect(
       minimumOnboardingSchema.safeParse({ ...valid, acceptedCommunityStandards: false }).success,
+    ).toBe(false);
+  });
+
+  it('normalizes interests without duplicate labels', () => {
+    expect(normalizeInterests([' Âm nhạc ', 'âm nhạc', 'Du lịch', ''])).toEqual([
+      'Âm nhạc',
+      'Du lịch',
+    ]);
+  });
+
+  it('validates a complete profile editor payload', () => {
+    const result = profileEditorSchema.parse({
+      username: 'creator_01',
+      displayName: 'Creator MyFan',
+      bio: 'Chia sẻ âm nhạc và những khoảnh khắc tích cực.',
+      gender: 'prefer_not_to_say',
+      provinceId: 1,
+      interests: ['Âm nhạc', 'Du lịch'],
+      discoveryEnabled: true,
+      nearbyEnabled: false,
+    });
+    expect(result.interests).toEqual(['Âm nhạc', 'Du lịch']);
+  });
+
+  it('rejects oversized or mismatched image metadata', () => {
+    expect(
+      profileImageMetadataSchema.safeParse({
+        mimeType: 'image/jpeg',
+        fileSizeBytes: 1024,
+        width: 1080,
+        height: 1080,
+        extension: 'png',
+      }).success,
+    ).toBe(false);
+    expect(
+      profileImageMetadataSchema.safeParse({
+        mimeType: 'image/jpeg',
+        fileSizeBytes: 11 * 1024 * 1024,
+        width: 1080,
+        height: 1080,
+        extension: 'jpg',
+      }).success,
     ).toBe(false);
   });
 });
