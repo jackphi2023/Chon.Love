@@ -67,6 +67,29 @@ function realtimeLabel(status: ChatRealtimeStatus): string {
   return 'Đã ngắt kết nối';
 }
 
+function confirmCrossPlatform(input: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+}) {
+  if (Platform.OS === 'web') {
+    const confirmFunction = (globalThis as typeof globalThis & { confirm?: (message: string) => boolean }).confirm;
+    if (confirmFunction?.(`${input.title}\n\n${input.message}`)) input.onConfirm();
+    return;
+  }
+
+  Alert.alert(input.title, input.message, [
+    { text: 'Hủy', style: 'cancel' },
+    {
+      text: input.confirmLabel,
+      style: input.destructive ? 'destructive' : 'default',
+      onPress: input.onConfirm,
+    },
+  ]);
+}
+
 export default function ChatDetailPage() {
   const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
   const conversationId = normalizeParam(params.conversationId);
@@ -89,9 +112,18 @@ export default function ChatDetailPage() {
   const [reportDescription, setReportDescription] = useState('');
   const lastMarkedMessageId = useRef<string | null>(null);
 
-  const detailQueryKey = ['chat', 'detail', auth.userId, conversationId] as const;
-  const retentionQueryKey = ['chat', 'retention', auth.userId, conversationId] as const;
-  const messagesQueryKey = ['chat', 'messages', auth.userId, conversationId] as const;
+  const detailQueryKey = useMemo(
+    () => ['chat', 'detail', auth.userId, conversationId] as const,
+    [auth.userId, conversationId],
+  );
+  const retentionQueryKey = useMemo(
+    () => ['chat', 'retention', auth.userId, conversationId] as const,
+    [auth.userId, conversationId],
+  );
+  const messagesQueryKey = useMemo(
+    () => ['chat', 'messages', auth.userId, conversationId] as const,
+    [auth.userId, conversationId],
+  );
 
   const detailQuery = useQuery({
     queryKey: detailQueryKey,
@@ -116,8 +148,12 @@ export default function ChatDetailPage() {
   });
 
   const pageSize = detailQuery.data?.page_size ?? 40;
+  const pagedMessagesQueryKey = useMemo(
+    () => [...messagesQueryKey, pageSize] as const,
+    [messagesQueryKey, pageSize],
+  );
   const messagesQuery = useInfiniteQuery({
-    queryKey: [...messagesQueryKey, pageSize],
+    queryKey: pagedMessagesQueryKey,
     enabled: Boolean(client && auth.userId && conversationId && detailQuery.data),
     initialPageParam: null as ChatMessageCursor | null,
     refetchOnWindowFocus: false,
@@ -189,8 +225,20 @@ export default function ChatDetailPage() {
         void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
         void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
       },
+      onReadChange: () => {
+        if (!active) return;
+        void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
+      },
       onRetentionChange: (retention) => {
         if (!active) return;
+        const current = queryClient.getQueryData<ConversationRetention>(retentionQueryKey);
+        if (
+          current?.auto_delete_enabled === retention.auto_delete_enabled &&
+          current.auto_delete_after_days === retention.auto_delete_after_days &&
+          current.updated_at === retention.updated_at
+        ) {
+          return;
+        }
         queryClient.setQueryData<ConversationRetention>(retentionQueryKey, retention);
         setExpiryClock(Date.now());
         void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
@@ -309,26 +357,15 @@ export default function ChatDetailPage() {
   }
 
   function confirmRetentionChange(enabled: boolean) {
-    if (enabled) {
-      Alert.alert(
-        'Bật tự động xóa sau 7 ngày?',
-        'Cài đặt áp dụng cho cả hai người. Tin nhắn đủ 7 ngày sẽ bị xóa vật lý khỏi server và không thể khôi phục. Tin đã quá 7 ngày sẽ bị xóa ngay khi bật.',
-        [
-          { text: 'Hủy', style: 'cancel' },
-          { text: 'Bật', onPress: () => void handleRetentionChange(true) },
-        ],
-      );
-      return;
-    }
-
-    Alert.alert(
-      'Tắt tự động xóa?',
-      'Các tin còn lại sẽ được giữ cho đến khi bị ẩn, kiểm duyệt hoặc cài đặt này được bật lại. Tin đã xóa khỏi server không thể khôi phục.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Tắt', style: 'destructive', onPress: () => void handleRetentionChange(false) },
-      ],
-    );
+    confirmCrossPlatform({
+      title: enabled ? 'Bật tự động xóa sau 7 ngày?' : 'Tắt tự động xóa?',
+      message: enabled
+        ? 'Cài đặt áp dụng cho cả hai người. Tin nhắn đủ 7 ngày sẽ bị xóa vật lý khỏi server và không thể khôi phục. Tin đã quá 7 ngày sẽ bị xóa ngay khi bật.'
+        : 'Các tin còn lại sẽ được giữ cho đến khi bị ẩn, kiểm duyệt hoặc cài đặt này được bật lại. Tin đã xóa khỏi server không thể khôi phục.',
+      confirmLabel: enabled ? 'Bật' : 'Tắt',
+      destructive: !enabled,
+      onConfirm: () => void handleRetentionChange(enabled),
+    });
   }
 
   async function handleHide(message: ChatMessage) {
@@ -344,14 +381,13 @@ export default function ChatDetailPage() {
   }
 
   function confirmHide(message: ChatMessage) {
-    Alert.alert(
-      'Ẩn tin nhắn?',
-      'Tin nhắn chỉ bị ẩn khỏi tài khoản của bạn và không bị xóa khỏi tài khoản người còn lại.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Ẩn', style: 'destructive', onPress: () => void handleHide(message) },
-      ],
-    );
+    confirmCrossPlatform({
+      title: 'Ẩn tin nhắn?',
+      message: 'Tin nhắn chỉ bị ẩn khỏi tài khoản của bạn và không bị xóa khỏi tài khoản người còn lại.',
+      confirmLabel: 'Ẩn',
+      destructive: true,
+      onConfirm: () => void handleHide(message),
+    });
   }
 
   async function handleReport() {
@@ -406,14 +442,13 @@ export default function ChatDetailPage() {
       void toggleBlock();
       return;
     }
-    Alert.alert(
-      'Chặn tài khoản này?',
-      'Hai tài khoản sẽ không thể kết bạn, nhắn tin, tặng quà hoặc xem Album Fan của nhau.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Chặn', style: 'destructive', onPress: () => void toggleBlock() },
-      ],
-    );
+    confirmCrossPlatform({
+      title: 'Chặn tài khoản này?',
+      message: 'Hai tài khoản sẽ không thể kết bạn, nhắn tin, tặng quà hoặc xem Album Fan của nhau.',
+      confirmLabel: 'Chặn',
+      destructive: true,
+      onConfirm: () => void toggleBlock(),
+    });
   }
 
   if (detailQuery.isLoading) {
