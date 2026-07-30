@@ -5,7 +5,9 @@ import {
   createPrivateMediaUrl,
   createSafetyReport,
   formatHeartUnits,
+  getDirectConversation,
   getProfileViewer,
+  getReadableChatError,
   getReadableSocialError,
   listProfileAlbumMedia,
   REPORT_REASON_OPTIONS,
@@ -122,11 +124,12 @@ export default function ProfileViewerPage() {
       queryClient.invalidateQueries({ queryKey: profileQueryKey }),
       queryClient.invalidateQueries({ queryKey: ['profile-viewer', 'album', profile?.id] }),
       queryClient.invalidateQueries({ queryKey: ['social-connections', auth.userId] }),
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['discovery', 'profiles', auth.userId] }),
     ]);
   }
 
-  async function runAction(name: string, action: () => Promise<void>, successMessage: string) {
+  async function runSocialAction(name: string, action: () => Promise<void>, successMessage: string) {
     setBusyAction(name);
     setMessage(null);
     setErrorMessage(null);
@@ -143,7 +146,7 @@ export default function ProfileViewerPage() {
 
   async function handleSendFriendRequest() {
     if (!client || !profile) return;
-    await runAction(
+    await runSocialAction(
       'friend',
       () => sendFriendRequest(client, profile.id, greeting),
       'Đã gửi lời mời kết bạn.',
@@ -154,25 +157,45 @@ export default function ProfileViewerPage() {
   async function handleRelationshipAction(action: 'accept' | 'decline' | 'cancel') {
     if (!client || !profile?.friendship_id) return;
     if (action === 'cancel') {
-      await runAction('friend', () => cancelFriendRequest(client, profile.friendship_id!), 'Đã hủy lời mời.');
+      await runSocialAction('friend', () => cancelFriendRequest(client, profile.friendship_id!), 'Đã hủy lời mời.');
       return;
     }
-    await runAction(
+    await runSocialAction(
       'friend',
       () => respondToFriendRequest(client, profile.friendship_id!, action === 'accept'),
-      action === 'accept' ? 'Hai bạn đã trở thành bạn bè.' : 'Đã từ chối lời mời.',
+      action === 'accept' ? 'Hai bạn đã trở thành bạn bè. Chat đã được mở.' : 'Đã từ chối lời mời.',
     );
+  }
+
+  async function handleOpenChat() {
+    if (!client || !profile) return;
+    setBusyAction('chat');
+    setMessage(null);
+    setErrorMessage(null);
+    try {
+      const conversationId = await getDirectConversation(client, profile.id);
+      if (!conversationId) throw new Error('conversation_not_available');
+      router.push({ pathname: '/chat/[conversationId]', params: { conversationId } });
+    } catch (error) {
+      setErrorMessage(getReadableChatError(error));
+    } finally {
+      setBusyAction(null);
+    }
   }
 
   async function handleBlock() {
     if (!client || !profile) return;
-    await runAction('block', () => blockUser(client, profile.id, 'profile_safety'), 'Đã chặn tài khoản.');
+    await runSocialAction('block', () => blockUser(client, profile.id, 'profile_safety'), 'Đã chặn tài khoản.');
     setShowBlockConfirm(false);
   }
 
   async function handleUnblock() {
     if (!client || !profile) return;
-    await runAction('block', () => unblockUser(client, profile.id), 'Đã bỏ chặn tài khoản.');
+    await runSocialAction(
+      'block',
+      () => unblockUser(client, profile.id),
+      'Đã bỏ chặn tài khoản. Quan hệ bạn bè cũ không được tự động khôi phục.',
+    );
   }
 
   async function handleReport() {
@@ -261,11 +284,12 @@ export default function ProfileViewerPage() {
       ) : (
         <>
           <FriendshipActions
-            busy={busyAction === 'friend'}
+            busy={busyAction === 'friend' || busyAction === 'chat'}
             direction={profile.friendship_direction}
             greeting={greeting}
             onAccept={() => handleRelationshipAction('accept')}
             onCancel={() => handleRelationshipAction('cancel')}
+            onChat={handleOpenChat}
             onDecline={() => handleRelationshipAction('decline')}
             onGreetingChange={setGreeting}
             onSend={handleSendFriendRequest}
@@ -398,6 +422,7 @@ function FriendshipActions(props: {
   greeting: string;
   onAccept: () => void;
   onCancel: () => void;
+  onChat: () => void;
   onDecline: () => void;
   onGreetingChange: (value: string) => void;
   onSend: () => void;
@@ -407,7 +432,10 @@ function FriendshipActions(props: {
     return (
       <View style={styles.relationshipCard}>
         <Text style={styles.relationshipTitle}>✓ Hai bạn đã là bạn bè</Text>
-        <Text style={styles.bodyText}>Tin nhắn realtime sẽ được mở trong Phiên 19.</Text>
+        <Text style={styles.bodyText}>Chat realtime đã sẵn sàng. Tin nhắn chỉ được gửi khi quan hệ bạn bè còn hiệu lực và không có chặn.</Text>
+        <Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onChat} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>{props.busy ? 'Đang mở…' : 'Nhắn tin'}</Text>
+        </Pressable>
       </View>
     );
   }
