@@ -23,7 +23,7 @@ export const phaseCFeatureFlags = {
   creator_wallet: false,
   creator_kyc: false,
   withdrawal: false,
-  fan_album: false,
+  fan_album: true,
   push_notifications: false,
   native_deep_links: false,
 } as const;
