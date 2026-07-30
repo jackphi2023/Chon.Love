@@ -2,7 +2,6 @@
 
 **Audited:** 2026-07-30  
 **Repository:** `jackphi2023/myfan`  
-**Working branch:** `feature/phase-c-core-app-web`  
 **Supabase development project ref:** `asnydvqsduonyidjyyzq`  
 **Decision:** native app, Expo Web/mobile web, public web and Admin use this one development project during Phase C.
 
@@ -43,22 +42,30 @@ Migration `phase_c_12_heart_vnd_rate_50000` updates future conversion configurat
 | Chat | paginated messages; `send_message`; filtered Realtime | member; server checks friendship/block | optimistic rollback; dedupe; offline disabled |
 | Media | prepare RPC → private Storage → finalize RPC | own path; MIME/size; moderation | progress; pending/approved/rejected/error |
 | Gift catalog | active `gift_catalog` | public read; no client write | sorted; inactive hidden; no VND; send disabled |
+| Creator Activity feed | `list_creator_activity(...)` | anon/authenticated; approved public posts or owner state | skeleton; empty; retry; keyset pagination |
+| Creator Activity composer | media upload + `create_creator_activity_post(...)` + preview Edge Function | approved active Creator only | validation; upload; pending review; preview failure |
+| Locked Activity image | preview Storage + `get_creator_post_media_access(...)` | owner, approved public image or active post entitlement | locked, preview-only, revoked, retry |
+| Activity gift unlock | `send_gift_and_unlock_creator_post(...)` | adult authenticated; block-safe; active approved Creator/post/media | disabled flag, insufficient hearts, idempotent success, reversal |
+| Activity moderation | queue + `moderate_creator_activity_post(...)` | moderator/super-admin only | loading, empty, role error, approve/reject |
 | Economy | `get_my_economy_summary()` | self only; no direct private-ledger query | feature-disabled placeholder; safe retry |
 | Account deletion | request/status/cancel RPCs | self only | confirmation; scheduled/grace/hold states |
 
 ## 4. Public, private and Realtime data
 
-Public-safe data is limited to active administrative areas, active gifts, approved Creator presentation fields and public application configuration. DOB, exact coordinates, pending media paths, messages, reports, blocks, financial ledgers, purchase tokens, KYC, bank and withdrawal data remain private/self-only.
+Public-safe data is limited to active administrative areas, active gifts, approved Creator presentation fields, approved Creator Activity text/link data, preview paths authorized by Storage policy and public application configuration. DOB, exact coordinates, pending media paths, locked originals, messages, reports, blocks, financial ledgers, purchase tokens, unlock-entitlement rows, KYC, bank and withdrawal data remain private/self-only.
 
-The Realtime publication includes `messages`, `friendships`, `media_assets`, `gift_transactions`, `fan_progress`, `fan_memberships`, `economy_sync`, `payout_sync`, `albums`, `album_media` and `conversation_members`. Subscriptions must be resource-scoped, deduplicated and removed on unmount.
+The Realtime publication includes `messages`, `friendships`, `media_assets`, `gift_transactions`, `fan_progress`, `fan_memberships`, `economy_sync`, `payout_sync`, `albums`, `album_media` and `conversation_members`. Subscriptions must be resource-scoped, deduplicated and removed on unmount. Creator Activity V1 uses query invalidation rather than adding a global post subscription.
 
 ## 5. Storage
 
-Audited private buckets:
+Audited private buckets include:
 
 - `pending-media`: images, 10 MB;
 - `profile-media`: approved profile media, 10 MB;
+- `activity-previews`: derived blurred previews, 1 MB;
 - `kyc-private`: image/PDF, 15 MB.
+
+Creator Activity originals remain private. Gift-locked viewers receive a separate 64×64 server-generated blurred preview, not an original image blurred by client CSS. Original signed URLs expire after 30 seconds and require owner/public-image/active-entitlement or moderator authorization.
 
 Clients must not construct public URLs or query arbitrary paths.
 
@@ -70,24 +77,39 @@ send_gift = false
 creator_wallet = false
 creator_kyc = false
 withdrawal = false
-fan_album = false
+fan_album = true
+creator_activity = true
+creator_activity_links = true
+creator_activity_gift_lock = true
+creator_activity_public_web = true
 push_notifications = false
 native_deep_links = false
 ```
 
-## 7. Contract gaps
+With `send_gift=false`, the Activity UI can display locked previews and the selected gift but cannot fake a charge, balance mutation or unlock success.
 
-1. Phase B source reports/migrations are missing from Git and should be recovered from the applied database history.
-2. Live `gift_catalog` has 20 active gifts but prices `1,2,3,5,7,10,12,15,20,25,30,35,40,50,60,70,75,80,90,100`; Session 19 must migrate future catalog prices to exactly `1–20 ❤️` without changing historical snapshots.
-3. Approved private media needs a client-safe signed-delivery operation before public profile images are shown.
-4. Current Terms and Community Standards version keys are not exposed in public config before Session 14.
-5. Profile interests are absent from the audited schema.
-6. No narrow conversation-summary RPC was found; avoid N+1 queries in Session 18.
-7. Google Sign-In and Play Billing credentials are not available, so both remain disabled/foundation-only.
-8. Native session persistence intentionally remains off in Session 12 until secure storage is integrated and tested in Session 14.
+## 7. Creator Activity V1 contract
 
-## 8. Security advisor review
+Every Creator Activity post must contain text. Exactly one of the following shapes is accepted:
 
-Supabase Security Advisor reports warnings for client-callable `SECURITY DEFINER` RPCs. Each must be reviewed for explicit `auth.uid()`/role checks, fixed `search_path`, least-privilege EXECUTE grants and rejection of caller-supplied identity. This remains an open Phase B security-review gap, not an accepted safe default.
+1. text only;
+2. text plus exactly one image;
+3. text plus exactly one HTTPS video link from YouTube, youtu.be or OF.TV.
 
-Performance Advisor reports only unused-index information. The database is empty, so no index was removed.
+Multiple images and image-plus-video posts are rejected by component validation, RPC validation and database constraints. OF.TV is an external-link card, not an embedded WebView. The server does not perform arbitrary URL metadata fetches.
+
+All posts begin `pending_review`. Public and authenticated non-owners only receive approved posts. An image post cannot be approved until the original image is approved and its server-derived preview is ready.
+
+## 8. Contract gaps and deferred QA
+
+1. Google Sign-In and Play Billing credentials are unavailable, so both remain disabled/foundation-only.
+2. Native secure session persistence still requires dedicated-device verification.
+3. The development project has no multi-user Creator Activity fixtures, so gift unlock, reversal, block behavior and moderator E2E remain beta QA.
+4. The preview Edge Function is deployed and active, but an actual uploaded-image transformation has not been verified because no Creator/media fixture exists.
+5. Public web uses static-export-compatible `/hoat-dong?u=username` rather than an unbounded dynamic route.
+
+## 9. Security advisor review
+
+Supabase Security Advisor reports project-wide warnings for client-callable `SECURITY DEFINER` RPCs. Creator Activity functions use fixed empty `search_path`, explicit `auth.uid()` or role checks, least-privilege direct grants, server-derived identities/prices and private entitlement tables. Only feed/media-access RPCs are callable by `anon`; Creator writes, gift unlock, report and Admin operations require authenticated access.
+
+Performance Advisor reports unused-index information on the empty development database. No index is removed solely from that signal.
