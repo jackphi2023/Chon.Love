@@ -1,3 +1,4 @@
+import { phaseCFeatureFlags } from '@myfan/config';
 import {
   createPrivateMediaUrl,
   getMediaById,
@@ -6,6 +7,7 @@ import {
   listMyMedia,
   listProfileAlbumMedia,
   uploadProfileImage,
+  type AlbumMediaItem,
 } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,16 +30,19 @@ import {
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
+type UploadVisibility = 'avatar' | 'public' | 'fan';
+type AlbumItemWithUrl = AlbumMediaItem & { url: string };
+
 const profileQueryKey = (userId: string | null) => ['profile', 'me', userId] as const;
 const mediaQueryKey = (userId: string | null) => ['profile', 'media', userId] as const;
-const albumQueryKey = (userId: string | null) => ['profile', 'album', userId, 'public'] as const;
+const albumQueryKey = (userId: string | null, type: 'public' | 'fan') => ['profile', 'album', userId, type] as const;
 
 export default function Page() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const auth = useAuth();
   const client = getMobileSupabaseClient();
-  const [uploading, setUploading] = useState<'avatar' | 'public' | null>(null);
+  const [uploading, setUploading] = useState<UploadVisibility | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -71,32 +76,19 @@ export default function Page() {
     },
   });
 
-  const publicAlbumQuery = useQuery({
-    queryKey: albumQueryKey(auth.userId),
-    enabled: Boolean(client && auth.userId),
-    staleTime: 15_000,
-    queryFn: async () => {
-      if (!client || !auth.userId) return [];
-      const rows = await listProfileAlbumMedia(client, auth.userId, 'public');
-      return Promise.all(
-        rows.map(async (row) => ({ ...row, url: await createPrivateMediaUrl(client, row) })),
-      );
-    },
-  });
+  const publicAlbumQuery = useOwnedAlbum('public', auth.userId);
+  const fanAlbumQuery = useOwnedAlbum('fan', profileQuery.data?.is_creator ? auth.userId : null);
 
   async function refreshProfile() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: profileQueryKey(auth.userId) }),
       queryClient.invalidateQueries({ queryKey: mediaQueryKey(auth.userId) }),
-      queryClient.invalidateQueries({ queryKey: albumQueryKey(auth.userId) }),
+      queryClient.invalidateQueries({ queryKey: ['profile', 'album', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['profile', 'avatar-url'] }),
     ]);
   }
 
-  async function handleUpload(
-    visibility: 'avatar' | 'public',
-    source: ProfileImageSource,
-  ) {
+  async function handleUpload(visibility: UploadVisibility, source: ProfileImageSource) {
     if (!client) {
       setErrorMessage('Supabase chưa được cấu hình.');
       return;
@@ -109,7 +101,13 @@ export default function Page() {
       if (!prepared) return;
       await uploadProfileImage(client, prepared);
       await refreshProfile();
-      setMessage(visibility === 'avatar' ? 'Ảnh đại diện đã được cập nhật.' : 'Ảnh đã được đăng.');
+      setMessage(
+        visibility === 'avatar'
+          ? 'Ảnh đại diện đã được cập nhật.'
+          : visibility === 'fan'
+            ? 'Ảnh đã được thêm vào Album Fan.'
+            : 'Ảnh đã được đăng.',
+      );
     } catch (error) {
       setErrorMessage(getReadableProfileMediaError(error));
     } finally {
@@ -139,18 +137,13 @@ export default function Page() {
   const hiddenMediaCount = (mediaQuery.data ?? []).filter(isMediaHiddenByModeration).length;
 
   return (
-    <Screen
-      title="Hồ sơ của tôi"
-      description="Chia sẻ thông tin và hình ảnh phù hợp với cộng đồng MyFan 18+."
-    >
+    <Screen title="Hồ sơ của tôi" description="Chia sẻ thông tin và hình ảnh phù hợp với cộng đồng MyFan 18+.">
       <View style={styles.profileHeader}>
         {avatarUrlQuery.data ? (
           <Image accessibilityLabel="Ảnh đại diện" source={{ uri: avatarUrlQuery.data }} style={styles.avatar} />
         ) : (
           <View accessibilityLabel="Chưa có ảnh đại diện" style={styles.avatarFallback}>
-            <Text style={styles.avatarFallbackText}>
-              {(profile?.display_name ?? profile?.username ?? 'M').slice(0, 1).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarFallbackText}>{(profile?.display_name ?? profile?.username ?? 'M').slice(0, 1).toUpperCase()}</Text>
           </View>
         )}
         <View style={styles.identity}>
@@ -161,29 +154,11 @@ export default function Page() {
       </View>
 
       <View style={styles.actionRow}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={uploading !== null}
-          onPress={() => handleUpload('avatar', 'library')}
-          style={styles.secondaryButton}
-        >
-          <Text style={styles.secondaryButtonText}>Chọn avatar</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={uploading !== null}
-          onPress={() => handleUpload('avatar', 'camera')}
-          style={styles.secondaryButton}
-        >
-          <Text style={styles.secondaryButtonText}>Chụp avatar</Text>
-        </Pressable>
+        <ActionButton disabled={uploading !== null} label="Chọn avatar" onPress={() => handleUpload('avatar', 'library')} />
+        <ActionButton disabled={uploading !== null} label="Chụp avatar" onPress={() => handleUpload('avatar', 'camera')} />
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/profile/edit')}
-        style={styles.primaryButton}
-      >
+      <Pressable accessibilityRole="button" onPress={() => router.push('/profile/edit')} style={styles.primaryButton}>
         <Text style={styles.primaryButtonText}>Chỉnh sửa hồ sơ</Text>
       </Pressable>
 
@@ -195,59 +170,59 @@ export default function Page() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sở thích</Text>
         <View style={styles.chipRow}>
-          {(profile?.interests ?? []).length ? (
-            profile?.interests.map((interest) => (
-              <View key={interest} style={styles.chip}>
-                <Text style={styles.chipText}>{interest}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.bodyText}>Chưa thêm sở thích.</Text>
-          )}
+          {(profile?.interests ?? []).length ? profile?.interests.map((interest) => (
+            <View key={interest} style={styles.chip}><Text style={styles.chipText}>{interest}</Text></View>
+          )) : <Text style={styles.bodyText}>Chưa thêm sở thích.</Text>}
         </View>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeadingRow}>
-          <Text style={styles.sectionTitle}>Ảnh công khai</Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={uploading !== null}
-            onPress={() => handleUpload('public', 'library')}
-          >
-            <Text style={styles.textAction}>{uploading === 'public' ? 'Đang đăng…' : 'Thêm ảnh'}</Text>
-          </Pressable>
+      <OwnedAlbumSection
+        actionLabel={uploading === 'public' ? 'Đang đăng…' : 'Thêm ảnh'}
+        emptyText="Chưa có ảnh công khai."
+        items={publicAlbumQuery.data ?? []}
+        loading={publicAlbumQuery.isLoading}
+        onAdd={() => handleUpload('public', 'library')}
+        title="Ảnh công khai"
+      />
+
+      {profile?.is_creator && phaseCFeatureFlags.fan_album ? (
+        <OwnedAlbumSection
+          actionLabel={uploading === 'fan' ? 'Đang đăng…' : 'Thêm ảnh'}
+          emptyText="Chưa có ảnh trong Album Fan."
+          items={fanAlbumQuery.data ?? []}
+          loading={fanAlbumQuery.isLoading}
+          onAdd={() => handleUpload('fan', 'library')}
+          title="Album Fan"
+        />
+      ) : null}
+
+      {profile?.is_creator ? (
+        <View style={styles.fanNote}>
+          <Text style={styles.fanNoteTitle}>Quy tắc Album Fan</Text>
+          <Text style={styles.fanNoteText}>
+            Ảnh hiển thị ngay cho người đủ quyền, không có nhãn duyệt. Admin có thể ẩn sau nếu vi phạm. Album Fan không cho phép nội dung người lớn hoặc đổi quà lấy gặp mặt/liên hệ riêng.
+          </Text>
         </View>
-        <View style={styles.gallery}>
-          {(publicAlbumQuery.data ?? []).map((item) => (
-            <Image
-              accessibilityLabel="Ảnh công khai của tôi"
-              key={item.media_id}
-              source={{ uri: item.url }}
-              style={styles.galleryImage}
-            />
-          ))}
-        </View>
-        {!publicAlbumQuery.isLoading && !(publicAlbumQuery.data ?? []).length ? (
-          <Text style={styles.bodyText}>Chưa có ảnh công khai.</Text>
-        ) : null}
-      </View>
+      ) : null}
 
       {hiddenMediaCount > 0 ? (
         <View style={styles.hiddenNotice}>
-          <Text style={styles.hiddenNoticeText}>
-            {hiddenMediaCount} ảnh đã bị ẩn vì không còn phù hợp với Tiêu chuẩn cộng đồng.
-          </Text>
+          <Text style={styles.hiddenNoticeText}>{hiddenMediaCount} ảnh đã bị ẩn vì không còn phù hợp với Tiêu chuẩn cộng đồng.</Text>
         </View>
       ) : null}
 
       {uploading ? <ActivityIndicator color={colors.primary} /> : null}
       {message ? <Text accessibilityRole="alert" style={styles.success}>{message}</Text> : null}
-      {errorMessage || profileQuery.error || publicAlbumQuery.error ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {errorMessage ?? 'Không thể tải đầy đủ hồ sơ. Hãy thử lại.'}
-        </Text>
+      {errorMessage || profileQuery.error || publicAlbumQuery.error || fanAlbumQuery.error ? (
+        <Text accessibilityRole="alert" style={styles.error}>{errorMessage ?? 'Không thể tải đầy đủ hồ sơ. Hãy thử lại.'}</Text>
       ) : null}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tài khoản và an toàn</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/settings/account-deletion')} style={styles.settingsButton}>
+          <Text style={styles.settingsButtonText}>Yêu cầu xóa tài khoản</Text>
+        </Pressable>
+      </View>
 
       <Pressable accessibilityRole="button" onPress={handleSignOut} style={styles.signOutButton}>
         <Text style={styles.signOutText}>Đăng xuất</Text>
@@ -256,47 +231,72 @@ export default function Page() {
   );
 }
 
+function useOwnedAlbum(type: 'public' | 'fan', userId: string | null | undefined) {
+  const client = getMobileSupabaseClient();
+  return useQuery({
+    queryKey: albumQueryKey(userId ?? null, type),
+    enabled: Boolean(client && userId),
+    staleTime: 15_000,
+    queryFn: async () => {
+      if (!client || !userId) return [];
+      const rows = await listProfileAlbumMedia(client, userId, type);
+      return Promise.all(rows.map(async (row) => ({ ...row, url: await createPrivateMediaUrl(client, row) })));
+    },
+  });
+}
+
+function ActionButton({ disabled, label, onPress }: { disabled: boolean; label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={styles.secondaryButton}>
+      <Text style={styles.secondaryButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function OwnedAlbumSection({
+  title,
+  actionLabel,
+  items,
+  loading,
+  emptyText,
+  onAdd,
+}: {
+  title: string;
+  actionLabel: string;
+  items: AlbumItemWithUrl[];
+  loading: boolean;
+  emptyText: string;
+  onAdd: () => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeadingRow}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Pressable accessibilityRole="button" onPress={onAdd}><Text style={styles.textAction}>{actionLabel}</Text></Pressable>
+      </View>
+      {loading ? <ActivityIndicator color={colors.primary} /> : (
+        <View style={styles.gallery}>
+          {items.map((item) => <Image accessibilityLabel={`Ảnh trong ${title}`} key={item.media_id} source={{ uri: item.url }} style={styles.galleryImage} />)}
+        </View>
+      )}
+      {!loading && !items.length ? <Text style={styles.bodyText}>{emptyText}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.border },
-  avatarFallback: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#FCE7F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  avatarFallback: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center' },
   avatarFallbackText: { color: colors.primary, fontSize: 32, fontWeight: '800' },
   identity: { flex: 1, gap: spacing.xs },
   displayName: { color: colors.text, fontSize: 22, fontWeight: '800' },
   username: { color: colors.muted, fontSize: 14 },
-  creatorBadge: {
-    alignSelf: 'flex-start',
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '800',
-  },
+  creatorBadge: { alignSelf: 'flex-start', color: colors.primary, fontSize: 12, fontWeight: '800' },
   actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-  },
+  secondaryButton: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
   secondaryButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  primaryButton: {
-    minHeight: 48,
-    marginTop: spacing.md,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  primaryButton: { minHeight: 48, marginTop: spacing.md, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   section: { marginTop: spacing.lg, gap: spacing.sm },
   sectionHeadingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -308,18 +308,15 @@ const styles = StyleSheet.create({
   textAction: { color: colors.primary, fontSize: 14, fontWeight: '800' },
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   galleryImage: { width: 94, height: 94, borderRadius: 12, backgroundColor: colors.border },
+  fanNote: { marginTop: spacing.lg, borderRadius: 14, borderWidth: 1, borderColor: '#F2B51D', backgroundColor: '#FFFBEB', padding: spacing.md, gap: spacing.xs },
+  fanNoteTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  fanNoteText: { color: '#92400E', fontSize: 13, lineHeight: 20 },
   hiddenNotice: { marginTop: spacing.lg, borderRadius: 12, backgroundColor: '#FEF2F2', padding: spacing.md },
   hiddenNoticeText: { color: colors.danger, fontSize: 13, lineHeight: 20 },
+  settingsButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: colors.danger },
+  settingsButtonText: { color: colors.danger, fontSize: 14, fontWeight: '800' },
   success: { color: '#166534', fontSize: 14, marginTop: spacing.md },
   error: { color: colors.danger, fontSize: 14, marginTop: spacing.md },
-  signOutButton: {
-    minHeight: 48,
-    marginTop: spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
+  signOutButton: { minHeight: 48, marginTop: spacing.xl, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: colors.border },
   signOutText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 });
