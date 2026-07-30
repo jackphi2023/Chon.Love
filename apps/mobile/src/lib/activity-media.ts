@@ -1,4 +1,4 @@
-import { createPublicSupabaseClient } from '@myfan/supabase';
+import type { createPublicSupabaseClient } from '@myfan/supabase';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { z } from 'zod';
