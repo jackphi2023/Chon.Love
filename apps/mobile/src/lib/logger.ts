@@ -3,7 +3,7 @@ const REDACTED_KEYS = new Set(['access_token', 'refresh_token', 'purchase_token'
 
 export const logger = {
   info(message: string, metadata?: LogMetadata): void {
-    if (__DEV__) console.info(`[MyFan] ${message}`, sanitize(metadata));
+    if (process.env.NODE_ENV !== 'production') console.warn(`[MyFan] ${message}`, sanitize(metadata));
   },
   error(message: string, error: unknown, metadata?: LogMetadata): void {
     console.error(`[MyFan] ${message}`, normalizeError(error), sanitize(metadata));

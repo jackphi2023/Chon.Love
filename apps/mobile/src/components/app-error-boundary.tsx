@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 type State = { error: Error | null };
 
 export class AppErrorBoundary extends React.Component<PropsWithChildren, State> {
-  state: State = { error: null };
+  override state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { error };

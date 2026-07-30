@@ -12,12 +12,12 @@
 
 [context.develop.environment]
   NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://qxsqrtnelbqquqgbamjo.supabase.co"
+  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context."release/staging".environment]
   NEXT_PUBLIC_MYFAN_ENV = "staging"
-  NEXT_PUBLIC_SUPABASE_URL = "https://fciyrjtqnifapafqythy.supabase.co"
+  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context.deploy-preview.environment]
   NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://qxsqrtnelbqquqgbamjo.supabase.co"
+  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"

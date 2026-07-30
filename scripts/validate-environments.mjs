@@ -3,6 +3,8 @@ import path from 'node:path';
 
 const root = process.cwd();
 const names = ['development', 'staging', 'production'];
+const selectedPhaseCProjectRef = 'asnydvqsduonyidjyyzq';
+const selectedPhaseCProjectUrl = `https://${selectedPhaseCProjectRef}.supabase.co`;
 const expectedBranches = {
   development: 'develop',
   staging: 'release/staging',
@@ -30,23 +32,20 @@ const configs = await Promise.all(
   }),
 );
 
-const refs = new Set();
-const urls = new Set();
 for (const config of configs) {
   if (!names.includes(config.name)) throw new Error(`Unknown environment: ${config.name}`);
   if (config.gitBranch !== expectedBranches[config.name]) {
     throw new Error(`${config.name} must use branch ${expectedBranches[config.name]}`);
   }
-  if (refs.has(config.supabaseProjectRef)) throw new Error('Supabase project refs must be unique.');
-  if (urls.has(config.supabaseUrl)) throw new Error('Supabase URLs must be unique.');
-  if (config.supabaseUrl !== `https://${config.supabaseProjectRef}.supabase.co`) {
+  if (config.supabaseProjectRef !== selectedPhaseCProjectRef) {
+    throw new Error(`${config.name} must use the selected Phase C Supabase development project.`);
+  }
+  if (config.supabaseUrl !== selectedPhaseCProjectUrl) {
     throw new Error(`Supabase URL/ref mismatch for ${config.name}.`);
   }
   if (config.supabaseRegion !== 'ap-southeast-1') {
     throw new Error(`${config.name} must remain in ap-southeast-1 unless architecture is reviewed.`);
   }
-  refs.add(config.supabaseProjectRef);
-  urls.add(config.supabaseUrl);
 
   const envFile = path.join(root, `.env.${config.name}.example`);
   const env = parseDotEnv(await readFile(envFile, 'utf8'));
@@ -69,12 +68,15 @@ const netlifyFiles = [
 ];
 for (const file of netlifyFiles) {
   const content = await readFile(file, 'utf8');
-  for (const config of configs) {
-    if (!content.includes(config.supabaseUrl)) throw new Error(`${file} is missing ${config.name} Supabase URL.`);
+  if (!content.includes(selectedPhaseCProjectUrl)) {
+    throw new Error(`${file} is missing the selected Phase C Supabase development URL.`);
+  }
+  if (/qxsqrtnelbqquqgbamjo|fciyrjtqnifapafqythy/u.test(content)) {
+    throw new Error(`${file} must not reference inactive MyFan Supabase projects.`);
   }
   if (/SUPABASE_(?:ANON|SERVICE_ROLE)_KEY\s*=\s*"[^"]+"/u.test(content)) {
     throw new Error(`${file} must not commit Supabase keys.`);
   }
 }
 
-console.warn('Environment matrix is isolated and contains no committed Supabase keys.');
+console.warn('All Phase C app and web surfaces use the selected Supabase development project without committed keys.');
