@@ -63,7 +63,7 @@ jobs:
           test -f supabase/migrations/20260729221637_phase_b_10_fix_deletion_admin_ambiguity.sql
           test -f supabase/migrations/20260729221738_phase_b_10_fix_kyc_submit_ambiguity.sql
           test -f supabase/migrations/20260729221806_phase_b_10_remote_history_alignment.sql
-          test -f supabase/migrations/20260730025000_phase_b_11_rls_permission_hardening.sql
+          test -f supabase/migrations/20260730025734_phase_b_11_rls_permission_hardening.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
           test -f supabase/functions/play-purchase-verify/index.ts
