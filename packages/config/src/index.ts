@@ -24,6 +24,10 @@ export const phaseCFeatureFlags = {
   creator_kyc: false,
   withdrawal: false,
   fan_album: true,
+  creator_activity: true,
+  creator_activity_links: true,
+  creator_activity_gift_lock: true,
+  creator_activity_public_web: true,
   push_notifications: false,
   native_deep_links: false,
 } as const;
