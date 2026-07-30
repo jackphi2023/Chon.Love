@@ -1,8 +1,7 @@
+import { createPublicSupabaseClient } from '@myfan/supabase';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import type { Database } from '@myfan/supabase';
 
 const MAX_RENDER_DIMENSION = 2048;
 const MAX_ACTIVITY_BYTES = 5 * 1024 * 1024;
@@ -22,7 +21,7 @@ export type PreparedActivityImage = {
   height: number;
 };
 
-type Client = SupabaseClient<Database>;
+type Client = ReturnType<typeof createPublicSupabaseClient>;
 
 export async function pickOneActivityImage(): Promise<PreparedActivityImage | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
