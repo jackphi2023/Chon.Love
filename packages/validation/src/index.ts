@@ -30,5 +30,18 @@ export function isAtLeastAge(dateOfBirth: string, minimumAge = 18, now = new Dat
 
 export const adultDateOfBirthSchema = dateOfBirthSchema.refine(
   (value) => isAtLeastAge(value),
-  'You must be at least 18 years old.',
+  'Bạn phải đủ 18 tuổi để sử dụng MyFan.',
 );
+
+const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
+
+export const minimumOnboardingSchema = z.object({
+  dateOfBirth: adultDateOfBirthSchema,
+  confirmedAdult: requiredAcceptance('Bạn cần xác nhận mình từ đủ 18 tuổi.'),
+  acceptedTerms: requiredAcceptance('Bạn cần chấp nhận Điều khoản sử dụng hiện hành.'),
+  acceptedCommunityStandards: requiredAcceptance(
+    'Bạn cần chấp nhận Tiêu chuẩn cộng đồng hiện hành.',
+  ),
+});
+
+export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;

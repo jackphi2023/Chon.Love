@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { adultDateOfBirthSchema, emailSchema, isAtLeastAge, usernameSchema } from './index';
+import {
+  adultDateOfBirthSchema,
+  emailSchema,
+  isAtLeastAge,
+  minimumOnboardingSchema,
+  usernameSchema,
+} from './index';
 
 describe('shared validation', () => {
   it('normalizes email addresses', () => {
@@ -15,5 +21,19 @@ describe('shared validation', () => {
     expect(isAtLeastAge('2008-07-29', 18, now)).toBe(true);
     expect(isAtLeastAge('2008-07-30', 18, now)).toBe(false);
     expect(adultDateOfBirthSchema.safeParse('2010-01-01').success).toBe(false);
+  });
+
+  it('requires every minimum onboarding acceptance', () => {
+    const valid = {
+      dateOfBirth: '1990-01-01',
+      confirmedAdult: true,
+      acceptedTerms: true,
+      acceptedCommunityStandards: true,
+    };
+    expect(minimumOnboardingSchema.safeParse(valid).success).toBe(true);
+    expect(minimumOnboardingSchema.safeParse({ ...valid, acceptedTerms: false }).success).toBe(false);
+    expect(
+      minimumOnboardingSchema.safeParse({ ...valid, acceptedCommunityStandards: false }).success,
+    ).toBe(false);
   });
 });
