@@ -50,4 +50,5 @@ export function createPublicSupabaseClient(
   });
 }
 
+export * from './profile-media';
 export type { Database } from './database.types';
