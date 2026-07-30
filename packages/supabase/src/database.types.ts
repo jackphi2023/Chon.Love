@@ -170,6 +170,7 @@ export type Database = {
         name_vi: string;
         name_en: string;
         icon_media_id: string | null;
+        icon_emoji: string;
         heart_price_units: number;
         display_hearts: number;
         is_active: boolean;
