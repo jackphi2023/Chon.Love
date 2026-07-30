@@ -8,7 +8,7 @@ on:
     paths: ['supabase/**','packages/supabase/**','docs/phase-b/**','.github/workflows/database.yml','package.json']
 
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: database-${{ github.ref }}
   cancel-in-progress: true
@@ -47,20 +47,23 @@ jobs:
           test -f supabase/migrations/20260729200911_phase_b_09_edge_function_marker.sql
           test -f supabase/migrations/20260729200945_phase_b_09_noop_history_alignment.sql
           test -f supabase/migrations/20260729201435_phase_b_09_add_liability_gift_index.sql
-          test -f supabase/migrations/20260729204001_phase_b_10_kyc_withdrawal_schema.sql || test -f supabase/migrations/20260729220856_phase_b_10_kyc_withdrawal_schema.sql
-          test -f supabase/migrations/20260729204002_phase_b_10_kyc_bank_user_operations.sql || test -f supabase/migrations/20260729221145_phase_b_10_kyc_bank_user_operations.sql
-          test -f supabase/migrations/20260729204003_phase_b_10_withdrawal_request_operations.sql || test -f supabase/migrations/20260729221229_phase_b_10_withdrawal_request_operations.sql
-          test -f supabase/migrations/20260729204004_phase_b_10_kyc_bank_review_operations.sql || test -f supabase/migrations/20260729221301_phase_b_10_kyc_bank_review_operations.sql
-          test -f supabase/migrations/20260729204005_phase_b_10_withdrawal_admin_operations.sql || test -f supabase/migrations/20260729221338_phase_b_10_withdrawal_admin_operations.sql
-          test -f supabase/migrations/20260729204006_phase_b_10_account_hold_operations.sql || test -f supabase/migrations/20260729221404_phase_b_10_account_hold_operations.sql
-          test -f supabase/migrations/20260729204007_phase_b_10_account_deletion_operations.sql || test -f supabase/migrations/20260729221447_phase_b_10_account_deletion_operations.sql
-          test -f supabase/migrations/20260729204008_phase_b_10_access_sync_admin_payloads.sql || test -f supabase/migrations/20260729221523_phase_b_10_access_sync_admin_payloads.sql
-          test -f supabase/migrations/20260729204009_phase_b_10_fix_kyc_submit_ambiguity.sql || test -f supabase/migrations/20260729221539_phase_b_10_fix_kyc_submit_ambiguity.sql
-          test -f supabase/migrations/20260729204010_phase_b_10_fix_kyc_review_ambiguity.sql || test -f supabase/migrations/20260729221549_phase_b_10_fix_kyc_review_ambiguity.sql
-          test -f supabase/migrations/20260729204011_phase_b_10_fix_withdrawal_request_ambiguity.sql || test -f supabase/migrations/20260729221601_phase_b_10_fix_withdrawal_request_ambiguity.sql
-          test -f supabase/migrations/20260729204012_phase_b_10_fix_withdrawal_admin_ambiguity.sql || test -f supabase/migrations/20260729221613_phase_b_10_fix_withdrawal_admin_ambiguity.sql
-          test -f supabase/migrations/20260729204013_phase_b_10_fix_kyc_document_access_ambiguity.sql || test -f supabase/migrations/20260729221624_phase_b_10_fix_kyc_document_access_ambiguity.sql
-          test -f supabase/migrations/20260729204014_phase_b_10_fix_deletion_admin_ambiguity.sql || test -f supabase/migrations/20260729221637_phase_b_10_fix_deletion_admin_ambiguity.sql
+          test -f supabase/migrations/20260729220856_phase_b_10_kyc_withdrawal_schema.sql
+          test -f supabase/migrations/20260729221145_phase_b_10_kyc_bank_user_operations.sql
+          test -f supabase/migrations/20260729221229_phase_b_10_withdrawal_request_operations.sql
+          test -f supabase/migrations/20260729221301_phase_b_10_kyc_bank_review_operations.sql
+          test -f supabase/migrations/20260729221338_phase_b_10_withdrawal_admin_operations.sql
+          test -f supabase/migrations/20260729221404_phase_b_10_account_hold_operations.sql
+          test -f supabase/migrations/20260729221447_phase_b_10_account_deletion_operations.sql
+          test -f supabase/migrations/20260729221523_phase_b_10_access_sync_admin_payloads.sql
+          test -f supabase/migrations/20260729221539_phase_b_10_fix_kyc_submit_ambiguity.sql
+          test -f supabase/migrations/20260729221549_phase_b_10_fix_kyc_review_ambiguity.sql
+          test -f supabase/migrations/20260729221601_phase_b_10_fix_withdrawal_request_ambiguity.sql
+          test -f supabase/migrations/20260729221613_phase_b_10_fix_withdrawal_admin_ambiguity.sql
+          test -f supabase/migrations/20260729221624_phase_b_10_fix_kyc_document_access_ambiguity.sql
+          test -f supabase/migrations/20260729221637_phase_b_10_fix_deletion_admin_ambiguity.sql
+          test -f supabase/migrations/20260729221738_phase_b_10_fix_kyc_submit_ambiguity.sql
+          test -f supabase/migrations/20260729221806_phase_b_10_remote_history_alignment.sql
+          test -f supabase/migrations/20260730025000_phase_b_11_rls_permission_hardening.sql
           test -f supabase/functions/media-access/index.ts
           test -f supabase/functions/media-moderation/index.ts
           test -f supabase/functions/play-purchase-verify/index.ts
@@ -71,6 +74,7 @@ jobs:
           test -f supabase/functions/account-deletion/index.ts
           test -f supabase/tests/10_kyc_withdrawals_audit_test.sql
           test -f supabase/tests/10_withdrawal_concurrency.sh
+          test -f supabase/tests/11_rls_permission_hardening_test.sql
       - name: Start local Supabase
         run: supabase start
       - name: Reset and seed
@@ -106,68 +110,6 @@ jobs:
           pnpm lint
           pnpm typecheck
           pnpm test
-      - name: Align Session 10 migration history
-        if: github.event_name == 'pull_request' && github.head_ref == 'feature/phase-b-database-security'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          repo="$GITHUB_REPOSITORY"
-          branch="feature/phase-b-database-security"
-          head_sha=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
-          base_tree=$(gh api "repos/$repo/git/commits/$head_sha" --jq .tree.sha)
-          entries=$(mktemp)
-          echo '[]' > "$entries"
-          changed=0
-          add_entry() {
-            local path="$1" sha="$2"
-            jq --arg path "$path" --arg sha "$sha" '. + [{path:$path,mode:"100644",type:"blob",sha:$sha}]' "$entries" > "$entries.tmp"
-            mv "$entries.tmp" "$entries"
-          }
-          delete_entry() {
-            local path="$1"
-            jq --arg path "$path" '. + [{path:$path,mode:"100644",type:"blob",sha:null}]' "$entries" > "$entries.tmp"
-            mv "$entries.tmp" "$entries"
-          }
-          while read -r old new; do
-            [ -z "$old" ] && continue
-            if gh api "repos/$repo/contents/$old?ref=$branch" > /tmp/old.json 2>/dev/null; then
-              blob=$(jq -r .sha /tmp/old.json)
-              add_entry "$new" "$blob"
-              delete_entry "$old"
-              changed=1
-            fi
-          done <<'MAPPINGS'
-          supabase/migrations/20260729204001_phase_b_10_kyc_withdrawal_schema.sql supabase/migrations/20260729220856_phase_b_10_kyc_withdrawal_schema.sql
-          supabase/migrations/20260729204002_phase_b_10_kyc_bank_user_operations.sql supabase/migrations/20260729221145_phase_b_10_kyc_bank_user_operations.sql
-          supabase/migrations/20260729204003_phase_b_10_withdrawal_request_operations.sql supabase/migrations/20260729221229_phase_b_10_withdrawal_request_operations.sql
-          supabase/migrations/20260729204004_phase_b_10_kyc_bank_review_operations.sql supabase/migrations/20260729221301_phase_b_10_kyc_bank_review_operations.sql
-          supabase/migrations/20260729204005_phase_b_10_withdrawal_admin_operations.sql supabase/migrations/20260729221338_phase_b_10_withdrawal_admin_operations.sql
-          supabase/migrations/20260729204006_phase_b_10_account_hold_operations.sql supabase/migrations/20260729221404_phase_b_10_account_hold_operations.sql
-          supabase/migrations/20260729204007_phase_b_10_account_deletion_operations.sql supabase/migrations/20260729221447_phase_b_10_account_deletion_operations.sql
-          supabase/migrations/20260729204008_phase_b_10_access_sync_admin_payloads.sql supabase/migrations/20260729221523_phase_b_10_access_sync_admin_payloads.sql
-          supabase/migrations/20260729204009_phase_b_10_fix_kyc_submit_ambiguity.sql supabase/migrations/20260729221539_phase_b_10_fix_kyc_submit_ambiguity.sql
-          supabase/migrations/20260729204010_phase_b_10_fix_kyc_review_ambiguity.sql supabase/migrations/20260729221549_phase_b_10_fix_kyc_review_ambiguity.sql
-          supabase/migrations/20260729204011_phase_b_10_fix_withdrawal_request_ambiguity.sql supabase/migrations/20260729221601_phase_b_10_fix_withdrawal_request_ambiguity.sql
-          supabase/migrations/20260729204012_phase_b_10_fix_withdrawal_admin_ambiguity.sql supabase/migrations/20260729221613_phase_b_10_fix_withdrawal_admin_ambiguity.sql
-          supabase/migrations/20260729204013_phase_b_10_fix_kyc_document_access_ambiguity.sql supabase/migrations/20260729221624_phase_b_10_fix_kyc_document_access_ambiguity.sql
-          supabase/migrations/20260729204014_phase_b_10_fix_deletion_admin_ambiguity.sql supabase/migrations/20260729221637_phase_b_10_fix_deletion_admin_ambiguity.sql
-          MAPPINGS
-          for marker in \
-            supabase/migrations/20260729221738_phase_b_10_fix_kyc_submit_ambiguity.sql \
-            supabase/migrations/20260729221806_phase_b_10_remote_history_alignment.sql; do
-            if ! gh api "repos/$repo/contents/$marker?ref=$branch" >/dev/null 2>&1; then
-              content="-- Remote migration-history alignment marker. No schema change."
-              blob=$(gh api --method POST "repos/$repo/git/blobs" -f content="$content" -f encoding="utf-8" --jq .sha)
-              add_entry "$marker" "$blob"
-              changed=1
-            fi
-          done
-          if [ "$changed" -eq 1 ]; then
-            tree_sha=$(jq -n --arg base "$base_tree" --slurpfile tree "$entries" '{base_tree:$base,tree:$tree[0]}' | gh api --method POST "repos/$repo/git/trees" --input - --jq .sha)
-            commit_sha=$(jq -n --arg message 'chore: align Session 10 remote migration history' --arg tree "$tree_sha" --arg parent "$head_sha" '{message:$message,tree:$tree,parents:[$parent]}' | gh api --method POST "repos/$repo/git/commits" --input - --jq .sha)
-            gh api --method PATCH "repos/$repo/git/refs/heads/$branch" -f sha="$commit_sha" -F force=false
-          fi
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
