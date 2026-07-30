@@ -2,7 +2,10 @@ import {
   blockUser,
   createChatClientMessageId,
   createSafetyReport,
+  filterExpiredChatMessages,
   getConversationDetail,
+  getConversationRetention,
+  getNextChatExpiryMs,
   getOlderMessageCursor,
   getReadableChatError,
   getReadableSocialError,
@@ -12,12 +15,14 @@ import {
   mergeChatMessagesNewestFirst,
   REPORT_REASON_OPTIONS,
   sendChatMessage,
+  setConversationAutoDelete,
   subscribeToConversationMessages,
   unblockUser,
   unsubscribeFromConversation,
   type ChatMessage,
   type ChatMessageCursor,
   type ChatRealtimeStatus,
+  type ConversationRetention,
   type ReportReasonCode,
 } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
@@ -34,6 +39,7 @@ import {
   Pressable,
   SafeAreaView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -68,19 +74,23 @@ export default function ChatDetailPage() {
   const auth = useAuth();
   const client = getMobileSupabaseClient();
   const queryClient = useQueryClient();
+
   const [composer, setComposer] = useState('');
-  const [optimisticMessages, setOptimisticMessages] = useState<Array<RenderMessage>>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<RenderMessage[]>([]);
   const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<ChatRealtimeStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [safetyBusy, setSafetyBusy] = useState(false);
+  const [retentionBusy, setRetentionBusy] = useState(false);
+  const [expiryClock, setExpiryClock] = useState(() => Date.now());
   const [reportMessage, setReportMessage] = useState<ChatMessage | null>(null);
   const [reportReason, setReportReason] = useState<ReportReasonCode>('spam');
   const [reportDescription, setReportDescription] = useState('');
   const lastMarkedMessageId = useRef<string | null>(null);
 
   const detailQueryKey = ['chat', 'detail', auth.userId, conversationId] as const;
+  const retentionQueryKey = ['chat', 'retention', auth.userId, conversationId] as const;
   const messagesQueryKey = ['chat', 'messages', auth.userId, conversationId] as const;
 
   const detailQuery = useQuery({
@@ -91,6 +101,17 @@ export default function ChatDetailPage() {
     queryFn: async () => {
       if (!client) throw new Error('supabase_not_configured');
       return getConversationDetail(client, conversationId);
+    },
+  });
+
+  const retentionQuery = useQuery({
+    queryKey: retentionQueryKey,
+    enabled: Boolean(client && auth.userId && conversationId),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      if (!client) throw new Error('supabase_not_configured');
+      return getConversationRetention(client, conversationId);
     },
   });
 
@@ -119,13 +140,33 @@ export default function ChatDetailPage() {
     [messagesQuery.data?.pages, realtimeMessages],
   );
 
+  const visibleStableMessages = useMemo(
+    () => filterExpiredChatMessages(stableMessages, retentionQuery.data, expiryClock),
+    [expiryClock, retentionQuery.data, stableMessages],
+  );
+
   const renderMessages = useMemo<RenderMessage[]>(() => {
-    const delivered = new Set(stableMessages.map((item) => `${item.sender_id}:${item.client_message_id}`));
+    const delivered = new Set(
+      visibleStableMessages.map((item) => `${item.sender_id}:${item.client_message_id}`),
+    );
     return [
       ...optimisticMessages.filter((item) => !delivered.has(`${item.sender_id}:${item.client_message_id}`)),
-      ...stableMessages.map((item) => ({ ...item, delivery: 'sent' as const })),
+      ...visibleStableMessages.map((item) => ({ ...item, delivery: 'sent' as const })),
     ].sort((a, b) => b.sent_at.localeCompare(a.sent_at) || b.id.localeCompare(a.id));
-  }, [optimisticMessages, stableMessages]);
+  }, [optimisticMessages, visibleStableMessages]);
+
+  useEffect(() => {
+    const nextExpiry = getNextChatExpiryMs(stableMessages, retentionQuery.data, Date.now());
+    if (nextExpiry === null) return;
+    const maxTimeout = 2_147_000_000;
+    const delay = Math.max(250, Math.min(nextExpiry - Date.now() + 100, maxTimeout));
+    const timer = setTimeout(() => {
+      setExpiryClock(Date.now());
+      void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
+      void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [auth.userId, messagesQueryKey, queryClient, retentionQuery.data, stableMessages]);
 
   useEffect(() => {
     if (!client || !auth.userId || !conversationId) return;
@@ -141,11 +182,26 @@ export default function ChatDetailPage() {
         setRealtimeMessages((current) => mergeChatMessagesNewestFirst([incoming, ...current]));
         void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
       },
+      onDelete: (messageId) => {
+        if (!active) return;
+        setRealtimeMessages((current) => current.filter((item) => item.id !== messageId));
+        setOptimisticMessages((current) => current.filter((item) => item.id !== messageId));
+        void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
+        void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+      },
+      onRetentionChange: (retention) => {
+        if (!active) return;
+        queryClient.setQueryData<ConversationRetention>(retentionQueryKey, retention);
+        setExpiryClock(Date.now());
+        void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
+        void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+      },
       onStatus: (status) => {
         if (!active) return;
         setRealtimeStatus(status);
         if (status === 'connected') {
           void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
+          void queryClient.invalidateQueries({ queryKey: retentionQueryKey });
         }
       },
     });
@@ -153,10 +209,10 @@ export default function ChatDetailPage() {
       active = false;
       void unsubscribeFromConversation(client, channel);
     };
-  }, [auth.userId, client, conversationId, queryClient]);
+  }, [auth.userId, client, conversationId, messagesQueryKey, queryClient, retentionQueryKey]);
 
   useEffect(() => {
-    const latest = stableMessages.find((item) => !item.removed);
+    const latest = visibleStableMessages.find((item) => !item.removed);
     if (!client || !latest || lastMarkedMessageId.current === latest.id) return;
     lastMarkedMessageId.current = latest.id;
     void markConversationRead(client, conversationId, latest.id)
@@ -164,7 +220,7 @@ export default function ChatDetailPage() {
       .catch(() => {
         lastMarkedMessageId.current = null;
       });
-  }, [auth.userId, client, conversationId, queryClient, stableMessages]);
+  }, [auth.userId, client, conversationId, queryClient, visibleStableMessages]);
 
   async function send(body: string, clientMessageId = createChatClientMessageId()) {
     if (!client || !auth.userId || !detailQuery.data?.can_send) return;
@@ -173,6 +229,7 @@ export default function ChatDetailPage() {
       setErrorMessage(getReadableChatError(new Error('invalid_message_body')));
       return;
     }
+
     setErrorMessage(null);
     setSuccessMessage(null);
     const optimistic: RenderMessage = {
@@ -190,18 +247,22 @@ export default function ChatDetailPage() {
       is_read_by_other: false,
       delivery: 'sending',
     };
+
     setOptimisticMessages((current) => [
       optimistic,
       ...current.filter((item) => item.client_message_id !== clientMessageId),
     ]);
     setComposer('');
+
     try {
       const sent = await sendChatMessage(client, {
         conversationId,
         body: trimmed,
         clientMessageId,
       });
-      setOptimisticMessages((current) => current.filter((item) => item.client_message_id !== clientMessageId));
+      setOptimisticMessages((current) =>
+        current.filter((item) => item.client_message_id !== clientMessageId),
+      );
       setRealtimeMessages((current) => mergeChatMessagesNewestFirst([sent, ...current]));
       await queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
     } catch (error) {
@@ -210,6 +271,64 @@ export default function ChatDetailPage() {
       ));
       setErrorMessage(getReadableChatError(error));
     }
+  }
+
+  async function handleRetentionChange(enabled: boolean) {
+    if (!client) return;
+    setRetentionBusy(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const result = await setConversationAutoDelete(client, conversationId, enabled);
+      queryClient.setQueryData<ConversationRetention>(retentionQueryKey, {
+        conversation_id: result.conversation_id,
+        auto_delete_enabled: result.auto_delete_enabled,
+        auto_delete_after_days: result.auto_delete_after_days,
+        updated_at: result.updated_at,
+      });
+      setExpiryClock(Date.now());
+      setRealtimeMessages((current) => filterExpiredChatMessages(current, result, Date.now()));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: messagesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
+      ]);
+      if (enabled) {
+        setSuccessMessage(
+          result.deleted_messages > 0
+            ? `Đã bật tự động xóa sau 7 ngày và xóa ${result.deleted_messages} tin đã quá hạn khỏi server cho cả hai bên.`
+            : 'Đã bật tự động xóa sau 7 ngày cho cả hai bên.',
+        );
+      } else {
+        setSuccessMessage('Đã tắt tự động xóa. Tin đã bị xóa trước đó không thể khôi phục.');
+      }
+    } catch (error) {
+      setErrorMessage(getReadableChatError(error));
+    } finally {
+      setRetentionBusy(false);
+    }
+  }
+
+  function confirmRetentionChange(enabled: boolean) {
+    if (enabled) {
+      Alert.alert(
+        'Bật tự động xóa sau 7 ngày?',
+        'Cài đặt áp dụng cho cả hai người. Tin nhắn đủ 7 ngày sẽ bị xóa vật lý khỏi server và không thể khôi phục. Tin đã quá 7 ngày sẽ bị xóa ngay khi bật.',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Bật', onPress: () => void handleRetentionChange(true) },
+        ],
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Tắt tự động xóa?',
+      'Các tin còn lại sẽ được giữ cho đến khi bị ẩn, kiểm duyệt hoặc cài đặt này được bật lại. Tin đã xóa khỏi server không thể khôi phục.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Tắt', style: 'destructive', onPress: () => void handleRetentionChange(false) },
+      ],
+    );
   }
 
   async function handleHide(message: ChatMessage) {
@@ -321,6 +440,7 @@ export default function ChatDetailPage() {
 
   const displayName = detail.display_name || detail.username || 'Thành viên MyFan';
   const composerDisabled = !detail.can_send || safetyBusy;
+  const retentionEnabled = retentionQuery.data?.auto_delete_enabled ?? false;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -364,8 +484,33 @@ export default function ChatDetailPage() {
           ) : null}
         </View>
 
+        <View style={styles.retentionCard}>
+          <View style={styles.retentionCopy}>
+            <Text style={styles.retentionTitle}>Tự động xóa tin nhắn sau 7 ngày</Text>
+            <Text style={styles.retentionDescription}>
+              {retentionEnabled
+                ? 'Đang bật cho cả hai người. Tin đủ 7 ngày bị xóa khỏi server và không thể khôi phục.'
+                : 'Đang tắt. Bật riêng cho hội thoại này nếu hai bạn muốn tin được xóa khỏi server sau 7 ngày.'}
+            </Text>
+          </View>
+          {retentionQuery.isLoading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Switch
+              accessibilityLabel="Tự động xóa tin nhắn sau 7 ngày cho cả hai người"
+              disabled={retentionBusy || Boolean(retentionQuery.error)}
+              onValueChange={confirmRetentionChange}
+              value={retentionEnabled}
+            />
+          )}
+        </View>
+
         {successMessage ? <Text accessibilityRole="alert" style={styles.success}>{successMessage}</Text> : null}
-        {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
+        {errorMessage || retentionQuery.error ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {errorMessage ?? 'Không thể tải cài đặt tự động xóa. Hãy thử lại.'}
+          </Text>
+        ) : null}
 
         <FlatList
           contentContainerStyle={styles.messageList}
@@ -394,7 +539,9 @@ export default function ChatDetailPage() {
             ) : null
           }
           onEndReached={() => {
-            if (messagesQuery.hasNextPage && !messagesQuery.isFetchingNextPage) void messagesQuery.fetchNextPage();
+            if (messagesQuery.hasNextPage && !messagesQuery.isFetchingNextPage) {
+              void messagesQuery.fetchNextPage();
+            }
           }}
           onEndReachedThreshold={0.35}
           renderItem={({ item }) => (
@@ -474,6 +621,7 @@ function MessageBubble({
       : item.message_type === 'system'
         ? item.body || 'Thông báo hệ thống.'
         : item.body || 'Tin nhắn không còn hiển thị.';
+
   return (
     <View style={[styles.messageRow, item.is_own ? styles.messageRowOwn : styles.messageRowOther]}>
       <View style={[styles.bubble, item.is_own ? styles.ownBubble : styles.otherBubble]}>
@@ -576,6 +724,10 @@ const styles = StyleSheet.create({
   primaryActionText: { color: colors.primary, fontSize: 13, fontWeight: '900' },
   dangerActionText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
   errorText: { color: colors.danger },
+  retentionCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: '#FFFBEB', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  retentionCopy: { flex: 1, gap: 2 },
+  retentionTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  retentionDescription: { color: '#92400E', fontSize: 11, lineHeight: 16 },
   success: { color: '#166534', fontSize: 13, lineHeight: 19, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   error: { color: colors.danger, fontSize: 13, lineHeight: 19, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   messageList: { paddingHorizontal: spacing.md, paddingVertical: spacing.md, flexGrow: 1 },
