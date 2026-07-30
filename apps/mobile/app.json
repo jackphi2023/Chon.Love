@@ -16,6 +16,12 @@
           "cameraPermission": "MyFan cần dùng camera khi bạn chủ động chụp ảnh cho hồ sơ và album.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MyFan dùng vị trí một lần khi bạn chọn Gần đây để sắp xếp hồ sơ và hiển thị khoảng cách làm tròn. MyFan không hiển thị tọa độ chính xác."
+        }
       ]
     ],
     "experiments": {
