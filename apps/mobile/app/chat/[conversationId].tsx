@@ -646,8 +646,8 @@ function MessageBubble({
 }: {
   item: RenderMessage;
   onHide: () => void;
-  onReport?: () => void;
-  onRetry?: () => void;
+  onReport?: (() => void) | undefined;
+  onRetry?: (() => void) | undefined;
 }) {
   const body = item.removed
     ? 'Tin nhắn không còn hiển thị.'
