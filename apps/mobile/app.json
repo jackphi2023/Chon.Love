@@ -7,7 +7,17 @@
     "scheme": "myfan",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MyFan cần truy cập ảnh bạn chọn để cập nhật hồ sơ và album.",
+          "cameraPermission": "MyFan cần dùng camera khi bạn chủ động chụp ảnh cho hồ sơ và album.",
+          "microphonePermission": false
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     },
