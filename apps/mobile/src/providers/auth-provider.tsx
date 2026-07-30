@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -11,14 +12,17 @@ import { logger } from '@/lib/logger';
 
 type AuthContextValue = {
   userId: string | null;
+  email: string | null;
   isRestoring: boolean;
   isConfigured: boolean;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
   const client = useMemo(() => getMobileSupabaseClient(), []);
 
@@ -32,11 +36,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (error) logger.error('Unable to restore auth session', error);
       if (mounted) {
         setUserId(data.session?.user.id ?? null);
+        setEmail(data.session?.user.email ?? null);
         setIsRestoring(false);
       }
     });
     const { data } = client.auth.onAuthStateChange((_event, session) => {
       setUserId(session?.user.id ?? null);
+      setEmail(session?.user.email ?? null);
       setIsRestoring(false);
     });
     return () => {
@@ -45,9 +51,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, [client]);
 
+  const signOut = useCallback(async () => {
+    if (!client) return;
+    const { error } = await client.auth.signOut();
+    if (error) throw error;
+  }, [client]);
+
   const value = useMemo(
-    () => ({ userId, isRestoring, isConfigured: client !== null }),
-    [client, isRestoring, userId],
+    () => ({ userId, email, isRestoring, isConfigured: client !== null, signOut }),
+    [client, email, isRestoring, signOut, userId],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

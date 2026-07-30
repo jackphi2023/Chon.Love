@@ -1,4 +1,5 @@
 import { createPublicSupabaseClient } from '@myfan/supabase';
+import { Platform } from 'react-native';
 import { getMobileEnvironmentStatus } from './environment';
 
 type MobileSupabaseClient = ReturnType<typeof createPublicSupabaseClient>;
@@ -14,7 +15,11 @@ export function getMobileSupabaseClient(): MobileSupabaseClient | null {
   }
   cachedClient = createPublicSupabaseClient(
     { url: environment.supabaseUrl, anonKey: environment.supabaseAnonKey },
-    { persistSession: false },
+    {
+      flowType: 'pkce',
+      detectSessionInUrl: false,
+      persistSession: Platform.OS === 'web',
+    },
   );
   return cachedClient;
 }

@@ -15,8 +15,17 @@ const publicSupabaseEnvironmentSchema = z.object({
 
 export type PublicSupabaseEnvironment = z.infer<typeof publicSupabaseEnvironmentSchema>;
 
+export type SupabaseAuthStorage = {
+  getItem: (key: string) => Promise<string | null> | string | null;
+  setItem: (key: string, value: string) => Promise<void> | void;
+  removeItem: (key: string) => Promise<void> | void;
+};
+
 export type PublicSupabaseClientOptions = {
   persistSession?: boolean;
+  detectSessionInUrl?: boolean;
+  flowType?: 'implicit' | 'pkce';
+  storage?: SupabaseAuthStorage;
 };
 
 export function parsePublicSupabaseEnvironment(
@@ -34,6 +43,9 @@ export function createPublicSupabaseClient(
     auth: {
       autoRefreshToken: true,
       persistSession: options.persistSession ?? true,
+      detectSessionInUrl: options.detectSessionInUrl ?? true,
+      flowType: options.flowType ?? 'implicit',
+      ...(options.storage ? { storage: options.storage } : {}),
     },
   });
 }
