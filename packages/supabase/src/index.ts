@@ -50,6 +50,7 @@ export function createPublicSupabaseClient(
   });
 }
 
+export * from './activity';
 export * from './chat';
 export * from './discovery';
 export * from './gifts';
