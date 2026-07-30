@@ -3,13 +3,21 @@ import {
   CREATOR_SHARE_BPS,
   HEART_UNITS_PER_HEART,
   PLATFORM_SHARE_BPS,
+  VND_PER_HEART,
   heartsToUnits,
+  heartsToVnd,
   splitGiftUnits,
 } from './index';
 
 describe('heart economy defaults', () => {
   it('keeps the 70/30 split invariant', () => {
     expect(CREATOR_SHARE_BPS + PLATFORM_SHARE_BPS).toBe(10_000);
+  });
+
+  it('uses the corrected 50,000 VND conversion', () => {
+    expect(VND_PER_HEART).toBe(50_000);
+    expect(heartsToVnd(1)).toBe(50_000);
+    expect(heartsToVnd(20)).toBe(1_000_000);
   });
 
   it('converts whole hearts to integer units', () => {

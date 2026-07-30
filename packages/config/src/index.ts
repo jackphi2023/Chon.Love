@@ -16,3 +16,26 @@ export const featureFlags = {
   automaticWithdrawals: false,
   unreviewedFanContent: false,
 } as const;
+
+export const phaseCFeatureFlags = {
+  google_play_billing: false,
+  send_gift: false,
+  creator_wallet: false,
+  creator_kyc: false,
+  withdrawal: false,
+  fan_album: false,
+  push_notifications: false,
+  native_deep_links: false,
+} as const;
+
+export type PhaseCFeatureFlagName = keyof typeof phaseCFeatureFlags;
+
+export function resolvePhaseCFeatureFlag(
+  name: PhaseCFeatureFlagName,
+  value: string | undefined,
+): boolean {
+  if (value === undefined || value === '') return phaseCFeatureFlags[name];
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`Feature flag ${name} must be true or false.`);
+}

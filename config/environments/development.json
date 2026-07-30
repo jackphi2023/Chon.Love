@@ -1,10 +1,10 @@
 {
   "name": "development",
   "gitBranch": "develop",
-  "supabaseProjectRef": "qxsqrtnelbqquqgbamjo",
-  "supabaseUrl": "https://qxsqrtnelbqquqgbamjo.supabase.co",
+  "supabaseProjectRef": "asnydvqsduonyidjyyzq",
+  "supabaseUrl": "https://asnydvqsduonyidjyyzq.supabase.co",
   "supabaseRegion": "ap-southeast-1",
-  "supabaseLifecycle": "paused-on-free-plan",
+  "supabaseLifecycle": "active-healthy",
   "netlifyContext": "develop",
   "deployPolicy": "branch-deploy",
   "production": false
