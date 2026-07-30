@@ -2,7 +2,8 @@ import { colors, spacing } from '@myfan/ui';
 import { Redirect, Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { getAuthenticatedDestination, type AuthenticatedRoute } from '@/lib/auth';
+import { getAuthenticatedDestination } from '@/lib/auth';
+import type { AuthenticatedRoute } from '@/lib/auth-routing';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/providers/auth-provider';
 
