@@ -15,6 +15,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <header className="siteHeader">
           <Link className="brand" href="/" aria-label="MyFan trang chủ">MyFan</Link>
           <nav aria-label="Điều hướng chính">
+            <Link href="/qua-tang">Quà tặng</Link>
             <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
             <Link href="/privacy">Bảo mật</Link>
             <Link href="/terms">Điều khoản</Link>
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <footer className="siteFooter">
           <span>MyFan · Social Creator 18+</span>
+          <Link href="/qua-tang">Quà tặng</Link>
           <Link href="/child-safety">An toàn trẻ em</Link>
         </footer>
       </body>
