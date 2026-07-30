@@ -215,20 +215,7 @@ export async function sendChatMessage(
   );
   if (error) throw error;
   const row = sentMessageRowSchema.parse(data);
-  return {
-    id: row.id,
-    conversation_id: row.conversation_id,
-    sender_id: row.sender_id,
-    message_type: row.message_type,
-    body: row.deleted_at || row.moderation_status === 'removed' ? null : row.body,
-    gift_transaction_id: row.gift_transaction_id,
-    client_message_id: row.client_message_id,
-    sent_at: row.sent_at,
-    edited_at: row.edited_at,
-    removed: Boolean(row.deleted_at || row.moderation_status === 'removed'),
-    is_own: true,
-    is_read_by_other: false,
-  };
+  return toChatMessage(row, row.sender_id);
 }
 
 export async function markConversationRead(
@@ -284,7 +271,10 @@ export function filterExpiredChatMessages(
 ): ChatMessage[] {
   if (!retention?.auto_delete_enabled) return [...messages];
   const cutoff = nowMs - CHAT_AUTO_DELETE_MS;
-  return messages.filter((message) => new Date(message.sent_at).getTime() > cutoff);
+  return messages.filter((message) => {
+    const sentAt = Date.parse(message.sent_at);
+    return Number.isFinite(sentAt) && sentAt > cutoff;
+  });
 }
 
 export function getNextChatExpiryMs(
@@ -295,7 +285,9 @@ export function getNextChatExpiryMs(
   if (!retention?.auto_delete_enabled) return null;
   let next: number | null = null;
   for (const message of messages) {
-    const expiry = new Date(message.sent_at).getTime() + CHAT_AUTO_DELETE_MS;
+    const sentAt = Date.parse(message.sent_at);
+    if (!Number.isFinite(sentAt)) continue;
+    const expiry = sentAt + CHAT_AUTO_DELETE_MS;
     if (expiry <= nowMs) continue;
     if (next === null || expiry < next) next = expiry;
   }
@@ -323,6 +315,23 @@ export function createChatClientMessageId(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+function toChatMessage(row: z.infer<typeof sentMessageRowSchema>, viewerUserId: string): ChatMessage {
+  return {
+    id: row.id,
+    conversation_id: row.conversation_id,
+    sender_id: row.sender_id,
+    message_type: row.message_type,
+    body: row.deleted_at || row.moderation_status === 'removed' ? null : row.body,
+    gift_transaction_id: row.gift_transaction_id,
+    client_message_id: row.client_message_id,
+    sent_at: row.sent_at,
+    edited_at: row.edited_at,
+    removed: Boolean(row.deleted_at || row.moderation_status === 'removed'),
+    is_own: row.sender_id === viewerUserId,
+    is_read_by_other: false,
+  };
+}
+
 export function subscribeToConversationMessages(
   client: Client,
   input: {
@@ -330,11 +339,18 @@ export function subscribeToConversationMessages(
     viewerUserId: string;
     onMessage: (message: ChatMessage) => void;
     onDelete?: (messageId: string) => void;
+    onReadChange?: () => void;
     onRetentionChange?: (retention: ConversationRetention) => void;
     onStatus: (status: ChatRealtimeStatus) => void;
   },
 ): RealtimeChannel {
   input.onStatus('connecting');
+
+  function handleMessagePayload(payload: { new: unknown }) {
+    const parsed = sentMessageRowSchema.safeParse(payload.new);
+    if (parsed.success) input.onMessage(toChatMessage(parsed.data, input.viewerUserId));
+  }
+
   const channel = client
     .channel(`chat:${input.conversationId}:${createChatClientMessageId()}`)
     .on(
@@ -345,25 +361,17 @@ export function subscribeToConversationMessages(
         table: 'messages',
         filter: `conversation_id=eq.${input.conversationId}`,
       },
-      (payload) => {
-        const parsed = sentMessageRowSchema.safeParse(payload.new);
-        if (!parsed.success) return;
-        const row = parsed.data;
-        input.onMessage({
-          id: row.id,
-          conversation_id: row.conversation_id,
-          sender_id: row.sender_id,
-          message_type: row.message_type,
-          body: row.deleted_at || row.moderation_status === 'removed' ? null : row.body,
-          gift_transaction_id: row.gift_transaction_id,
-          client_message_id: row.client_message_id,
-          sent_at: row.sent_at,
-          edited_at: row.edited_at,
-          removed: Boolean(row.deleted_at || row.moderation_status === 'removed'),
-          is_own: row.sender_id === input.viewerUserId,
-          is_read_by_other: false,
-        });
+      handleMessagePayload,
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${input.conversationId}`,
       },
+      handleMessagePayload,
     )
     .on(
       'postgres_changes',
@@ -377,6 +385,16 @@ export function subscribeToConversationMessages(
         const parsed = deletedMessageRowSchema.safeParse(payload.old);
         if (parsed.success) input.onDelete?.(parsed.data.id);
       },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'conversation_members',
+        filter: `conversation_id=eq.${input.conversationId}`,
+      },
+      () => input.onReadChange?.(),
     )
     .on(
       'postgres_changes',
