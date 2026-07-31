@@ -102,4 +102,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('BR-01 source security validation passed.');
+console.warn('BR-01 source security validation passed.');
