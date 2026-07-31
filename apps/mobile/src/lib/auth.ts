@@ -5,6 +5,8 @@ import { resolveAuthenticatedRoute, type AuthenticatedRoute } from './auth-routi
 
 export type AuthSignOutScope = 'local' | 'global' | 'others';
 
+const CONTROLLED_BETA_EMAIL = /^myfan(?:[1-9]|1[0-6])@gmail\.com$/iu;
+
 export function getAuthCallbackUrl(next?: string): string {
   return Linking.createURL('auth/callback', {
     queryParams: next ? { next } : undefined,
@@ -13,6 +15,10 @@ export function getAuthCallbackUrl(next?: string): string {
 
 export function getGoogleAuthRedirectUrl(): string {
   return getAuthCallbackUrl();
+}
+
+export function isControlledBetaEmail(email: string): boolean {
+  return CONTROLLED_BETA_EMAIL.test(email.trim().toLowerCase());
 }
 
 export async function startGoogleAuthentication(): Promise<void> {
@@ -47,6 +53,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
   const client = requireAuthClient();
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) throw new Error('email_required');
+  if (isControlledBetaEmail(normalizedEmail)) throw new Error('beta_password_managed');
   const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, {
     redirectTo: getAuthCallbackUrl('/auth/reset-password'),
   });
