@@ -1,0 +1,56 @@
+name: BR-07 Sync Database Types
+
+on:
+  push:
+    branches: ['agent/br-07-vietqr-reconciliation-mvp']
+    paths:
+      - '.github/workflows/br07-sync-database-types.yml'
+      - 'supabase/migrations/20260801010100_br_07_vietqr_reconciliation_mvp.sql'
+      - 'packages/supabase/src/database.types.ts'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: br07-sync-types-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout BR-07 branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start and reset local Supabase
+        run: |
+          supabase start
+          supabase db reset --local
+
+      - name: Generate exact public database contract
+        run: supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts
+
+      - name: Commit generated contract when changed
+        run: |
+          if git diff --quiet -- packages/supabase/src/database.types.ts; then
+            echo 'Database types already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts
+          git commit -m 'Sync BR-07 generated database types'
+          git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
