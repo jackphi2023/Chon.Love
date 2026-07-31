@@ -82,12 +82,14 @@ jobs:
           test -f supabase/migrations/20260731134617_br_03_remove_rotation_scaffolding.sql
           test -f supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql
           test -f supabase/migrations/20260731160038_br_05_anonymous_public_activity_feed_fix.sql
+          test -f supabase/migrations/20260731172200_br_06_storage_policy_helper_execution.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
           test -f supabase/tests/br_03_auth_session_reconciliation.sql
           test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
           test -f supabase/tests/br_05_creator_activity_privacy_album_e2e.sql
+          test -f supabase/tests/br_06_storage_policy_helper_acl.sql
           test -f scripts/validate-br06.mjs
           test -f tests/br-06/mobile-web-multi-account.spec.mjs
 
@@ -108,6 +110,9 @@ jobs:
 
       - name: Run BR-05 Creator Activity privacy and album E2E
         run: supabase test db supabase/tests/br_05_creator_activity_privacy_album_e2e.sql --local
+
+      - name: Run BR-06 Storage policy helper ACL contract
+        run: supabase test db supabase/tests/br_06_storage_policy_helper_acl.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
