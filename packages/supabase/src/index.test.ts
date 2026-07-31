@@ -49,8 +49,8 @@ describe('parsePublicSupabaseEnvironment', () => {
     ).toThrow('Supabase URL must use HTTPS unless local development explicitly allows localhost HTTP.');
   });
 
-  it.each(['sb_secret_forbidden_browser_key', 'public_service_role_forbidden_key'])('
-    rejects unsafe browser credential %s',
+  it.each(['sb_secret_forbidden_browser_key', 'public_service_role_forbidden_key'])(
+    'rejects unsafe browser credential %s',
     (anonKey) => {
       expect(() =>
         parsePublicSupabaseEnvironment({
