@@ -5,6 +5,14 @@ SENDER='4c000000-0000-0000-0000-000000000001'
 CREATOR='4c000000-0000-0000-0000-000000000002'
 BANK='4c100000-0000-0000-0000-000000000001'
 
+cleanup() {
+  psql "$DB_URL" -v ON_ERROR_STOP=1 >/dev/null 2>&1 <<'SQL' || true
+revoke execute on function public.request_withdrawal(uuid,bigint,uuid) from authenticated;
+update private.app_config set value_json='false'::jsonb where key='withdrawal_requests_enabled';
+SQL
+}
+trap cleanup EXIT
+
 psql "$DB_URL" -v ON_ERROR_STOP=1 <<SQL
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token) values
 ('00000000-0000-0000-0000-000000000000','${SENDER}','authenticated','authenticated','withdrawal-concurrency-sender@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
@@ -38,6 +46,8 @@ select * from public.send_gift('${CREATOR}',(select id from public.gift_catalog 
 commit;
 update private.creator_reward_positions set available_at=now()-interval '1 second' where creator_id='${CREATOR}';
 select * from public.release_due_creator_rewards(10);
+update private.app_config set value_json='true'::jsonb where key='withdrawal_requests_enabled';
+grant execute on function public.request_withdrawal(uuid,bigint,uuid) to authenticated;
 SQL
 
 run_withdrawal() {
