@@ -24,7 +24,26 @@ const economySummarySchema = z.object({
   heart_available_units: z.coerce.number().int().nonnegative(),
 });
 
+const giftSendResultSchema = z.object({
+  gift_transaction_id: z.string().uuid(),
+  sender_id: z.string().uuid(),
+  creator_id: z.string().uuid(),
+  gift_id: z.string().uuid(),
+  quantity: z.coerce.number().int().positive(),
+  gross_heart_units: z.coerce.number().int().positive(),
+  creator_reward_units: z.coerce.number().int().nonnegative(),
+  platform_gross_units: z.coerce.number().int().nonnegative(),
+  sender_balance_units: z.coerce.number().int().nonnegative(),
+  reward_available_at: z.string(),
+  fan_eligible_units: z.coerce.number().int().nonnegative(),
+  fan_threshold_units: z.coerce.number().int().positive(),
+  fan_status: z.enum(['none', 'active']),
+  message_id: z.string().uuid().nullable(),
+  already_processed: z.boolean(),
+});
+
 export type GiftCatalogItem = z.infer<typeof giftCatalogItemSchema>;
+export type GiftSendResult = z.infer<typeof giftSendResultSchema>;
 export type GiftCatalogContractIssue = {
   code: 'count' | 'display_hearts' | 'heart_price_units' | 'sort_order' | 'duplicate';
   message: string;
@@ -120,4 +139,22 @@ export async function getMyAvailableHeartUnits(client: Client): Promise<number> 
   if (error) throw error;
   const summary = z.array(economySummarySchema).parse(data)[0];
   return summary?.heart_available_units ?? 0;
+}
+
+export async function sendGiftToCreator(
+  client: Client,
+  input: { creatorId: string; giftId: string; quantity?: number; idempotencyKey: string },
+): Promise<GiftSendResult> {
+  const { data, error } = await client.rpc('send_gift' as never, {
+    p_creator_id: input.creatorId,
+    p_gift_id: input.giftId,
+    p_quantity: input.quantity ?? 1,
+    p_idempotency_key: input.idempotencyKey,
+    p_conversation_id: null,
+    p_client_message_id: null,
+  } as never);
+  if (error) throw error;
+  const row = z.array(giftSendResultSchema).parse(data)[0];
+  if (!row) throw new Error('gift_transaction_missing');
+  return row;
 }
