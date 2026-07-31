@@ -10,11 +10,17 @@ on:
       - 'scripts/validate-br03.mjs'
       - 'scripts/validate-br04.mjs'
       - 'scripts/validate-br05.mjs'
+      - 'scripts/validate-br06.mjs'
+      - 'scripts/br06/**'
+      - 'tests/br-06/**'
+      - 'playwright.br06.config.mjs'
       - 'docs/br-01/**'
       - 'docs/br-03/**'
       - 'docs/br-04/**'
       - 'docs/br-05/**'
+      - 'docs/br-06/**'
       - '.github/workflows/database.yml'
+      - '.github/workflows/browser-e2e.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
   pull_request:
@@ -25,11 +31,17 @@ on:
       - 'scripts/validate-br03.mjs'
       - 'scripts/validate-br04.mjs'
       - 'scripts/validate-br05.mjs'
+      - 'scripts/validate-br06.mjs'
+      - 'scripts/br06/**'
+      - 'tests/br-06/**'
+      - 'playwright.br06.config.mjs'
       - 'docs/br-01/**'
       - 'docs/br-03/**'
       - 'docs/br-04/**'
       - 'docs/br-05/**'
+      - 'docs/br-06/**'
       - '.github/workflows/database.yml'
+      - '.github/workflows/browser-e2e.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
 
@@ -76,6 +88,8 @@ jobs:
           test -f supabase/tests/br_03_auth_session_reconciliation.sql
           test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
           test -f supabase/tests/br_05_creator_activity_privacy_album_e2e.sql
+          test -f scripts/validate-br06.mjs
+          test -f tests/br-06/mobile-web-multi-account.spec.mjs
 
       - name: Start local Supabase
         run: supabase start
@@ -139,7 +153,7 @@ jobs:
       - name: Upload generated database contract
         uses: actions/upload-artifact@v4
         with:
-          name: br-05-database-types
+          name: br-06-database-types
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
