@@ -4,7 +4,7 @@ const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 
 const readJson = (path) => JSON.parse(readText(path));
 const packageJson = readJson('package.json');
 const releaseManifest = readJson('config/releases/beta-mobile-web.json');
-const migration = readText('supabase/migrations/20260731192600_br_08_kyc_withdrawal_operational_flow.sql');
+const migration = readText('supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql');
 const databaseTest = readText('supabase/tests/br_08_kyc_withdrawal_operational_flow.sql');
 const edgeFunction = readText('supabase/functions/payout-admin/index.ts');
 const sharedClient = readText('packages/supabase/src/kyc-withdrawal-operations.ts');
