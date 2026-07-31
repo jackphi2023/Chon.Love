@@ -50,6 +50,9 @@ jobs:
       - name: Validate BR-03 auth and session source
         run: pnpm validate:auth
 
+      - name: Validate BR-04 core social E2E source
+        run: pnpm validate:social-e2e
+
       - name: Lint
         run: pnpm lint
 
