@@ -27,8 +27,12 @@ async function login(page, actor) {
   await expect(page.getByText('Khám phá', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
-async function openCreatorProfile(page) {
+async function navigateToCreatorProfile(page) {
   await page.goto(`/profile/${actors.creator.username}`);
+}
+
+async function openCreatorProfile(page) {
+  await navigateToCreatorProfile(page);
   await expect(page.getByText(actors.creator.displayName, { exact: true }).first()).toBeVisible();
 }
 
@@ -119,7 +123,7 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
     await viewerPage.reload();
     await expect(viewerPage.getByText('Không thể gửi tin nhắn', { exact: true })).toBeVisible();
 
-    await openCreatorProfile(viewerPage);
+    await navigateToCreatorProfile(viewerPage);
     await expect(viewerPage.getByText('Không tìm thấy hồ sơ', { exact: true })).toBeVisible();
 
     await creatorPage.goto('/friends');
