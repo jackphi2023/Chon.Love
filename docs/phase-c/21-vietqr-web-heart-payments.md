@@ -54,10 +54,11 @@ Orders expire after 30 minutes by default. The server refreshes expired state be
 
 ## Database
 
-Migration:
+Migrations:
 
 ```text
 20260731090337_phase_c_21_vietqr_web_heart_payments.sql
+20260731092016_phase_c_21_vietqr_order_product_index.sql
 ```
 
 Objects:
@@ -68,6 +69,8 @@ private.vietqr_payment_orders
 ```
 
 Existing `private.play_purchases` gains a provider discriminator and provider references so the existing heart-lot, FIFO gifting, reversal and immutable ledger machinery can be reused without a parallel balance engine.
+
+The second migration adds the covering product/created-at index detected by Performance Advisor for the order product foreign key.
 
 ## RPC grants
 
@@ -139,12 +142,13 @@ VietQR Quick Link generates the payment instruction image. It does not prove fun
 Database verification confirms:
 
 - seven active products map to exact amounts;
-- migration ledger entry exists;
+- both migration ledger entries exist;
 - receiving account and expiry settings exist in private config;
 - no direct client table grants;
 - client RPCs exclude `anon`;
 - settlement RPC is service-role-only;
 - provider columns exist on the canonical purchase table;
+- the product foreign key has a covering index;
 - development database currently contains zero VietQR orders.
 
 ## Remaining QA
