@@ -42,6 +42,15 @@ const profileViewerSchema = z.object({
   fan_threshold_units: z.coerce.number().int().nonnegative(),
   fan_eligible_units: z.coerce.number().int().nonnegative(),
   fan_remaining_units: z.coerce.number().int().nonnegative(),
+  age_years: z.coerce.number().int().min(18),
+  last_active_at: z.string(),
+  presence_status: z.enum(['online', 'offline']),
+  distance_km: z.coerce.number().nonnegative().nullable(),
+  activity_visibility: z.enum(['public', 'friends', 'fans']).nullable(),
+  activity_can_view: z.boolean(),
+  activity_gate_reason: z.enum(['none', 'friend_required', 'fan_required', 'unavailable']),
+  activity_post_count: z.coerce.number().int().nonnegative(),
+  activity_image_count: z.coerce.number().int().nonnegative(),
 });
 
 const socialConnectionSchema = z.object({
