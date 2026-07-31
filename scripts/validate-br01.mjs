@@ -12,6 +12,7 @@ const requiredFiles = [
   'supabase/migrations/20260731103426_temporary_seed_request_helper.sql',
   'supabase/migrations/20260731103608_cleanup_one_time_beta_seed_transport.sql',
   'supabase/migrations/20260731114823_br_01_explicit_rpc_only_deny_policies.sql',
+  'supabase/migrations/20260731125443_br_01_function_lint_reconciliation.sql',
   'supabase/functions/seed-myfan-beta-users/index.ts',
   'supabase/functions/reset-myfan-beta-passwords/index.ts',
 ];
@@ -93,6 +94,25 @@ if (existsSync(denyPolicyPath)) {
   ];
   for (const policy of requiredPolicies) {
     if (!migration.includes(policy)) errors.push(`Missing explicit RPC-only policy: ${policy}`);
+  }
+}
+
+const functionReconciliationPath = resolve(
+  root,
+  'supabase/migrations/20260731125443_br_01_function_lint_reconciliation.sql',
+);
+if (existsSync(functionReconciliationPath)) {
+  const migration = readFileSync(functionReconciliationPath, 'utf8');
+  const requiredFragments = [
+    'select cp.payout_eligible',
+    'update private.user_identity as ui',
+    'pr.username::text',
+    'on conflict on constraint creator_post_unlocks_one_per_viewer',
+  ];
+  for (const fragment of requiredFragments) {
+    if (!migration.includes(fragment)) {
+      errors.push(`Missing BR-01 function reconciliation guard: ${fragment}`);
+    }
   }
 }
 
