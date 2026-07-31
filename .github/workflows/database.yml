@@ -1,0 +1,94 @@
+name: Database
+
+on:
+  push:
+    branches: [develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
+    paths:
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - 'scripts/validate-br01.mjs'
+      - 'docs/br-01/**'
+      - '.github/workflows/database.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - 'scripts/validate-br01.mjs'
+      - 'docs/br-01/**'
+      - '.github/workflows/database.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Verify BR-01 inventory
+        run: |
+          supabase --version
+          test -f supabase/migrations/20260731100320_seed_16_beta_users_support.sql
+          test -f supabase/migrations/20260731100850_enable_pg_net_for_seed_transport.sql
+          test -f supabase/migrations/20260731100951_temporary_seed_asset_transport.sql
+          test -f supabase/migrations/20260731101606_temporary_seed_image_transport.sql
+          test -f supabase/migrations/20260731103048_temporary_seed_user_manifest.sql
+          test -f supabase/migrations/20260731103426_temporary_seed_request_helper.sql
+          test -f supabase/migrations/20260731103608_cleanup_one_time_beta_seed_transport.sql
+          test -f supabase/migrations/20260731114823_br_01_explicit_rpc_only_deny_policies.sql
+          test -f supabase/functions/seed-myfan-beta-users/index.ts
+          test -f supabase/functions/reset-myfan-beta-passwords/index.ts
+          test -f supabase/tests/br_01_security_reconciliation.sql
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run pgTAP tests
+        run: supabase test db --local
+
+      - name: Run concurrent gift test
+        run: bash supabase/tests/09_concurrency.sh
+
+      - name: Run concurrent withdrawal test
+        run: bash supabase/tests/10_withdrawal_concurrency.sh
+
+      - name: Lint schemas
+        run: supabase db lint --local --schema public --schema private --level warning
+
+      - name: Verify generated public contract
+        run: |
+          supabase gen types typescript --local --schema public > /tmp/database.types.ts
+          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
+
+      - name: Verify application workspace
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.1 --activate
+          pnpm install --frozen-lockfile
+          pnpm validate
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
