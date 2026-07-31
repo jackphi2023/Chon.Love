@@ -7,7 +7,9 @@ on:
       - 'supabase/**'
       - 'packages/supabase/**'
       - 'scripts/validate-br01.mjs'
+      - 'scripts/validate-br03.mjs'
       - 'docs/br-01/**'
+      - 'docs/br-03/**'
       - '.github/workflows/database.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -16,7 +18,9 @@ on:
       - 'supabase/**'
       - 'packages/supabase/**'
       - 'scripts/validate-br01.mjs'
+      - 'scripts/validate-br03.mjs'
       - 'docs/br-01/**'
+      - 'docs/br-03/**'
       - '.github/workflows/database.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -41,7 +45,7 @@ jobs:
         with:
           version: 2.110.0
 
-      - name: Verify BR-01 inventory
+      - name: Verify security reconciliation inventory
         run: |
           supabase --version
           test -f supabase/migrations/20260731100320_seed_16_beta_users_support.sql
@@ -53,9 +57,13 @@ jobs:
           test -f supabase/migrations/20260731103608_cleanup_one_time_beta_seed_transport.sql
           test -f supabase/migrations/20260731114823_br_01_explicit_rpc_only_deny_policies.sql
           test -f supabase/migrations/20260731125443_br_01_function_lint_reconciliation.sql
+          test -f supabase/migrations/20260731134111_br_03_beta_auth_rotation_and_session_controls.sql
+          test -f supabase/migrations/20260731134449_br_03_beta_fixed_credentials_exception.sql
+          test -f supabase/migrations/20260731134617_br_03_remove_rotation_scaffolding.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
+          test -f supabase/tests/br_03_auth_session_reconciliation.sql
 
       - name: Start local Supabase
         run: supabase start
@@ -65,6 +73,9 @@ jobs:
 
       - name: Run current BR-01 pgTAP contract
         run: supabase test db supabase/tests/br_01_security_reconciliation.sql --local
+
+      - name: Run BR-03 auth session reconciliation contract
+        run: supabase test db supabase/tests/br_03_auth_session_reconciliation.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
@@ -110,7 +121,7 @@ jobs:
       - name: Upload generated database contract
         uses: actions/upload-artifact@v4
         with:
-          name: br-01-database-types
+          name: br-03-database-types
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
