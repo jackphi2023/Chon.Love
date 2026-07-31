@@ -138,9 +138,10 @@ export async function listMyBlockedProfiles(client: Client, limit = 30, offset =
 }
 
 export async function sendFriendRequest(client: Client, addresseeId: string, greetingMessage?: string): Promise<void> {
+  const normalizedGreeting = greetingMessage?.trim();
   const { error } = await client.rpc('send_friend_request', {
     p_addressee_id: addresseeId,
-    p_greeting_message: greetingMessage?.trim() || undefined,
+    ...(normalizedGreeting ? { p_greeting_message: normalizedGreeting } : {}),
   });
   if (error) throw error;
 }
@@ -160,9 +161,10 @@ export async function cancelFriendRequest(client: Client, friendshipId: string):
 }
 
 export async function blockUser(client: Client, blockedId: string, reasonCode?: string): Promise<void> {
+  const normalizedReason = reasonCode?.trim();
   const { error } = await client.rpc('block_user', {
     p_blocked_id: blockedId,
-    p_reason_code: reasonCode?.trim() || undefined,
+    ...(normalizedReason ? { p_reason_code: normalizedReason } : {}),
   });
   if (error) throw error;
 }
@@ -183,12 +185,13 @@ export async function createSafetyReport(
     description?: string | null;
   },
 ): Promise<string> {
+  const normalizedDescription = input.description?.trim();
   const { data, error } = await client.rpc('create_report', {
-    p_target_user_id: input.targetUserId ?? undefined,
-    p_target_media_id: input.targetMediaId ?? undefined,
-    p_target_message_id: input.targetMessageId ?? undefined,
+    ...(input.targetUserId ? { p_target_user_id: input.targetUserId } : {}),
+    ...(input.targetMediaId ? { p_target_media_id: input.targetMediaId } : {}),
+    ...(input.targetMessageId ? { p_target_message_id: input.targetMessageId } : {}),
     p_reason_code: input.reasonCode,
-    p_description: input.description?.trim() || undefined,
+    ...(normalizedDescription ? { p_description: normalizedDescription } : {}),
     p_evidence_json: {},
   });
   if (error) throw error;
