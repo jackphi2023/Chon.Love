@@ -30,13 +30,7 @@ One Creator setting controls the complete approved Activity surface:
 
 The Creator always sees their own moderation states. Blocks override all relationship levels.
 
-The authorization applies to:
-
-- text,
-- images,
-- video and external-link data,
-- Activity-derived album rows,
-- signed media delivery.
+The authorization applies to text, images, video/link data, Activity-derived album rows and signed media delivery.
 
 The previous per-post image gift lock is retired. Its RPC is no longer executable by app clients; historical entitlement tables remain only for migration history.
 
@@ -52,7 +46,7 @@ The server activates Fan membership only when the configured threshold is reache
 
 Approved images are read directly from approved Activity image posts. There is no separate upload or album permission model.
 
-Archiving or deleting a post removes its image from both the feed and the album query. The same whole-feed privacy predicate protects both surfaces.
+Archiving or deleting a post removes its image from both the feed and album query. The same whole-feed privacy predicate protects both surfaces.
 
 ## Profile presentation
 
@@ -78,7 +72,7 @@ Activity migrations applied to development:
 - `20260730093810_phase_c_23_creator_activity_rpc_acl_hardening.sql`
 - `20260730102833_phase_c_23_creator_activity_fk_indexes.sql`
 - `20260731070324_phase_c_23_creator_activity_privacy_tiers.sql`
-- `20260731073536_phase_c_23_profile_distance_province_hardening.sql`
+- `20260731072912_phase_c_23_profile_distance_province_hardening.sql`
 
 New privacy contract:
 
@@ -99,12 +93,7 @@ A viewer denied by the whole-feed predicate receives neither preview nor origina
 
 ## External links
 
-Allowed HTTPS providers:
-
-- YouTube watch URLs;
-- youtu.be;
-- YouTube shorts/embed;
-- OF.TV content paths.
+Allowed HTTPS providers: YouTube watch, youtu.be, YouTube shorts/embed and OF.TV content paths.
 
 YouTube is canonicalized to a video ID. OF.TV remains an external-link card and is not embedded in a WebView. The server does not fetch arbitrary hosts or follow caller-controlled redirects.
 
@@ -130,9 +119,7 @@ Delivered behavior:
 
 ## Public web
 
-Route:
-
-- `/hoat-dong?u=username`
+Route: `/hoat-dong?u=username`.
 
 The page is `noindex` and compatible with static export.
 
@@ -143,11 +130,9 @@ The page is `noindex` and compatible with static export.
 
 ## Admin moderation
 
-Route:
+Route: `/activity-moderation`.
 
-- `/activity-moderation`
-
-Admin reviews text, external link, preview, protected original, media state and reports. Per-post gift requirement and unlock count were removed from the moderation presentation because privacy now belongs to the Creator profile.
+Admin reviews text, external link, preview, protected original, media state and reports. Per-post gift requirement and unlock count were removed because privacy now belongs to the Creator profile.
 
 ## Feature flags
 
@@ -163,18 +148,9 @@ google_play_billing = false
 
 ## Automated verification
 
-Unit tests cover:
+Unit tests cover the three post shapes, mandatory text, image/video mutual exclusion, all privacy labels, Fan eligibility within friend-only mode, whole-feed and album scope, video URL canonicalization and unsafe URL rejection.
 
-- three supported post shapes;
-- mandatory text;
-- image/video mutual exclusion;
-- all privacy labels;
-- Fan eligibility within friend-only mode;
-- whole-feed and album scope;
-- video URL allowlist and canonicalization;
-- unsafe URL rejection.
-
-GitHub Actions code pipeline #449 passed:
+GitHub Actions pipeline #459 passed:
 
 - frozen lockfile install;
 - workspace validation;
@@ -193,6 +169,7 @@ Supabase verification confirmed:
 - least-privilege RPC ACLs;
 - legacy per-post unlock RPC unavailable to app roles;
 - public/friend/Fan predicate used by feed, album and media access;
+- profile distance requires a matching non-null province;
 - development fixture counts remain zero.
 
 ## Deploy state
