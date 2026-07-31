@@ -5,7 +5,7 @@ const readJson = (path) => JSON.parse(readText(path));
 
 const packageJson = readJson('package.json');
 const releaseManifest = readJson('config/releases/beta-mobile-web.json');
-const migration = readText('supabase/migrations/20260801010100_br_07_vietqr_reconciliation_mvp.sql');
+const migration = readText('supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql');
 const databaseTest = readText('supabase/tests/br_07_vietqr_reconciliation_mvp.sql');
 const edgeFunction = readText('supabase/functions/vietqr-reconciliation-admin/index.ts');
 const supabaseConfig = readText('supabase/config.toml');
