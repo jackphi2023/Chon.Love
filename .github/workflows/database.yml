@@ -8,8 +8,10 @@ on:
       - 'packages/supabase/**'
       - 'scripts/validate-br01.mjs'
       - 'scripts/validate-br03.mjs'
+      - 'scripts/validate-br04.mjs'
       - 'docs/br-01/**'
       - 'docs/br-03/**'
+      - 'docs/br-04/**'
       - '.github/workflows/database.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -19,8 +21,10 @@ on:
       - 'packages/supabase/**'
       - 'scripts/validate-br01.mjs'
       - 'scripts/validate-br03.mjs'
+      - 'scripts/validate-br04.mjs'
       - 'docs/br-01/**'
       - 'docs/br-03/**'
+      - 'docs/br-04/**'
       - '.github/workflows/database.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -64,6 +68,7 @@ jobs:
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
           test -f supabase/tests/br_03_auth_session_reconciliation.sql
+          test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
 
       - name: Start local Supabase
         run: supabase start
@@ -76,6 +81,9 @@ jobs:
 
       - name: Run BR-03 auth session reconciliation contract
         run: supabase test db supabase/tests/br_03_auth_session_reconciliation.sql --local
+
+      - name: Run BR-04 core social multi-account E2E
+        run: supabase test db supabase/tests/br_04_core_social_multi_account_e2e.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
@@ -121,7 +129,7 @@ jobs:
       - name: Upload generated database contract
         uses: actions/upload-artifact@v4
         with:
-          name: br-03-database-types
+          name: br-04-database-types
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
