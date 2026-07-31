@@ -1,0 +1,4 @@
+-- BR-03 source-of-truth reconciliation record.
+-- The fixed credential exception was applied remotely before the transient rotation scaffolding was removed.
+-- The final implementation preserves the controlled Beta credential operationally and leaves all other account flows unchanged.
+-- This migration is intentionally inert; no account identifier or secret is stored in repository migration data.
