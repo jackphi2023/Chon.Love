@@ -1,6 +1,6 @@
 begin;
 
-select plan(15);
+select plan(16);
 
 select ok(
   exists (
@@ -150,7 +150,17 @@ select ok(
     where version = '20260731114823'
       and name = 'br_01_explicit_rpc_only_deny_policies'
   ),
-  'BR-01 migration is recorded in the migration ledger'
+  'BR-01 direct-access migration is recorded in the migration ledger'
+);
+
+select ok(
+  exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '20260731125443'
+      and name = 'br_01_function_lint_reconciliation'
+  ),
+  'BR-01 function reconciliation migration is recorded in the migration ledger'
 );
 
 select * from finish();
