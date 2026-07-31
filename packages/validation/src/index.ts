@@ -10,6 +10,10 @@ export const usernameSchema = z
   .regex(/^[a-zA-Z0-9_]+$/, 'Username chỉ gồm chữ, số và dấu gạch dưới.');
 
 export const provinceSchema = z.string().trim().min(2).max(100);
+export const provinceIdSchema = z
+  .number({ error: 'Bạn cần chọn tỉnh/thành.' })
+  .int('Tỉnh/thành không hợp lệ.')
+  .positive('Bạn cần chọn tỉnh/thành.');
 export const profileBioSchema = z.string().trim().max(500, 'Giới thiệu tối đa 500 ký tự.');
 
 export const genderIdentitySchema = z.enum([
@@ -44,7 +48,7 @@ export const profileEditorSchema = z.object({
   displayName: z.string().trim().min(2, 'Tên hiển thị cần ít nhất 2 ký tự.').max(60),
   bio: profileBioSchema,
   gender: genderIdentitySchema,
-  provinceId: z.number().int().positive().nullable(),
+  provinceId: provinceIdSchema,
   interests: profileInterestsSchema,
   discoveryEnabled: z.boolean(),
   nearbyEnabled: z.boolean(),
