@@ -59,7 +59,7 @@ select
   '7b100000-0000-4000-8000-000000000001','7b000000-0000-0000-0000-000000000001',hp.id,
   '7b200000-0000-4000-8000-000000000001','MFQAAAAAAAAAAAA','MYFANMFQAAAAAAAAAAAA',hp.display_hearts,hp.heart_units,
   hp.display_hearts::bigint*50000,'970436','VCB','Vietcombank','0011004000713','Tieu Vo Dinh Phi','TIEU VO DINH PHI',
-  'compact2','awaiting_confirmation',now()+interval '30 minutes'
+  'compact2','pending',now()+interval '30 minutes'
 from public.heart_products hp where hp.is_active order by hp.display_hearts limit 1;
 
 insert into private.vietqr_payment_orders(
@@ -70,7 +70,7 @@ select
   '7b100000-0000-4000-8000-000000000002','7b000000-0000-0000-0000-000000000001',hp.id,
   '7b200000-0000-4000-8000-000000000002','MFQBBBBBBBBBBBB','MYFANMFQBBBBBBBBBBBB',hp.display_hearts,hp.heart_units,
   hp.display_hearts::bigint*50000,'970436','VCB','Vietcombank','0011004000713','Tieu Vo Dinh Phi','TIEU VO DINH PHI',
-  'compact2','awaiting_confirmation',now()+interval '30 minutes'
+  'compact2','pending',now()+interval '30 minutes'
 from public.heart_products hp where hp.is_active order by hp.display_hearts limit 1;
 
 update private.app_config set value_json='true'::jsonb where key='vietqr_reconciliation_enabled';
