@@ -4,7 +4,9 @@ BR-06 is complete only when every criterion below is true:
 
 - [x] A dedicated BR-06 branch exists from the validated BR-05 head.
 - [x] Browser E2E uses local Supabase and refuses hosted URLs.
-- [x] Four isolated local Auth actors are created without controlled Beta credentials.
+- [x] Five isolated local Auth accounts are created without controlled Beta credentials.
+- [x] Exactly four accounts receive mobile browser contexts.
+- [x] A separate non-browser moderator account provides valid media approval audit identity.
 - [x] Expo Web receives only a local anonymous key.
 - [x] Service-role material is excluded from browser runtime and artifacts.
 - [x] Mobile viewport is fixed at 390×844 for each actor context.
