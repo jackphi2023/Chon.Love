@@ -85,7 +85,7 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('BR-02 integration validation passed.');
-console.log(`Canonical branch: ${manifest.canonicalBranch}`);
-console.log(`Integration base: ${manifest.integrationBase}`);
-console.log(`Audited source: ${manifest.sourceCommit}`);
+console.warn('BR-02 integration validation passed.');
+console.warn(`Canonical branch: ${manifest.canonicalBranch}`);
+console.warn(`Integration base: ${manifest.integrationBase}`);
+console.warn(`Audited source: ${manifest.sourceCommit}`);
