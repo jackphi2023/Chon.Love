@@ -74,7 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
           <nav aria-label="Chính sách">
             <Link href="/terms">Điều khoản</Link>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true">–</span>
             <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
           </nav>
           <small>© 2026 MyFan</small>
