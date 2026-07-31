@@ -38,7 +38,7 @@ update private.user_identity set
   account_status='active'
 where user_id::text like '7b000000-0000-0000-0000-00000000000%';
 
-update public.profiles set profile_status='active',username=case id
+update public.profiles set profile_status='active',province_id=1,username=case id
   when '7b000000-0000-0000-0000-000000000001' then 'br07_buyer'
   when '7b000000-0000-0000-0000-000000000002' then 'br07_finance'
   else 'br07_user' end,
