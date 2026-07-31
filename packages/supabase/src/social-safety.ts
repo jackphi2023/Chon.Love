@@ -140,7 +140,7 @@ export async function listMyBlockedProfiles(client: Client, limit = 30, offset =
 export async function sendFriendRequest(client: Client, addresseeId: string, greetingMessage?: string): Promise<void> {
   const { error } = await client.rpc('send_friend_request', {
     p_addressee_id: addresseeId,
-    p_greeting_message: greetingMessage?.trim() || null,
+    p_greeting_message: greetingMessage?.trim() || undefined,
   });
   if (error) throw error;
 }
@@ -162,7 +162,7 @@ export async function cancelFriendRequest(client: Client, friendshipId: string):
 export async function blockUser(client: Client, blockedId: string, reasonCode?: string): Promise<void> {
   const { error } = await client.rpc('block_user', {
     p_blocked_id: blockedId,
-    p_reason_code: reasonCode?.trim() || null,
+    p_reason_code: reasonCode?.trim() || undefined,
   });
   if (error) throw error;
 }
@@ -184,11 +184,11 @@ export async function createSafetyReport(
   },
 ): Promise<string> {
   const { data, error } = await client.rpc('create_report', {
-    p_target_user_id: input.targetUserId ?? null,
-    p_target_media_id: input.targetMediaId ?? null,
-    p_target_message_id: input.targetMessageId ?? null,
+    p_target_user_id: input.targetUserId ?? undefined,
+    p_target_media_id: input.targetMediaId ?? undefined,
+    p_target_message_id: input.targetMessageId ?? undefined,
     p_reason_code: input.reasonCode,
-    p_description: input.description?.trim() || null,
+    p_description: input.description?.trim() || undefined,
     p_evidence_json: {},
   });
   if (error) throw error;
@@ -207,8 +207,11 @@ export async function requestMyAccountDeletion(
   reason: string,
   idempotencyKey: string,
 ): Promise<z.infer<typeof deletionRequestSchema>> {
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) throw new Error('deletion_reason_required');
+
   const { data, error } = await client.rpc('request_account_deletion', {
-    p_reason: reason.trim() || null,
+    p_reason: normalizedReason,
     p_idempotency_key: idempotencyKey,
   });
   if (error) throw error;
@@ -253,6 +256,7 @@ export function getReadableSocialError(error: unknown): string {
   if (message.includes('greeting_too_long')) return 'Lời chào tối đa 280 ký tự.';
   if (message.includes('report_rate_limited')) return 'Bạn vừa gửi báo cáo tương tự. Hãy đợi một phút.';
   if (message.includes('invalid_report_reason')) return 'Lý do báo cáo không hợp lệ.';
+  if (message.includes('deletion_reason_required')) return 'Vui lòng nhập lý do xóa tài khoản.';
   if (message.includes('deletion_request_not_cancellable')) return 'Yêu cầu xóa tài khoản không còn có thể hủy.';
   if (message.includes('active_deletion_request_exists')) return 'Tài khoản đã có một yêu cầu xóa đang xử lý.';
   if (message.includes('authentication_required')) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.';
