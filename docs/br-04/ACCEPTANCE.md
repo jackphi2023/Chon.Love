@@ -18,10 +18,10 @@ BR-04 is complete only when all criteria below are true:
 - [x] The full fixture lifecycle is transactionally rolled back.
 - [x] The suite contains no controlled Beta credential and no service-role key.
 - [x] Financial operations are explicitly excluded.
-- [ ] BR-04 source validation passes on the final head.
-- [ ] Application CI passes on the final head.
-- [ ] Database CI passes on the final head.
-- [ ] Hosted Supabase rollback E2E is recorded in `STATUS.md`.
-- [ ] Final SHA and workflow run identifiers are recorded in `STATUS.md`.
+- [x] BR-04 source validation passes on the validated implementation head.
+- [x] Application CI passes on the validated implementation head.
+- [x] Database CI passes on the validated implementation head.
+- [x] Hosted Supabase rollback E2E is recorded in `STATUS.md`.
+- [x] Validated SHA and workflow run identifiers are recorded in `STATUS.md`.
 
 Passing BR-04 does not authorize merge, production deployment, public tester access, or financial feature enablement.
