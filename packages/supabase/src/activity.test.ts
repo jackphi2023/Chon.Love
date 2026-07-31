@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getCreatorActivityVisibilityDescription,
+  getCreatorActivityVisibilityLabel,
   getYouTubeThumbnail,
   normalizeActivityVideoUrl,
   validateActivityComposer,
 } from './activity';
 
 describe('creator activity composer', () => {
-  it('allows the three V1 post shapes', () => {
+  it('allows the three supported post shapes', () => {
     expect(validateActivityComposer({ body: 'Bài chỉ có chữ' })).toBe('text');
     expect(validateActivityComposer({ body: 'Bài có ảnh', mediaId: crypto.randomUUID() })).toBe('image');
     expect(
@@ -27,23 +29,32 @@ describe('creator activity composer', () => {
     ).toThrow('activity_image_and_video_cannot_be_combined');
   });
 
-  it('requires text for every V1 post', () => {
+  it('requires text for every post', () => {
     expect(() => validateActivityComposer({ body: '   ' })).toThrow('invalid_activity_body');
   });
 
-  it('requires a gift only when one image is gift locked', () => {
-    const mediaId = crypto.randomUUID();
-    expect(() =>
-      validateActivityComposer({ body: 'Ảnh khóa', mediaId, imageAccessMode: 'gift_locked' }),
-    ).toThrow('activity_required_gift_missing');
-    expect(
-      validateActivityComposer({
-        body: 'Ảnh khóa',
-        mediaId,
-        imageAccessMode: 'gift_locked',
-        requiredGiftId: crypto.randomUUID(),
-      }),
-    ).toBe('image');
+  it('does not model per-post gift locking in the composer', () => {
+    expect(validateActivityComposer({ body: 'Ảnh dùng quyền chung', mediaId: crypto.randomUUID() })).toBe('image');
+  });
+});
+
+describe('whole-feed Activity privacy', () => {
+  it.each([
+    ['public', 'Công khai'],
+    ['friends', 'Bạn bè'],
+    ['fans', 'Chỉ Fan'],
+  ] as const)('maps %s to the Vietnamese label', (visibility, label) => {
+    expect(getCreatorActivityVisibilityLabel(visibility)).toBe(label);
+  });
+
+  it('documents that Fans also qualify for friends-only Activity', () => {
+    expect(getCreatorActivityVisibilityDescription('friends')).toContain('Bạn bè đã chấp nhận và Fan');
+  });
+
+  it('documents that Fan privacy covers the whole Activity and album', () => {
+    const description = getCreatorActivityVisibilityDescription('fans');
+    expect(description).toContain('toàn bộ Hoạt động');
+    expect(description).toContain('Album ảnh');
   });
 });
 
