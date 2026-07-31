@@ -173,8 +173,8 @@ as $function$
 declare
   v_status private.kyc_status;
 begin
-  perform private.require_boolean_config('kyc_operational_review_enabled');
   perform private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
+  perform private.require_boolean_config('kyc_operational_review_enabled');
   if p_limit not between 1 and 200 or p_offset<0 then
     raise exception using errcode='22023',message='invalid_pagination';
   end if;
@@ -228,8 +228,8 @@ as $function$
 declare
   v_status private.bank_account_status;
 begin
-  perform private.require_boolean_config('bank_account_operational_review_enabled');
   perform private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
+  perform private.require_boolean_config('bank_account_operational_review_enabled');
   if p_limit not between 1 and 200 or p_offset<0 then
     raise exception using errcode='22023',message='invalid_pagination';
   end if;
@@ -287,8 +287,8 @@ as $function$
 declare
   v_status private.withdrawal_status;
 begin
-  perform private.require_boolean_config('withdrawal_operational_review_enabled');
   perform private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
+  perform private.require_boolean_config('withdrawal_operational_review_enabled');
   if p_limit not between 1 and 200 or p_offset<0 then
     raise exception using errcode='22023',message='invalid_pagination';
   end if;
@@ -329,9 +329,9 @@ declare
   v_profile private.kyc_profiles%rowtype;
   v_event private.payout_operation_events%rowtype;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('kyc_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_event from private.payout_operation_events where request_id=p_request_id;
   if found then
     select * into v_profile from private.kyc_profiles where id=p_kyc_profile_id;
@@ -343,10 +343,10 @@ begin
   if v_profile.assigned_to is not null and v_profile.assigned_to is distinct from p_actor_user_id then
     raise exception using errcode='42501',message='kyc_review_already_assigned';
   end if;
-  update private.kyc_profiles
-  set assigned_to=p_actor_user_id,review_started_at=coalesce(review_started_at,now()),
-      review_due_at=coalesce(review_due_at,now()+interval '24 hours'),last_operation_request_id=p_request_id
-  where id=p_kyc_profile_id returning * into v_profile;
+  update private.kyc_profiles as kp
+  set assigned_to=p_actor_user_id,review_started_at=coalesce(kp.review_started_at,now()),
+      review_due_at=coalesce(kp.review_due_at,now()+interval '24 hours'),last_operation_request_id=p_request_id
+  where kp.id=p_kyc_profile_id returning kp.* into v_profile;
   perform private.append_payout_operation_event('kyc_profile',v_profile.id,'review_started',p_actor_user_id,v_role,p_request_id,
     jsonb_build_object('status',v_profile.status::text,'review_due_at',v_profile.review_due_at));
   perform private.append_admin_audit(p_actor_user_id,v_role,'kyc_review_started','kyc_profile',v_profile.id,
@@ -371,9 +371,9 @@ declare
   v_bank private.bank_accounts%rowtype;
   v_event private.payout_operation_events%rowtype;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('bank_account_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_event from private.payout_operation_events where request_id=p_request_id;
   if found then
     select * into v_bank from private.bank_accounts where id=p_bank_account_id;
@@ -385,10 +385,10 @@ begin
   if v_bank.assigned_to is not null and v_bank.assigned_to is distinct from p_actor_user_id then
     raise exception using errcode='42501',message='bank_review_already_assigned';
   end if;
-  update private.bank_accounts
-  set assigned_to=p_actor_user_id,review_started_at=coalesce(review_started_at,now()),
-      review_due_at=coalesce(review_due_at,now()+interval '24 hours'),last_operation_request_id=p_request_id
-  where id=p_bank_account_id returning * into v_bank;
+  update private.bank_accounts as ba
+  set assigned_to=p_actor_user_id,review_started_at=coalesce(ba.review_started_at,now()),
+      review_due_at=coalesce(ba.review_due_at,now()+interval '24 hours'),last_operation_request_id=p_request_id
+  where ba.id=p_bank_account_id returning ba.* into v_bank;
   perform private.append_payout_operation_event('bank_account',v_bank.id,'review_started',p_actor_user_id,v_role,p_request_id,
     jsonb_build_object('status',v_bank.status::text,'review_due_at',v_bank.review_due_at));
   perform private.append_admin_audit(p_actor_user_id,v_role,'bank_review_started','bank_account',v_bank.id,
@@ -413,9 +413,9 @@ declare
   v_withdrawal private.withdrawals%rowtype;
   v_event private.payout_operation_events%rowtype;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('withdrawal_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_event from private.payout_operation_events where request_id=p_request_id;
   if found then
     select * into v_withdrawal from private.withdrawals where id=p_withdrawal_id;
@@ -429,11 +429,11 @@ begin
   if v_withdrawal.assigned_to is not null and v_withdrawal.assigned_to is distinct from p_actor_user_id then
     raise exception using errcode='42501',message='withdrawal_review_already_assigned';
   end if;
-  update private.withdrawals
-  set status='under_review',assigned_to=p_actor_user_id,review_started_at=coalesce(review_started_at,now()),
-      review_due_at=coalesce(review_due_at,now()+interval '4 hours'),reviewed_at=coalesce(reviewed_at,now()),
+  update private.withdrawals as w
+  set status='under_review',assigned_to=p_actor_user_id,review_started_at=coalesce(w.review_started_at,now()),
+      review_due_at=coalesce(w.review_due_at,now()+interval '4 hours'),reviewed_at=coalesce(w.reviewed_at,now()),
       last_operation_request_id=p_request_id
-  where id=p_withdrawal_id returning * into v_withdrawal;
+  where w.id=p_withdrawal_id returning w.* into v_withdrawal;
   perform private.append_payout_operation_event('withdrawal',v_withdrawal.id,'review_started',p_actor_user_id,v_role,p_request_id,
     jsonb_build_object('status',v_withdrawal.status::text,'review_due_at',v_withdrawal.review_due_at));
   perform private.append_admin_audit(p_actor_user_id,v_role,'withdrawal_review_started','withdrawal',v_withdrawal.id,
@@ -464,9 +464,9 @@ declare
   v_eligible boolean;
   v_before jsonb;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('kyc_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select a.* into v_existing from private.admin_audit_logs a where a.request_id=p_request_id;
   if found then
     if v_existing.target_type<>'kyc_profile' or v_existing.target_id<>p_kyc_profile_id
@@ -530,9 +530,9 @@ declare
   v_eligible boolean;
   v_before jsonb;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('bank_account_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_existing from private.admin_audit_logs where request_id=p_request_id;
   if found then
     if v_existing.target_type<>'bank_account' or v_existing.target_id<>p_bank_account_id
@@ -611,8 +611,8 @@ declare
   v_before jsonb;
   v_event_type text;
 begin
-  if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
   v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
+  if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
   if p_action not in ('approve','reject','start_processing','mark_paid') then
     raise exception using errcode='22023',message='invalid_withdrawal_action';
   end if;
@@ -763,9 +763,9 @@ declare
   v_kyc private.kyc_profiles%rowtype;
   v_documents uuid[];
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('kyc_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_kyc from private.kyc_profiles where id=p_kyc_profile_id;
   if not found then raise exception using errcode='23503',message='kyc_profile_not_found'; end if;
   if v_kyc.assigned_to is distinct from p_actor_user_id then raise exception using errcode='42501',message='kyc_review_assignment_required'; end if;
@@ -798,9 +798,9 @@ declare
   v_role private.user_role;
   v_bank private.bank_accounts%rowtype;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('bank_account_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_bank from private.bank_accounts where id=p_bank_account_id and deleted_at is null;
   if not found then raise exception using errcode='23503',message='bank_account_not_found'; end if;
   if v_bank.assigned_to is distinct from p_actor_user_id then raise exception using errcode='42501',message='bank_review_assignment_required'; end if;
@@ -830,9 +830,9 @@ declare
   v_media public.media_assets%rowtype;
   v_profile private.kyc_profiles%rowtype;
 begin
+  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   perform private.require_boolean_config('kyc_operational_review_enabled');
   if p_request_id is null then raise exception using errcode='22023',message='request_id_required'; end if;
-  v_role:=private.actor_role_for(p_actor_user_id,array['finance_admin','super_admin']::private.user_role[]);
   select * into v_document from private.kyc_documents where id=p_kyc_document_id and status<>'deleted';
   if not found then raise exception using errcode='23503',message='kyc_document_not_found'; end if;
   select * into v_profile from private.kyc_profiles where id=v_document.kyc_profile_id;
