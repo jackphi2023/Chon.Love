@@ -14,6 +14,6 @@ Authenticated profile presentation remains independent from Activity privacy and
 
 The implementation includes forward migrations, shared validation, native and Expo Web screens, public web gating, Admin moderation, private media delivery and automated tests.
 
-GitHub Actions CI #471 passed lint, TypeScript, unit tests, Admin build, public web static export and Expo Web export.
+The latest complete code pipeline passed lint, TypeScript, unit tests, Admin build, public web static export and Expo Web export. A documentation-only follow-up pipeline is also required to pass before review.
 
 The development database has no user, relationship or transaction fixtures, so physical-device and multi-account validation remains pending. Real transactions remain disabled until the payment integration is enabled.
