@@ -13,15 +13,17 @@
 - [x] Payout operation events are immutable.
 - [x] Admin UI supports KYC, bank and withdrawal operations.
 - [x] Shared TypeScript/Zod contract covers queues, PII access and decisions.
-- [ ] BR-08 source validation passes on implementation head.
-- [ ] Application CI passes on implementation head.
-- [ ] Database CI clean-resets 80 migrations and passes the 47-assertion BR-08 contract.
-- [ ] Generated public database types exactly match the committed contract.
-- [ ] BR-06 Browser E2E regression passes on implementation head.
-- [ ] Hosted migration is applied with all six BR-08 flags `false`.
-- [ ] Hosted payout-operation table remains empty.
-- [ ] Hosted KYC, bank and withdrawal row counts remain unchanged.
-- [ ] Controlled Beta users/profiles/creators/media remain unchanged.
-- [ ] Draft PR remains open, unmerged, with no Edge Function or production deployment.
+- [x] BR-08 source validation passes on implementation head.
+- [x] Application CI passes on implementation head.
+- [x] Database CI clean-resets 80 migrations and passes the 47-assertion BR-08 contract.
+- [x] Generated public database types exactly match the committed contract.
+- [x] BR-06 Browser E2E regression passes on implementation head.
+- [x] Hosted migration is applied with all six BR-08 flags `false`.
+- [x] Hosted payout-operation table remains empty.
+- [x] Hosted KYC, bank and withdrawal row counts remain unchanged.
+- [x] Controlled Beta users/profiles/creators/media remain unchanged.
+- [x] Draft PR remains open, unmerged, with no Edge Function or production deployment.
 
 Passing BR-08 validates the operational control plane. It does not authorize collecting KYC from Beta users, enabling withdrawal requests, transferring money, or marking a real withdrawal paid.
+
+Final documentation-head workflow identifiers are recorded in Draft PR `#21` after those workflows complete, so recording evidence does not create another source commit.
