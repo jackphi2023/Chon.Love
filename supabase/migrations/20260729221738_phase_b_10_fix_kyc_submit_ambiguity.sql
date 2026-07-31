@@ -1,0 +1,1 @@
+-- Remote migration-history alignment marker. No schema change.

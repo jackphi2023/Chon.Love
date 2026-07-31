@@ -1,0 +1,1 @@
+comment on function public.record_verified_play_purchase(uuid,text,text,text,text,text,boolean,uuid,bytea) is 'Service-role-only entitlement credit after Google Play ProductPurchaseV2 verification; Edge Function deployment tracked separately.';

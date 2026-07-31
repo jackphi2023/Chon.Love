@@ -1,0 +1,32 @@
+begin;
+select plan(18);
+insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token) values
+('00000000-0000-0000-0000-000000000000','10000000-0000-0000-0000-000000000001','authenticated','authenticated','user-a@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','10000000-0000-0000-0000-000000000002','authenticated','authenticated','user-b@example.test','','{"provider":"google","providers":["google"]}','{}',now(),now(),'','','','','','','');
+select is((select count(*) from public.profiles where id in('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002')),2::bigint,'email and OAuth auth users bootstrap public profiles');
+select is((select count(*) from private.user_identity where user_id in('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002')),2::bigint,'auth users bootstrap private identity rows');
+select is((select count(*) from private.user_roles where user_id in('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002') and role='user' and revoked_at is null),2::bigint,'auth users receive only the default user role');
+select throws_ok($$update private.user_identity set date_of_birth=current_date+1 where user_id='10000000-0000-0000-0000-000000000001'$$,'22008','date_of_birth cannot be in the future','future date of birth is rejected');
+select throws_ok($$update private.user_identity set date_of_birth=current_date-interval '17 years',age_verified_at=now(),age_verification_method='self_declared' where user_id='10000000-0000-0000-0000-000000000001'$$,'23514',null,'under-18 identity cannot be marked verified');
+update public.profiles set username='CaseUser' where id='10000000-0000-0000-0000-000000000001';
+select throws_ok($$update public.profiles set username='caseuser' where id='10000000-0000-0000-0000-000000000002'$$,'23505',null,'username uniqueness is case-insensitive');
+select ok((select relrowsecurity from pg_class where oid='public.profiles'::regclass),'RLS enabled on public.profiles');
+select ok((select relrowsecurity from pg_class where oid='private.user_identity'::regclass),'RLS enabled on private.user_identity');
+select is((select count(*) from private.app_config),14::bigint,'all required app config keys are seeded');
+select is((select(value_json#>>'{}')::integer from private.app_config where key='creator_share_bps'),7000,'Creator share is 7000 bps');
+select is((select(value_json#>>'{}')::integer from private.app_config where key='platform_share_bps'),3000,'Platform share is 3000 bps');
+select is((select(value_json#>>'{}')::integer from private.app_config where key='heart_units_per_heart'),100,'one heart equals 100 units');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+select throws_ok($$select public.complete_my_onboarding((current_date-interval '17 years')::date,'2026-07','2026-07','self_declared')$$,'22023','user must be at least 18 years old','under-18 onboarding RPC is rejected');
+select lives_ok($$select public.complete_my_onboarding((current_date-interval '25 years')::date,'2026-07','2026-07','self_declared')$$,'adult onboarding RPC succeeds');
+select throws_ok($$select * from private.user_identity$$,'42501',null,'authenticated client cannot read private identity');
+select throws_ok($$insert into private.user_roles(user_id,role) values('10000000-0000-0000-0000-000000000001','super_admin')$$,'42501',null,'authenticated client cannot grant itself an admin role');
+select throws_ok($$update private.app_config set value_json='9999'::jsonb where key='creator_share_bps'$$,'42501',null,'authenticated client cannot modify app config');
+reset role;
+select set_config('request.jwt.claims','',true);
+delete from private.heart_accounts where user_id='10000000-0000-0000-0000-000000000002' and available_units=0 and held_units=0 and lifetime_purchased_units=0 and lifetime_spent_units=0;
+delete from auth.users where id='10000000-0000-0000-0000-000000000002';
+select is((select count(*) from public.profiles where id='10000000-0000-0000-0000-000000000002'),0::bigint,'deleting auth user cascades the pre-finance core profile after empty finance account cleanup');
+select * from finish();
+rollback;
