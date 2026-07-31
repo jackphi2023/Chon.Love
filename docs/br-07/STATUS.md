@@ -1,6 +1,6 @@
 # BR-07 Status
 
-- Status: implementation and hosted fail-closed migration complete; final documentation-head CI pending
+- Status: implementation and hosted fail-closed migration complete
 - Head branch: `agent/br-07-vietqr-reconciliation-mvp`
 - Base branch: `agent/br-06-mobile-web-browser-e2e`
 - Base SHA: `28576e5e90980758f341ae386f3614fd2dbb5642`
@@ -57,6 +57,10 @@ After migration application:
 - the direct verified-payment RPC was not executable by `anon`, `authenticated`, or `service_role`;
 - authenticated access to legacy VietQR user-order RPCs was removed;
 - the 16 controlled Beta accounts and their profile, Creator, and media records remained present.
+
+## Final documentation-head validation
+
+The exact final documentation SHA and its Application, Database, and Browser E2E workflow run identifiers are recorded in Draft PR `#20` after those workflows complete. Keeping this evidence in the PR avoids creating another source commit solely to record CI identifiers.
 
 ## Scope boundary
 
