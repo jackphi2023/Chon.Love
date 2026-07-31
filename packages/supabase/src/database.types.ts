@@ -1363,6 +1363,53 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      admin_list_bank_operational_queue: {
+        Args: {
+          p_actor_user_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: {
+          account_number_last4: string
+          age_minutes: number
+          assigned_to: string
+          bank_account_id: string
+          bank_code: string
+          created_at: string
+          display_name: string
+          is_default: boolean
+          review_due_at: string
+          review_started_at: string
+          status: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      admin_list_kyc_operational_queue: {
+        Args: {
+          p_actor_user_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: {
+          age_minutes: number
+          assigned_to: string
+          country_code: string
+          display_name: string
+          document_count: number
+          document_number_last4: string
+          document_type: string
+          kyc_profile_id: string
+          review_due_at: string
+          review_started_at: string
+          status: string
+          submitted_at: string
+          total_count: number
+          user_id: string
+        }[]
+      }
       admin_list_vietqr_reconciliation_queue: {
         Args: {
           p_actor_user_id: string
@@ -1388,6 +1435,56 @@ export type Database = {
           transaction_id: string
           transfer_content_raw: string
           user_id: string
+        }[]
+      }
+      admin_list_withdrawal_operational_queue: {
+        Args: {
+          p_actor_user_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: {
+          age_minutes: number
+          amount_vnd: number
+          approved_by: string
+          assigned_to: string
+          bank_code: string
+          bank_last4: string
+          creator_id: string
+          display_name: string
+          payment_evidence_present: boolean
+          payment_recorded_by: string
+          payment_reference: string
+          processing_started_by: string
+          requested_at: string
+          requested_reward_units: number
+          review_due_at: string
+          review_started_at: string
+          status: string
+          total_count: number
+          withdrawal_id: string
+        }[]
+      }
+      admin_operate_withdrawal: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_payment_evidence_sha256: string
+          p_payment_reference: string
+          p_reason_code: string
+          p_request_id: string
+          p_withdrawal_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          approved_by: string
+          held_balance_units: number
+          paid_balance_units: number
+          payment_recorded_by: string
+          processing_started_by: string
+          status: string
+          withdrawal_id: string
         }[]
       }
       admin_process_account_deletion: {
@@ -1446,6 +1543,48 @@ export type Database = {
           kyc_profile_id: string
           payout_eligible: boolean
           status: string
+        }[]
+      }
+      admin_start_bank_review: {
+        Args: {
+          p_actor_user_id: string
+          p_bank_account_id: string
+          p_request_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          assigned_to: string
+          bank_account_id: string
+          review_due_at: string
+          status: string
+        }[]
+      }
+      admin_start_kyc_review: {
+        Args: {
+          p_actor_user_id: string
+          p_kyc_profile_id: string
+          p_request_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          assigned_to: string
+          kyc_profile_id: string
+          review_due_at: string
+          status: string
+        }[]
+      }
+      admin_start_withdrawal_review: {
+        Args: {
+          p_actor_user_id: string
+          p_request_id: string
+          p_withdrawal_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          assigned_to: string
+          review_due_at: string
+          status: string
+          withdrawal_id: string
         }[]
       }
       archive_creator_activity_post: {
