@@ -15,6 +15,8 @@ const sharedSupabaseClient = readText('packages/supabase/src/index.ts');
 const mobileSupabaseClient = readText('apps/mobile/src/lib/supabase.ts');
 const environmentUnitTest = readText('packages/supabase/src/index.test.ts');
 const authHome = readText('apps/mobile/app/(auth)/index.tsx');
+const storageHelperMigration = readText('supabase/migrations/20260731172200_br_06_storage_policy_helper_execution.sql');
+const storageHelperAclTest = readText('supabase/tests/br_06_storage_policy_helper_acl.sql');
 
 const errors = [];
 const expect = (condition, message) => {
@@ -37,6 +39,15 @@ expect(
 expect(
   databaseCi.includes('scripts/validate-br06.mjs') && databaseCi.includes('docs/br-06/**'),
   'Database CI path filters must include BR-06 validation and documentation.',
+);
+expect(
+  databaseCi.includes('20260731172200_br_06_storage_policy_helper_execution.sql') &&
+    databaseCi.includes('supabase/tests/br_06_storage_policy_helper_acl.sql'),
+  'Database CI inventory must include the BR-06 Storage helper migration and ACL test.',
+);
+expect(
+  databaseCi.includes('Run BR-06 Storage policy helper ACL contract'),
+  'Database CI must execute the BR-06 Storage helper ACL contract.',
 );
 
 for (const token of [
@@ -150,6 +161,29 @@ expect(
   'The BR-06 Auth screen must keep post-login navigation single-source and effect-free.',
 );
 
+expect(
+  storageHelperMigration.includes(
+    'grant execute on function private.can_view_media_internal(uuid, uuid) to anon, authenticated;',
+  ),
+  'BR-06 must restore only the Storage RLS helper execution capability required by client roles.',
+);
+expect(
+  !storageHelperMigration.includes('grant usage on schema private') &&
+    !storageHelperMigration.includes('grant select on') &&
+    !storageHelperMigration.includes('grant all'),
+  'BR-06 Storage migration must not reopen private schema or table access.',
+);
+expect(storageHelperAclTest.includes('select plan(5);'), 'BR-06 Storage ACL contract must contain five assertions.');
+for (const aclAssertion of [
+  "has_function_privilege('anon', 'private.can_view_media_internal(uuid,uuid)', 'EXECUTE')",
+  "has_function_privilege('authenticated', 'private.can_view_media_internal(uuid,uuid)', 'EXECUTE')",
+  "not has_schema_privilege('anon', 'private', 'USAGE')",
+  "not has_schema_privilege('authenticated', 'private', 'USAGE')",
+  "table_schema = 'private'",
+]) {
+  expect(storageHelperAclTest.includes(aclAssertion), `BR-06 Storage ACL contract must assert ${aclAssertion}.`);
+}
+
 expect(playwrightConfig.includes("testDir: './tests/br-06'"), 'Playwright must be scoped to the BR-06 test directory.');
 expect(playwrightConfig.includes('width: 390') === false, 'Viewport belongs in isolated browser contexts, not global config.');
 expect(playwrightConfig.includes('workers: 1'), 'BR-06 must run deterministically with one Playwright worker.');
@@ -216,4 +250,4 @@ if (errors.length > 0) {
 }
 
 console.warn('BR-06 mobile web multi-account browser E2E source validation passed.');
-console.warn('Coverage: single-source auth routing, local-only transport opt-in, five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
+console.warn('Coverage: least-privilege Storage signed URLs, single-source auth routing, local-only transport opt-in, five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
