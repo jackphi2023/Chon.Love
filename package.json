@@ -22,7 +22,8 @@
     "validate:environments": "node scripts/validate-environments.mjs",
     "validate:security": "node scripts/validate-br01.mjs",
     "validate:integration": "node scripts/validate-br02.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration"
+    "validate:auth": "node scripts/validate-br03.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
