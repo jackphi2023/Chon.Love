@@ -657,14 +657,14 @@ begin
     if p_reason_code is null or p_reason_code!~'^[a-z][a-z0-9_]{1,63}$' then
       raise exception using errcode='22023',message='withdrawal_rejection_reason_required';
     end if;
-    for v_alloc in select * from private.withdrawal_reward_allocations where withdrawal_id=v_withdrawal.id for update loop
+    for v_alloc in select wra.* from private.withdrawal_reward_allocations as wra where wra.withdrawal_id=v_withdrawal.id for update loop
       update private.creator_reward_positions
       set held_units=held_units-v_alloc.allocated_units,available_units=available_units+v_alloc.allocated_units,
           status=private.reward_position_status_for(original_units,pending_units,available_units+v_alloc.allocated_units,held_units-v_alloc.allocated_units,paid_units,reversed_units)
       where gift_transaction_id=v_alloc.gift_transaction_id;
-      update private.withdrawal_reward_allocations
-      set released_units=allocated_units
-      where withdrawal_id=v_withdrawal.id and gift_transaction_id=v_alloc.gift_transaction_id;
+      update private.withdrawal_reward_allocations as wra
+      set released_units=wra.allocated_units
+      where wra.withdrawal_id=v_withdrawal.id and wra.gift_transaction_id=v_alloc.gift_transaction_id;
     end loop;
     update private.creator_earning_accounts
     set held_units=held_units-v_withdrawal.requested_reward_units,
@@ -697,14 +697,14 @@ begin
     if lower(coalesce(p_payment_evidence_sha256,''))!~'^[0-9a-f]{64}$' then
       raise exception using errcode='22023',message='payment_evidence_sha256_required';
     end if;
-    for v_alloc in select * from private.withdrawal_reward_allocations where withdrawal_id=v_withdrawal.id for update loop
+    for v_alloc in select wra.* from private.withdrawal_reward_allocations as wra where wra.withdrawal_id=v_withdrawal.id for update loop
       update private.creator_reward_positions
       set held_units=held_units-v_alloc.allocated_units,paid_units=paid_units+v_alloc.allocated_units,
           status=private.reward_position_status_for(original_units,pending_units,available_units,held_units-v_alloc.allocated_units,paid_units+v_alloc.allocated_units,reversed_units)
       where gift_transaction_id=v_alloc.gift_transaction_id;
-      update private.withdrawal_reward_allocations
-      set paid_units=allocated_units
-      where withdrawal_id=v_withdrawal.id and gift_transaction_id=v_alloc.gift_transaction_id;
+      update private.withdrawal_reward_allocations as wra
+      set paid_units=wra.allocated_units
+      where wra.withdrawal_id=v_withdrawal.id and wra.gift_transaction_id=v_alloc.gift_transaction_id;
     end loop;
     update private.creator_earning_accounts
     set held_units=held_units-v_withdrawal.requested_reward_units,
@@ -769,8 +769,8 @@ begin
   select * into v_kyc from private.kyc_profiles where id=p_kyc_profile_id;
   if not found then raise exception using errcode='23503',message='kyc_profile_not_found'; end if;
   if v_kyc.assigned_to is distinct from p_actor_user_id then raise exception using errcode='42501',message='kyc_review_assignment_required'; end if;
-  select coalesce(array_agg(id order by created_at,id),'{}'::uuid[]) into v_documents
-  from private.kyc_documents where kyc_profile_id=v_kyc.id and status<>'deleted';
+  select coalesce(array_agg(kd.id order by kd.created_at,kd.id),'{}'::uuid[]) into v_documents
+  from private.kyc_documents as kd where kd.kyc_profile_id=v_kyc.id and kd.status<>'deleted';
   perform private.append_payout_operation_event('kyc_profile',v_kyc.id,'sensitive_viewed',p_actor_user_id,v_role,p_request_id,
     jsonb_build_object('status',v_kyc.status::text,'document_count',cardinality(v_documents)));
   perform private.append_admin_audit(p_actor_user_id,v_role,'kyc_sensitive_viewed','kyc_profile',v_kyc.id,'{}'::jsonb,
@@ -837,8 +837,8 @@ begin
   if not found then raise exception using errcode='23503',message='kyc_document_not_found'; end if;
   select * into v_profile from private.kyc_profiles where id=v_document.kyc_profile_id;
   if v_profile.assigned_to is distinct from p_actor_user_id then raise exception using errcode='42501',message='kyc_review_assignment_required'; end if;
-  select * into v_media from public.media_assets
-  where id=v_document.media_id and storage_bucket='kyc-private' and visibility='kyc' and deleted_at is null;
+  select ma.* into v_media from public.media_assets as ma
+  where ma.id=v_document.media_id and ma.storage_bucket='kyc-private' and ma.visibility='kyc' and ma.deleted_at is null;
   if not found then raise exception using errcode='23503',message='kyc_document_media_not_found'; end if;
   perform private.append_payout_operation_event('kyc_profile',v_profile.id,'document_accessed',p_actor_user_id,v_role,p_request_id,
     jsonb_build_object('kyc_document_id',v_document.id,'document_side',v_document.document_side::text,'mime_type',v_media.mime_type,'signed_url_ttl_seconds',60));
