@@ -61,6 +61,21 @@ describe('shared validation', () => {
     expect(result.interests).toEqual(['Âm nhạc', 'Du lịch']);
   });
 
+  it('requires exactly one selected province for a completed member profile', () => {
+    const base = {
+      username: 'creator_01',
+      displayName: 'Creator MyFan',
+      bio: '',
+      gender: 'prefer_not_to_say' as const,
+      interests: [],
+      discoveryEnabled: true,
+      nearbyEnabled: false,
+    };
+    expect(profileEditorSchema.safeParse({ ...base, provinceId: 1 }).success).toBe(true);
+    expect(profileEditorSchema.safeParse({ ...base, provinceId: null }).success).toBe(false);
+    expect(profileEditorSchema.safeParse({ ...base, provinceId: 0 }).success).toBe(false);
+  });
+
   it('rejects oversized or mismatched image metadata', () => {
     expect(
       profileImageMetadataSchema.safeParse({
