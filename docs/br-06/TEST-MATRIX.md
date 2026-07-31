@@ -23,12 +23,18 @@
 | Post-unblock privacy | Viewer | Inspect Creator Activity | Fan gate remains in force |
 | Evidence | Viewer | Finish lifecycle | Final mobile screenshot is attached |
 
+## Non-browser approval fixture
+
+A fifth local Auth account is assigned the `moderator` role. It is not used by Playwright and exists only as the valid `approved_by` actor for the approved Activity image. This keeps the browser fixture subject to the same media audit constraint as product data.
+
 ## Infrastructure assertions
 
 The source guard additionally verifies:
 
 - local-only Supabase host allowlist
-- exactly four `br06.*@example.test` users in the local database
+- exactly five `br06.*@example.test` accounts in the local database
+- exactly four named browser actors
+- one separate local moderator approval actor
 - no controlled Beta account in the local reset database
 - no service-role key exported to Expo or browser runtime
 - Chromium and system dependencies installed from a pinned Playwright package
