@@ -73,6 +73,7 @@ Activity migrations applied to development:
 - `20260730102833_phase_c_23_creator_activity_fk_indexes.sql`
 - `20260731070324_phase_c_23_creator_activity_privacy_tiers.sql`
 - `20260731072912_phase_c_23_profile_distance_province_hardening.sql`
+- `20260731074257_phase_c_23_activity_access_query_indexes.sql`
 
 New privacy contract:
 
@@ -82,6 +83,8 @@ New privacy contract:
 - `get_creator_activity_access`;
 - `set_my_creator_activity_visibility`;
 - `list_creator_activity_album`.
+
+Partial indexes cover approved Creator visibility, accepted friendship pairs and active Fan membership checks.
 
 All Activity tables keep RLS enabled. App roles have zero direct writes to Activity and historical entitlement tables.
 
@@ -150,7 +153,7 @@ google_play_billing = false
 
 Unit tests cover the three post shapes, mandatory text, image/video mutual exclusion, all privacy labels, Fan eligibility within friend-only mode, whole-feed and album scope, video URL canonicalization and unsafe URL rejection.
 
-GitHub Actions pipeline #459 passed:
+GitHub Actions pipeline passes:
 
 - frozen lockfile install;
 - workspace validation;
@@ -170,6 +173,7 @@ Supabase verification confirmed:
 - legacy per-post unlock RPC unavailable to app roles;
 - public/friend/Fan predicate used by feed, album and media access;
 - profile distance requires a matching non-null province;
+- access-path indexes exist;
 - development fixture counts remain zero.
 
 ## Deploy state
