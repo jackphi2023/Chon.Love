@@ -10,8 +10,8 @@ BR-02 is complete only when all criteria below are true:
 - [x] Database CI runs against the canonical integration pull request.
 - [x] One Draft PR targets `develop` from `release/beta-mobile-web`.
 - [x] Historical stacked Draft PRs are marked superseded without deleting branches or force-pushing history.
-- [ ] Application CI passes on the final BR-02 head.
-- [ ] Database CI passes on the final BR-02 head.
-- [ ] Final head SHA and workflow run identifiers are recorded in `STATUS.md`.
+- [x] Application CI passes on the validated BR-02 implementation head.
+- [x] Database CI passes on the validated BR-02 implementation head.
+- [x] Validated implementation SHA and workflow run identifiers are recorded in `STATUS.md`.
 
 Passing BR-02 does not mean the Mobile Web Beta is deployed or end-to-end accepted. It only establishes a single trustworthy integration source.
