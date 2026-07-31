@@ -155,7 +155,8 @@ jobs:
           db = db.replace('name: br-07-database-types', 'name: br-08-database-types')
           db_path.write_text(db)
           PY
-          rm -rf .br08 .github/workflows/br08-bootstrap.yml
+          rm -rf .br08
+          git checkout HEAD -- .github/workflows/ci.yml .github/workflows/database.yml .github/workflows/br08-bootstrap.yml
 
       - name: Commit BR-08 implementation
         shell: bash
