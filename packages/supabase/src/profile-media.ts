@@ -9,9 +9,14 @@ export type MediaVisibility = Database['public']['Enums']['media_visibility'];
 export type GenderIdentity = Database['public']['Enums']['gender_identity'];
 export type AlbumType = Database['public']['Enums']['album_type'];
 
+export const VN_FEATURED_PROVINCE_COUNT = 6;
+export const VN_CANONICAL_PROVINCE_COUNT = 34;
+
 export type ProvinceOption = {
   id: number;
   name: string;
+  sortOrder: number;
+  areaType: 'province' | 'municipality';
 };
 
 export type UpdateMyProfileInput = {
@@ -19,7 +24,7 @@ export type UpdateMyProfileInput = {
   displayName: string;
   bio: string;
   gender: GenderIdentity;
-  provinceId: number | null;
+  provinceId: number;
   interests: string[];
   discoveryEnabled: boolean;
   nearbyEnabled: boolean;
@@ -60,13 +65,27 @@ export async function getMyProfile(client: Client): Promise<ProfileRow> {
 export async function listActiveProvinces(client: Client): Promise<ProvinceOption[]> {
   const { data, error } = await client
     .from('administrative_areas')
-    .select('id,name_vi')
+    .select('id,name_vi,sort_order,area_type')
     .eq('country_code', 'VN')
     .eq('is_active', true)
+    .is('parent_id', null)
+    .in('area_type', ['province', 'municipality'])
     .order('sort_order', { ascending: true })
     .order('name_vi', { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((item) => ({ id: item.id, name: item.name_vi }));
+
+  const provinces = (data ?? []).map((item) => ({
+    id: item.id,
+    name: item.name_vi,
+    sortOrder: item.sort_order,
+    areaType: item.area_type as ProvinceOption['areaType'],
+  }));
+
+  if (provinces.length !== VN_CANONICAL_PROVINCE_COUNT) {
+    throw new Error('vn_province_catalog_must_contain_34_active_rows');
+  }
+
+  return provinces;
 }
 
 export async function updateMyProfile(
