@@ -237,7 +237,6 @@ await writeFile('/tmp/br06-fixture-manifest.json', JSON.stringify({
     username: actor.username,
     displayName: actor.displayName,
   }])),
-  password,
   mediaId,
   postId,
 }, null, 2), 'utf8');
