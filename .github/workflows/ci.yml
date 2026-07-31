@@ -76,3 +76,19 @@ jobs:
 
       - name: Build web applications and Expo web
         run: pnpm build
+
+  br08-export-migration:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/br-08-kyc-withdrawal-operational-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout BR-08 head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Upload exact BR-08 migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-08-hosted-migration
+          path: supabase/migrations/20260731192600_br_08_kyc_withdrawal_operational_flow.sql
+          if-no-files-found: error
+          retention-days: 1
