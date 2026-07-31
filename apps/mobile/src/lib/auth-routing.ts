@@ -18,6 +18,9 @@ export function resolveAuthenticatedRoute(
 
 export function getReadableAuthError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
+  if (/beta_password_managed/iu.test(message)) {
+    return 'Mật khẩu của tài khoản Beta thử nghiệm được quản lý cố định. Vui lòng dùng thông tin đăng nhập đã được cấp.';
+  }
   if (/email_and_password_required|email_required/iu.test(message)) {
     return 'Vui lòng nhập đầy đủ email và mật khẩu.';
   }
