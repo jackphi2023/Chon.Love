@@ -47,6 +47,9 @@ jobs:
       - name: Validate BR-02 Beta integration source
         run: pnpm validate:integration
 
+      - name: Validate BR-03 auth and session source
+        run: pnpm validate:auth
+
       - name: Lint
         run: pnpm lint
 
