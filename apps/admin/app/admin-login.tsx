@@ -44,9 +44,10 @@ export function AdminLogin() {
       <div className="adminCard">
         <p className="adminEyebrow">ĐÃ ĐĂNG NHẬP</p>
         <h1>MyFan Admin</h1>
-        <p>Phiên hiện tại: <strong>{signedInEmail}</strong>. RPC kiểm duyệt vẫn xác minh role moderator/super_admin ở database.</p>
+        <p>Phiên hiện tại: <strong>{signedInEmail}</strong>. Mọi RPC nhạy cảm tiếp tục xác minh role tại database; giao diện không giữ service-role key.</p>
         <div className="adminActions">
           <Link className="adminPrimary" href="/activity-moderation">Kiểm duyệt Hoạt động</Link>
+          <Link className="adminSecondary" href="/vietqr-reconciliation">Đối soát VietQR</Link>
           <button className="adminSecondary" onClick={() => void signOut()} type="button">Đăng xuất</button>
         </div>
       </div>
@@ -55,9 +56,9 @@ export function AdminLogin() {
 
   return (
     <form className="adminCard adminLoginForm" onSubmit={signIn}>
-      <p className="adminEyebrow">MODERATION · 18+</p>
+      <p className="adminEyebrow">MODERATION · FINANCE · 18+</p>
       <h1>MyFan Admin</h1>
-      <p>Đăng nhập bằng tài khoản đã được cấp role moderator hoặc super_admin.</p>
+      <p>Đăng nhập bằng tài khoản được cấp role phù hợp. Đối soát VietQR yêu cầu finance_admin hoặc super_admin.</p>
       <label>Email<input autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
       <label>Mật khẩu<input autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
       {message ? <p className="adminError" role="alert">{message}</p> : null}
