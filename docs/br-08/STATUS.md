@@ -1,0 +1,21 @@
+# BR-08 Status
+
+- Status: implementation in progress; CI pending
+- Head branch: `agent/br-08-kyc-withdrawal-operational-flow`
+- Base branch: `agent/br-07-vietqr-reconciliation-mvp`
+- Base SHA: `7ab68c3404350bbbd39639dba41465a82430252b`
+- Draft pull request: pending
+- Provisional migration: `20260731192600_br_08_kyc_withdrawal_operational_flow`
+- Expected local migration count: 80
+- KYC review flag: disabled
+- Bank review flag: disabled
+- Withdrawal request flag: disabled
+- Withdrawal review flag: disabled
+- Processing flag: disabled
+- Payout flag: disabled
+- Legacy single-control withdrawal RPC: revoked by migration
+- Edge Function hosted deployment: not authorized
+- Hosted KYC/withdrawal fixtures: none authorized
+- Controlled Beta credentials read, stored or modified: none
+- Merge: not authorized
+- Production deployment: not authorized

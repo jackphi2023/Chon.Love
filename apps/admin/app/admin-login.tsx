@@ -48,6 +48,7 @@ export function AdminLogin() {
         <div className="adminActions">
           <Link className="adminPrimary" href="/activity-moderation">Kiểm duyệt Hoạt động</Link>
           <Link className="adminSecondary" href="/vietqr-reconciliation">Đối soát VietQR</Link>
+          <Link className="adminSecondary" href="/kyc-withdrawal-operations">KYC và rút tiền</Link>
           <button className="adminSecondary" onClick={() => void signOut()} type="button">Đăng xuất</button>
         </div>
       </div>
@@ -58,7 +59,7 @@ export function AdminLogin() {
     <form className="adminCard adminLoginForm" onSubmit={signIn}>
       <p className="adminEyebrow">MODERATION · FINANCE · 18+</p>
       <h1>MyFan Admin</h1>
-      <p>Đăng nhập bằng tài khoản được cấp role phù hợp. Đối soát VietQR yêu cầu finance_admin hoặc super_admin.</p>
+      <p>Đăng nhập bằng tài khoản được cấp role phù hợp. Đối soát VietQR và vận hành KYC/rút tiền yêu cầu finance_admin hoặc super_admin.</p>
       <label>Email<input autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
       <label>Mật khẩu<input autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
       {message ? <p className="adminError" role="alert">{message}</p> : null}

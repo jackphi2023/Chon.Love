@@ -72,4 +72,5 @@ export * from './profile-media';
 export * from './social-safety';
 export * from './vietqr';
 export * from './vietqr-reconciliation';
+export * from './kyc-withdrawal-operations';
 export type { Database } from './database.types';
