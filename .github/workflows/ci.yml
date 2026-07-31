@@ -53,6 +53,9 @@ jobs:
       - name: Validate BR-04 core social E2E source
         run: pnpm validate:social-e2e
 
+      - name: Validate BR-05 Creator Activity E2E source
+        run: pnpm validate:creator-e2e
+
       - name: Lint
         run: pnpm lint
 
