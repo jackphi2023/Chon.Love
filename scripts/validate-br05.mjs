@@ -7,7 +7,8 @@ const packageJson = readJson('package.json');
 const releaseManifest = readJson('config/releases/beta-mobile-web.json');
 const applicationCi = readText('.github/workflows/ci.yml');
 const databaseCi = readText('.github/workflows/database.yml');
-const migration = readText('supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql');
+const reportPrivacyMigration = readText('supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql');
+const anonymousFeedMigration = readText('supabase/migrations/20260731160038_br_05_anonymous_public_activity_feed_fix.sql');
 const e2e = readText('supabase/tests/br_05_creator_activity_privacy_album_e2e.sql');
 const activityClient = readText('packages/supabase/src/activity.ts');
 const socialClient = readText('packages/supabase/src/social-safety.ts');
@@ -36,7 +37,11 @@ expect(
 );
 expect(
   databaseCi.includes('20260731153859_br_05_creator_activity_report_privacy_guard.sql'),
-  'Database CI inventory must include the BR-05 privacy migration.',
+  'Database CI inventory must include the BR-05 report privacy migration.',
+);
+expect(
+  databaseCi.includes('20260731160038_br_05_anonymous_public_activity_feed_fix.sql'),
+  'Database CI inventory must include the BR-05 anonymous public feed migration.',
 );
 expect(e2e.includes('select plan(78);'), 'BR-05 pgTAP plan must contain 78 assertions.');
 expect(
@@ -75,6 +80,7 @@ for (const privacyState of ['public', 'friends', 'fans', 'friend_required', 'fan
   expect(e2e.includes(privacyState), `BR-05 must verify privacy state ${privacyState}.`);
 }
 
+expect(e2e.includes('anonymous viewers can read all approved public Activity posts'), 'BR-05 must verify the anonymous public feed path.');
 expect(e2e.includes('moderator_role_required'), 'BR-05 must deny moderation to ordinary users.');
 expect(e2e.includes('creator_activity_media_access_denied'), 'BR-05 must deny hidden original media access.');
 expect(e2e.includes('activity_report_target_not_available'), 'BR-05 must deny reports for hidden Activity content.');
@@ -85,16 +91,24 @@ expect(e2e.includes("moderation_status='rejected'"), 'BR-05 must verify rejected
 expect(e2e.trimEnd().endsWith('rollback;'), 'BR-05 fixtures and mutations must always roll back.');
 
 expect(
-  migration.includes('not private.can_view_creator_activity(v_post.creator_id, v_reporter)'),
-  'BR-05 migration must authorize reports through Creator Activity privacy.',
+  reportPrivacyMigration.includes('not private.can_view_creator_activity(v_post.creator_id, v_reporter)'),
+  'BR-05 report migration must authorize reports through Creator Activity privacy.',
 );
 expect(
-  migration.includes('p.published_at is not null'),
-  'BR-05 migration must require a published Activity target.',
+  reportPrivacyMigration.includes('p.published_at is not null'),
+  'BR-05 report migration must require a published Activity target.',
 );
 expect(
-  migration.includes("m.moderation_status = 'approved'"),
-  'BR-05 migration must require approved image media for image reports.',
+  reportPrivacyMigration.includes("m.moderation_status = 'approved'"),
+  'BR-05 report migration must require approved image media for image reports.',
+);
+expect(
+  anonymousFeedMigration.includes('v_owner := coalesce(v_viewer = v_creator, false);'),
+  'BR-05 anonymous feed migration must normalize a null viewer into a non-owner boolean.',
+);
+expect(
+  anonymousFeedMigration.includes('v_allowed := private.can_view_creator_activity(v_creator,v_viewer);'),
+  'BR-05 anonymous feed migration must preserve the Creator privacy gate.',
 );
 
 expect(activityClient.includes('getCreatorActivityAccess'), 'The shared client must expose Creator Activity access checks.');
@@ -102,7 +116,9 @@ expect(activityClient.includes('listCreatorActivityAlbum'), 'The shared client m
 expect(activityClient.includes('reportCreatorActivity'), 'The shared client must expose privacy-checked Activity reporting.');
 expect(socialClient.includes('blockUser') && socialClient.includes('unblockUser'), 'Shared safety controls must remain connected.');
 
-expect(!migration.includes('service_role'), 'BR-05 migration must not contain a service-role credential.');
+for (const migration of [reportPrivacyMigration, anonymousFeedMigration]) {
+  expect(!migration.includes('service_role'), 'BR-05 migrations must not contain a service-role credential.');
+}
 expect(!e2e.includes('service_role'), 'BR-05 must not use a service-role credential.');
 expect(!e2e.includes('MYFAN_E2E_BETA_PASSWORD'), 'BR-05 must not depend on the controlled Beta password.');
 
@@ -140,4 +156,4 @@ if (errors.length > 0) {
 }
 
 console.warn('BR-05 Creator Activity, privacy, and album E2E source validation passed.');
-console.warn('Coverage: moderation, public/friends/fans gates, media access, Activity album, Fan album, reporting, blocking, archive/delete, and rollback isolation.');
+console.warn('Coverage: moderation, anonymous/public/friends/fans gates, media access, Activity album, Fan album, reporting, blocking, archive/delete, and rollback isolation.');
