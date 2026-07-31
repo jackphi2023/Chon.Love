@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { getPublicSiteUrl } from '../src/lib/environment';
 
+export const dynamic = 'force-static';
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = getPublicSiteUrl();
   if (!siteUrl) return [];
