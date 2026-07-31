@@ -54,6 +54,7 @@ export * from './activity';
 export * from './chat';
 export * from './discovery';
 export * from './gifts';
+export * from './homepage';
 export * from './profile-media';
 export * from './social-safety';
 export type { Database } from './database.types';
