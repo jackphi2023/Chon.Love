@@ -3,8 +3,16 @@ import { Platform } from 'react-native';
 import { getMobileSupabaseClient } from './supabase';
 import { resolveAuthenticatedRoute, type AuthenticatedRoute } from './auth-routing';
 
+export type AuthSignOutScope = 'local' | 'global' | 'others';
+
+export function getAuthCallbackUrl(next?: string): string {
+  return Linking.createURL('auth/callback', {
+    queryParams: next ? { next } : undefined,
+  });
+}
+
 export function getGoogleAuthRedirectUrl(): string {
-  return Linking.createURL('auth/callback');
+  return getAuthCallbackUrl();
 }
 
 export async function startGoogleAuthentication(): Promise<void> {
@@ -26,17 +34,57 @@ export async function startGoogleAuthentication(): Promise<void> {
   }
 }
 
-export async function completeGoogleAuthentication(code: string): Promise<void> {
+export async function signInWithEmailPassword(email: string, password: string): Promise<AuthenticatedRoute> {
+  const client = requireAuthClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !password) throw new Error('email_and_password_required');
+  const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
+  if (error) throw error;
+  return getAuthenticatedDestination();
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const client = requireAuthClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('email_required');
+  const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, {
+    redirectTo: getAuthCallbackUrl('/auth/reset-password'),
+  });
+  if (error) throw error;
+}
+
+export async function updateCurrentPassword(newPassword: string): Promise<void> {
+  const client = requireAuthClient();
+  if (newPassword.length < 10) throw new Error('password_too_short');
+  const { error } = await client.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+  const { error: signOutError } = await client.auth.signOut({ scope: 'global' });
+  if (signOutError) throw signOutError;
+}
+
+export async function signOutWithScope(scope: AuthSignOutScope): Promise<void> {
+  const client = requireAuthClient();
+  const { error } = await client.auth.signOut({ scope });
+  if (error) throw error;
+}
+
+export async function completeAuthentication(code: string): Promise<void> {
   const client = requireAuthClient();
   const { error } = await client.auth.exchangeCodeForSession(code);
   if (error) throw error;
 }
+
+export const completeGoogleAuthentication = completeAuthentication;
 
 export async function getAuthenticatedDestination(): Promise<AuthenticatedRoute> {
   const client = requireAuthClient();
   const { data, error } = await client.rpc('get_my_onboarding_status');
   if (error) throw error;
   return resolveAuthenticatedRoute(data?.[0] ?? null);
+}
+
+export function getSafeAuthCallbackDestination(next: string | undefined): '/auth/reset-password' | null {
+  return next === '/auth/reset-password' ? next : null;
 }
 
 function requireAuthClient() {
