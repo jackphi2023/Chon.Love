@@ -52,6 +52,7 @@ jobs:
           test -f supabase/migrations/20260731103426_temporary_seed_request_helper.sql
           test -f supabase/migrations/20260731103608_cleanup_one_time_beta_seed_transport.sql
           test -f supabase/migrations/20260731114823_br_01_explicit_rpc_only_deny_policies.sql
+          test -f supabase/migrations/20260731125443_br_01_function_lint_reconciliation.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
@@ -72,10 +73,39 @@ jobs:
         run: bash supabase/tests/10_withdrawal_concurrency.sh
 
       - name: Lint schemas
-        run: supabase db lint --local --schema public --schema private --level warning
+        run: |
+          supabase db lint --local --schema public --schema private --level warning | tee /tmp/database-lint.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = Path('/tmp/database-lint.json').read_text().strip()
+          findings = json.loads(raw) if raw else []
+          errors = [
+              (item.get('function'), issue.get('message'))
+              for item in findings
+              for issue in item.get('issues', [])
+              if issue.get('level') == 'error'
+          ]
+          if errors:
+              for function, message in errors:
+                  print(f'ERROR {function}: {message}')
+              raise SystemExit(1)
+          print(f'Schema lint: zero errors; {len(findings)} warning entries retained for cleanup.')
+          PY
 
       - name: Generate public database contract
-        run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
+        run: |
+          for attempt in 1 2 3; do
+            if supabase gen types typescript --local --schema public > /tmp/database.types.attempt.ts; then
+              mv /tmp/database.types.attempt.ts /tmp/database.types.ts
+              exit 0
+            fi
+            echo "Type generation attempt ${attempt} failed; retrying after registry backoff." >&2
+            rm -f /tmp/database.types.attempt.ts
+            sleep $((attempt * 10))
+          done
+          exit 1
 
       - name: Upload generated database contract
         uses: actions/upload-artifact@v4
