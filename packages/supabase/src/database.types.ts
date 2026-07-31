@@ -1307,6 +1307,24 @@ export type Database = {
           starts_at: string
         }[]
       }
+      admin_decide_vietqr_reconciliation: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_order_id: string
+          p_reason_code: string
+          p_request_id: string
+          p_transaction_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          balance_after_units: number
+          matched_order_id: string
+          purchase_id: string
+          status: string
+          transaction_id: string
+        }[]
+      }
       admin_decide_withdrawal: {
         Args: {
           p_action: string
@@ -1322,6 +1340,54 @@ export type Database = {
           paid_balance_units: number
           status: string
           withdrawal_id: string
+        }[]
+      }
+      admin_import_vietqr_bank_transaction: {
+        Args: {
+          p_actor_user_id: string
+          p_amount_vnd: number
+          p_occurred_at: string
+          p_payload_sha256: string
+          p_provider: string
+          p_provider_transaction_ref: string
+          p_request_id: string
+          p_transfer_content: string
+        }
+        Returns: {
+          already_imported: boolean
+          amount_vnd: number
+          expected_amount_vnd: number
+          matched_order_id: string
+          order_code: string
+          status: string
+          transaction_id: string
+        }[]
+      }
+      admin_list_vietqr_reconciliation_queue: {
+        Args: {
+          p_actor_user_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: {
+          amount_vnd: number
+          created_at: string
+          display_name: string
+          expected_amount_vnd: number
+          matched_order_id: string
+          occurred_at: string
+          order_code: string
+          order_status: string
+          provider: string
+          provider_transaction_ref: string
+          review_reason_code: string
+          reviewed_at: string
+          status: string
+          total_count: number
+          transaction_id: string
+          transfer_content_raw: string
+          user_id: string
         }[]
       }
       admin_process_account_deletion: {
