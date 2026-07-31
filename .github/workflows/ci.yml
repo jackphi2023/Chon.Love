@@ -56,6 +56,9 @@ jobs:
       - name: Validate BR-05 Creator Activity E2E source
         run: pnpm validate:creator-e2e
 
+      - name: Validate BR-06 mobile web browser E2E source
+        run: pnpm validate:browser-e2e
+
       - name: Lint
         run: pnpm lint
 
