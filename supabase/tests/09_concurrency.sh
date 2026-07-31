@@ -8,8 +8,22 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token) values
 ('00000000-0000-0000-0000-000000000000','4a000000-0000-0000-0000-000000000001','authenticated','authenticated','concurrency-sender@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
 ('00000000-0000-0000-0000-000000000000','4a000000-0000-0000-0000-000000000002','authenticated','authenticated','concurrency-creator@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
-update private.user_identity set date_of_birth=(current_date-interval '25 years')::date,age_verified_at=now(),age_verification_method='self_declared',terms_version='2026-07',terms_accepted_at=now(),community_rules_version='2026-07',community_rules_accepted_at=now(),account_status='active' where user_id::text like '4a000000-0000-0000-0000-00000000000%';
-update public.profiles set profile_status='active',username='concurrency_'||right(id::text,1),display_name='Concurrency test' where id::text like '4a000000-0000-0000-0000-00000000000%';
+update private.user_identity set
+  date_of_birth=(current_date-interval '25 years')::date,
+  age_verified_at=now(),
+  age_verification_method='self_declared',
+  terms_version=(select value_json#>>'{}' from private.app_config where key='terms_version_current'),
+  terms_accepted_at=now(),
+  community_rules_version=(select value_json#>>'{}' from private.app_config where key='community_rules_version_current'),
+  community_rules_accepted_at=now(),
+  account_status='active'
+where user_id::text like '4a000000-0000-0000-0000-00000000000%';
+update public.profiles set
+  profile_status='active',
+  username='concurrency_'||right(id::text,1),
+  display_name='Concurrency test',
+  province_id=1
+where id::text like '4a000000-0000-0000-0000-00000000000%';
 insert into public.creator_profiles(user_id,creator_status,fan_threshold_units,approved_at) values('4a000000-0000-0000-0000-000000000002','approved',1000,now());
 select * from public.record_verified_play_purchase('4a000000-0000-0000-0000-000000000001','myfan_hearts_005',repeat('b',64),'GPA.CONCURRENCY',encode(extensions.digest('4a000000-0000-0000-0000-000000000001','sha256'),'hex'),'VN',true,'4a100000-0000-0000-0000-000000000001',null);
 SQL
