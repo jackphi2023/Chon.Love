@@ -63,8 +63,18 @@ expect(
   'Browser CI must never write the service-role key to GITHUB_ENV.',
 );
 expect(
-  browserCi.includes("email like 'br06.%@example.test'") && browserCi.includes('fixture count mismatch'),
-  'Browser CI must verify exactly four isolated fixture users.',
+  browserCi.includes("email like 'br06.%@example.test') <> 5") &&
+    browserCi.includes('BR-06 local fixture account count mismatch'),
+  'Browser CI must verify exactly five isolated local fixture accounts.',
+);
+expect(
+  browserCi.includes('BR-06 browser actor count mismatch') &&
+    ['creator', 'viewer', 'fan', 'outsider'].every((actor) => browserCi.includes(`br06.${actor}@example.test`)),
+  'Browser CI must separately verify the four browser actors.',
+);
+expect(
+  browserCi.includes('br06.moderator@example.test') && browserCi.includes('local moderator fixture missing'),
+  'Browser CI must verify the non-browser local moderator fixture.',
 );
 
 expect(
@@ -78,6 +88,12 @@ expect(
 expect(
   fixtureSetup.includes('BR-06 local browser E2E fixture') && fixtureSetup.includes('BR06 approved Activity image'),
   'BR-06 fixture setup must prepare profile and Creator Activity browser data.',
+);
+expect(
+  fixtureSetup.includes('br06.moderator@example.test') &&
+    fixtureSetup.includes('private.user_roles') &&
+    fixtureSetup.includes('approved_by'),
+  'BR-06 fixture setup must use a valid local moderator as the media approval actor.',
 );
 expect(
   !fixtureSetup.includes('MYFAN_E2E_BETA_PASSWORD'),
@@ -97,6 +113,7 @@ expect(playwrightConfig.includes('expo start --web --port 8081'), 'BR-06 must st
 for (const actor of ['creator', 'viewer', 'fan', 'outsider']) {
   expect(browserE2e.includes(`br06.${actor}@example.test`), `BR-06 must include the ${actor} browser actor.`);
 }
+expect(!browserE2e.includes('br06.moderator@example.test'), 'The local moderator must not receive a browser context.');
 
 for (const flow of [
   'Đăng nhập bằng email',
@@ -153,4 +170,4 @@ if (errors.length > 0) {
 }
 
 console.warn('BR-06 mobile web multi-account browser E2E source validation passed.');
-console.warn('Coverage: local-only Auth, discovery/profile navigation, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
+console.warn('Coverage: five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
