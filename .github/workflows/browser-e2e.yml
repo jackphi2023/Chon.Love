@@ -116,8 +116,26 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           do $$
           begin
-            if (select count(*) from auth.users where email like 'br06.%@example.test') <> 4 then
-              raise exception 'BR-06 fixture count mismatch';
+            if (select count(*) from auth.users where email like 'br06.%@example.test') <> 5 then
+              raise exception 'BR-06 local fixture account count mismatch';
+            end if;
+            if (select count(*) from auth.users where email in (
+              'br06.creator@example.test',
+              'br06.viewer@example.test',
+              'br06.fan@example.test',
+              'br06.outsider@example.test'
+            )) <> 4 then
+              raise exception 'BR-06 browser actor count mismatch';
+            end if;
+            if not exists(
+              select 1
+              from private.user_roles ur
+              join auth.users u on u.id = ur.user_id
+              where u.email = 'br06.moderator@example.test'
+                and ur.role = 'moderator'
+                and ur.revoked_at is null
+            ) then
+              raise exception 'BR-06 local moderator fixture missing';
             end if;
             if exists(select 1 from auth.users where email ~ '^myfan([1-9]|1[0-6])@gmail[.]com$') then
               raise exception 'controlled Beta accounts must not exist in the local BR-06 database';
