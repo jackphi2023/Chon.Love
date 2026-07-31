@@ -11,6 +11,9 @@ const browserCi = readText('.github/workflows/browser-e2e.yml');
 const fixtureSetup = readText('scripts/br06/setup-local-fixtures.mjs');
 const playwrightConfig = readText('playwright.br06.config.mjs');
 const browserE2e = readText('tests/br-06/mobile-web-multi-account.spec.mjs');
+const sharedSupabaseClient = readText('packages/supabase/src/index.ts');
+const mobileSupabaseClient = readText('apps/mobile/src/lib/supabase.ts');
+const environmentUnitTest = readText('packages/supabase/src/index.test.ts');
 
 const errors = [];
 const expect = (condition, message) => {
@@ -104,6 +107,34 @@ expect(
   'BR-06 fixture manifest must remain credential-free.',
 );
 
+expect(
+  sharedSupabaseClient.includes('allowInsecureLocalhost?: boolean'),
+  'The shared public client must require an explicit option for local HTTP.',
+);
+expect(
+  sharedSupabaseClient.includes("['localhost', '127.0.0.1'].includes(url.hostname)"),
+  'The shared public client must restrict local HTTP to localhost and 127.0.0.1.',
+);
+expect(
+  sharedSupabaseClient.includes("url.protocol === 'http:'") && sharedSupabaseClient.includes("environment.url.startsWith('https://')"),
+  'The shared public client must preserve HTTPS as the default transport rule.',
+);
+expect(
+  mobileSupabaseClient.includes("allowInsecureLocalhost: environment.appEnvironment === 'development'"),
+  'The mobile client must enable local HTTP only for the development environment.',
+);
+for (const unitCase of [
+  'accepts HTTPS by default',
+  'rejects localhost HTTP unless explicitly allowed',
+  'http://localhost:54321',
+  'http://127.0.0.1:54321',
+  'rejects remote HTTP even when local development HTTP is enabled',
+  'http://192.168.1.20:54321',
+  'rejects unsafe browser credential',
+]) {
+  expect(environmentUnitTest.includes(unitCase), `BR-06 environment unit tests must cover: ${unitCase}.`);
+}
+
 expect(playwrightConfig.includes("testDir: './tests/br-06'"), 'Playwright must be scoped to the BR-06 test directory.');
 expect(playwrightConfig.includes('width: 390') === false, 'Viewport belongs in isolated browser contexts, not global config.');
 expect(playwrightConfig.includes('workers: 1'), 'BR-06 must run deterministically with one Playwright worker.');
@@ -170,4 +201,4 @@ if (errors.length > 0) {
 }
 
 console.warn('BR-06 mobile web multi-account browser E2E source validation passed.');
-console.warn('Coverage: five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
+console.warn('Coverage: local-only transport opt-in, five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
