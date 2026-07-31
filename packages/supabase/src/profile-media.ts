@@ -43,6 +43,11 @@ export type PreparedImageUpload = {
 export type AlbumMediaItem = Database['public']['Functions']['list_profile_album_media']['Returns'][number];
 export type MyMediaItem = Database['public']['Functions']['list_my_media']['Returns'][number];
 
+type ModeratedMediaState = {
+  moderation_status: MyMediaItem['moderation_status'];
+  deleted_at: string | null;
+};
+
 function assertData<T>(data: T | null, error: { message: string } | null): T {
   if (error) throw new Error(error.message);
   if (data === null) throw new Error('missing_response_data');
@@ -95,7 +100,7 @@ export async function updateMyProfile(
   const { data, error } = await client.rpc('update_my_profile', {
     p_username: input.username,
     p_display_name: input.displayName,
-    p_bio: input.bio || null,
+    p_bio: input.bio || undefined,
     p_gender: input.gender,
     p_province_id: input.provinceId,
     p_interests: input.interests,
@@ -119,7 +124,7 @@ export async function getMediaById(
 }
 
 export async function listMyMedia(client: Client): Promise<MyMediaItem[]> {
-  const { data, error } = await client.rpc('list_my_media', { p_limit: 100, p_cursor: null });
+  const { data, error } = await client.rpc('list_my_media', { p_limit: 100 });
   if (error) throw error;
   return data ?? [];
 }
@@ -131,7 +136,7 @@ export async function listProfileAlbumMedia(
 ): Promise<AlbumMediaItem[]> {
   const { data, error } = await client.rpc('list_profile_album_media', {
     p_owner_id: ownerId,
-    p_album_type: albumType ?? null,
+    p_album_type: albumType ?? undefined,
   });
   if (error) throw error;
   return data ?? [];
@@ -159,7 +164,7 @@ export async function uploadProfileImage(
     p_file_size_bytes: input.bytes.byteLength,
     p_width: input.width,
     p_height: input.height,
-    p_sha256: input.sha256 ?? null,
+    p_sha256: input.sha256 ?? undefined,
     p_extension: input.extension,
   });
   if (prepareError) throw prepareError;
@@ -181,14 +186,14 @@ export async function uploadProfileImage(
   return assertData(data, finalizeError);
 }
 
-export function isMediaVisibleToOwner(media: Pick<MyMediaItem, 'moderation_status' | 'deleted_at'>): boolean {
+export function isMediaVisibleToOwner(media: ModeratedMediaState): boolean {
   return (
     media.deleted_at === null &&
     (media.moderation_status === 'pending_review' || media.moderation_status === 'approved')
   );
 }
 
-export function isMediaHiddenByModeration(media: Pick<MyMediaItem, 'moderation_status' | 'deleted_at'>): boolean {
+export function isMediaHiddenByModeration(media: ModeratedMediaState): boolean {
   return (
     media.deleted_at !== null ||
     media.moderation_status === 'rejected' ||
