@@ -19,6 +19,7 @@ export function getMobileSupabaseClient(): MobileSupabaseClient | null {
       flowType: 'pkce',
       detectSessionInUrl: false,
       persistSession: Platform.OS === 'web',
+      allowInsecureLocalhost: environment.appEnvironment === 'development',
     },
   );
   return cachedClient;
