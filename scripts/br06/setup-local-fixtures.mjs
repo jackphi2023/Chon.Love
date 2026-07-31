@@ -22,6 +22,7 @@ const actors = [
   { key: 'viewer', email: 'br06.viewer@example.test', username: 'br06_viewer', displayName: 'BR06 Viewer' },
   { key: 'fan', email: 'br06.fan@example.test', username: 'br06_fan', displayName: 'BR06 Fan' },
   { key: 'outsider', email: 'br06.outsider@example.test', username: 'br06_outsider', displayName: 'BR06 Outsider' },
+  { key: 'moderator', email: 'br06.moderator@example.test', username: 'br06_moderator', displayName: 'BR06 Moderator' },
 ];
 
 async function request(path, options = {}) {
@@ -63,7 +64,8 @@ for (const actor of actors) created.push(await createActor(actor));
 const actorByKey = Object.fromEntries(created.map((actor) => [actor.key, actor]));
 const creator = actorByKey.creator;
 const fan = actorByKey.fan;
-if (!creator || !fan) throw new Error('BR-06 creator/fan fixtures were not created.');
+const moderator = actorByKey.moderator;
+if (!creator || !fan || !moderator) throw new Error('BR-06 Creator, Fan, or moderator fixture was not created.');
 
 const mediaId = randomUUID();
 const postId = randomUUID();
@@ -119,6 +121,9 @@ set
   interests = array['Creator', 'Community']::text[]
 where id in (${actorIds});
 
+insert into private.user_roles(user_id, role, granted_by)
+values (${uuidLiteral(moderator.id)}, 'moderator', ${uuidLiteral(moderator.id)});
+
 update public.profiles
 set is_creator = true
 where id = ${uuidLiteral(creator.id)};
@@ -161,7 +166,8 @@ insert into public.media_assets(
   visibility,
   moderation_status,
   uploaded_at,
-  approved_at
+  approved_at,
+  approved_by
 ) values (
   ${uuidLiteral(mediaId)},
   ${uuidLiteral(creator.id)},
@@ -176,7 +182,8 @@ insert into public.media_assets(
   'private',
   'approved',
   now(),
-  now()
+  now(),
+  ${uuidLiteral(moderator.id)}
 );
 
 insert into public.creator_posts(
@@ -241,5 +248,5 @@ await writeFile('/tmp/br06-fixture-manifest.json', JSON.stringify({
   postId,
 }, null, 2), 'utf8');
 
-console.warn(`BR-06 local fixtures prepared for ${created.length} isolated actors.`);
+console.warn(`BR-06 local fixtures prepared for ${created.length} isolated accounts and four browser actors.`);
 console.warn(`Fixture SQL written to ${outputSql}.`);
