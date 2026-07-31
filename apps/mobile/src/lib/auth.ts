@@ -8,9 +8,9 @@ export type AuthSignOutScope = 'local' | 'global' | 'others';
 const CONTROLLED_BETA_EMAIL = /^myfan(?:[1-9]|1[0-6])@gmail\.com$/iu;
 
 export function getAuthCallbackUrl(next?: string): string {
-  return Linking.createURL('auth/callback', {
-    queryParams: next ? { next } : undefined,
-  });
+  return next
+    ? Linking.createURL('auth/callback', { queryParams: { next } })
+    : Linking.createURL('auth/callback');
 }
 
 export function getGoogleAuthRedirectUrl(): string {
