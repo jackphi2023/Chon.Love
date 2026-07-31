@@ -1,158 +1,180 @@
 # MyFan Phase C Completion Report
 
-**Updated:** 2026-07-30  
-**Supplemental session:** 23 — Creator Activity and gift-locked single image  
+**Updated:** 2026-07-31  
+**Supplemental session:** 23 — Creator Activity and whole-feed privacy  
 **Branch:** `feature/phase-c-session-23-creator-activity`
 
 ## Completion status
 
-The supplemental Creator Activity implementation is complete for automated code, database-contract and build verification. Production acceptance remains conditional on the beta/device checks listed below because the development database contains no user, post, media or gift fixtures.
+The Creator Activity implementation is complete for automated code, database-contract and build verification. Production acceptance remains conditional on the multi-account, Google Play and physical-device checks listed below because the development database contains no profiles, posts, friendships, Fan memberships or gift fixtures.
 
-## Product scope delivered
+## Product scope
 
-V1 supports exactly three post shapes:
+Supported posts:
 
 1. required text only;
 2. required text plus exactly one image;
 3. required text plus exactly one valid HTTPS video link.
 
-Multiple images are not supported. Image and video cannot be combined. The limitation is enforced by UI validation, RPC validation and database constraints.
+Multiple images are not supported. Image and video cannot be combined.
 
-The Activity feed uses the MyFan design system while following the supplied reference only at the structural level: Creator identity, verification mark, timestamp, text, one primary media/link surface and lightweight footer actions.
+## Creator-level privacy
+
+One Creator setting controls the complete approved Activity surface:
+
+| Setting | Access |
+|---|---|
+| Công khai | anonymous visitors and signed-in adults |
+| Bạn bè | accepted friends and active Fans |
+| Chỉ Fan | active Fans only |
+
+The Creator always sees their own moderation states. Blocks override all relationship levels.
+
+The authorization applies to:
+
+- text,
+- images,
+- video and external-link data,
+- Activity-derived album rows,
+- signed media delivery.
+
+The previous per-post image gift lock is retired. Its RPC is no longer executable by app clients; historical entitlement tables remain only for migration history.
+
+## Fan gate
+
+Fan-only mode displays the shared 20-item gift catalog and current Fan progress. Gift submission reuses the existing atomic `send_gift` engine, funded heart lots, immutable ledger, 70% Creator reward and cumulative Fan threshold.
+
+The server activates Fan membership only when the configured threshold is reached. The client then re-fetches Activity access; it cannot create membership or reveal content locally.
+
+`send_gift=false` and `google_play_billing=false` remain active in development, so the UI does not create fake transactions, balances or Fan status.
+
+## Activity-derived album
+
+Approved images are read directly from approved Activity image posts. There is no separate upload or album permission model.
+
+Archiving or deleting a post removes its image from both the feed and the album query. The same whole-feed privacy predicate protects both surfaces.
+
+## Profile presentation
+
+Activity privacy does not hide the authenticated profile presentation fields:
+
+- name and username;
+- server-calculated age;
+- active status;
+- introduction and interests;
+- province/city;
+- approximate distance;
+- online/offline and last-active state.
+
+DOB and exact coordinates remain private. Distance is omitted unless both users have a matching non-null province and fresh consented locations.
 
 ## Database and migrations
 
-Applied forward migrations:
+Activity migrations applied to development:
 
 - `20260730093317_phase_c_23_creator_activity_schema.sql`
 - `20260730093519_phase_c_23_creator_activity_api_security.sql`
 - `20260730093724_phase_c_23_creator_activity_gift_moderation.sql`
 - `20260730093810_phase_c_23_creator_activity_rpc_acl_hardening.sql`
 - `20260730102833_phase_c_23_creator_activity_fk_indexes.sql`
+- `20260731070324_phase_c_23_creator_activity_privacy_tiers.sql`
+- `20260731073536_phase_c_23_profile_distance_province_hardening.sql`
 
-Created or extended:
+New privacy contract:
 
-- `public.creator_posts`
-- `public.creator_post_media`
-- `private.creator_post_unlocks`
-- `private.creator_post_unlock_events`
-- `public.gift_transactions.unlock_target_type`
-- `public.gift_transactions.unlock_target_id`
-- `public.reports.target_creator_post_id`
-- private Storage bucket `activity-previews`
+- enum `public.creator_activity_visibility`;
+- `creator_profiles.activity_visibility`;
+- `private.can_view_creator_activity`;
+- `get_creator_activity_access`;
+- `set_my_creator_activity_visibility`;
+- `list_creator_activity_album`.
 
-All new tables have RLS enabled. `anon` and `authenticated` have zero direct write grants on post/media/entitlement tables.
+All Activity tables keep RLS enabled. App roles have zero direct writes to Activity and historical entitlement tables.
 
-## RPC and Edge Function
+## Media and Edge Function
 
-Implemented RPCs:
+Activity originals remain in private Storage. The active JWT-protected Edge Function `creator-activity-preview` creates a separate 64×64 derived preview for moderation and operational fallback.
 
-- `create_creator_activity_post`
-- `prepare_creator_activity_preview`
-- `list_creator_activity`
-- `get_creator_post_media_access`
-- `archive_creator_activity_post`
-- `delete_creator_activity_post`
-- `send_gift_and_unlock_creator_post`
-- `report_creator_activity`
-- `list_creator_activity_moderation_queue`
-- `moderate_creator_activity_post`
+A viewer denied by the whole-feed predicate receives neither preview nor original path. Signed URLs expire after 30 seconds and Storage policy independently rechecks access.
 
-Deployed Edge Function:
+## External links
 
-- `creator-activity-preview`
-- JWT verification enabled
-- status ACTIVE
-- generates a separate 64×64 blurred preview using ImageMagick WASM
-- does not return the original image or signed original URL
+Allowed HTTPS providers:
 
-## Gift-locked image security
+- YouTube watch URLs;
+- youtu.be;
+- YouTube shorts/embed;
+- OF.TV content paths.
 
-- Original image remains in private Storage.
-- Locked feed output contains only the separate derived preview path.
-- Original Storage authorization is rechecked server-side.
-- Original signed URLs expire after 30 seconds.
-- Authorization accounts for owner, moderator role, post/media/Creator approval, active-adult state, two-way blocks and active viewer/post entitlement.
-- `send_gift_and_unlock_creator_post` derives Creator, gift and price server-side and reuses the existing atomic heart ledger and 70% Creator reward engine.
-- One active entitlement exists per viewer/post.
-- Idempotency and advisory locking prevent double charge.
-- Full reversal revokes access as `refunded`; partial reversal revokes access as `fraud_hold`.
+YouTube is canonicalized to a video ID. OF.TV remains an external-link card and is not embedded in a WebView. The server does not fetch arbitrary hosts or follow caller-controlled redirects.
 
-The frontend feature flag `send_gift` remains false until Google Play Billing is enabled. The UI does not simulate balance, payment or unlock success.
+## Mobile and Expo Web
 
-## External-link protection
+Routes:
 
-Allowed providers:
-
-- HTTPS YouTube watch URLs;
-- HTTPS youtu.be URLs;
-- HTTPS YouTube shorts/embed URLs;
-- HTTPS OF.TV content paths.
-
-YouTube is normalized to a canonical video ID. OF.TV is an external-link card with a warning interstitial and is not embedded in a WebView. V1 does not fetch arbitrary metadata or follow user-supplied redirects, avoiding a generic SSRF fetch surface.
-
-## Mobile and authenticated Expo Web
-
-Delivered routes:
-
-- `/(tabs)/activity`
-- `/activity/create`
-- `/activity/[username]`
+- `/(tabs)/activity` — privacy setting and own feed;
+- `/activity/create` — composer;
+- `/activity/[username]` — privacy-aware feed;
+- `/profile/[username]` — default profile fields plus gated Activity and derived album.
 
 Delivered behavior:
 
-- Creator-only composer;
-- text/one-image/video modes;
-- one-image optimization and private upload;
-- gift selection from the shared 20-item catalog;
-- moderation status for the owner;
-- approved public feed for viewers;
-- locked-image overlay;
-- share/report/archive/delete actions;
-- keyset pagination and short-lived signed URLs.
+- three privacy radio options;
+- whole-feed gate before content query;
+- friend CTA;
+- Fan gift picker and threshold progress;
+- derived album;
+- report/share/archive/delete;
+- keyset feed pagination;
+- short-lived signed URLs.
 
 ## Public web
 
-Delivered route:
+Route:
 
 - `/hoat-dong?u=username`
 
-The static-export-compatible page is noindex, displays approved text/link content, displays public originals or locked blurred previews according to server output, and never permits an anonymous gift transaction.
+The page is `noindex` and compatible with static export.
+
+- Public mode returns approved feed and album.
+- Friend and Fan modes return a login gate only.
+- Denied anonymous viewers receive no content or media paths.
+- Anonymous gift transactions are not permitted.
 
 ## Admin moderation
 
-Delivered routes:
+Route:
 
-- `/` Admin login
 - `/activity-moderation`
 
-The Admin client uses only the public Supabase key. Moderator/super-admin role checks occur in protected RPCs. The queue includes text, external link, preview, protected original, gift requirement, media state, report count and active unlock count. Decisions write private Admin audit logs.
+Admin reviews text, external link, preview, protected original, media state and reports. Per-post gift requirement and unlock count were removed from the moderation presentation because privacy now belongs to the Creator profile.
 
 ## Feature flags
 
 ```text
 creator_activity = true
 creator_activity_links = true
-creator_activity_gift_lock = true
+creator_activity_privacy_tiers = true
+creator_activity_gift_lock = false
 creator_activity_public_web = true
 send_gift = false
 google_play_billing = false
 ```
 
-## Automated tests and CI
+## Automated verification
 
-Shared unit tests cover:
+Unit tests cover:
 
-- the three allowed post shapes;
+- three supported post shapes;
 - mandatory text;
 - image/video mutual exclusion;
-- gift-lock requirement validation;
-- YouTube URL variants;
-- OF.TV canonicalization;
-- rejection of HTTP, arbitrary hosts, localhost, loopback and look-alike domains;
-- official YouTube thumbnail generation.
+- all privacy labels;
+- Fan eligibility within friend-only mode;
+- whole-feed and album scope;
+- video URL allowlist and canonicalization;
+- unsafe URL rejection.
 
-GitHub Actions code pipeline passed:
+GitHub Actions code pipeline #449 passed:
 
 - frozen lockfile install;
 - workspace validation;
@@ -164,47 +186,37 @@ GitHub Actions code pipeline passed:
 - public web static export;
 - Expo Web export.
 
-Supabase verification passed for:
+Supabase verification confirmed:
 
-- five migration-ledger entries;
-- RLS on all four new tables;
-- zero client table writes;
+- privacy enum and Creator columns;
+- migration ledger entries;
 - least-privilege RPC ACLs;
-- exactly one image constraint;
-- unique post/viewer entitlement;
-- private preview bucket and Storage policies;
-- foreign-key covering indexes.
+- legacy per-post unlock RPC unavailable to app roles;
+- public/friend/Fan predicate used by feed, album and media access;
+- development fixture counts remain zero.
 
-## Advisor results
-
-Security Advisor reports informational no-policy notices for RPC-only RLS tables and project-wide warnings for intended client-callable SECURITY DEFINER gateways. The Activity gateways use fixed empty `search_path`, explicit identity/role checks and least-privilege grants. Only the public feed and media-access functions are callable by `anon`.
-
-Performance Advisor reports no remaining unindexed foreign-key notices after the final index migration. Remaining notices are unused-index information caused by the empty development database.
-
-## Deploy preview
+## Deploy state
 
 - Supabase migrations: applied to development.
-- Edge Function: deployed and ACTIVE.
-- Netlify/public preview: not deployed.
+- Edge Function: ACTIVE.
+- Netlify preview: not deployed.
 - APK/AAB: not generated.
-- PR: Draft, not merged.
+- PR: Draft and unmerged.
 
 ## Remaining beta QA
 
-The development project currently has zero profiles, Creator Activity posts, attached Activity media, unlock entitlements and gift transactions. The following remain unverified in real end-to-end conditions:
-
-- Creator creation and approval fixture;
-- actual Android/Expo Web image upload;
-- actual Edge preview transformation of uploaded media;
-- moderator approval of a real post;
-- two-account viewing without friendship;
-- funded gift unlock after Google Play verification;
-- full/partial reversal entitlement revocation;
+- public/friend/Fan access across multiple accounts;
+- friendship acceptance and immediate access refresh;
+- Google Play-funded gifting and Fan threshold progression;
+- refund/reversal effects on Fan membership;
 - two-way block behavior;
-- signed-URL expiry timing;
-- physical Android layout at 360–430 px;
-- Safari/Chrome mobile web;
+- real image upload and Edge transformation;
+- derived album ordering and archive removal;
+- same-province, missing-province and outside-province distance;
+- Android 360–430 px and mobile browsers;
+- moderator workflow;
+- signed URL expiry;
 - screen reader and dynamic font;
-- Netlify static preview.
+- Netlify preview.
 
-The supplemental session must not be treated as production-ready until these fixture/device checks pass.
+This supplemental session must not be treated as production-ready until these fixture and device checks pass.
