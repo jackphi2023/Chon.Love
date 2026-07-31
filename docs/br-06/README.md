@@ -11,6 +11,8 @@ The Playwright lifecycle runs four isolated local actors in separate 390×844 Ch
 - active Fan
 - unrelated outsider
 
+A fifth local-only moderator account does not open a browser. It exists solely to satisfy the same auditable `approved_by` requirement used when approving media in the product database.
+
 The browser exercises:
 
 - email/password login and protected-route routing
@@ -30,11 +32,12 @@ BR-06 is deliberately local-only:
 
 1. GitHub Actions starts Supabase locally.
 2. The database is reset from all repository migrations.
-3. A server-side fixture script creates four temporary Auth users and one tiny image in local Storage.
-4. SQL completes adult identity, profiles, Creator approval, Activity content, and Fan membership.
-5. Expo Web receives only the local API URL and local anonymous key.
-6. Playwright runs the browser lifecycle.
-7. The complete local Supabase stack is destroyed at the end of the job.
+3. A server-side fixture script creates five temporary Auth accounts and one tiny image in local Storage.
+4. Four accounts are browser actors; the fifth is a non-browser moderator approval actor.
+5. SQL completes adult identity, profiles, Creator approval, audited media approval, Activity content, and Fan membership.
+6. Expo Web receives only the local API URL and local anonymous key.
+7. Playwright runs the browser lifecycle.
+8. The complete local Supabase stack is destroyed at the end of the job.
 
 The fixture script rejects any Supabase hostname other than `localhost` or `127.0.0.1`. The service-role key is used only by the Node fixture step and is never written to `GITHUB_ENV`, an Expo public variable, browser storage, Playwright source, or artifacts.
 
