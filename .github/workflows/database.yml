@@ -74,10 +74,19 @@ jobs:
       - name: Lint schemas
         run: supabase db lint --local --schema public --schema private --level warning
 
+      - name: Generate public database contract
+        run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
+
+      - name: Upload generated database contract
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-01-database-types
+          path: /tmp/database.types.ts
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Verify generated public contract
-        run: |
-          supabase gen types typescript --local --schema public > /tmp/database.types.ts
-          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
+        run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
 
       - name: Verify application workspace
         run: |
