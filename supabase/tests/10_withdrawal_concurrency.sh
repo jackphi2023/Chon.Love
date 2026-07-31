@@ -9,8 +9,22 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 <<SQL
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token) values
 ('00000000-0000-0000-0000-000000000000','${SENDER}','authenticated','authenticated','withdrawal-concurrency-sender@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
 ('00000000-0000-0000-0000-000000000000','${CREATOR}','authenticated','authenticated','withdrawal-concurrency-creator@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
-update private.user_identity set date_of_birth=(current_date-interval '30 years')::date,age_verified_at=now(),age_verification_method='self_declared',terms_version='2026-07',terms_accepted_at=now(),community_rules_version='2026-07',community_rules_accepted_at=now(),account_status='active' where user_id in ('${SENDER}','${CREATOR}');
-update public.profiles set profile_status='active',username='wdc_'||right(id::text,1),display_name='Withdrawal concurrency' where id in ('${SENDER}','${CREATOR}');
+update private.user_identity set
+  date_of_birth=(current_date-interval '30 years')::date,
+  age_verified_at=now(),
+  age_verification_method='self_declared',
+  terms_version=(select value_json#>>'{}' from private.app_config where key='terms_version_current'),
+  terms_accepted_at=now(),
+  community_rules_version=(select value_json#>>'{}' from private.app_config where key='community_rules_version_current'),
+  community_rules_accepted_at=now(),
+  account_status='active'
+where user_id in ('${SENDER}','${CREATOR}');
+update public.profiles set
+  profile_status='active',
+  username='wdc_'||right(id::text,1),
+  display_name='Withdrawal concurrency',
+  province_id=1
+where id in ('${SENDER}','${CREATOR}');
 insert into public.creator_profiles(user_id,creator_status,fan_threshold_units,payout_eligible,approved_at) values('${CREATOR}','approved',1000,true,now());
 insert into private.kyc_profiles(user_id,legal_name_ciphertext,document_type,document_number_ciphertext,document_number_last4,country_code,status,submission_request_id,submitted_at,reviewed_at,reviewed_by,expires_at)
 values('${CREATOR}','v1.AAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB','national_id','v1.CCCCCCCCCCCCCCCC.DDDDDDDDDDDDDDDD','1234','VN','approved','4c100000-0000-0000-0000-000000000002',now(),now(),'${CREATOR}',now()+interval '5 years');
