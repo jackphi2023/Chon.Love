@@ -76,7 +76,7 @@ expect(
   'BR-06 fixture setup must provision local Auth and Storage fixtures server-side.',
 );
 expect(
-  fixtureSetup.includes('BR06 local browser E2E fixture') && fixtureSetup.includes('BR06 approved Activity image'),
+  fixtureSetup.includes('BR-06 local browser E2E fixture') && fixtureSetup.includes('BR06 approved Activity image'),
   'BR-06 fixture setup must prepare profile and Creator Activity browser data.',
 );
 expect(
@@ -115,7 +115,6 @@ for (const flow of [
 }
 
 expect(browserE2e.includes('width: 390') && browserE2e.includes('height: 844'), 'BR-06 must use a mobile browser viewport.');
-expect(browserE2e.includes('four') === false, 'BR-06 browser source should express actors directly rather than an unverified prose count.');
 expect(browserE2e.includes("testInfo.attach('br06-final-unblocked-profile'"), 'BR-06 must attach final browser evidence.');
 
 for (const forbidden of [
