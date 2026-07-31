@@ -88,6 +88,9 @@ jobs:
       - name: Verify generated public contract
         run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
 
+      - name: Stop local Supabase before workspace checks
+        run: supabase stop --no-backup
+
       - name: Verify application workspace
         run: |
           corepack enable
@@ -100,4 +103,4 @@ jobs:
 
       - name: Stop local Supabase
         if: always()
-        run: supabase stop --no-backup
+        run: supabase stop --no-backup || true
