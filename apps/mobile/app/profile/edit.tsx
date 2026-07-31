@@ -2,7 +2,9 @@ import {
   getMyProfile,
   listActiveProvinces,
   updateMyProfile,
+  VN_FEATURED_PROVINCE_COUNT,
   type GenderIdentity,
+  type ProvinceOption,
 } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { profileEditorSchema } from '@myfan/validation';
@@ -13,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -75,7 +78,7 @@ export default function EditProfilePage() {
   });
 
   const provincesQuery = useQuery({
-    queryKey: ['administrative-areas', 'VN', 'active'],
+    queryKey: ['administrative-areas', 'VN', 'canonical-34'],
     enabled: Boolean(client),
     staleTime: 10 * 60_000,
     queryFn: async () => {
@@ -122,12 +125,21 @@ export default function EditProfilePage() {
   });
 
   const selectedProvinceId = watch('provinceId');
-  const filteredProvinces = useMemo(() => {
-    const query = provinceSearch.trim().toLocaleLowerCase('vi');
-    return (provincesQuery.data ?? [])
-      .filter((province) => !query || province.name.toLocaleLowerCase('vi').includes(query))
-      .slice(0, 12);
-  }, [provinceSearch, provincesQuery.data]);
+  const normalizedProvinceSearch = provinceSearch.trim().toLocaleLowerCase('vi');
+  const filteredProvinces = useMemo(
+    () => (provincesQuery.data ?? []).filter(
+      (province) =>
+        !normalizedProvinceSearch ||
+        province.name.toLocaleLowerCase('vi').includes(normalizedProvinceSearch),
+    ),
+    [normalizedProvinceSearch, provincesQuery.data],
+  );
+  const featuredProvinces = normalizedProvinceSearch
+    ? filteredProvinces
+    : filteredProvinces.filter((province) => province.sortOrder <= VN_FEATURED_PROVINCE_COUNT);
+  const otherProvinces = normalizedProvinceSearch
+    ? []
+    : filteredProvinces.filter((province) => province.sortOrder > VN_FEATURED_PROVINCE_COUNT);
   const selectedProvince = (provincesQuery.data ?? []).find((item) => item.id === selectedProvinceId);
 
   if (profileQuery.isLoading) {
@@ -215,6 +227,7 @@ export default function EditProfilePage() {
       />
 
       <FieldLabel text="Tỉnh/thành" />
+      <Text style={styles.requiredHelper}>Bắt buộc chọn đúng một trong 34 địa phương.</Text>
       <Controller
         control={control}
         name="provinceId"
@@ -222,6 +235,7 @@ export default function EditProfilePage() {
           <View>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ expanded: provincePickerOpen }}
               onPress={() => setProvincePickerOpen((value) => !value)}
               style={styles.inputButton}
             >
@@ -233,33 +247,50 @@ export default function EditProfilePage() {
               <View style={styles.provincePanel}>
                 <TextInput
                   onChangeText={setProvinceSearch}
-                  placeholder="Tìm tỉnh/thành"
+                  placeholder="Tìm trong 34 tỉnh/thành"
                   style={styles.input}
                   value={provinceSearch}
                 />
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => {
-                    field.onChange(null);
-                    setProvincePickerOpen(false);
-                  }}
-                  style={styles.provinceItem}
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                  style={styles.provinceScroll}
                 >
-                  <Text style={styles.provinceText}>Không hiển thị tỉnh/thành</Text>
-                </Pressable>
-                {filteredProvinces.map((province) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    key={province.id}
-                    onPress={() => {
-                      field.onChange(province.id);
-                      setProvincePickerOpen(false);
-                    }}
-                    style={styles.provinceItem}
-                  >
-                    <Text style={styles.provinceText}>{province.name}</Text>
-                  </Pressable>
-                ))}
+                  {normalizedProvinceSearch ? (
+                    <ProvinceSection
+                      emptyText="Không tìm thấy địa phương phù hợp."
+                      onSelect={(province) => {
+                        field.onChange(province.id);
+                        setProvincePickerOpen(false);
+                        setProvinceSearch('');
+                      }}
+                      provinces={featuredProvinces}
+                      selectedProvinceId={field.value}
+                      title="Kết quả tìm kiếm"
+                    />
+                  ) : (
+                    <>
+                      <ProvinceSection
+                        onSelect={(province) => {
+                          field.onChange(province.id);
+                          setProvincePickerOpen(false);
+                        }}
+                        provinces={featuredProvinces}
+                        selectedProvinceId={field.value}
+                        title="Thành phố trực thuộc trung ương"
+                      />
+                      <ProvinceSection
+                        onSelect={(province) => {
+                          field.onChange(province.id);
+                          setProvincePickerOpen(false);
+                        }}
+                        provinces={otherProvinces}
+                        selectedProvinceId={field.value}
+                        title="Các địa phương khác"
+                      />
+                    </>
+                  )}
+                </ScrollView>
               </View>
             ) : null}
           </View>
@@ -332,6 +363,41 @@ export default function EditProfilePage() {
   );
 }
 
+function ProvinceSection({
+  title,
+  provinces,
+  selectedProvinceId,
+  onSelect,
+  emptyText,
+}: {
+  title: string;
+  provinces: ProvinceOption[];
+  selectedProvinceId: number | null;
+  onSelect: (province: ProvinceOption) => void;
+  emptyText?: string;
+}) {
+  return (
+    <View style={styles.provinceSection}>
+      <Text style={styles.provinceSectionTitle}>{title}</Text>
+      {provinces.length ? provinces.map((province) => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: selectedProvinceId === province.id }}
+          key={province.id}
+          onPress={() => onSelect(province)}
+          style={[
+            styles.provinceItem,
+            selectedProvinceId === province.id && styles.provinceItemSelected,
+          ]}
+        >
+          <Text style={styles.provinceOrder}>{province.sortOrder}.</Text>
+          <Text style={styles.provinceText}>{province.name}</Text>
+        </Pressable>
+      )) : <Text style={styles.provinceEmpty}>{emptyText ?? 'Không có địa phương.'}</Text>}
+    </View>
+  );
+}
+
 function FieldLabel({ text }: { text: string }) {
   return <Text style={styles.label}>{text}</Text>;
 }
@@ -373,6 +439,7 @@ const styles = StyleSheet.create({
   },
   textArea: { minHeight: 112 },
   helper: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: spacing.xs },
+  requiredHelper: { color: colors.primary, fontSize: 12, lineHeight: 18, marginBottom: spacing.xs },
   optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   option: { borderRadius: 999, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 8 },
   optionSelected: { borderColor: colors.primary, backgroundColor: '#FCE7F3' },
@@ -385,12 +452,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
+    backgroundColor: colors.surface,
   },
   inputButtonText: { color: colors.text, fontSize: 15 },
   placeholderText: { color: colors.muted, fontSize: 15 },
-  provincePanel: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm, marginTop: spacing.sm, gap: spacing.xs },
-  provinceItem: { minHeight: 42, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  provinceText: { color: colors.text, fontSize: 14 },
+  provincePanel: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm, marginTop: spacing.sm, gap: spacing.xs, backgroundColor: colors.surface },
+  provinceScroll: { maxHeight: 360 },
+  provinceSection: { gap: spacing.xs, paddingBottom: spacing.md },
+  provinceSectionTitle: { color: colors.muted, fontSize: 12, fontWeight: '900', paddingHorizontal: spacing.sm, paddingTop: spacing.sm, textTransform: 'uppercase' },
+  provinceItem: { minHeight: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, borderRadius: 10 },
+  provinceItemSelected: { backgroundColor: '#FCE7F3' },
+  provinceOrder: { width: 32, color: colors.muted, fontSize: 13, fontWeight: '700' },
+  provinceText: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
+  provinceEmpty: { color: colors.muted, fontSize: 13, padding: spacing.sm },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.lg },
   settingText: { flex: 1 },
   settingLabel: { color: colors.text, fontSize: 15, fontWeight: '800' },
