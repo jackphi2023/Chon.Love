@@ -99,12 +99,12 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
     await expect(viewerPage.getByLabel('Nội dung tin nhắn')).toBeVisible();
     await viewerPage.getByLabel('Nội dung tin nhắn').fill('BR06 browser realtime message');
     await viewerPage.getByRole('button', { name: 'Gửi', exact: true }).click();
-    await expect(viewerPage.getByText('BR06 browser realtime message', { exact: true })).toBeVisible();
+    await expect(viewerPage.getByText('BR06 browser realtime message', { exact: true }).last()).toBeVisible();
 
     await creatorPage.goto('/friends');
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible();
     await creatorPage.getByText(actors.viewer.displayName, { exact: true }).click();
-    await expect(creatorPage.getByText('BR06 browser realtime message', { exact: true })).toBeVisible();
+    await expect(creatorPage.getByText('BR06 browser realtime message', { exact: true }).last()).toBeVisible();
 
     await creatorPage.getByRole('button', { name: 'Báo cáo' }).last().click();
     await expect(creatorPage.getByText('Báo cáo tin nhắn', { exact: true })).toBeVisible();
