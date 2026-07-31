@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, 'feature/**', 'release/**', 'hotfix/**']
+    branches: [main, develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
   pull_request:
 
 permissions:
@@ -40,6 +40,9 @@ jobs:
 
       - name: Validate environments
         run: pnpm validate:environments
+
+      - name: Validate BR-01 security source
+        run: pnpm validate:security
 
       - name: Lint
         run: pnpm lint
