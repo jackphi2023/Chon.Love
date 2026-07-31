@@ -71,4 +71,5 @@ export * from './homepage';
 export * from './profile-media';
 export * from './social-safety';
 export * from './vietqr';
+export * from './vietqr-reconciliation';
 export type { Database } from './database.types';
