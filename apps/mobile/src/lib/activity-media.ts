@@ -65,7 +65,6 @@ export async function uploadActivityImage(client: Client, image: PreparedActivit
     p_file_size_bytes: image.bytes.byteLength,
     p_width: image.width,
     p_height: image.height,
-    p_sha256: null,
     p_extension: image.extension,
   });
   if (prepareError) throw prepareError;
