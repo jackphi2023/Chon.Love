@@ -100,7 +100,7 @@ export async function updateMyProfile(
   const { data, error } = await client.rpc('update_my_profile', {
     p_username: input.username,
     p_display_name: input.displayName,
-    p_bio: input.bio || undefined,
+    ...(input.bio ? { p_bio: input.bio } : {}),
     p_gender: input.gender,
     p_province_id: input.provinceId,
     p_interests: input.interests,
@@ -136,7 +136,7 @@ export async function listProfileAlbumMedia(
 ): Promise<AlbumMediaItem[]> {
   const { data, error } = await client.rpc('list_profile_album_media', {
     p_owner_id: ownerId,
-    p_album_type: albumType ?? undefined,
+    ...(albumType ? { p_album_type: albumType } : {}),
   });
   if (error) throw error;
   return data ?? [];
@@ -164,7 +164,7 @@ export async function uploadProfileImage(
     p_file_size_bytes: input.bytes.byteLength,
     p_width: input.width,
     p_height: input.height,
-    p_sha256: input.sha256 ?? undefined,
+    ...(input.sha256 ? { p_sha256: input.sha256 } : {}),
     p_extension: input.extension,
   });
   if (prepareError) throw prepareError;
