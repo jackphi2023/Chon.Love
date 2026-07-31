@@ -496,9 +496,9 @@ begin
       expires_at=case when p_decision='approve' then p_expires_at else null end,
       last_operation_request_id=p_request_id
   where id=v_kyc.id returning * into v_kyc;
-  update private.kyc_documents
+  update private.kyc_documents as kd
   set status=case when p_decision='approve' then 'reviewed'::private.kyc_document_status else 'rejected'::private.kyc_document_status end
-  where kyc_profile_id=v_kyc.id;
+  where kd.kyc_profile_id=v_kyc.id;
   v_eligible:=private.refresh_creator_payout_eligibility(v_kyc.user_id);
   perform private.append_payout_operation_event('kyc_profile',v_kyc.id,
     case when p_decision='approve' then 'approved' else 'rejected' end,p_actor_user_id,v_role,p_request_id,
