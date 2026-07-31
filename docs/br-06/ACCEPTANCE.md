@@ -21,12 +21,16 @@ BR-06 is complete only when every criterion below is true:
 - [x] Unblocking does not restore the old friendship or chat.
 - [x] Final browser evidence is attached.
 - [x] Trace, screenshot, video, report, and workflow artifact retention are configured.
+- [x] Local HTTP is explicit, localhost-only, development-only, and covered by unit tests.
+- [x] Post-login navigation has one routing source and no competing Auth effect.
+- [x] Storage signed URLs have the minimum helper execution capability required by RLS.
+- [x] Client roles retain no private-schema usage or direct private-table grants.
 - [x] Financial operations are excluded and feature flags remain disabled.
-- [ ] BR-06 source validation passes on the implementation head.
-- [ ] Application CI passes on the implementation head.
-- [ ] Database CI passes after clean reset from all repository migrations.
-- [ ] Browser E2E workflow passes on the implementation head.
-- [ ] Final SHA and workflow run identifiers are recorded in `STATUS.md`.
-- [ ] Draft PR remains open, unmerged, and without production deployment.
+- [x] BR-06 source validation passes on implementation head `98b55a8a68ded63fcad2be4e53cc3dd01f84442d`.
+- [x] Application CI #738 passes on the implementation head.
+- [x] Database CI #335 passes after clean reset from all 78 repository migrations.
+- [x] Browser E2E #57 passes on the implementation head.
+- [x] Validated SHA and workflow run identifiers are recorded in `STATUS.md`.
+- [x] Draft PR #19 remains open, unmerged, and without production deployment.
 
-Passing BR-06 proves the local Expo Web browser lifecycle. It does not prove Netlify preview behavior, physical-device behavior, native permissions, Play Billing, or store readiness.
+Passing BR-06 proves the local Expo Web browser lifecycle and the least-privilege Storage policy integration. It does not prove Netlify preview behavior, physical-device behavior, native permissions, Play Billing, or store readiness.
