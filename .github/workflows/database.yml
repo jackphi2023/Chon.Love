@@ -13,6 +13,7 @@ on:
       - 'scripts/validate-br05.mjs'
       - 'scripts/validate-br06.mjs'
       - 'scripts/validate-br07.mjs'
+      - 'scripts/validate-br08.mjs'
       - 'scripts/br06/**'
       - 'tests/br-06/**'
       - 'playwright.br06.config.mjs'
@@ -22,6 +23,7 @@ on:
       - 'docs/br-05/**'
       - 'docs/br-06/**'
       - 'docs/br-07/**'
+      - 'docs/br-08/**'
       - '.github/workflows/database.yml'
       - '.github/workflows/browser-e2e.yml'
       - 'package.json'
@@ -37,6 +39,7 @@ on:
       - 'scripts/validate-br05.mjs'
       - 'scripts/validate-br06.mjs'
       - 'scripts/validate-br07.mjs'
+      - 'scripts/validate-br08.mjs'
       - 'scripts/br06/**'
       - 'tests/br-06/**'
       - 'playwright.br06.config.mjs'
@@ -46,6 +49,7 @@ on:
       - 'docs/br-05/**'
       - 'docs/br-06/**'
       - 'docs/br-07/**'
+      - 'docs/br-08/**'
       - '.github/workflows/database.yml'
       - '.github/workflows/browser-e2e.yml'
       - 'package.json'
@@ -90,17 +94,21 @@ jobs:
           test -f supabase/migrations/20260731160038_br_05_anonymous_public_activity_feed_fix.sql
           test -f supabase/migrations/20260731172253_br_06_storage_policy_helper_execution.sql
           test -f supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql
+          test -f supabase/migrations/20260731192600_br_08_kyc_withdrawal_operational_flow.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
+          test -f supabase/functions/payout-admin/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
           test -f supabase/tests/br_03_auth_session_reconciliation.sql
           test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
           test -f supabase/tests/br_05_creator_activity_privacy_album_e2e.sql
           test -f supabase/tests/br_06_storage_policy_helper_acl.sql
           test -f supabase/tests/br_07_vietqr_reconciliation_mvp.sql
+          test -f supabase/tests/br_08_kyc_withdrawal_operational_flow.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
+          test -f scripts/validate-br08.mjs
           test -f tests/br-06/mobile-web-multi-account.spec.mjs
 
       - name: Start local Supabase
@@ -126,6 +134,9 @@ jobs:
 
       - name: Run BR-07 VietQR reconciliation MVP
         run: supabase test db supabase/tests/br_07_vietqr_reconciliation_mvp.sql --local
+
+      - name: Run BR-08 KYC and withdrawal operational flow
+        run: supabase test db supabase/tests/br_08_kyc_withdrawal_operational_flow.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
@@ -171,7 +182,7 @@ jobs:
       - name: Upload generated database contract
         uses: actions/upload-artifact@v4
         with:
-          name: br-07-database-types
+          name: br-08-database-types
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
