@@ -119,7 +119,7 @@ export function KycWithdrawalOperationsClient() {
         `Họ tên: ${payload.legalName}\nGiấy tờ: ${payload.documentType} · ${payload.documentNumber}\nQuốc gia: ${payload.countryCode}\n\nMở chứng từ đầu tiên bằng signed URL 60 giây?`,
       );
       if (openDocument) {
-        const access = await getKycDocumentAccess(client, { kycDocumentId: payload.documentIds[0] });
+        const access = await getKycDocumentAccess(client, { kycDocumentId: payload.documentIds[0]! });
         window.open(access.signedUrl, '_blank', 'noopener,noreferrer');
       }
     } catch (error) { setNotice(readableError(error)); }
