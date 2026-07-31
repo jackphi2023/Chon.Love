@@ -15,7 +15,7 @@ const sharedSupabaseClient = readText('packages/supabase/src/index.ts');
 const mobileSupabaseClient = readText('apps/mobile/src/lib/supabase.ts');
 const environmentUnitTest = readText('packages/supabase/src/index.test.ts');
 const authHome = readText('apps/mobile/app/(auth)/index.tsx');
-const storageHelperMigration = readText('supabase/migrations/20260731172200_br_06_storage_policy_helper_execution.sql');
+const storageHelperMigration = readText('supabase/migrations/20260731172253_br_06_storage_policy_helper_execution.sql');
 const storageHelperAclTest = readText('supabase/tests/br_06_storage_policy_helper_acl.sql');
 
 const errors = [];
@@ -41,7 +41,7 @@ expect(
   'Database CI path filters must include BR-06 validation and documentation.',
 );
 expect(
-  databaseCi.includes('20260731172200_br_06_storage_policy_helper_execution.sql') &&
+  databaseCi.includes('20260731172253_br_06_storage_policy_helper_execution.sql') &&
     databaseCi.includes('supabase/tests/br_06_storage_policy_helper_acl.sql'),
   'Database CI inventory must include the BR-06 Storage helper migration and ACL test.',
 );
