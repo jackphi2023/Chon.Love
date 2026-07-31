@@ -74,7 +74,7 @@ expect(
   'VietQR reconciliation must require finance_admin or super_admin.',
 );
 expect(
-  migration.includes("unique(provider, provider_transaction_ref)") &&
+  migration.includes('unique(provider, provider_transaction_ref)') &&
     migration.includes('import_request_id uuid not null unique') &&
     migration.includes('request_id uuid not null unique'),
   'BR-07 must enforce provider, import, and decision idempotency.',
@@ -85,9 +85,9 @@ expect(
   'Reconciliation events must be immutable.',
 );
 expect(
-  migration.includes("revoke execute on function public.record_verified_vietqr_payment") &&
-    migration.includes("revoke execute on function public.create_vietqr_heart_order") &&
-    migration.includes("revoke execute on function public.list_vietqr_heart_products"),
+  migration.includes('revoke execute on function public.record_verified_vietqr_payment') &&
+    migration.includes('revoke execute on function public.create_vietqr_heart_order') &&
+    migration.includes('revoke execute on function public.list_vietqr_heart_products'),
   'Direct heart credit and user-facing VietQR order RPCs must be revoked.',
 );
 expect(
@@ -102,8 +102,9 @@ expect(
   'BR-07 must not reopen private schema or table access.',
 );
 expect(
-  !migration.includes('vietqr_auto_settlement_enabled\'') || migration.includes("'false'::jsonb"),
-  'Automatic settlement must not be enabled.',
+  migration.includes("('vietqr_auto_settlement_enabled','false'::jsonb") &&
+    !migration.includes("('vietqr_auto_settlement_enabled','true'::jsonb"),
+  'Automatic settlement must remain disabled.',
 );
 
 expect(databaseTest.includes('select plan(34);'), 'BR-07 pgTAP contract must declare 34 assertions.');
@@ -130,7 +131,7 @@ for (const forbidden of ['myfan1@gmail.com', 'myfan16@gmail.com', 'MYFAN_E2E_BET
 expect(supabaseConfig.includes('[functions.vietqr-reconciliation-admin]'), 'Supabase config must register the BR-07 Edge Function.');
 expect(supabaseConfig.includes('verify_jwt = true'), 'The BR-07 Edge Function must require JWT verification.');
 expect(edgeFunction.includes("Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')"), 'Server function must obtain service role only from server environment.');
-expect(!edgeFunction.includes('Access-Control-Allow-Origin\': \'http'), 'CORS must not hard-code an unsafe development origin.');
+expect(!edgeFunction.includes("'Access-Control-Allow-Origin': 'http"), 'CORS must not hard-code an unsafe development origin.');
 expect(edgeFunction.includes("body.action === 'import'") && edgeFunction.includes("body.action === 'decide'"), 'Edge Function must expose import and audited decision actions.');
 expect(!edgeFunction.includes('record_verified_vietqr_payment'), 'Edge Function must not call the direct credit RPC.');
 expect(!edgeFunction.includes('create_vietqr_heart_order'), 'Edge Function must not create user VietQR orders.');
