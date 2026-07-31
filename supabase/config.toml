@@ -72,3 +72,6 @@ verify_jwt = true
 
 [functions.account-deletion]
 verify_jwt = true
+
+[functions.vietqr-reconciliation-admin]
+verify_jwt = true
