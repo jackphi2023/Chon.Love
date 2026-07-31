@@ -24,7 +24,8 @@
     "validate:integration": "node scripts/validate-br02.mjs",
     "validate:auth": "node scripts/validate-br03.mjs",
     "validate:social-e2e": "node scripts/validate-br04.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e"
+    "validate:creator-e2e": "node scripts/validate-br05.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:creator-e2e"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
