@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Database } from './database.types';
 
 const publicSupabaseEnvironmentSchema = z.object({
-  url: z.url().refine((value) => value.startsWith('https://'), 'Supabase URL must use HTTPS.'),
+  url: z.url(),
   anonKey: z
     .string()
     .min(20, 'Supabase anon/publishable key is missing.')
@@ -26,19 +26,32 @@ export type PublicSupabaseClientOptions = {
   detectSessionInUrl?: boolean;
   flowType?: 'implicit' | 'pkce';
   storage?: SupabaseAuthStorage;
+  allowInsecureLocalhost?: boolean;
 };
+
+function isInsecureLocalSupabaseUrl(value: string): boolean {
+  const url = new URL(value);
+  return url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
+}
 
 export function parsePublicSupabaseEnvironment(
   input: PublicSupabaseEnvironment,
+  options: Pick<PublicSupabaseClientOptions, 'allowInsecureLocalhost'> = {},
 ): PublicSupabaseEnvironment {
-  return publicSupabaseEnvironmentSchema.parse(input);
+  const environment = publicSupabaseEnvironmentSchema.parse(input);
+  const usesHttps = environment.url.startsWith('https://');
+  const allowsLocalHttp = options.allowInsecureLocalhost === true && isInsecureLocalSupabaseUrl(environment.url);
+  if (!usesHttps && !allowsLocalHttp) {
+    throw new Error('Supabase URL must use HTTPS unless local development explicitly allows localhost HTTP.');
+  }
+  return environment;
 }
 
 export function createPublicSupabaseClient(
   input: PublicSupabaseEnvironment,
   options: PublicSupabaseClientOptions = {},
 ): SupabaseClient<Database> {
-  const environment = parsePublicSupabaseEnvironment(input);
+  const environment = parsePublicSupabaseEnvironment(input, options);
   return createClient<Database>(environment.url, environment.anonKey, {
     auth: {
       autoRefreshToken: true,
