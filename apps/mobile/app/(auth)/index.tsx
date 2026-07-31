@@ -1,6 +1,6 @@
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -23,10 +23,6 @@ export default function AuthHome() {
   const [password, setPassword] = useState('');
   const [submitMode, setSubmitMode] = useState<SubmitMode>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (auth.userId) router.replace('/');
-  }, [auth.userId, router]);
 
   async function handleEmailPress() {
     setErrorMessage(null);
