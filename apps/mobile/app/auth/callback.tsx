@@ -2,13 +2,18 @@ import { colors, spacing } from '@myfan/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { completeGoogleAuthentication, getAuthenticatedDestination } from '@/lib/auth';
+import {
+  completeAuthentication,
+  getAuthenticatedDestination,
+  getSafeAuthCallbackDestination,
+} from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
 
-export default function GoogleAuthCallback() {
+export default function AuthCallback() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     code?: string | string[];
+    next?: string | string[];
     error?: string | string[];
     error_description?: string | string[];
   }>();
@@ -22,12 +27,13 @@ export default function GoogleAuthCallback() {
     }
     const code = first(params.code);
     if (!code) {
-      setErrorMessage('Google không trả về mã đăng nhập hợp lệ.');
+      setErrorMessage('Liên kết xác thực không có mã hợp lệ.');
       return;
     }
+    const safeNext = getSafeAuthCallbackDestination(first(params.next));
     let active = true;
-    void completeGoogleAuthentication(code)
-      .then(() => getAuthenticatedDestination())
+    void completeAuthentication(code)
+      .then(async () => safeNext ?? getAuthenticatedDestination())
       .then((destination) => {
         if (active) router.replace(destination);
       })
@@ -37,21 +43,21 @@ export default function GoogleAuthCallback() {
     return () => {
       active = false;
     };
-  }, [params.code, params.error, params.error_description, router]);
+  }, [params.code, params.error, params.error_description, params.next, router]);
 
   return (
     <View style={styles.container} accessibilityRole="alert">
       {errorMessage ? (
         <>
-          <Text style={styles.title}>Chưa thể đăng nhập</Text>
+          <Text style={styles.title}>Chưa thể xác thực</Text>
           <Text style={styles.error}>{errorMessage}</Text>
           <Text style={styles.help} onPress={() => router.replace('/(auth)')}>Quay lại đăng nhập</Text>
         </>
       ) : (
         <>
           <ActivityIndicator color={colors.primary} size="large" />
-          <Text style={styles.title}>Đang hoàn tất đăng nhập Google…</Text>
-          <Text style={styles.help}>MyFan không yêu cầu thêm OTP.</Text>
+          <Text style={styles.title}>Đang hoàn tất xác thực…</Text>
+          <Text style={styles.help}>Vui lòng không đóng trang này.</Text>
         </>
       )}
     </View>
