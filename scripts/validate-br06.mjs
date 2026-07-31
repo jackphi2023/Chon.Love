@@ -14,6 +14,7 @@ const browserE2e = readText('tests/br-06/mobile-web-multi-account.spec.mjs');
 const sharedSupabaseClient = readText('packages/supabase/src/index.ts');
 const mobileSupabaseClient = readText('apps/mobile/src/lib/supabase.ts');
 const environmentUnitTest = readText('packages/supabase/src/index.test.ts');
+const authHome = readText('apps/mobile/app/(auth)/index.tsx');
 
 const errors = [];
 const expect = (condition, message) => {
@@ -135,6 +136,20 @@ for (const unitCase of [
   expect(environmentUnitTest.includes(unitCase), `BR-06 environment unit tests must cover: ${unitCase}.`);
 }
 
+expect(
+  authHome.includes('const destination = await signInWithEmailPassword(email, password);') &&
+    authHome.includes('router.replace(destination);'),
+  'The Auth screen must navigate from the resolved authenticated destination.',
+);
+expect(
+  !authHome.includes("if (auth.userId) router.replace('/');"),
+  'The Auth screen must not compete with the submit handler through a second post-login redirect.',
+);
+expect(
+  !authHome.includes('useEffect'),
+  'The BR-06 Auth screen must keep post-login navigation single-source and effect-free.',
+);
+
 expect(playwrightConfig.includes("testDir: './tests/br-06'"), 'Playwright must be scoped to the BR-06 test directory.');
 expect(playwrightConfig.includes('width: 390') === false, 'Viewport belongs in isolated browser contexts, not global config.');
 expect(playwrightConfig.includes('workers: 1'), 'BR-06 must run deterministically with one Playwright worker.');
@@ -201,4 +216,4 @@ if (errors.length > 0) {
 }
 
 console.warn('BR-06 mobile web multi-account browser E2E source validation passed.');
-console.warn('Coverage: local-only transport opt-in, five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
+console.warn('Coverage: single-source auth routing, local-only transport opt-in, five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
