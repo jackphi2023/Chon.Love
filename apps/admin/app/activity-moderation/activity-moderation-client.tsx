@@ -76,7 +76,7 @@ export function ActivityModerationClient() {
   return (
     <div className="adminModerationShell">
       <header className="adminModerationHeader">
-        <div><p className="adminEyebrow">CREATOR ACTIVITY</p><h1>Kiểm duyệt Hoạt động</h1><p>Text, link, preview mờ và original đều được xem qua quyền moderator. Mọi quyết định được ghi audit log.</p></div>
+        <div><p className="adminEyebrow">CREATOR ACTIVITY</p><h1>Kiểm duyệt Hoạt động</h1><p>Text, link, ảnh xem trước và original được xem qua quyền moderator. Quyền Công khai, Bạn bè hoặc Fan được áp dụng cho toàn bộ feed sau khi duyệt.</p></div>
         <div className="adminActions"><button className="adminSecondary" onClick={reload} type="button">Tải lại</button><Link className="adminSecondary" href="/">Tài khoản</Link></div>
       </header>
       {state.status === 'loading' && state.items.length === 0 ? <div className="adminState">Đang tải hàng đợi…</div> : null}
@@ -89,15 +89,14 @@ export function ActivityModerationClient() {
             <p className="adminPostBody">{item.body}</p>
             <dl className="adminMetaGrid">
               <div><dt>Dạng</dt><dd>{item.content_type}</dd></div>
-              <div><dt>Quyền ảnh</dt><dd>{item.image_access_mode}</dd></div>
-              <div><dt>Mở khóa</dt><dd>{item.unlock_count}</dd></div>
+              <div><dt>Album</dt><dd>{item.content_type === 'image' ? 'Tự động sau duyệt' : 'Không áp dụng'}</dd></div>
+              <div><dt>Quyền xem</dt><dd>Cài đặt chung Creator</dd></div>
               <div><dt>Báo cáo</dt><dd>{item.report_count}</dd></div>
             </dl>
             {item.external_url ? <a className="adminExternalLink" href={item.external_url} rel="noreferrer" target="_blank">{item.external_provider}: {item.external_url}</a> : null}
-            {item.required_gift_name_vi ? <p className="adminGiftRequirement">Yêu cầu: {item.required_gift_name_vi} · {item.required_gift_hearts} ❤️</p> : null}
             {item.previewUrl || item.originalUrl ? (
               <div className="adminMediaCompare">
-                <figure>{item.previewUrl ? <img alt="Preview mờ server-side" src={item.previewUrl} /> : <div>Chưa có preview</div>}<figcaption>Preview mờ</figcaption></figure>
+                <figure>{item.previewUrl ? <img alt="Ảnh xem trước server-side" src={item.previewUrl} /> : <div>Chưa có preview</div>}<figcaption>Preview kiểm duyệt</figcaption></figure>
                 <figure>{item.originalUrl ? <img alt="Original bảo vệ" src={item.originalUrl} /> : <div>Không có original</div>}<figcaption>Original protected</figcaption></figure>
               </div>
             ) : null}
