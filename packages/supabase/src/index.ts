@@ -57,4 +57,5 @@ export * from './gifts';
 export * from './homepage';
 export * from './profile-media';
 export * from './social-safety';
+export * from './vietqr';
 export type { Database } from './database.types';
