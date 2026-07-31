@@ -1,57 +1,128 @@
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Screen } from '@/components/screen';
-import { startGoogleAuthentication } from '@/lib/auth';
+import { signInWithEmailPassword, startGoogleAuthentication } from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
 import { useAuth } from '@/providers/auth-provider';
+
+type SubmitMode = 'email' | 'google' | null;
 
 export default function AuthHome() {
   const router = useRouter();
   const auth = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitMode, setSubmitMode] = useState<SubmitMode>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (auth.userId) router.replace('/');
   }, [auth.userId, router]);
 
+  async function handleEmailPress() {
+    setErrorMessage(null);
+    setSubmitMode('email');
+    try {
+      const destination = await signInWithEmailPassword(email, password);
+      router.replace(destination);
+    } catch (error) {
+      setErrorMessage(getReadableAuthError(error));
+    } finally {
+      setSubmitMode(null);
+    }
+  }
+
   async function handleGooglePress() {
     setErrorMessage(null);
-    setIsSubmitting(true);
+    setSubmitMode('google');
     try {
       await startGoogleAuthentication();
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
-      setIsSubmitting(false);
+      setSubmitMode(null);
     }
   }
+
+  const disabled = !auth.isConfigured || submitMode !== null;
 
   return (
     <Screen
       title="Chào mừng đến MyFan"
-      description="Đăng ký hoặc đăng nhập nhanh bằng tài khoản Google. Luồng Google không yêu cầu OTP của MyFan."
+      description="Đăng nhập bằng email và mật khẩu hoặc tiếp tục với Google. Age gate 18+ luôn là bước bắt buộc."
     >
       <Text style={styles.eyebrow}>SOCIAL CREATOR 18+</Text>
-      <Text style={styles.heading}>Một chạm để bắt đầu</Text>
+      <Text style={styles.heading}>Đăng nhập Beta</Text>
       <Text style={styles.copy}>
-        Google xác thực danh tính đăng nhập. Người dùng mới sẽ tiếp tục xác nhận ngày sinh, điều khoản và tiêu chuẩn cộng đồng trước khi vào ứng dụng.
+        Tài khoản Beta dùng thông tin được cấp riêng. MyFan không hiển thị hoặc lưu mật khẩu trong giao diện và source code.
       </Text>
+
+      <View style={styles.form}>
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          onChangeText={setEmail}
+          placeholder="email@example.com"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={email}
+        />
+        <Text style={styles.label}>Mật khẩu</Text>
+        <TextInput
+          autoCapitalize="none"
+          autoComplete="current-password"
+          onChangeText={setPassword}
+          onSubmitEditing={handleEmailPress}
+          placeholder="Nhập mật khẩu"
+          placeholderTextColor={colors.muted}
+          secureTextEntry
+          style={styles.input}
+          value={password}
+        />
+
+        <Pressable
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={handleEmailPress}
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, disabled && styles.disabled]}
+        >
+          {submitMode === 'email' ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryButtonText}>Đăng nhập bằng email</Text>
+          )}
+        </Pressable>
+
+        <Pressable accessibilityRole="link" onPress={() => router.push('/auth/forgot-password')}>
+          <Text style={styles.link}>Quên mật khẩu?</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.dividerRow}>
+        <View style={styles.divider} />
+        <Text style={styles.dividerText}>hoặc</Text>
+        <View style={styles.divider} />
+      </View>
 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Tiếp tục với Google"
-        disabled={!auth.isConfigured || isSubmitting}
+        disabled={disabled}
         onPress={handleGooglePress}
-        style={({ pressed }) => [
-          styles.googleButton,
-          pressed && styles.pressed,
-          (!auth.isConfigured || isSubmitting) && styles.disabled,
-        ]}
+        style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, disabled && styles.disabled]}
       >
         <View style={styles.googleMark}><Text style={styles.googleMarkText}>G</Text></View>
-        {isSubmitting ? (
+        {submitMode === 'google' ? (
           <ActivityIndicator color={colors.text} />
         ) : (
           <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
@@ -64,9 +135,9 @@ export default function AuthHome() {
       {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
 
       <View style={styles.securityCard}>
-        <Text style={styles.securityTitle}>Không dùng OTP cho Google</Text>
+        <Text style={styles.securityTitle}>Bảo vệ phiên đăng nhập</Text>
         <Text style={styles.securityCopy}>
-          MyFan không gửi mã OTP riêng sau khi Google đăng nhập thành công. Age gate 18+ vẫn là bước bắt buộc và tách biệt.
+          Đăng xuất mặc định thu hồi toàn bộ refresh session của tài khoản. Access token đã cấp chỉ còn hiệu lực đến thời điểm hết hạn ngắn của JWT.
         </Text>
       </View>
     </Screen>
@@ -77,9 +148,34 @@ const styles = StyleSheet.create({
   eyebrow: { color: '#7557D9', fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   heading: { color: colors.text, fontSize: 25, lineHeight: 32, fontWeight: '900', marginTop: spacing.sm },
   copy: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm },
+  form: { marginTop: spacing.xl, gap: spacing.sm },
+  label: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: spacing.xs },
+  input: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    fontSize: 16,
+  },
+  primaryButton: {
+    minHeight: 54,
+    marginTop: spacing.sm,
+    borderRadius: 15,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  link: { color: colors.primary, fontSize: 14, fontWeight: '800', textAlign: 'center', paddingVertical: spacing.sm },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  divider: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { color: colors.muted, fontSize: 13 },
   googleButton: {
     minHeight: 56,
-    marginTop: spacing.xl,
+    marginTop: spacing.md,
     paddingHorizontal: spacing.md,
     borderColor: colors.border,
     borderWidth: 1,
