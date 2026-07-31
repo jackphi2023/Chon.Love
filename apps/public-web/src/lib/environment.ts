@@ -5,7 +5,21 @@ export type PublicWebEnvironmentStatus = {
   supabaseConfigured: boolean;
   supabaseUrl: string | undefined;
   supabaseAnonKey: string | undefined;
+  siteUrl: string | null;
 };
+
+export function getPublicSiteUrl(): string | null {
+  const value = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const localDevelopment = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (url.protocol !== 'https:' && !localDevelopment) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
 
 export function getPublicWebEnvironmentStatus(): PublicWebEnvironmentStatus {
   const environmentValue = process.env.NEXT_PUBLIC_MYFAN_ENV;
@@ -16,5 +30,6 @@ export function getPublicWebEnvironmentStatus(): PublicWebEnvironmentStatus {
     supabaseConfigured: Boolean(supabaseUrl && supabaseAnonKey),
     supabaseUrl,
     supabaseAnonKey,
+    siteUrl: getPublicSiteUrl(),
   };
 }
