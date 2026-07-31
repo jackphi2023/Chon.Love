@@ -14,9 +14,9 @@ BR-03 is complete only when all criteria below are true:
 - [x] Remote temporary rotation scaffolding is removed.
 - [x] Repository migration ledger contains matching inert reconciliation records.
 - [x] BR-03 source validation is mandatory in application and database CI.
-- [ ] Application CI passes on the final implementation head.
-- [ ] Database CI passes on the final implementation head.
-- [ ] Existing controlled Beta sessions are revoked after CI passes.
-- [ ] Final SHA and workflow run identifiers are recorded in `STATUS.md`.
+- [x] Application CI passes on the validated implementation head.
+- [x] Database CI passes on the validated implementation head.
+- [x] Existing controlled Beta sessions are revoked after CI passes.
+- [x] Validated SHA and workflow run identifiers are recorded in `STATUS.md`.
 
 Passing BR-03 does not authorize production deployment, public tester access, or financial feature enablement.
