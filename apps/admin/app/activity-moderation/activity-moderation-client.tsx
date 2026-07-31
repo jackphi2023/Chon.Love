@@ -77,7 +77,7 @@ export function ActivityModerationClient() {
     <div className="adminModerationShell">
       <header className="adminModerationHeader">
         <div><p className="adminEyebrow">CREATOR ACTIVITY</p><h1>Kiểm duyệt Hoạt động</h1><p>Text, link, ảnh xem trước và original được xem qua quyền moderator. Quyền Công khai, Bạn bè hoặc Fan được áp dụng cho toàn bộ feed sau khi duyệt.</p></div>
-        <div className="adminActions"><button className="adminSecondary" onClick={reload} type="button">Tải lại</button><Link className="adminSecondary" href="/">Tài khoản</Link></div>
+        <div className="adminActions"><button className="adminSecondary" onClick={reload} type="button">Tải lại</button><Link className="adminSecondary" href="/vietqr-reconciliation">Đối soát VietQR</Link><Link className="adminSecondary" href="/">Tài khoản</Link></div>
       </header>
       {state.status === 'loading' && state.items.length === 0 ? <div className="adminState">Đang tải hàng đợi…</div> : null}
       {state.status === 'error' ? <div className="adminState adminError" role="alert"><strong>{state.message}</strong><button className="adminSecondary" onClick={reload} type="button">Thử lại</button></div> : null}
