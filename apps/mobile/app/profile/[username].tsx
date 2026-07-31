@@ -1,26 +1,23 @@
-import { phaseCFeatureFlags } from '@myfan/config';
 import {
   blockUser,
   cancelFriendRequest,
   createPrivateMediaUrl,
   createSafetyReport,
-  formatHeartUnits,
+  formatApproximateDistance,
   getDirectConversation,
   getProfileViewer,
   getReadableChatError,
   getReadableSocialError,
-  listProfileAlbumMedia,
   REPORT_REASON_OPTIONS,
   respondToFriendRequest,
   sendFriendRequest,
   unblockUser,
-  type AlbumMediaItem,
   type ReportReasonCode,
 } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -31,10 +28,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { CreatorActivityList } from '@/components/creator-activity';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
-
-type AlbumItemWithUrl = AlbumMediaItem & { url: string };
 
 function normalizeUsername(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
@@ -55,7 +51,6 @@ export default function ProfileViewerPage() {
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState<ReportReasonCode>('spam');
   const [reportDescription, setReportDescription] = useState('');
-  const [reportMediaId, setReportMediaId] = useState<string | null>(null);
 
   const profileQueryKey = ['profile-viewer', auth.userId, username] as const;
   const profileQuery = useQuery({
@@ -82,50 +77,15 @@ export default function ProfileViewerPage() {
     },
   });
 
-  const publicAlbumQuery = useQuery({
-    queryKey: ['profile-viewer', 'album', profile?.id, 'public'],
-    enabled: Boolean(client && profile?.id && !profile.blocked_by_viewer),
-    staleTime: 30_000,
-    queryFn: async () => {
-      if (!client || !profile?.id) return [];
-      const rows = await listProfileAlbumMedia(client, profile.id, 'public');
-      return Promise.all(rows.map(async (row) => ({ ...row, url: await createPrivateMediaUrl(client, row) })));
-    },
-  });
-
-  const fanAlbumQuery = useQuery({
-    queryKey: ['profile-viewer', 'album', profile?.id, 'fan'],
-    enabled: Boolean(
-      client &&
-        profile?.id &&
-        phaseCFeatureFlags.fan_album &&
-        profile.fan_album_available &&
-        profile.fan_access_granted &&
-        !profile.blocked_by_viewer,
-    ),
-    staleTime: 30_000,
-    queryFn: async () => {
-      if (!client || !profile?.id) return [];
-      const rows = await listProfileAlbumMedia(client, profile.id, 'fan');
-      return Promise.all(rows.map(async (row) => ({ ...row, url: await createPrivateMediaUrl(client, row) })));
-    },
-  });
-
   const displayName = profile?.display_name || profile?.username || 'Thành viên MyFan';
-  const profileError = profileQuery.error || publicAlbumQuery.error || fanAlbumQuery.error;
-  const reportTargetLabel = reportMediaId ? 'ảnh này' : 'tài khoản này';
-  const fanProgressPercent = useMemo(() => {
-    if (!profile || profile.fan_threshold_units <= 0) return 0;
-    return Math.min(100, Math.round((profile.fan_eligible_units / profile.fan_threshold_units) * 100));
-  }, [profile]);
 
   async function refreshProfile() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: profileQueryKey }),
-      queryClient.invalidateQueries({ queryKey: ['profile-viewer', 'album', profile?.id] }),
       queryClient.invalidateQueries({ queryKey: ['social-connections', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['discovery', 'profiles', auth.userId] }),
+      queryClient.invalidateQueries({ queryKey: ['creator-activity'] }),
     ]);
   }
 
@@ -146,11 +106,7 @@ export default function ProfileViewerPage() {
 
   async function handleSendFriendRequest() {
     if (!client || !profile) return;
-    await runSocialAction(
-      'friend',
-      () => sendFriendRequest(client, profile.id, greeting),
-      'Đã gửi lời mời kết bạn.',
-    );
+    await runSocialAction('friend', () => sendFriendRequest(client, profile.id, greeting), 'Đã gửi lời mời kết bạn.');
     setGreeting('');
   }
 
@@ -163,7 +119,7 @@ export default function ProfileViewerPage() {
     await runSocialAction(
       'friend',
       () => respondToFriendRequest(client, profile.friendship_id!, action === 'accept'),
-      action === 'accept' ? 'Hai bạn đã trở thành bạn bè. Chat đã được mở.' : 'Đã từ chối lời mời.',
+      action === 'accept' ? 'Hai bạn đã trở thành bạn bè. Quyền Hoạt động được cập nhật ngay.' : 'Đã từ chối lời mời.',
     );
   }
 
@@ -191,11 +147,7 @@ export default function ProfileViewerPage() {
 
   async function handleUnblock() {
     if (!client || !profile) return;
-    await runSocialAction(
-      'block',
-      () => unblockUser(client, profile.id),
-      'Đã bỏ chặn tài khoản. Quan hệ bạn bè cũ không được tự động khôi phục.',
-    );
+    await runSocialAction('block', () => unblockUser(client, profile.id), 'Đã bỏ chặn tài khoản. Quan hệ bạn bè cũ không được tự động khôi phục.');
   }
 
   async function handleReport() {
@@ -205,14 +157,12 @@ export default function ProfileViewerPage() {
     setErrorMessage(null);
     try {
       await createSafetyReport(client, {
-        targetUserId: reportMediaId ? null : profile.id,
-        targetMediaId: reportMediaId,
+        targetUserId: profile.id,
         reasonCode: reportReason,
         description: reportDescription,
       });
       setMessage('Báo cáo đã được gửi tới đội ngũ an toàn MyFan.');
       setShowReport(false);
-      setReportMediaId(null);
       setReportDescription('');
       setReportReason('spam');
     } catch (error) {
@@ -220,11 +170,6 @@ export default function ProfileViewerPage() {
     } finally {
       setBusyAction(null);
     }
-  }
-
-  function openMediaReport(mediaId: string) {
-    setReportMediaId(mediaId);
-    setShowReport(true);
   }
 
   if (profileQuery.isLoading) return <LoadingScreen />;
@@ -240,6 +185,9 @@ export default function ProfileViewerPage() {
       </View>
     );
   }
+
+  const distanceLabel = profile.distance_km === null ? null : formatApproximateDistance(profile.distance_km);
+  const lastActiveLabel = formatLastActive(profile.last_active_at, profile.presence_status);
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.page}>
@@ -264,20 +212,27 @@ export default function ProfileViewerPage() {
             {profile.is_creator ? <Text style={styles.creatorBadge}>Creator</Text> : null}
           </View>
           <Text style={styles.username}>@{profile.username}</Text>
-          {profile.province_name ? <Text style={styles.metaText}>{profile.province_name}</Text> : null}
+          <View style={styles.statusRow}>
+            <Text style={styles.activeBadge}>Đang hoạt động</Text>
+            <Text style={[styles.presenceBadge, profile.presence_status === 'online' && styles.onlineBadge]}>
+              {profile.presence_status === 'online' ? '● Online' : '○ Offline'}
+            </Text>
+          </View>
         </View>
+      </View>
+
+      <View style={styles.profileFacts}>
+        <Fact label="Tuổi" value={`${profile.age_years} tuổi`} />
+        <Fact label="Hoạt động" value={lastActiveLabel} />
+        <Fact label="Địa phương" value={profile.province_name ?? 'Chưa chia sẻ'} />
+        <Fact label="Khoảng cách" value={distanceLabel ?? 'Không hiển thị'} />
       </View>
 
       {profile.blocked_by_viewer ? (
         <View style={styles.warningCard}>
           <Text style={styles.warningTitle}>Bạn đã chặn tài khoản này</Text>
-          <Text style={styles.bodyText}>Ảnh, album, lời mời và tương tác đang bị ẩn.</Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={busyAction !== null}
-            onPress={handleUnblock}
-            style={styles.primaryButton}
-          >
+          <Text style={styles.bodyText}>Hoạt động, ảnh, lời mời và tương tác đang bị ẩn. Thông tin hồ sơ cơ bản vẫn được giữ để bạn nhận biết tài khoản.</Text>
+          <Pressable accessibilityRole="button" disabled={busyAction !== null} onPress={handleUnblock} style={styles.primaryButton}>
             <Text style={styles.primaryButtonText}>{busyAction === 'block' ? 'Đang xử lý…' : 'Bỏ chặn'}</Text>
           </Pressable>
         </View>
@@ -305,48 +260,26 @@ export default function ProfileViewerPage() {
             <Text style={styles.sectionTitle}>Sở thích</Text>
             {profile.interests.length ? (
               <View style={styles.chipRow}>
-                {profile.interests.map((interest) => (
-                  <View key={interest} style={styles.chip}><Text style={styles.chipText}>{interest}</Text></View>
-                ))}
+                {profile.interests.map((interest) => <View key={interest} style={styles.chip}><Text style={styles.chipText}>{interest}</Text></View>)}
               </View>
             ) : <Text style={styles.bodyText}>Chưa chia sẻ sở thích.</Text>}
           </View>
 
-          <AlbumSection
-            emptyText="Chưa có ảnh công khai."
-            items={publicAlbumQuery.data ?? []}
-            loading={publicAlbumQuery.isLoading}
-            onReport={openMediaReport}
-            title={`Ảnh công khai (${profile.public_album_count})`}
-          />
-
-          {profile.is_creator && profile.fan_album_available ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Album Fan</Text>
-              {profile.fan_access_granted && phaseCFeatureFlags.fan_album ? (
-                <AlbumGrid items={fanAlbumQuery.data ?? []} loading={fanAlbumQuery.isLoading} onReport={openMediaReport} />
-              ) : (
-                <View style={styles.fanLockedCard}>
-                  <Text style={styles.fanTitle}>Quyền lợi cộng đồng Fan đang khóa</Text>
-                  <Text style={styles.bodyText}>
-                    Tiến độ ủng hộ hợp lệ: {formatHeartUnits(profile.fan_eligible_units)} / {formatHeartUnits(profile.fan_threshold_units)} ❤️.
-                  </Text>
-                  <View accessibilityLabel={`Tiến độ Album Fan ${fanProgressPercent}%`} style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${fanProgressPercent}%` }]} />
-                  </View>
-                  <Text style={styles.fanRemaining}>
-                    Còn {formatHeartUnits(profile.fan_remaining_units)} ❤️ để đạt ngưỡng cộng đồng Fan.
-                  </Text>
-                  <Text style={styles.policyNote}>
-                    Album Fan tuân theo cùng Tiêu chuẩn cộng đồng; quyền Fan không bao gồm gặp mặt, liên hệ riêng hoặc nội dung người lớn.
-                  </Text>
+          {profile.is_creator ? (
+            <View style={styles.activitySection}>
+              <View style={styles.activityHeading}>
+                <View style={styles.activityHeadingCopy}>
+                  <Text style={styles.sectionTitle}>Hoạt động & Album ảnh</Text>
+                  <Text style={styles.activityNote}>Album lấy ảnh từ bài Hoạt động. Text, ảnh và video đều dùng cùng một quyền riêng tư.</Text>
                 </View>
-              )}
+                {profile.activity_can_view ? <Text style={styles.activityCount}>{profile.activity_post_count} bài</Text> : null}
+              </View>
+              <CreatorActivityList compact username={profile.username} />
             </View>
           ) : null}
 
           <View style={styles.safetyActions}>
-            <Pressable accessibilityRole="button" onPress={() => { setReportMediaId(null); setShowReport(true); }} style={styles.secondaryButton}>
+            <Pressable accessibilityRole="button" onPress={() => setShowReport(true)} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>Báo cáo tài khoản</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => setShowBlockConfirm(true)} style={styles.dangerButton}>
@@ -359,7 +292,7 @@ export default function ProfileViewerPage() {
       {showBlockConfirm ? (
         <View style={styles.confirmCard}>
           <Text style={styles.warningTitle}>Chặn {displayName}?</Text>
-          <Text style={styles.bodyText}>Hai tài khoản sẽ không thể tìm thấy nhau, kết bạn, xem Album Fan hoặc nhắn tin.</Text>
+          <Text style={styles.bodyText}>Hai tài khoản sẽ không thể tìm thấy nhau, kết bạn, xem Hoạt động hoặc nhắn tin.</Text>
           <View style={styles.inlineActions}>
             <Pressable accessibilityRole="button" onPress={() => setShowBlockConfirm(false)} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>Hủy</Text>
@@ -373,8 +306,8 @@ export default function ProfileViewerPage() {
 
       {showReport ? (
         <View style={styles.reportCard}>
-          <Text style={styles.warningTitle}>Báo cáo {reportTargetLabel}</Text>
-          <Text style={styles.bodyText}>Chọn lý do chính. Mô tả bổ sung là tùy chọn.</Text>
+          <Text style={styles.warningTitle}>Báo cáo tài khoản này</Text>
+          <Text style={styles.bodyText}>Chọn lý do chính. Báo cáo riêng từng bài, ảnh hoặc link nằm trong thẻ Hoạt động tương ứng.</Text>
           <View style={styles.chipRow}>
             {REPORT_REASON_OPTIONS.map((reason) => (
               <Pressable
@@ -398,7 +331,7 @@ export default function ProfileViewerPage() {
             value={reportDescription}
           />
           <View style={styles.inlineActions}>
-            <Pressable accessibilityRole="button" onPress={() => { setShowReport(false); setReportMediaId(null); }} style={styles.secondaryButton}>
+            <Pressable accessibilityRole="button" onPress={() => setShowReport(false)} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>Hủy</Text>
             </Pressable>
             <Pressable accessibilityRole="button" disabled={busyAction !== null} onPress={handleReport} style={styles.primaryButtonCompact}>
@@ -409,11 +342,23 @@ export default function ProfileViewerPage() {
       ) : null}
 
       {message ? <Text accessibilityRole="alert" style={styles.success}>{message}</Text> : null}
-      {errorMessage || profileError ? (
-        <Text accessibilityRole="alert" style={styles.error}>{errorMessage ?? 'Không thể tải đầy đủ hồ sơ. Hãy thử lại.'}</Text>
-      ) : null}
+      {errorMessage || profileQuery.error ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage ?? 'Không thể tải đầy đủ hồ sơ. Hãy thử lại.'}</Text> : null}
     </ScrollView>
   );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return <View style={styles.fact}><Text style={styles.factLabel}>{label}</Text><Text style={styles.factValue}>{value}</Text></View>;
+}
+
+function formatLastActive(value: string, status: 'online' | 'offline'): string {
+  if (status === 'online') return 'Đang trực tuyến';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Ngoại tuyến';
+  const diff = Date.now() - date.getTime();
+  if (diff < 3_600_000) return `${Math.max(1, Math.floor(diff / 60_000))} phút trước`;
+  if (diff < 86_400_000) return `${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`;
+  return date.toLocaleDateString('vi-VN');
 }
 
 function FriendshipActions(props: {
@@ -429,93 +374,19 @@ function FriendshipActions(props: {
   status: 'none' | 'pending' | 'accepted' | 'blocked';
 }) {
   if (props.status === 'accepted') {
-    return (
-      <View style={styles.relationshipCard}>
-        <Text style={styles.relationshipTitle}>✓ Hai bạn đã là bạn bè</Text>
-        <Text style={styles.bodyText}>Chat realtime đã sẵn sàng. Tin nhắn chỉ được gửi khi quan hệ bạn bè còn hiệu lực và không có chặn.</Text>
-        <Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onChat} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>{props.busy ? 'Đang mở…' : 'Nhắn tin'}</Text>
-        </Pressable>
-      </View>
-    );
+    return <View style={styles.relationshipCard}><Text style={styles.relationshipTitle}>✓ Hai bạn đã là bạn bè</Text><Text style={styles.bodyText}>Quyền xem nội dung dành cho Bạn bè được cập nhật tự động.</Text><Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onChat} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{props.busy ? 'Đang mở…' : 'Nhắn tin'}</Text></Pressable></View>;
   }
   if (props.status === 'pending' && props.direction === 'incoming') {
-    return (
-      <View style={styles.relationshipCard}>
-        <Text style={styles.relationshipTitle}>Bạn có một lời mời kết bạn</Text>
-        <View style={styles.inlineActions}>
-          <Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onDecline} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Từ chối</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onAccept} style={styles.primaryButtonCompact}>
-            <Text style={styles.primaryButtonText}>{props.busy ? 'Đang xử lý…' : 'Chấp nhận'}</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
+    return <View style={styles.relationshipCard}><Text style={styles.relationshipTitle}>Bạn có một lời mời kết bạn</Text><View style={styles.inlineActions}><Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onDecline} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Từ chối</Text></Pressable><Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onAccept} style={styles.primaryButtonCompact}><Text style={styles.primaryButtonText}>{props.busy ? 'Đang xử lý…' : 'Chấp nhận'}</Text></Pressable></View></View>;
   }
   if (props.status === 'pending') {
-    return (
-      <View style={styles.relationshipCard}>
-        <Text style={styles.relationshipTitle}>Lời mời đang chờ phản hồi</Text>
-        <Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onCancel} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>{props.busy ? 'Đang xử lý…' : 'Hủy lời mời'}</Text>
-        </Pressable>
-      </View>
-    );
+    return <View style={styles.relationshipCard}><Text style={styles.relationshipTitle}>Lời mời đang chờ phản hồi</Text><Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onCancel} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>{props.busy ? 'Đang xử lý…' : 'Hủy lời mời'}</Text></Pressable></View>;
   }
-  return (
-    <View style={styles.relationshipCard}>
-      <Text style={styles.relationshipTitle}>Kết nối an toàn</Text>
-      <TextInput
-        accessibilityLabel="Lời chào khi gửi lời mời kết bạn"
-        maxLength={280}
-        multiline
-        onChangeText={props.onGreetingChange}
-        placeholder="Lời chào tùy chọn, tối đa 280 ký tự"
-        style={styles.greetingInput}
-        value={props.greeting}
-      />
-      <Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onSend} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>{props.busy ? 'Đang gửi…' : 'Gửi lời mời kết bạn'}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function AlbumSection(props: { title: string; items: AlbumItemWithUrl[]; loading: boolean; emptyText: string; onReport: (id: string) => void }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{props.title}</Text>
-      <AlbumGrid items={props.items} loading={props.loading} onReport={props.onReport} />
-      {!props.loading && !props.items.length ? <Text style={styles.bodyText}>{props.emptyText}</Text> : null}
-    </View>
-  );
-}
-
-function AlbumGrid(props: { items: AlbumItemWithUrl[]; loading: boolean; onReport: (id: string) => void }) {
-  if (props.loading) return <ActivityIndicator color={colors.primary} />;
-  return (
-    <View style={styles.gallery}>
-      {props.items.map((item) => (
-        <View key={item.media_id} style={styles.galleryItem}>
-          <Image accessibilityLabel="Ảnh trong album MyFan" source={{ uri: item.url }} style={styles.galleryImage} />
-          <Pressable accessibilityRole="button" onPress={() => props.onReport(item.media_id)} style={styles.reportImageButton}>
-            <Text style={styles.reportImageText}>Báo cáo ảnh</Text>
-          </Pressable>
-        </View>
-      ))}
-    </View>
-  );
+  return <View style={styles.relationshipCard}><Text style={styles.relationshipTitle}>Kết nối an toàn</Text><TextInput accessibilityLabel="Lời chào khi gửi lời mời kết bạn" maxLength={280} multiline onChangeText={props.onGreetingChange} placeholder="Lời chào tùy chọn, tối đa 280 ký tự" style={styles.greetingInput} value={props.greeting} /><Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onSend} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{props.busy ? 'Đang gửi…' : 'Gửi lời mời kết bạn'}</Text></Pressable></View>;
 }
 
 function LoadingScreen() {
-  return (
-    <View style={styles.centeredPage}>
-      <ActivityIndicator color={colors.primary} size="large" />
-      <Text style={styles.bodyText}>Đang tải…</Text>
-    </View>
-  );
+  return <View style={styles.centeredPage}><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.bodyText}>Đang tải…</Text></View>;
 }
 
 const styles = StyleSheet.create({
@@ -534,49 +405,50 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
   displayName: { color: colors.text, fontSize: 24, fontWeight: '900' },
   username: { color: colors.muted, fontSize: 14 },
-  metaText: { color: colors.muted, fontSize: 13 },
   creatorBadge: { color: colors.primary, backgroundColor: '#FCE7F3', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 11, fontWeight: '900' },
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  activeBadge: { color: '#166534', backgroundColor: '#DCFCE7', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, fontWeight: '900' },
+  presenceBadge: { color: colors.muted, backgroundColor: '#F3F4F6', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, fontWeight: '800' },
+  onlineBadge: { color: '#166534', backgroundColor: '#DCFCE7' },
+  profileFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  fact: { width: '48%', borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.surface, padding: spacing.sm, gap: 3 },
+  factLabel: { color: colors.muted, fontSize: 10, fontWeight: '700' },
+  factValue: { color: colors.text, fontSize: 13, fontWeight: '900' },
   section: { marginTop: spacing.md, gap: spacing.sm },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   bodyText: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  relationshipCard: { borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.sm },
-  relationshipTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  greetingInput: { minHeight: 76, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, padding: spacing.md, color: colors.text, textAlignVertical: 'top' },
-  primaryButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
-  primaryButtonCompact: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  secondaryButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: spacing.md },
-  secondaryButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  inlineActions: { flexDirection: 'row', gap: spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { borderRadius: 999, backgroundColor: '#F3F4F6', paddingHorizontal: 11, paddingVertical: 6 },
-  chipText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  galleryItem: { width: '31%', minWidth: 96, gap: 5 },
-  galleryImage: { width: '100%', aspectRatio: 1, borderRadius: 12, backgroundColor: colors.border },
-  reportImageButton: { minHeight: 34, alignItems: 'center', justifyContent: 'center' },
-  reportImageText: { color: colors.danger, fontSize: 11, fontWeight: '700' },
-  fanLockedCard: { borderRadius: 16, borderWidth: 1, borderColor: '#F2B51D', backgroundColor: '#FFFBEB', padding: spacing.md, gap: spacing.sm },
-  fanTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  progressTrack: { height: 10, borderRadius: 999, overflow: 'hidden', backgroundColor: '#FDE68A' },
-  progressFill: { height: '100%', borderRadius: 999, backgroundColor: '#F2B51D' },
-  fanRemaining: { color: '#92400E', fontSize: 13, fontWeight: '800' },
-  policyNote: { color: '#92400E', fontSize: 12, lineHeight: 18 },
-  safetyActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
-  dangerButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.surface },
-  dangerButtonText: { color: colors.danger, fontSize: 14, fontWeight: '800' },
-  dangerFilledButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: colors.danger },
-  dangerFilledText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  warningCard: { borderRadius: 16, borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', padding: spacing.md, gap: spacing.sm },
-  confirmCard: { borderRadius: 16, borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', padding: spacing.md, gap: spacing.md },
-  reportCard: { borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.md },
+  chip: { borderRadius: 999, backgroundColor: '#F3F4F6', paddingHorizontal: 11, paddingVertical: 7 },
+  chipText: { color: colors.text, fontSize: 12, fontWeight: '700' },
+  activitySection: { marginTop: spacing.md, gap: spacing.md },
+  activityHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  activityHeadingCopy: { flex: 1, gap: 3 },
+  activityNote: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  activityCount: { color: colors.primary, fontSize: 12, fontWeight: '900' },
+  relationshipCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.sm },
+  relationshipTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  greetingInput: { minHeight: 82, color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm, textAlignVertical: 'top' },
+  warningCard: { borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 16, backgroundColor: '#FEF2F2', padding: spacing.md, gap: spacing.sm },
   warningTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  reasonChip: { borderRadius: 999, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 11, paddingVertical: 7 },
+  safetyActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  primaryButton: { minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
+  primaryButtonCompact: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  secondaryButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.surface, paddingHorizontal: spacing.md },
+  secondaryButtonText: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  dangerButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 12, backgroundColor: '#FEF2F2' },
+  dangerButtonText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
+  confirmCard: { borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 16, backgroundColor: '#FEF2F2', padding: spacing.md, gap: spacing.sm },
+  reportCard: { borderWidth: 1, borderColor: '#FDE68A', borderRadius: 16, backgroundColor: '#FFFBEB', padding: spacing.md, gap: spacing.sm },
+  inlineActions: { flexDirection: 'row', gap: spacing.sm },
+  dangerFilledButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.danger },
+  dangerFilledText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  reasonChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 7 },
   reasonChipActive: { borderColor: colors.primary, backgroundColor: '#FCE7F3' },
-  reasonText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  reasonText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   reasonTextActive: { color: colors.primary },
-  textArea: { minHeight: 92, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, padding: spacing.md, color: colors.text, textAlignVertical: 'top' },
+  textArea: { minHeight: 90, color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.surface, padding: spacing.sm, textAlignVertical: 'top' },
+  success: { color: '#166534', backgroundColor: '#F0FDF4', borderRadius: 12, padding: spacing.md },
+  error: { color: colors.danger, backgroundColor: '#FEF2F2', borderRadius: 12, padding: spacing.md },
   notFoundTitle: { color: colors.text, fontSize: 22, fontWeight: '900' },
-  success: { color: '#166534', fontSize: 14, lineHeight: 21 },
-  error: { color: colors.danger, fontSize: 14, lineHeight: 21 },
 });
