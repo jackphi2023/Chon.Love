@@ -76,3 +76,43 @@ jobs:
 
       - name: Build web applications and Expo web
         run: pnpm build
+
+  br08-type-sync:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/br-08-kyc-withdrawal-operational-flow'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout BR-08 head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Generate exact public database contract
+        shell: bash
+        run: |
+          supabase start
+          supabase db reset --local
+          supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts
+          supabase stop --no-backup
+
+      - name: Commit generated contract
+        shell: bash
+        run: |
+          git checkout HEAD -- .github/workflows/ci.yml
+          if git diff --quiet -- packages/supabase/src/database.types.ts; then
+            echo 'Database types already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts
+          git commit -m 'Sync BR-08 generated database types'
+          git push origin HEAD:${GITHUB_HEAD_REF}
