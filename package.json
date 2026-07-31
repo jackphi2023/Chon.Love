@@ -26,7 +26,8 @@
     "validate:social-e2e": "node scripts/validate-br04.mjs",
     "validate:creator-e2e": "node scripts/validate-br05.mjs",
     "validate:browser-e2e": "node scripts/validate-br06.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:creator-e2e && pnpm validate:browser-e2e"
+    "validate:vietqr-reconciliation": "node scripts/validate-br07.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:creator-e2e && pnpm validate:browser-e2e && pnpm validate:vietqr-reconciliation"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
