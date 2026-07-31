@@ -69,6 +69,7 @@ jobs:
           test -f supabase/migrations/20260731134449_br_03_beta_fixed_credentials_exception.sql
           test -f supabase/migrations/20260731134617_br_03_remove_rotation_scaffolding.sql
           test -f supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql
+          test -f supabase/migrations/20260731160038_br_05_anonymous_public_activity_feed_fix.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
