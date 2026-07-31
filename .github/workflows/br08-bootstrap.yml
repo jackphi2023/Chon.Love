@@ -1,10 +1,12 @@
 name: BR-08 Bootstrap
 
 on:
+  workflow_dispatch:
   push:
     branches: ['agent/br-08-kyc-withdrawal-operational-flow']
     paths:
       - '.github/workflows/br08-bootstrap.yml'
+      - '.br08/**'
 
 permissions:
   contents: write
