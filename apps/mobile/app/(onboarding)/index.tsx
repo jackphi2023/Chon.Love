@@ -6,9 +6,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import { DateOfBirthSelector } from '@/components/date-of-birth-selector';
 import { Screen } from '@/components/screen';
 import {
   completeMinimumOnboarding,
@@ -116,17 +116,10 @@ export default function OnboardingHome() {
       description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai."
     >
       <Text style={styles.label}>Ngày sinh</Text>
-      <TextInput
-        accessibilityLabel="Ngày sinh theo định dạng năm-tháng-ngày"
-        autoCapitalize="none"
-        autoCorrect={false}
-        inputMode="numeric"
-        onChangeText={setDateOfBirth}
-        placeholder="YYYY-MM-DD"
-        style={styles.input}
-        value={dateOfBirth}
-      />
-      <Text style={styles.hint}>Ví dụ: 1990-12-31. MyFan không cho phép người dưới 18 tuổi sử dụng ứng dụng.</Text>
+      <DateOfBirthSelector onChange={setDateOfBirth} />
+      <Text style={styles.hint}>
+        Chạm vào từng ô và cuộn để chọn Ngày – Tháng – Năm. MyFan không cho phép người dưới 18 tuổi sử dụng ứng dụng.
+      </Text>
 
       <PolicyCheck
         checked={confirmedAdult}
@@ -192,7 +185,6 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.background },
   loadingText: { color: colors.muted, fontSize: 15 },
   label: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  input: { minHeight: 52, marginTop: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: spacing.md, color: colors.text, backgroundColor: colors.surface, fontSize: 16 },
   hint: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: spacing.sm, marginBottom: spacing.md },
   checkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm },
   checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },

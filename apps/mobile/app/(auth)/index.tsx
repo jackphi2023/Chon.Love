@@ -16,6 +16,8 @@ import { useAuth } from '@/providers/auth-provider';
 
 type SubmitMode = 'email' | 'google' | null;
 
+const googleAuthEnabled = process.env.EXPO_PUBLIC_FEATURE_GOOGLE_AUTH === 'true';
+
 export default function AuthHome() {
   const router = useRouter();
   const auth = useAuth();
@@ -38,6 +40,7 @@ export default function AuthHome() {
   }
 
   async function handleGooglePress() {
+    if (!googleAuthEnabled) return;
     setErrorMessage(null);
     setSubmitMode('google');
     try {
@@ -49,6 +52,7 @@ export default function AuthHome() {
   }
 
   const disabled = !auth.isConfigured || submitMode !== null;
+  const googleDisabled = disabled || !googleAuthEnabled;
 
   return (
     <Screen
@@ -120,11 +124,11 @@ export default function AuthHome() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Tiếp tục với Google"
-        accessibilityHint="Mở quy trình đăng nhập Google an toàn"
-        accessibilityState={{ disabled, busy: submitMode === 'google' }}
-        disabled={disabled}
+        accessibilityHint={googleAuthEnabled ? 'Mở quy trình đăng nhập Google an toàn' : 'Đăng nhập Google đang tạm tắt'}
+        accessibilityState={{ disabled: googleDisabled, busy: submitMode === 'google' }}
+        disabled={googleDisabled}
         onPress={handleGooglePress}
-        style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, disabled && styles.disabled]}
+        style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, googleDisabled && styles.disabled]}
       >
         <View style={styles.googleMark}><Text style={styles.googleMarkText}>G</Text></View>
         {submitMode === 'google' ? (
@@ -134,6 +138,11 @@ export default function AuthHome() {
         )}
       </Pressable>
 
+      {!googleAuthEnabled ? (
+        <Text style={styles.notice}>
+          Đăng nhập Google đang tạm tắt cho đến khi Google OAuth được bật trong Supabase. Bạn vẫn có thể đăng nhập bằng email và mật khẩu.
+        </Text>
+      ) : null}
       {!auth.isConfigured ? (
         <Text style={styles.notice}>Cần thiết lập Supabase publishable key để bật đăng nhập.</Text>
       ) : null}

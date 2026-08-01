@@ -14,6 +14,8 @@ async function openMobileLogin(browser) {
   });
   const page = await context.newPage();
   await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Tham gia MyFan' })).toBeVisible();
+  await page.getByRole('button', { name: 'Đăng nhập MyFan' }).first().click();
   await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
   await expect(page).toHaveTitle('MyFan — Mạng xã hội Creator 18+');
   await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
