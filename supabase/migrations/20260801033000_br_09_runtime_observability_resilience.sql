@@ -65,7 +65,7 @@ begin
   if jsonb_typeof(p_metadata)<>'object' then
     raise exception using errcode='22023',message='runtime_metadata_object_required';
   end if;
-  if jsonb_object_length(p_metadata)>8 or pg_column_size(p_metadata)>2048 then
+  if (select count(*) from jsonb_object_keys(p_metadata))>8 or pg_column_size(p_metadata)>2048 then
     raise exception using errcode='22023',message='runtime_metadata_too_large';
   end if;
   for v_key,v_value in select key,value from jsonb_each(p_metadata)
