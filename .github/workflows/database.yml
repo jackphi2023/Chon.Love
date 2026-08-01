@@ -14,6 +14,7 @@ on:
       - 'scripts/validate-br06.mjs'
       - 'scripts/validate-br07.mjs'
       - 'scripts/validate-br08.mjs'
+      - 'scripts/validate-br09.mjs'
       - 'scripts/br06/**'
       - 'tests/br-06/**'
       - 'playwright.br06.config.mjs'
@@ -24,6 +25,7 @@ on:
       - 'docs/br-06/**'
       - 'docs/br-07/**'
       - 'docs/br-08/**'
+      - 'docs/br-09/**'
       - '.github/workflows/database.yml'
       - '.github/workflows/browser-e2e.yml'
       - 'package.json'
@@ -40,6 +42,7 @@ on:
       - 'scripts/validate-br06.mjs'
       - 'scripts/validate-br07.mjs'
       - 'scripts/validate-br08.mjs'
+      - 'scripts/validate-br09.mjs'
       - 'scripts/br06/**'
       - 'tests/br-06/**'
       - 'playwright.br06.config.mjs'
@@ -50,6 +53,7 @@ on:
       - 'docs/br-06/**'
       - 'docs/br-07/**'
       - 'docs/br-08/**'
+      - 'docs/br-09/**'
       - '.github/workflows/database.yml'
       - '.github/workflows/browser-e2e.yml'
       - 'package.json'
@@ -95,10 +99,12 @@ jobs:
           test -f supabase/migrations/20260731172253_br_06_storage_policy_helper_execution.sql
           test -f supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql
+          test -f supabase/migrations/20260801033000_br_09_runtime_observability_resilience.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
           test -f supabase/functions/payout-admin/index.ts
+          test -f supabase/functions/runtime-observability-admin/index.ts
           test -f supabase/tests/br_01_security_reconciliation.sql
           test -f supabase/tests/br_03_auth_session_reconciliation.sql
           test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
@@ -106,9 +112,11 @@ jobs:
           test -f supabase/tests/br_06_storage_policy_helper_acl.sql
           test -f supabase/tests/br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/tests/br_08_kyc_withdrawal_operational_flow.sql
+          test -f supabase/tests/br_09_runtime_observability_resilience.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
+          test -f scripts/validate-br09.mjs
           test -f tests/br-06/mobile-web-multi-account.spec.mjs
 
       - name: Start local Supabase
@@ -137,6 +145,9 @@ jobs:
 
       - name: Run BR-08 KYC and withdrawal operational flow
         run: supabase test db supabase/tests/br_08_kyc_withdrawal_operational_flow.sql --local
+
+      - name: Run BR-09 runtime observability resilience
+        run: supabase test db supabase/tests/br_09_runtime_observability_resilience.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
@@ -179,10 +190,10 @@ jobs:
           done
           exit 1
 
-      - name: Upload generated database contract
+      - name: Upload generated public contract
         uses: actions/upload-artifact@v4
         with:
-          name: br-08-database-types
+          name: br-09-database-types
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
