@@ -27,9 +27,10 @@
     "validate:creator-e2e": "node scripts/validate-br05.mjs",
     "validate:browser-e2e": "node scripts/validate-br06.mjs",
     "validate:vietqr-reconciliation": "node scripts/validate-br07.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:creator-e2e && pnpm validate:browser-e2e && pnpm validate:vietqr-reconciliation && pnpm validate:kyc-withdrawal-operations && pnpm validate:runtime-quality",
     "validate:kyc-withdrawal-operations": "node scripts/validate-br08.mjs",
-    "validate:runtime-quality": "node scripts/validate-br09.mjs"
+    "validate:runtime-quality": "node scripts/validate-br09.mjs",
+    "validate:netlify-release": "node scripts/validate-br10.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:creator-e2e && pnpm validate:browser-e2e && pnpm validate:vietqr-reconciliation && pnpm validate:kyc-withdrawal-operations && pnpm validate:runtime-quality && pnpm validate:netlify-release"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
