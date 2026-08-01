@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -79,43 +79,3 @@ jobs:
 
       - name: Build web applications and Expo web
         run: pnpm build
-
-  br09-type-sync:
-    if: github.ref_name == 'agent/br-09-observability-accessibility-resilience' || github.head_ref == 'agent/br-09-observability-accessibility-resilience'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout BR-09 head
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v2
-        with:
-          version: 2.110.0
-
-      - name: Generate exact public database contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase start
-          supabase db reset --local
-          supabase gen types typescript --local --schema public > /tmp/database.types.ts
-          supabase stop --no-backup
-          mv /tmp/database.types.ts packages/supabase/src/database.types.ts
-
-      - name: Commit generated contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- packages/supabase/src/database.types.ts; then
-            echo 'Generated contract already synchronized.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add packages/supabase/src/database.types.ts
-          git commit -m 'Sync BR-09 generated database types'
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
