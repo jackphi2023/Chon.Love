@@ -15,19 +15,23 @@ async function openMobileLogin(browser) {
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
+  await expect(page).toHaveTitle('MyFan — Mạng xã hội Creator 18+');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   return { context, page };
 }
 
 test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ browser }, testInfo) => {
   const { context, page } = await openMobileLogin(browser);
   try {
+    const emailInput = page.getByLabel('Email', { exact: true });
+    const passwordInput = page.getByLabel('Mật khẩu', { exact: true });
     const results = await new AxeBuilder({ page }).analyze();
     const serious = results.violations.filter((item) => item.impact === 'critical' || item.impact === 'serious');
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([]);
 
     const controls = [
-      page.getByLabel('Email'),
-      page.getByLabel('Mật khẩu'),
+      emailInput,
+      passwordInput,
       page.getByRole('button', { name: 'Đăng nhập bằng email' }),
       page.getByRole('link', { name: 'Quên mật khẩu' }),
       page.getByRole('button', { name: 'Tiếp tục với Google' }),
@@ -39,9 +43,9 @@ test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ bro
     }
 
     await page.keyboard.press('Tab');
-    await expect(page.getByLabel('Email')).toBeFocused();
+    await expect(emailInput).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(page.getByLabel('Mật khẩu')).toBeFocused();
+    await expect(passwordInput).toBeFocused();
 
     expect(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
     await testInfo.attach('br09-accessible-login', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
@@ -52,14 +56,16 @@ test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ bro
 
 test('BR-09 auth mutation fails once and never auto-retries', async ({ browser }) => {
   const { context, page } = await openMobileLogin(browser);
+  const emailInput = page.getByLabel('Email', { exact: true });
+  const passwordInput = page.getByLabel('Mật khẩu', { exact: true });
   let tokenRequests = 0;
   try {
     await page.route('**/auth/v1/token**', async (route) => {
       tokenRequests += 1;
       await route.abort('failed');
     });
-    await page.getByLabel('Email').fill(viewerEmail);
-    await page.getByLabel('Mật khẩu').fill(password);
+    await emailInput.fill(viewerEmail);
+    await passwordInput.fill(password);
     await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
     await expect(page.getByRole('alert')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Đăng nhập bằng email' })).toBeEnabled();
