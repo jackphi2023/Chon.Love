@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "MyFan Dev",
+    "slug": "myfan-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "myfan",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MyFan cần truy cập ảnh bạn chọn để cập nhật hồ sơ và album.",
+          "cameraPermission": "MyFan cần dùng camera khi bạn chủ động chụp ảnh cho hồ sơ và album.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MyFan dùng vị trí một lần khi bạn chọn Gần đây để sắp xếp hồ sơ và hiển thị khoảng cách làm tròn. MyFan không hiển thị tọa độ chính xác."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "com.myfan.mobile.dev"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}

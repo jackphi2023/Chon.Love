@@ -1,0 +1,219 @@
+name: Database
+
+on:
+  push:
+    branches: [develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
+    paths:
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - 'apps/admin/**'
+      - 'scripts/validate-br01.mjs'
+      - 'scripts/validate-br03.mjs'
+      - 'scripts/validate-br04.mjs'
+      - 'scripts/validate-br05.mjs'
+      - 'scripts/validate-br06.mjs'
+      - 'scripts/validate-br07.mjs'
+      - 'scripts/validate-br08.mjs'
+      - 'scripts/validate-br09.mjs'
+      - 'scripts/br06/**'
+      - 'tests/br-06/**'
+      - 'playwright.br06.config.mjs'
+      - 'docs/br-01/**'
+      - 'docs/br-03/**'
+      - 'docs/br-04/**'
+      - 'docs/br-05/**'
+      - 'docs/br-06/**'
+      - 'docs/br-07/**'
+      - 'docs/br-08/**'
+      - 'docs/br-09/**'
+      - '.github/workflows/database.yml'
+      - '.github/workflows/browser-e2e.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - 'apps/admin/**'
+      - 'scripts/validate-br01.mjs'
+      - 'scripts/validate-br03.mjs'
+      - 'scripts/validate-br04.mjs'
+      - 'scripts/validate-br05.mjs'
+      - 'scripts/validate-br06.mjs'
+      - 'scripts/validate-br07.mjs'
+      - 'scripts/validate-br08.mjs'
+      - 'scripts/validate-br09.mjs'
+      - 'scripts/br06/**'
+      - 'tests/br-06/**'
+      - 'playwright.br06.config.mjs'
+      - 'docs/br-01/**'
+      - 'docs/br-03/**'
+      - 'docs/br-04/**'
+      - 'docs/br-05/**'
+      - 'docs/br-06/**'
+      - 'docs/br-07/**'
+      - 'docs/br-08/**'
+      - 'docs/br-09/**'
+      - '.github/workflows/database.yml'
+      - '.github/workflows/browser-e2e.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Verify security reconciliation inventory
+        run: |
+          supabase --version
+          test -f supabase/migrations/20260731100320_seed_16_beta_users_support.sql
+          test -f supabase/migrations/20260731100850_enable_pg_net_for_seed_transport.sql
+          test -f supabase/migrations/20260731100951_temporary_seed_asset_transport.sql
+          test -f supabase/migrations/20260731101606_temporary_seed_image_transport.sql
+          test -f supabase/migrations/20260731103048_temporary_seed_user_manifest.sql
+          test -f supabase/migrations/20260731103426_temporary_seed_request_helper.sql
+          test -f supabase/migrations/20260731103608_cleanup_one_time_beta_seed_transport.sql
+          test -f supabase/migrations/20260731114823_br_01_explicit_rpc_only_deny_policies.sql
+          test -f supabase/migrations/20260731125443_br_01_function_lint_reconciliation.sql
+          test -f supabase/migrations/20260731134111_br_03_beta_auth_rotation_and_session_controls.sql
+          test -f supabase/migrations/20260731134449_br_03_beta_fixed_credentials_exception.sql
+          test -f supabase/migrations/20260731134617_br_03_remove_rotation_scaffolding.sql
+          test -f supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql
+          test -f supabase/migrations/20260731160038_br_05_anonymous_public_activity_feed_fix.sql
+          test -f supabase/migrations/20260731172253_br_06_storage_policy_helper_execution.sql
+          test -f supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql
+          test -f supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql
+          test -f supabase/migrations/20260801045034_br_09_runtime_observability_resilience.sql
+          test -f supabase/functions/seed-myfan-beta-users/index.ts
+          test -f supabase/functions/reset-myfan-beta-passwords/index.ts
+          test -f supabase/functions/vietqr-reconciliation-admin/index.ts
+          test -f supabase/functions/payout-admin/index.ts
+          test -f supabase/functions/runtime-observability-admin/index.ts
+          test -f supabase/tests/br_01_security_reconciliation.sql
+          test -f supabase/tests/br_03_auth_session_reconciliation.sql
+          test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
+          test -f supabase/tests/br_05_creator_activity_privacy_album_e2e.sql
+          test -f supabase/tests/br_06_storage_policy_helper_acl.sql
+          test -f supabase/tests/br_07_vietqr_reconciliation_mvp.sql
+          test -f supabase/tests/br_08_kyc_withdrawal_operational_flow.sql
+          test -f supabase/tests/br_09_runtime_observability_resilience.sql
+          test -f scripts/validate-br06.mjs
+          test -f scripts/validate-br07.mjs
+          test -f scripts/validate-br08.mjs
+          test -f scripts/validate-br09.mjs
+          test -f tests/br-06/mobile-web-multi-account.spec.mjs
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run current BR-01 pgTAP contract
+        run: supabase test db supabase/tests/br_01_security_reconciliation.sql --local
+
+      - name: Run BR-03 auth session reconciliation contract
+        run: supabase test db supabase/tests/br_03_auth_session_reconciliation.sql --local
+
+      - name: Run BR-04 core social multi-account E2E
+        run: supabase test db supabase/tests/br_04_core_social_multi_account_e2e.sql --local
+
+      - name: Run BR-05 Creator Activity privacy and album E2E
+        run: supabase test db supabase/tests/br_05_creator_activity_privacy_album_e2e.sql --local
+
+      - name: Run BR-06 Storage policy helper ACL contract
+        run: supabase test db supabase/tests/br_06_storage_policy_helper_acl.sql --local
+
+      - name: Run BR-07 VietQR reconciliation MVP
+        run: supabase test db supabase/tests/br_07_vietqr_reconciliation_mvp.sql --local
+
+      - name: Run BR-08 KYC and withdrawal operational flow
+        run: supabase test db supabase/tests/br_08_kyc_withdrawal_operational_flow.sql --local
+
+      - name: Run BR-09 runtime observability resilience
+        run: supabase test db supabase/tests/br_09_runtime_observability_resilience.sql --local
+
+      - name: Run concurrent gift test
+        run: bash supabase/tests/09_concurrency.sh
+
+      - name: Run concurrent withdrawal test
+        run: bash supabase/tests/10_withdrawal_concurrency.sh
+
+      - name: Lint schemas
+        run: |
+          supabase db lint --local --schema public --schema private --level warning | tee /tmp/database-lint.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = Path('/tmp/database-lint.json').read_text().strip()
+          findings = json.loads(raw) if raw else []
+          errors = [
+              (item.get('function'), issue.get('message'))
+              for item in findings
+              for issue in item.get('issues', [])
+              if issue.get('level') == 'error'
+          ]
+          if errors:
+              for function, message in errors:
+                  print(f'ERROR {function}: {message}')
+              raise SystemExit(1)
+          print(f'Schema lint: zero errors; {len(findings)} warning entries retained for cleanup.')
+          PY
+
+      - name: Generate public database contract
+        run: |
+          for attempt in 1 2 3; do
+            if supabase gen types typescript --local --schema public > /tmp/database.types.attempt.ts; then
+              mv /tmp/database.types.attempt.ts /tmp/database.types.ts
+              exit 0
+            fi
+            echo "Type generation attempt ${attempt} failed; retrying after registry backoff." >&2
+            rm -f /tmp/database.types.attempt.ts
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+      - name: Upload generated public contract
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-09-database-types
+          path: /tmp/database.types.ts
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify generated public contract
+        run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
+
+      - name: Stop local Supabase before workspace checks
+        run: supabase stop --no-backup
+
+      - name: Verify application workspace
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.1 --activate
+          pnpm install --frozen-lockfile
+          pnpm validate
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true

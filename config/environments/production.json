@@ -1,0 +1,11 @@
+{
+  "name": "production",
+  "gitBranch": "main",
+  "supabaseProjectRef": "asnydvqsduonyidjyyzq",
+  "supabaseUrl": "https://asnydvqsduonyidjyyzq.supabase.co",
+  "supabaseRegion": "ap-southeast-1",
+  "supabaseLifecycle": "phase-c-shared-development",
+  "netlifyContext": "production",
+  "deployPolicy": "disabled-until-production-project-approved",
+  "production": false
+}

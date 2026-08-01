@@ -1,0 +1,4 @@
+-- BR-03 source-of-truth reconciliation record.
+-- Remote cleanup removed the transient password-rotation table and RPCs.
+-- Final BR-03 schema remains unchanged from BR-02; Auth and session behavior is implemented through Supabase Auth APIs.
+-- This inert record preserves exact migration ledger order without reintroducing temporary objects.

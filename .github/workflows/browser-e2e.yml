@@ -1,0 +1,185 @@
+name: Browser E2E
+
+on:
+  push:
+    branches: [develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/config/**'
+      - 'packages/domain/**'
+      - 'packages/supabase/**'
+      - 'packages/ui/**'
+      - 'packages/validation/**'
+      - 'scripts/br06/**'
+      - 'scripts/validate-br06.mjs'
+      - 'scripts/validate-br09.mjs'
+      - 'tests/br-06/**'
+      - 'tests/br-09/**'
+      - 'docs/br-06/**'
+      - 'docs/br-09/**'
+      - 'playwright.br06.config.mjs'
+      - 'playwright.br09.config.mjs'
+      - '.github/workflows/browser-e2e.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'supabase/**'
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/config/**'
+      - 'packages/domain/**'
+      - 'packages/supabase/**'
+      - 'packages/ui/**'
+      - 'packages/validation/**'
+      - 'scripts/br06/**'
+      - 'scripts/validate-br06.mjs'
+      - 'scripts/validate-br09.mjs'
+      - 'tests/br-06/**'
+      - 'tests/br-09/**'
+      - 'docs/br-06/**'
+      - 'docs/br-09/**'
+      - 'playwright.br06.config.mjs'
+      - 'playwright.br09.config.mjs'
+      - '.github/workflows/browser-e2e.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'supabase/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install isolated Playwright runner
+        run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0 @axe-core/playwright@4.10.2
+
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Create isolated local browser fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/br06-supabase.env
+          set -a
+          source /tmp/br06-supabase.env
+          set +a
+
+          export BR06_SUPABASE_URL="$API_URL"
+          export BR06_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          export BR06_E2E_PASSWORD='Br06-local-only-2026!'
+          export BR06_FIXTURE_SQL_PATH='/tmp/br06-fixtures.sql'
+
+          node scripts/br06/setup-local-fixtures.mjs
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
+
+          {
+            echo "EXPO_PUBLIC_MYFAN_ENV=development"
+            echo "EXPO_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "BR06_E2E_PASSWORD=$BR06_E2E_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Verify fixture isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/br06-supabase.env
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if (select count(*) from auth.users where email like 'br06.%@example.test') <> 5 then
+              raise exception 'BR-06 local fixture account count mismatch';
+            end if;
+            if (select count(*) from auth.users where email in (
+              'br06.creator@example.test',
+              'br06.viewer@example.test',
+              'br06.fan@example.test',
+              'br06.outsider@example.test'
+            )) <> 4 then
+              raise exception 'BR-06 browser actor count mismatch';
+            end if;
+            if not exists(
+              select 1
+              from private.user_roles ur
+              join auth.users u on u.id = ur.user_id
+              where u.email = 'br06.moderator@example.test'
+                and ur.role = 'moderator'
+                and ur.revoked_at is null
+            ) then
+              raise exception 'BR-06 local moderator fixture missing';
+            end if;
+            if exists(select 1 from auth.users where email ~ '^myfan([1-9]|1[0-6])@gmail[.]com$') then
+              raise exception 'controlled Beta accounts must not exist in the local BR-06 database';
+            end if;
+          end
+          $$;
+          SQL
+
+      - name: Run BR-06 mobile web browser E2E
+        run: pnpm exec playwright test --config playwright.br06.config.mjs
+
+      - name: Run BR-09 accessibility and resilience E2E
+        run: pnpm exec playwright test --config playwright.br09.config.mjs
+
+      - name: Upload BR-06 browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-06-browser-evidence
+          path: |
+            playwright-report/br-06
+            test-results/br-06
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload BR-09 browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-09-browser-evidence
+          path: |
+            playwright-report/br-09
+            test-results/br-09
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true

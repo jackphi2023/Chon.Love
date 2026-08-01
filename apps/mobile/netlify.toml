@@ -1,0 +1,40 @@
+[build]
+  command = "corepack enable && pnpm --filter @myfan/mobile build:web"
+  publish = "apps/mobile/dist"
+
+[build.environment]
+  NODE_VERSION = "22.13.0"
+  PNPM_VERSION = "10.15.1"
+  EXPO_PUBLIC_FEATURE_GOOGLE_PLAY_BILLING = "false"
+  EXPO_PUBLIC_FEATURE_SEND_GIFT = "false"
+  EXPO_PUBLIC_FEATURE_CREATOR_WALLET = "false"
+  EXPO_PUBLIC_FEATURE_CREATOR_KYC = "false"
+  EXPO_PUBLIC_FEATURE_WITHDRAWAL = "false"
+
+[context.production.environment]
+  EXPO_PUBLIC_MYFAN_ENV = "production"
+  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
+
+[context.deploy-preview.environment]
+  EXPO_PUBLIC_MYFAN_ENV = "development"
+  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
+
+[context.branch-deploy.environment]
+  EXPO_PUBLIC_MYFAN_ENV = "development"
+  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
+
+[context.develop.environment]
+  EXPO_PUBLIC_MYFAN_ENV = "development"
+  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
+
+[context."release/staging".environment]
+  EXPO_PUBLIC_MYFAN_ENV = "staging"
+  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"

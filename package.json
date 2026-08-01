@@ -1,0 +1,45 @@
+{
+  "name": "myfan",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=10.15.0 <11"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @myfan/mobile --filter @myfan/admin --filter @myfan/public-web dev",
+    "dev:mobile": "pnpm --filter @myfan/mobile dev",
+    "dev:admin": "pnpm --filter @myfan/admin dev",
+    "dev:public": "pnpm --filter @myfan/public-web dev",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "build": "pnpm build:web && pnpm build:mobile:web",
+    "build:web": "pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build",
+    "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
+    "validate:workspace": "node scripts/validate-workspace.mjs",
+    "validate:environments": "node scripts/validate-environments.mjs",
+    "validate:security": "node scripts/validate-br01.mjs",
+    "validate:integration": "node scripts/validate-br02.mjs",
+    "validate:auth": "node scripts/validate-br03.mjs",
+    "validate:social-e2e": "node scripts/validate-br04.mjs",
+    "validate:creator-e2e": "node scripts/validate-br05.mjs",
+    "validate:browser-e2e": "node scripts/validate-br06.mjs",
+    "validate:vietqr-reconciliation": "node scripts/validate-br07.mjs",
+    "validate:kyc-withdrawal-operations": "node scripts/validate-br08.mjs",
+    "validate:runtime-quality": "node scripts/validate-br09.mjs",
+    "validate:netlify-release": "node scripts/validate-br10.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:creator-e2e && pnpm validate:browser-e2e && pnpm validate:vietqr-reconciliation && pnpm validate:kyc-withdrawal-operations && pnpm validate:runtime-quality && pnpm validate:netlify-release"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "24.0.15",
+    "eslint": "9.39.5",
+    "globals": "17.7.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.65.0",
+    "vite": "7.3.6",
+    "vitest": "4.1.10"
+  }
+}

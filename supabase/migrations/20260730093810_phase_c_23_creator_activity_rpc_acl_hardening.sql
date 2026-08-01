@@ -1,0 +1,21 @@
+revoke all on function public.create_creator_activity_post(text,text,uuid,text,uuid) from anon,authenticated;
+revoke all on function public.prepare_creator_activity_preview(uuid) from anon,authenticated;
+revoke all on function public.list_creator_activity(text,integer,timestamptz,uuid) from anon,authenticated;
+revoke all on function public.get_creator_post_media_access(uuid) from anon,authenticated;
+revoke all on function public.archive_creator_activity_post(uuid) from anon,authenticated;
+revoke all on function public.delete_creator_activity_post(uuid) from anon,authenticated;
+revoke all on function public.send_gift_and_unlock_creator_post(uuid,uuid) from anon,authenticated;
+revoke all on function public.report_creator_activity(uuid,uuid,text,text,text) from anon,authenticated;
+revoke all on function public.list_creator_activity_moderation_queue(integer,integer) from anon,authenticated;
+revoke all on function public.moderate_creator_activity_post(uuid,text,text,text,uuid) from anon,authenticated;
+
+grant execute on function public.create_creator_activity_post(text,text,uuid,text,uuid) to authenticated,service_role;
+grant execute on function public.prepare_creator_activity_preview(uuid) to authenticated,service_role;
+grant execute on function public.list_creator_activity(text,integer,timestamptz,uuid) to anon,authenticated,service_role;
+grant execute on function public.get_creator_post_media_access(uuid) to anon,authenticated,service_role;
+grant execute on function public.archive_creator_activity_post(uuid) to authenticated,service_role;
+grant execute on function public.delete_creator_activity_post(uuid) to authenticated,service_role;
+grant execute on function public.send_gift_and_unlock_creator_post(uuid,uuid) to authenticated,service_role;
+grant execute on function public.report_creator_activity(uuid,uuid,text,text,text) to authenticated,service_role;
+grant execute on function public.list_creator_activity_moderation_queue(integer,integer) to authenticated,service_role;
+grant execute on function public.moderate_creator_activity_post(uuid,text,text,text,uuid) to authenticated,service_role;

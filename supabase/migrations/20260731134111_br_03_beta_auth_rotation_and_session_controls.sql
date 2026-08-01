@@ -1,0 +1,4 @@
+-- BR-03 source-of-truth reconciliation record.
+-- The remote migration briefly introduced password-rotation scaffolding while BR-03 scope was being finalized.
+-- The controlled Beta cohort must retain its operator-managed fixed credentials, so the final schema contains no rotation table or RPC.
+-- This repository record is intentionally inert and contains no credential, token, hash, or user fixture data.

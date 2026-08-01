@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MyFan">
+  <defs>
+    <linearGradient id="g" x1="72" y1="72" x2="440" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7A4D"/>
+      <stop offset="0.56" stop-color="#FF2E63"/>
+      <stop offset="1" stop-color="#9F4CF3"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="132" fill="url(#g)"/>
+  <path d="M256 390c-20-16-93-69-132-118-42-53-20-126 43-136 37-6 70 13 89 44 19-31 52-50 89-44 63 10 85 83 43 136-39 49-112 102-132 118Z" fill="#fff"/>
+  <circle cx="380" cy="124" r="30" fill="#FFF3A7"/>
+</svg>
