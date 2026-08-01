@@ -17,21 +17,35 @@ Trong **Project configuration → Build & deploy → Continuous deployment → B
 Production branch: main
 Base directory: [để trống]
 Package directory: apps/mobile
-Build command: corepack enable && pnpm --filter @myfan/mobile build:web
+Build command: [để trống]
 Publish directory: apps/mobile/dist
 Functions directory: [để trống]
 ```
+
+`apps/mobile/netlify.toml` là source of truth và đã khai báo build command chính thức:
+
+```text
+pnpm --filter @myfan/mobile build:web
+```
+
+Nếu Netlify hiển thị:
+
+```text
+Overridden by netlify.toml
+```
+
+đây không phải lỗi build. Thông báo chỉ cho biết giá trị trong Netlify UI bị file trong repository ghi đè. Hãy xóa Build command cũ trong UI và để trống để tránh gây nhầm lẫn.
 
 Lý do giữ Base directory trống: pnpm workspace và lockfile nằm ở repository root. Package directory chỉ giúp Netlify nhận diện app Mobile; publish path vẫn tính từ repository root.
 
 Repository đã pin:
 
 ```text
-Node.js: 22.13.0
+Node.js: 22.23.1
 pnpm: 10.15.1
 ```
 
-`apps/mobile/netlify.toml` là source of truth cho build command, publish directory, deploy contexts, financial feature flags và security headers.
+`apps/mobile/netlify.toml` quản lý build command, publish directory, deploy contexts, financial feature flags và security headers.
 
 ## 3. Environment variables
 
@@ -46,6 +60,14 @@ Scopes/contexts: Production, Deploy Previews và Branch deploys
 ```
 
 Khuyến nghị dùng modern publishable key có tiền tố `sb_publishable_`, không dùng service-role key.
+
+Google Auth mặc định fail closed:
+
+```text
+EXPO_PUBLIC_FEATURE_GOOGLE_AUTH=false
+```
+
+Chỉ đổi thành `true` sau khi đã hoàn tất cả Google Cloud và Supabase Provider theo mục 6.
 
 Các biến sau đã được khai báo an toàn trong `netlify.toml` và không cần nhập lại nếu Netlify đọc đúng file:
 
@@ -64,6 +86,7 @@ Tuyệt đối không tạo trên site frontend:
 ```text
 SUPABASE_SERVICE_ROLE_KEY
 MYFAN_PII_ENCRYPTION_KEY_B64
+Google OAuth client secret
 Google Play service-account credential
 Bank webhook secret
 ```
@@ -73,10 +96,10 @@ Sau khi thêm hoặc sửa environment variable, chạy một deploy mới vì E
 ## 4. Deploy đầu tiên
 
 1. Chọn **Deploys**.
-2. Chọn **Trigger deploy** → **Deploy site** nếu merge `main` chưa tự kích hoạt build.
+2. Chọn **Trigger deploy** → **Clear cache and deploy site** sau khi sửa build settings hoặc environment variables.
 3. Mở deploy log và xác nhận các bước:
    - checkout đúng commit `main`;
-   - Corepack/pnpm khởi tạo thành công;
+   - Node 22.23.1 và pnpm 10.15.1 khởi tạo thành công;
    - workspace dependencies cài bằng lockfile;
    - `@myfan/mobile build:web` hoàn thành;
    - publish directory là `apps/mobile/dist`;
@@ -85,24 +108,22 @@ Sau khi thêm hoặc sửa environment variable, chạy một deploy mới vì E
 
 ## 5. Supabase Auth URL configuration
 
-Sau khi Netlify cấp hostname, ví dụ `https://<site-name>.netlify.app`, mở Supabase project `asnydvqsduonyidjyyzq`:
-
-**Authentication → URL Configuration**
+Mở Supabase project `asnydvqsduonyidjyyzq` → **Authentication → URL Configuration**.
 
 Đặt:
 
 ```text
 Site URL:
-https://<site-name>.netlify.app
+https://myfanlove.netlify.app
 ```
 
 Thêm Redirect URLs:
 
 ```text
-https://<site-name>.netlify.app/auth/callback
-https://<site-name>.netlify.app/auth/callback/**
-https://**--<site-name>.netlify.app/auth/callback
-https://**--<site-name>.netlify.app/auth/callback/**
+https://myfanlove.netlify.app/auth/callback
+https://myfanlove.netlify.app/auth/callback/**
+https://**--myfanlove.netlify.app/auth/callback
+https://**--myfanlove.netlify.app/auth/callback/**
 ```
 
 Có thể giữ local development entries nếu vẫn cần:
@@ -114,20 +135,74 @@ http://localhost:3000/**
 
 Production nên dùng exact hostname/path; wildcard chỉ dành cho Deploy Preview.
 
-Google OAuth provider vẫn callback về Supabase Auth:
+## 6. Bật đăng nhập Google
+
+Lỗi:
+
+```text
+Unsupported provider: provider is not enabled
+```
+
+có nghĩa Google Provider chưa được bật trong Supabase. Không thể sửa lỗi này chỉ bằng deploy Netlify.
+
+### Google Cloud
+
+1. Mở Google Cloud Console → Google Auth Platform / APIs & Services.
+2. Tạo OAuth Client ID loại **Web application**.
+3. Thêm Authorized JavaScript origin:
+
+```text
+https://myfanlove.netlify.app
+```
+
+4. Thêm Authorized redirect URI:
 
 ```text
 https://asnydvqsduonyidjyyzq.supabase.co/auth/v1/callback
 ```
 
-Không thay callback của Google Cloud thành URL Netlify. Netlify URL là đích cuối do Supabase redirect về sau khi hoàn tất OAuth.
+5. Sao chép Client ID và Client Secret.
 
-## 6. Smoke test theo thứ tự
+### Supabase
 
-### Public và route fallback
+1. Mở **Authentication → Sign In / Providers → Google**.
+2. Bật Google Provider.
+3. Dán Client ID và Client Secret từ Google Cloud.
+4. Chọn Save.
+
+Google OAuth luôn callback về Supabase Auth:
+
+```text
+https://asnydvqsduonyidjyyzq.supabase.co/auth/v1/callback
+```
+
+Không thay callback Google Cloud thành URL Netlify. Supabase xử lý Google trước, sau đó mới chuyển người dùng về:
+
+```text
+https://myfanlove.netlify.app/auth/callback
+```
+
+### Mở nút Google trên Netlify
+
+Sau khi provider đã lưu thành công, tạo hoặc sửa biến:
+
+```text
+Key: EXPO_PUBLIC_FEATURE_GOOGLE_AUTH
+Value: true
+Scope: Builds
+Contexts: Production, Deploy Previews, Branch deploys
+```
+
+Sau đó chạy **Clear cache and deploy site**.
+
+## 7. Smoke test theo thứ tự
+
+### Homepage và route fallback
 
 1. Mở `/` ở cửa sổ ẩn danh.
-2. Mở trực tiếp rồi refresh:
+2. Xác nhận `/` hiển thị homepage MyFan, không tự chuyển sang Login.
+3. Chọn **Đăng nhập** hoặc **Tham gia MyFan** để mở trang Auth.
+4. Mở trực tiếp rồi refresh:
 
 ```text
 /auth/callback
@@ -146,7 +221,7 @@ Các route có thể hiển thị Auth/guard state, nhưng không được trả
 3. Mở tab mới cùng hostname; session phải đồng bộ.
 4. Đăng xuất global; các tab khác phải mất quyền sau khi refresh hoặc auth event.
 5. Kiểm tra quên mật khẩu bằng tài khoản thường, không dùng dải tài khoản Beta được quản lý.
-6. Chỉ test Google sau khi Supabase provider, Google OAuth client và redirect allowlist đã đúng.
+6. Chỉ test Google sau khi Supabase provider, Google OAuth client, redirect allowlist và `EXPO_PUBLIC_FEATURE_GOOGLE_AUTH=true` đã đúng.
 
 ### Core Social
 
@@ -172,7 +247,7 @@ Withdrawal request
 Automatic VietQR settlement
 ```
 
-## 7. Responsive và browser matrix
+## 8. Responsive và browser matrix
 
 Dùng DevTools hoặc thiết bị thật:
 
@@ -196,7 +271,7 @@ Safari macOS nếu có
 
 Kiểm tra focus, keyboard, touch target, loading/error/retry, mạng chậm, reconnect và không có horizontal overflow.
 
-## 8. Deploy Preview
+## 9. Deploy Preview
 
 Khi tạo PR sau BR-10:
 
@@ -205,7 +280,7 @@ Khi tạo PR sau BR-10:
 3. Không dùng Deploy Preview cho dữ liệu production thật ngoài phạm vi Beta đã chấp thuận.
 4. Không bật financial flags trong Deploy Preview.
 
-## 9. Rollback drill
+## 10. Rollback drill
 
 1. Mở **Deploys**.
 2. Chọn một deploy production đã thành công trước đó.
@@ -216,7 +291,7 @@ Khi tạo PR sau BR-10:
 
 BR-10 không có database migration mới, nên rollback hosting không cần rollback Supabase schema.
 
-## 10. Điều kiện dừng trước BR-11–12
+## 11. Điều kiện dừng trước BR-11–12
 
 Không bắt đầu BR-11 hoặc BR-12 khi còn một trong các lỗi:
 
@@ -224,6 +299,7 @@ Không bắt đầu BR-11 hoặc BR-12 khi còn một trong các lỗi:
 - Route refresh trả 404.
 - Supabase Auth redirect về localhost hoặc hostname sai.
 - Email/password login hoặc session restore lỗi.
+- Google button được bật khi provider chưa cấu hình.
 - Financial flag vô tình bật.
 - Mobile layout lỗi nghiêm trọng ở 360–430 px.
 - Chưa thực hiện rollback drill.
