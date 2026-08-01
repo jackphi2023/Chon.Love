@@ -68,6 +68,9 @@ jobs:
       - name: Validate BR-09 runtime quality source
         run: pnpm validate:runtime-quality
 
+      - name: Validate BR-10 Netlify release source
+        run: pnpm validate:netlify-release
+
       - name: Lint
         run: pnpm lint
 
