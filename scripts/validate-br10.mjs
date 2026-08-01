@@ -4,6 +4,8 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 const json = (path) => JSON.parse(read(path));
 const appConfig = json('apps/mobile/app.json');
 const packageJson = json('package.json');
+const nodeVersion = read('.node-version').trim();
+const pnpmVersion = /^pnpm@(.+)$/u.exec(packageJson.packageManager ?? '')?.[1] ?? '';
 const redirects = read('apps/mobile/public/_redirects');
 const netlify = read('apps/mobile/netlify.toml');
 const ci = read('.github/workflows/ci.yml');
@@ -13,9 +15,15 @@ const expect = (condition, message) => { if (!condition) errors.push(message); }
 expect(appConfig.expo?.web?.bundler === 'metro', 'Mobile Web must keep the Metro bundler.');
 expect(appConfig.expo?.web?.output === 'single', 'Mobile Web must export as a single-page application for dynamic authenticated routes.');
 expect(/^\/\*\s+\/index\.html\s+200\s*$/mu.test(redirects), 'Netlify SPA fallback must rewrite every route to /index.html with status 200.');
-expect(netlify.includes('command = "corepack enable && pnpm --filter @myfan/mobile build:web"'), 'Netlify must build the Mobile workspace from the monorepo root.');
+expect(netlify.includes('command = "pnpm --filter @myfan/mobile build:web"'), 'Netlify must build the Mobile workspace from the monorepo root.');
 expect(netlify.includes('publish = "apps/mobile/dist"'), 'Netlify publish directory must be apps/mobile/dist relative to the repository root.');
-expect(netlify.includes('NODE_VERSION = "22.13.0"') && netlify.includes('PNPM_VERSION = "10.15.1"'), 'Netlify Node and pnpm versions must match repository engines.');
+expect(
+  Boolean(nodeVersion)
+    && Boolean(pnpmVersion)
+    && netlify.includes(`NODE_VERSION = "${nodeVersion}"`)
+    && netlify.includes(`PNPM_VERSION = "${pnpmVersion}"`),
+  'Netlify Node and pnpm versions must match repository pins.',
+);
 expect(netlify.includes('[context.production.environment]') && netlify.includes('EXPO_PUBLIC_MYFAN_ENV = "production"'), 'Production deploys must use the production environment contract.');
 expect(netlify.includes('[context.deploy-preview.environment]') && netlify.includes('[context.branch-deploy.environment]'), 'Deploy Preview and branch deploy contexts must be explicit.');
 for (const flag of [
