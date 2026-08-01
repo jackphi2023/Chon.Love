@@ -99,7 +99,7 @@ jobs:
           test -f supabase/migrations/20260731172253_br_06_storage_policy_helper_execution.sql
           test -f supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql
-          test -f supabase/migrations/20260801033000_br_09_runtime_observability_resilience.sql
+          test -f supabase/migrations/20260801045034_br_09_runtime_observability_resilience.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
