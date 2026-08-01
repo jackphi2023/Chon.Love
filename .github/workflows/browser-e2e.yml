@@ -12,9 +12,13 @@ on:
       - 'packages/validation/**'
       - 'scripts/br06/**'
       - 'scripts/validate-br06.mjs'
+      - 'scripts/validate-br09.mjs'
       - 'tests/br-06/**'
+      - 'tests/br-09/**'
       - 'docs/br-06/**'
+      - 'docs/br-09/**'
       - 'playwright.br06.config.mjs'
+      - 'playwright.br09.config.mjs'
       - '.github/workflows/browser-e2e.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -29,9 +33,13 @@ on:
       - 'packages/validation/**'
       - 'scripts/br06/**'
       - 'scripts/validate-br06.mjs'
+      - 'scripts/validate-br09.mjs'
       - 'tests/br-06/**'
+      - 'tests/br-09/**'
       - 'docs/br-06/**'
+      - 'docs/br-09/**'
       - 'playwright.br06.config.mjs'
+      - 'playwright.br09.config.mjs'
       - '.github/workflows/browser-e2e.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -73,7 +81,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install isolated Playwright runner
-        run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0
+        run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0 @axe-core/playwright@4.10.2
 
       - name: Install Chromium and system dependencies
         run: pnpm exec playwright install --with-deps chromium
@@ -147,6 +155,9 @@ jobs:
       - name: Run BR-06 mobile web browser E2E
         run: pnpm exec playwright test --config playwright.br06.config.mjs
 
+      - name: Run BR-09 accessibility and resilience E2E
+        run: pnpm exec playwright test --config playwright.br09.config.mjs
+
       - name: Upload BR-06 browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -155,6 +166,17 @@ jobs:
           path: |
             playwright-report/br-06
             test-results/br-06
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload BR-09 browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-09-browser-evidence
+          path: |
+            playwright-report/br-09
+            test-results/br-09
           if-no-files-found: warn
           retention-days: 7
 
