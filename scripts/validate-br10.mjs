@@ -29,7 +29,7 @@ for (const flag of [
 }
 expect(!netlify.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Netlify frontend configuration must never contain a service-role key.');
 expect(!netlify.includes('MYFAN_PII_ENCRYPTION_KEY_B64'), 'Netlify frontend configuration must never contain the PII encryption key.');
-expect(!/EXPO_PUBLIC_SUPABASE_ANON_KEY\s*=\s*"[^\"]+"/u.test(netlify), 'The Supabase publishable key must be configured in Netlify UI, not committed.');
+expect(!/EXPO_PUBLIC_SUPABASE_ANON_KEY\s*=\s*"[^"]+"/u.test(netlify), 'The Supabase publishable key must be configured in Netlify UI, not committed.');
 expect(netlify.includes('X-Content-Type-Options = "nosniff"') && netlify.includes('X-Frame-Options = "DENY"'), 'Netlify baseline security headers must remain enabled.');
 expect(packageJson.scripts?.['validate:netlify-release'] === 'node scripts/validate-br10.mjs', 'package.json must expose validate:netlify-release.');
 expect(packageJson.scripts?.validate?.includes('validate:runtime-quality') && packageJson.scripts?.validate?.includes('validate:netlify-release'), 'Aggregate validation must preserve BR-09 and include BR-10.');
