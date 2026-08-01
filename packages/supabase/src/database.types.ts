@@ -1545,6 +1545,17 @@ export type Database = {
           status: string
         }[]
       }
+      admin_runtime_observability_snapshot: {
+        Args: { p_actor_user_id: string; p_window_minutes?: number }
+        Returns: {
+          affected_users: number
+          event_count: number
+          event_name: string
+          latest_at: string
+          retryable_count: number
+          severity: string
+        }[]
+      }
       admin_start_bank_review: {
         Args: {
           p_actor_user_id: string
@@ -2608,6 +2619,27 @@ export type Database = {
           moderation_status: Database["public"]["Enums"]["media_moderation_status"]
           storage_bucket: string
           storage_path: string
+        }[]
+      }
+      purge_expired_runtime_observability_events: {
+        Args: { p_batch_size?: number }
+        Returns: number
+      }
+      record_runtime_observability_event: {
+        Args: {
+          p_duration_ms?: number
+          p_error_code?: string
+          p_event_id: string
+          p_event_name: string
+          p_metadata_json?: Json
+          p_platform: string
+          p_release_channel: string
+          p_route_group: string
+          p_severity: string
+        }
+        Returns: {
+          already_recorded: boolean
+          observation_id: string
         }[]
       }
       record_verified_play_purchase: {
