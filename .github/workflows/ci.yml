@@ -76,3 +76,19 @@ jobs:
 
       - name: Build web applications and Expo web
         run: pnpm build
+
+  br09-source-snapshot:
+    if: github.ref_name == 'agent/br-09-observability-accessibility-resilience'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout BR-09 source
+        uses: actions/checkout@v4
+      - name: Create source archive
+        run: tar --exclude='.git' --exclude='node_modules' -czf /tmp/myfan-br09-source.tar.gz .
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-09-source-snapshot
+          path: /tmp/myfan-br09-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
