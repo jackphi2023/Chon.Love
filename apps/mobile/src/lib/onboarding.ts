@@ -64,7 +64,7 @@ export function getReadableOnboardingError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (/at least 18|đủ 18/iu.test(message)) return 'Bạn phải đủ 18 tuổi để sử dụng MyFan.';
   if (/date_of_birth|date of birth|invalid date/iu.test(message)) {
-    return 'Ngày sinh không hợp lệ. Vui lòng nhập theo định dạng YYYY-MM-DD.';
+    return 'Ngày sinh không hợp lệ. Vui lòng chọn đầy đủ Ngày – Tháng – Năm.';
   }
   if (/terms version|community rules version|policy versions/iu.test(message)) {
     return 'Phiên bản chính sách đã thay đổi. Vui lòng tải lại và chấp nhận lại.';
