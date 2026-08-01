@@ -4,7 +4,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 const json = (path) => JSON.parse(read(path));
 const packageJson = json('package.json');
 const releaseManifest = json('config/releases/beta-mobile-web.json');
-const migration = read('supabase/migrations/20260801033000_br_09_runtime_observability_resilience.sql');
+const migration = read('supabase/migrations/20260801045034_br_09_runtime_observability_resilience.sql');
 const dbTest = read('supabase/tests/br_09_runtime_observability_resilience.sql');
 const runtime = read('packages/supabase/src/runtime-observability.ts');
 const runtimeTest = read('packages/supabase/src/runtime-observability.test.ts');
@@ -30,7 +30,7 @@ const expect = (condition, message) => { if (!condition) errors.push(message); }
 expect(packageJson.scripts?.['validate:runtime-quality'] === 'node scripts/validate-br09.mjs', 'package.json must expose validate:runtime-quality.');
 expect(packageJson.scripts?.validate?.includes('validate:kyc-withdrawal-operations') && packageJson.scripts?.validate?.includes('validate:runtime-quality'), 'Aggregate validation must preserve BR-08 and include BR-09.');
 expect(ci.includes('pnpm validate:runtime-quality') && !ci.includes('br09-source-snapshot'), 'CI must run BR-09 without temporary snapshot jobs.');
-expect(databaseWorkflow.includes('20260801033000_br_09_runtime_observability_resilience.sql') && databaseWorkflow.includes('Run BR-09 runtime observability resilience'), 'Database CI must inventory and run BR-09.');
+expect(databaseWorkflow.includes('20260801045034_br_09_runtime_observability_resilience.sql') && databaseWorkflow.includes('Run BR-09 runtime observability resilience'), 'Database CI must inventory and run BR-09.');
 expect(browserWorkflow.includes('playwright.br09.config.mjs') && browserWorkflow.includes('@axe-core/playwright'), 'Browser CI must run BR-09 accessibility and resilience checks.');
 
 for (const token of ['private.runtime_observability_events','record_runtime_observability_event','admin_runtime_observability_snapshot','purge_expired_runtime_observability_events']) expect(migration.includes(token), `Migration must include ${token}.`);
