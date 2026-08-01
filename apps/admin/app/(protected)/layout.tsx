@@ -7,6 +7,7 @@ const links = [
   ['Payments', '/payments'],
   ['Withdrawals', '/withdrawals'],
   ['Moderation', '/moderation'],
+  ['Observability', '/runtime-observability'],
 ] as const;
 
 export default function ProtectedLayout({ children }: Readonly<{ children: React.ReactNode }>) {

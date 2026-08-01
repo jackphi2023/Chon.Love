@@ -64,6 +64,8 @@ export default function AuthHome() {
       <View style={styles.form}>
         <Text style={styles.label}>Email</Text>
         <TextInput
+          accessibilityHint="Nhập địa chỉ email đã đăng ký với MyFan"
+          accessibilityLabel="Email"
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
@@ -75,6 +77,8 @@ export default function AuthHome() {
         />
         <Text style={styles.label}>Mật khẩu</Text>
         <TextInput
+          accessibilityHint="Nhập mật khẩu của tài khoản MyFan"
+          accessibilityLabel="Mật khẩu"
           autoCapitalize="none"
           autoComplete="current-password"
           onChangeText={setPassword}
@@ -87,7 +91,10 @@ export default function AuthHome() {
         />
 
         <Pressable
+          accessibilityHint="Đăng nhập và tiếp tục đến khu vực được phép"
+          accessibilityLabel="Đăng nhập bằng email"
           accessibilityRole="button"
+          accessibilityState={{ disabled, busy: submitMode === 'email' }}
           disabled={disabled}
           onPress={handleEmailPress}
           style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, disabled && styles.disabled]}
@@ -99,7 +106,7 @@ export default function AuthHome() {
           )}
         </Pressable>
 
-        <Pressable accessibilityRole="link" onPress={() => router.push('/auth/forgot-password')}>
+        <Pressable accessibilityHint="Mở quy trình đặt lại mật khẩu" accessibilityLabel="Quên mật khẩu" accessibilityRole="link" onPress={() => router.push('/auth/forgot-password')} style={styles.linkButton}>
           <Text style={styles.link}>Quên mật khẩu?</Text>
         </Pressable>
       </View>
@@ -113,6 +120,8 @@ export default function AuthHome() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Tiếp tục với Google"
+        accessibilityHint="Mở quy trình đăng nhập Google an toàn"
+        accessibilityState={{ disabled, busy: submitMode === 'google' }}
         disabled={disabled}
         onPress={handleGooglePress}
         style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, disabled && styles.disabled]}
@@ -128,7 +137,7 @@ export default function AuthHome() {
       {!auth.isConfigured ? (
         <Text style={styles.notice}>Cần thiết lập Supabase publishable key để bật đăng nhập.</Text>
       ) : null}
-      {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
+      {errorMessage ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
 
       <View style={styles.securityCard}>
         <Text style={styles.securityTitle}>Bảo vệ phiên đăng nhập</Text>
@@ -165,7 +174,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-  link: { color: colors.primary, fontSize: 14, fontWeight: '800', textAlign: 'center', paddingVertical: spacing.sm },
+  linkButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  link: { color: colors.primary, fontSize: 14, fontWeight: '800', textAlign: 'center' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
   divider: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: { color: colors.muted, fontSize: 13 },

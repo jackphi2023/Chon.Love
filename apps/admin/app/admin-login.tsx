@@ -49,6 +49,7 @@ export function AdminLogin() {
           <Link className="adminPrimary" href="/activity-moderation">Kiểm duyệt Hoạt động</Link>
           <Link className="adminSecondary" href="/vietqr-reconciliation">Đối soát VietQR</Link>
           <Link className="adminSecondary" href="/kyc-withdrawal-operations">KYC và rút tiền</Link>
+          <Link className="adminSecondary" href="/runtime-observability">Observability</Link>
           <button className="adminSecondary" onClick={() => void signOut()} type="button">Đăng xuất</button>
         </div>
       </div>
@@ -59,11 +60,11 @@ export function AdminLogin() {
     <form className="adminCard adminLoginForm" onSubmit={signIn}>
       <p className="adminEyebrow">MODERATION · FINANCE · 18+</p>
       <h1>MyFan Admin</h1>
-      <p>Đăng nhập bằng tài khoản được cấp role phù hợp. Đối soát VietQR và vận hành KYC/rút tiền yêu cầu finance_admin hoặc super_admin.</p>
-      <label>Email<input autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
-      <label>Mật khẩu<input autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
+      <p id="admin-login-help">Đăng nhập bằng tài khoản được cấp role phù hợp. Đối soát VietQR và vận hành KYC/rút tiền yêu cầu finance_admin hoặc super_admin.</p>
+      <label htmlFor="admin-email">Email<input aria-describedby="admin-login-help" id="admin-email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
+      <label htmlFor="admin-password">Mật khẩu<input aria-describedby="admin-login-help" id="admin-password" autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
       {message ? <p className="adminError" role="alert">{message}</p> : null}
-      <button className="adminPrimary" disabled={busy} type="submit">{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
+      <button aria-busy={busy} className="adminPrimary" disabled={busy} type="submit">{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
     </form>
   );
 }

@@ -47,8 +47,8 @@ export default function TabsLayout() {
 function RouteLoading() {
   return (
     <View style={styles.loading}>
-      <ActivityIndicator color={colors.primary} size="large" />
-      <Text style={styles.loadingText}>Đang kiểm tra quyền truy cập…</Text>
+      <ActivityIndicator accessibilityLabel="Đang tải" accessibilityRole="progressbar" color={colors.primary} size="large" />
+      <Text accessibilityLiveRegion="polite" style={styles.loadingText}>Đang kiểm tra quyền truy cập…</Text>
     </View>
   );
 }

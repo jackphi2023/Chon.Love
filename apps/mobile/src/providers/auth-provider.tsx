@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { type AuthSignOutScope } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { emitMobileRuntimeObservation } from '@/lib/runtime-observability';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 
 type AuthContextValue = {
@@ -34,7 +35,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
     let mounted = true;
     void client.auth.getSession().then(async ({ data, error }) => {
-      if (error) logger.error('Unable to restore auth session', error);
+      if (error) {
+        logger.error('Unable to restore auth session', error, { feature: 'auth_restore' });
+        emitMobileRuntimeObservation({ eventName: 'auth_restore_error', severity: 'warning', routeGroup: 'auth', error, metadata: { feature: 'auth_restore' } });
+      }
       if (!mounted) return;
       if (!data.session) {
         setUserId(null);
@@ -43,7 +47,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
       const { data: userData, error: userError } = await client.auth.getUser();
-      if (userError) logger.error('Unable to validate restored auth user', userError);
+      if (userError) {
+        logger.error('Unable to validate restored auth user', userError, { feature: 'auth_restore' });
+        emitMobileRuntimeObservation({ eventName: 'auth_restore_error', severity: 'warning', routeGroup: 'auth', error: userError, metadata: { feature: 'auth_validation' } });
+      }
       if (mounted) {
         setUserId(userData.user?.id ?? null);
         setEmail(userData.user?.email ?? null);

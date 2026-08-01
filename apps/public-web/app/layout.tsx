@@ -26,6 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="vi">
       <body>
+        <a className="skipLink" href="#main-content">Bỏ qua đến nội dung chính</a>
         <header className="publicHeader">
           <Link className="publicBrand" href="/" aria-label="MyFan trang chủ">
             <span aria-hidden="true">♥</span>
@@ -63,7 +64,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </details>
         </header>
 
-        {children}
+        <div id="main-content" tabIndex={-1}>{children}</div>
 
         <footer className="publicFooter">
           <div>

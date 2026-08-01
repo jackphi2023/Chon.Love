@@ -4,8 +4,16 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'MyFan Admin',
   description: 'MyFan moderation and operations administration.',
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="vi"><body>{children}</body></html>;
+  return (
+    <html lang="vi">
+      <body>
+        <a className="skipLink" href="#main-content">Bỏ qua đến nội dung chính</a>
+        <div id="main-content" tabIndex={-1}>{children}</div>
+      </body>
+    </html>
+  );
 }

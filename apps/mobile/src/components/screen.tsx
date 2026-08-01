@@ -10,11 +10,15 @@ type ScreenProps = PropsWithChildren<{
 export function Screen({ title, description, children }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+      >
         <Text accessibilityRole="header" style={styles.title}>
           {title}
         </Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.description}>{description}</Text>
         <View style={styles.card}>{children}</View>
       </ScrollView>
     </SafeAreaView>
@@ -22,7 +26,7 @@ export function Screen({ title, description, children }: ScreenProps) {
 }
 
 export function Placeholder({ text }: { text: string }) {
-  return <Text style={styles.placeholder}>{text}</Text>;
+  return <Text accessibilityLiveRegion="polite" style={styles.placeholder}>{text}</Text>;
 }
 
 const styles = StyleSheet.create({
