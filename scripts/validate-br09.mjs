@@ -14,6 +14,7 @@ const mobileProviders = read('apps/mobile/src/providers/app-providers.tsx');
 const mobileBoundary = read('apps/mobile/src/components/app-error-boundary.tsx');
 const mobileLogin = read('apps/mobile/app/(auth)/index.tsx');
 const mobileHtml = read('apps/mobile/app/+html.tsx');
+const mobileLayout = read('apps/mobile/app/_layout.tsx');
 const adminLayout = read('apps/admin/app/layout.tsx');
 const adminError = read('apps/admin/app/error.tsx');
 const publicLayout = read('apps/public-web/app/layout.tsx');
@@ -51,7 +52,8 @@ expect(runtime.includes('FORBIDDEN_TELEMETRY_KEY') && runtime.includes('ALLOWED_
 expect(mobileProviders.includes('mutations:') && mobileProviders.includes('retry: false'), 'Mobile mutations must never auto-retry.');
 expect(mobileBoundary.includes('accessibilityRole="alert"') && mobileBoundary.includes('route_recovered'), 'Mobile error boundary must be accessible and report recovery.');
 expect(mobileLogin.includes('accessibilityLabel="Email"') && mobileLogin.includes('accessibilityLabel="Mật khẩu"'), 'Mobile login fields require accessible names.');
-expect(mobileHtml.includes('<html lang="vi">') && mobileHtml.includes('<title>MyFan — Mạng xã hội Creator 18+</title>'), 'Expo Web must publish Vietnamese language metadata and a non-empty document title.');
+expect(mobileHtml.includes('<html lang="vi">') && mobileHtml.includes('<title>MyFan — Mạng xã hội Creator 18+</title>'), 'Expo Web export shell must publish Vietnamese language metadata and a non-empty document title.');
+expect(mobileLayout.includes("document.documentElement.lang = 'vi'") && mobileLayout.includes('document.title = WEB_TITLE'), 'Expo Web runtime must restore document language and title in development previews.');
 expect(ui.includes('minimumTouchTarget: 44') && ui.includes('contrastRatio') && uiTest.includes('WCAG AA'), 'Shared UI must enforce touch and contrast contracts.');
 expect(adminLayout.includes('skipLink') && publicLayout.includes('skipLink'), 'Admin and Public Web need skip links.');
 expect(adminError.includes('tabIndex={-1}') && publicError.includes('tabIndex={-1}'), 'Web error boundaries must move focus to their heading.');
