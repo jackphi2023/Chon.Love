@@ -78,11 +78,13 @@ jobs:
         run: pnpm build
 
   br09-source-snapshot:
-    if: github.ref_name == 'agent/br-09-observability-accessibility-resilience'
+    if: github.ref_name == 'agent/br-09-observability-accessibility-resilience' || github.head_ref == 'agent/br-09-observability-accessibility-resilience'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout BR-09 source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - name: Create source archive
         run: tar --exclude='.git' --exclude='node_modules' -czf /tmp/myfan-br09-source.tar.gz .
       - name: Upload source archive
