@@ -13,6 +13,7 @@ import {
 import { useEffect, useState, type PropsWithChildren } from 'react';
 import { AppState, Platform } from 'react-native';
 import { emitMobileRuntimeObservation } from '@/lib/runtime-observability';
+import { getMobileSupabaseClient } from '@/lib/supabase';
 import { AuthProvider } from './auth-provider';
 
 export function AppProviders({ children }: PropsWithChildren) {
@@ -50,10 +51,21 @@ export function AppProviders({ children }: PropsWithChildren) {
   );
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (status) => {
-      focusManager.setFocused(status === 'active');
-    });
-    return () => subscription.remove();
+    const client = getMobileSupabaseClient();
+    const syncLifecycle = (status: string) => {
+      const active = status === 'active';
+      focusManager.setFocused(active);
+      if (Platform.OS === 'web' || !client) return;
+      if (active) client.auth.startAutoRefresh();
+      else client.auth.stopAutoRefresh();
+    };
+
+    syncLifecycle(AppState.currentState);
+    const subscription = AppState.addEventListener('change', syncLifecycle);
+    return () => {
+      subscription.remove();
+      if (Platform.OS !== 'web') client?.auth.stopAutoRefresh();
+    };
   }, []);
 
   useEffect(() => {
