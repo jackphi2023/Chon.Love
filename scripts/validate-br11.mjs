@@ -68,4 +68,4 @@ expect(!mobilePackage.dependencies['react-native-webview'], 'react-native-webvie
 expect(!mobileSource.includes("from 'react-native-webview'"), 'WebView imports are forbidden; native UI must remain native.');
 expect(!mobileSource.includes('<WebView'), 'WebView rendering is forbidden; native UI must remain native.');
 
-console.log('BR-11 native parity source validation passed.');
+console.warn('BR-11 native parity source validation passed.');
