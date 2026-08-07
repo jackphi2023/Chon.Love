@@ -71,6 +71,9 @@ jobs:
       - name: Validate BR-10 Netlify release source
         run: pnpm validate:netlify-release
 
+      - name: Validate BR-11 native parity source
+        run: pnpm validate:native-parity
+
       - name: Lint
         run: pnpm lint
 
