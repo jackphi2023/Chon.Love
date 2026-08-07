@@ -19,7 +19,7 @@ export function getMobileSupabaseClient(): MobileSupabaseClient | null {
       flowType: 'pkce',
       detectSessionInUrl: false,
       persistSession: true,
-      storage: mobileAuthStorage,
+      ...(mobileAuthStorage ? { storage: mobileAuthStorage } : {}),
       allowInsecureLocalhost: environment.appEnvironment === 'development',
     },
   );
