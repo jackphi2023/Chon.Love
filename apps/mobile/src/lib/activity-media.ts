@@ -1,7 +1,7 @@
 import type { createPublicSupabaseClient } from '@myfan/supabase';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import { z } from 'zod';
+import { pickDeviceImage, type DeviceImageSource } from './media-picker';
 
 const MAX_RENDER_DIMENSION = 2048;
 const MAX_ACTIVITY_BYTES = 5 * 1024 * 1024;
@@ -11,6 +11,8 @@ const preparedUploadSchema = z.object({
   storage_bucket: z.string(),
   storage_path: z.string(),
 });
+
+export type ActivityImageSource = DeviceImageSource;
 
 export type PreparedActivityImage = {
   previewUri: string;
@@ -23,16 +25,16 @@ export type PreparedActivityImage = {
 
 type Client = ReturnType<typeof createPublicSupabaseClient>;
 
-export async function pickOneActivityImage(): Promise<PreparedActivityImage | null> {
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
+export async function pickOneActivityImage(
+  source: ActivityImageSource = 'library',
+): Promise<PreparedActivityImage | null> {
+  const asset = await pickDeviceImage(source, {
     allowsEditing: false,
     allowsMultipleSelection: false,
     quality: 1,
   });
-  if (result.canceled) return null;
-  const asset = result.assets[0];
   if (!asset || (asset.type && asset.type !== 'image') || !asset.width || !asset.height) {
+    if (!asset) return null;
     throw new Error('invalid_activity_image');
   }
 
@@ -86,6 +88,8 @@ export async function uploadActivityImage(client: Client, image: PreparedActivit
 
 export function getReadableActivityMediaError(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
+  if (message.includes('camera_permission_denied')) return 'Hãy cấp quyền camera để chụp ảnh cho Hoạt động.';
+  if (message.includes('media_library_permission_denied')) return 'Hãy cấp quyền thư viện ảnh để chọn ảnh cho Hoạt động.';
   if (message.includes('too_large') || message.includes('file_size')) return 'Ảnh phải nhỏ hơn 5 MB sau khi tối ưu.';
   if (message.includes('unsupported') || message.includes('mime')) return 'MyFan chỉ nhận ảnh JPEG, PNG hoặc WebP.';
   return 'Không thể chuẩn bị ảnh. Hãy chọn một ảnh khác và thử lại.';
