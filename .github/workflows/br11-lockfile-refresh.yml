@@ -1,0 +1,47 @@
+name: BR-11 Lockfile Refresh
+
+on:
+  push:
+    branches: ['agent/br-11-native-parity-development-build']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lockfile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/br-11-native-parity-development-build
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Refresh lockfile only
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Commit lockfile when changed
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore(br-11): refresh lockfile"
+          git push origin HEAD:agent/br-11-native-parity-development-build
