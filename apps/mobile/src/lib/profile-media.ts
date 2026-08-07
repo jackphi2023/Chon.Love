@@ -1,15 +1,15 @@
 import { SaveFormat, ImageManipulator } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import {
   profileImageMetadataSchema,
   type ProfileImageMetadata,
 } from '@myfan/validation';
 import type { PreparedImageUpload } from '@myfan/supabase';
+import { pickDeviceImage, type DeviceImageSource } from './media-picker';
 
 const MAX_RENDER_DIMENSION = 2048;
 const JPEG_COMPRESSION = 0.82;
 
-export type ProfileImageSource = 'library' | 'camera';
+export type ProfileImageSource = DeviceImageSource;
 
 export type PreparedLocalProfileImage = PreparedImageUpload & {
   previewUri: string;
@@ -23,33 +23,16 @@ function getResizeTarget(width: number, height: number): { width: number | null;
   return { width: null, height: MAX_RENDER_DIMENSION };
 }
 
-async function selectImage(source: ProfileImageSource): Promise<ImagePicker.ImagePickerAsset | null> {
-  if (source === 'camera') {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) throw new Error('camera_permission_denied');
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-    return result.canceled ? null : (result.assets[0] ?? null);
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: false,
-    allowsMultipleSelection: false,
-    quality: 1,
-  });
-  return result.canceled ? null : (result.assets[0] ?? null);
-}
-
 export async function pickAndPrepareProfileImage(
   source: ProfileImageSource,
   visibility: PreparedImageUpload['visibility'],
 ): Promise<PreparedLocalProfileImage | null> {
-  const asset = await selectImage(source);
+  const asset = await pickDeviceImage(source, {
+    allowsEditing: source === 'camera',
+    allowsMultipleSelection: false,
+    ...(source === 'camera' ? { aspect: [1, 1] as [number, number] } : {}),
+    quality: 1,
+  });
   if (!asset) return null;
   if (asset.type && asset.type !== 'image') throw new Error('unsupported_media_type');
   if (!asset.width || !asset.height) throw new Error('invalid_media_dimensions');
@@ -90,6 +73,9 @@ export function getReadableProfileMediaError(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('camera_permission_denied')) {
     return 'MyFan chỉ dùng camera khi bạn chủ động chụp ảnh. Hãy cấp quyền camera để tiếp tục.';
+  }
+  if (message.includes('media_library_permission_denied')) {
+    return 'MyFan cần quyền truy cập thư viện ảnh khi bạn chủ động chọn ảnh.';
   }
   if (message.includes('invalid_media_file_size') || message.includes('too large')) {
     return 'Ảnh vượt quá dung lượng cho phép. Hãy chọn ảnh nhỏ hơn.';
