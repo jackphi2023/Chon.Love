@@ -1,6 +1,6 @@
 import { createPublicSupabaseClient } from '@myfan/supabase';
-import { Platform } from 'react-native';
 import { getMobileEnvironmentStatus } from './environment';
+import { mobileAuthStorage } from './auth-storage';
 
 type MobileSupabaseClient = ReturnType<typeof createPublicSupabaseClient>;
 
@@ -18,7 +18,8 @@ export function getMobileSupabaseClient(): MobileSupabaseClient | null {
     {
       flowType: 'pkce',
       detectSessionInUrl: false,
-      persistSession: Platform.OS === 'web',
+      persistSession: true,
+      storage: mobileAuthStorage,
       allowInsecureLocalhost: environment.appEnvironment === 'development',
     },
   );
