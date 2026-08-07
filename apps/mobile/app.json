@@ -10,6 +10,18 @@
     "plugins": [
       "expo-router",
       [
+        "expo-dev-client",
+        {
+          "launchMode": "launcher"
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "MyFan cần truy cập ảnh bạn chọn để cập nhật hồ sơ và album.",
