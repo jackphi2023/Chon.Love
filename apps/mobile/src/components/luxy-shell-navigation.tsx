@@ -1,5 +1,4 @@
 import {
-  colors,
   luxyBreakpoints,
   luxyBrand,
   luxyColors,
