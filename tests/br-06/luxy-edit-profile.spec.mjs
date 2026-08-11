@@ -28,6 +28,8 @@ async function assertCoreEditor(page) {
   await expect(page.getByText('Tên hiển thị', { exact: true })).toBeVisible();
   await expect(page.getByText('Tiêu đề', { exact: true })).toBeVisible();
   await expect(page.getByText('Địa điểm chính', { exact: true })).toBeVisible();
+  await expect(page.getByText('Địa điểm thứ hai', { exact: true })).toBeVisible();
+  await expect(page.getByText('Địa điểm khác', { exact: true })).toBeVisible();
   await expect(page.getByText('Chiều cao', { exact: true })).toBeVisible();
   await expect(page.getByText('Cân nặng', { exact: true })).toBeVisible();
   await expect(page.getByText('Tình trạng quan hệ', { exact: true })).toBeVisible();
