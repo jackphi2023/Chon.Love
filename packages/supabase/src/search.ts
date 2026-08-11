@@ -141,33 +141,33 @@ export async function searchLuxyProfilesV2(
   input: SearchLuxyProfilesInput = {},
 ): Promise<LuxySearchProfile[]> {
   const parsed = parseLuxySearchInput(input);
-  const args = {
+  const args: Database['public']['Functions']['search_luxy_profiles_v2']['Args'] = {
     p_sort: parsed.sort,
-    p_province_id: parsed.provinceId ?? null,
-    p_max_distance_km: parsed.maxDistanceKm ?? null,
     p_min_age: parsed.minAge,
     p_max_age: parsed.maxAge,
-    p_genders: parsed.genders ?? null,
-    p_min_height_cm: parsed.minHeightCm ?? null,
-    p_max_height_cm: parsed.maxHeightCm ?? null,
-    p_min_weight_kg: parsed.minWeightKg ?? null,
-    p_max_weight_kg: parsed.maxWeightKg ?? null,
-    p_relationship_statuses: parsed.relationshipStatuses ?? null,
-    p_children_statuses: parsed.childrenStatuses ?? null,
-    p_smoking_statuses: parsed.smokingStatuses ?? null,
-    p_drinking_statuses: parsed.drinkingStatuses ?? null,
-    p_education_levels: parsed.educationLevels ?? null,
-    p_lifestyle_tags: parsed.lifestyleTags ?? null,
-    p_languages: parsed.languages ?? null,
-    p_interests: parsed.interests ?? null,
-    p_has_photo: parsed.hasPhoto ?? null,
-    p_online_now: parsed.onlineNow ?? null,
-    p_occupation_text: parsed.occupationText || null,
-    p_profile_text: parsed.profileText || null,
     p_limit: parsed.limit,
     p_offset: parsed.offset,
+    ...(parsed.provinceId == null ? {} : { p_province_id: parsed.provinceId }),
+    ...(parsed.maxDistanceKm == null ? {} : { p_max_distance_km: parsed.maxDistanceKm }),
+    ...(parsed.genders?.length ? { p_genders: parsed.genders } : {}),
+    ...(parsed.minHeightCm == null ? {} : { p_min_height_cm: parsed.minHeightCm }),
+    ...(parsed.maxHeightCm == null ? {} : { p_max_height_cm: parsed.maxHeightCm }),
+    ...(parsed.minWeightKg == null ? {} : { p_min_weight_kg: parsed.minWeightKg }),
+    ...(parsed.maxWeightKg == null ? {} : { p_max_weight_kg: parsed.maxWeightKg }),
+    ...(parsed.relationshipStatuses?.length ? { p_relationship_statuses: parsed.relationshipStatuses } : {}),
+    ...(parsed.childrenStatuses?.length ? { p_children_statuses: parsed.childrenStatuses } : {}),
+    ...(parsed.smokingStatuses?.length ? { p_smoking_statuses: parsed.smokingStatuses } : {}),
+    ...(parsed.drinkingStatuses?.length ? { p_drinking_statuses: parsed.drinkingStatuses } : {}),
+    ...(parsed.educationLevels?.length ? { p_education_levels: parsed.educationLevels } : {}),
+    ...(parsed.lifestyleTags?.length ? { p_lifestyle_tags: parsed.lifestyleTags } : {}),
+    ...(parsed.languages?.length ? { p_languages: parsed.languages } : {}),
+    ...(parsed.interests?.length ? { p_interests: parsed.interests } : {}),
+    ...(parsed.hasPhoto == null ? {} : { p_has_photo: parsed.hasPhoto }),
+    ...(parsed.onlineNow == null ? {} : { p_online_now: parsed.onlineNow }),
+    ...(parsed.occupationText ? { p_occupation_text: parsed.occupationText } : {}),
+    ...(parsed.profileText ? { p_profile_text: parsed.profileText } : {}),
   };
-  const { data, error } = await client.rpc('search_luxy_profiles_v2' as never, args as never);
+  const { data, error } = await client.rpc('search_luxy_profiles_v2', args);
   if (error) throw error;
   return z.array(luxySearchProfileSchema).parse(data ?? []);
 }
