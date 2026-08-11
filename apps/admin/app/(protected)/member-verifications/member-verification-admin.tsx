@@ -31,6 +31,10 @@ export function MemberVerificationAdmin() {
 
   const load = useCallback(async () => {
     const client = getAdminSupabaseClient();
+    if (!client) {
+      setError('Supabase Admin chưa được cấu hình.');
+      return;
+    }
     setBusy(true); setError(null);
     try {
       const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_list', limit: 100, offset: 0 } });
@@ -44,6 +48,10 @@ export function MemberVerificationAdmin() {
 
   async function openDetail(item: QueueItem) {
     const client = getAdminSupabaseClient();
+    if (!client) {
+      setError('Supabase Admin chưa được cấu hình.');
+      return;
+    }
     setBusy(true); setError(null);
     try {
       const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_detail', caseId: item.case_id } });
@@ -58,6 +66,10 @@ export function MemberVerificationAdmin() {
     if (!window.confirm(`Xác nhận ${label} tài khoản này?`)) return;
     const reason = window.prompt('Lý do review (khuyến nghị nhập để audit rõ ràng):', decision === 'approve' ? 'Ảnh selfie và ảnh hồ sơ cùng người.' : 'Ảnh không đủ căn cứ xác minh.') ?? '';
     const client = getAdminSupabaseClient();
+    if (!client) {
+      setError('Supabase Admin chưa được cấu hình.');
+      return;
+    }
     setBusy(true); setError(null);
     try {
       const { error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_review', caseId, decision, reason, requestId: crypto.randomUUID() } });
