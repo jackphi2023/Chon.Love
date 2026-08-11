@@ -40,7 +40,9 @@ export default function FavoritesPage() {
   const query = useInfiniteQuery({
     queryKey: ['luxy-interests', auth.userId, scope],
     enabled: Boolean(client && auth.userId),
-    staleTime: 30_000,
+    // Incoming Favorite/View signals may change in another authenticated session.
+    // Treat each tab activation as fresh instead of hiding changes behind a long client cache.
+    staleTime: 0,
     gcTime: 5 * 60_000,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
