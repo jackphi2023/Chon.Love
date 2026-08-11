@@ -1,6 +1,6 @@
 begin;
 
-select plan(18);
+select plan(29);
 
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,
@@ -33,9 +33,32 @@ select is(
 );
 
 select is(
-  (select height_cm from public.profiles where id='17000000-0000-0000-0000-000000000001'),
-  null::smallint,
-  'new profile keeps height nullable for legacy compatibility'
+  (select headline from public.profiles where id='17000000-0000-0000-0000-000000000001'),
+  null::text,
+  'new profile keeps headline nullable for legacy compatibility'
+);
+
+select ok(
+  (select height_cm is null and weight_kg is null from public.profiles where id='17000000-0000-0000-0000-000000000001'),
+  'new profile keeps physical fields nullable for legacy compatibility'
+);
+
+select is(
+  (
+    select concat_ws('|', children_status::text, smoking_status::text, drinking_status::text, education_level::text)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'prefer_not_to_say|prefer_not_to_say|prefer_not_to_say|prefer_not_to_say',
+  'new lifestyle/career enums default to prefer_not_to_say'
+);
+
+select is(
+  (
+    select concat_ws('|', age_preference_min::text, age_preference_max::text)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  '18|99',
+  'new profile receives a broad adult age preference by default'
 );
 
 select is(
@@ -58,10 +81,20 @@ select is(
   'relationship status enum covers the Luxy profile setup contract'
 );
 
+select is(
+  (
+    select count(*)
+    from pg_catalog.pg_enum
+    where enumtypid = 'public.profile_lifestyle_tag'::regtype
+  ),
+  17::bigint,
+  'canonical Luxy lifestyle/intent tag taxonomy contains 17 Seeking-derived codes'
+);
+
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.update_my_luxy_profile(text,text,text,public.gender_identity,bigint,text[],boolean,boolean,public.dating_interest,smallint,public.relationship_status)',
+    'public.update_my_luxy_profile(text,text,text,public.gender_identity,bigint,text[],boolean,boolean,text,public.dating_interest,smallint,smallint,public.relationship_status,public.children_status,public.smoking_status,public.drinking_status,public.education_level,text,text,smallint,smallint,public.profile_lifestyle_tag[],text[])',
     'EXECUTE'
   ),
   'authenticated members can execute the Luxy profile RPC'
@@ -70,7 +103,7 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.update_my_luxy_profile(text,text,text,public.gender_identity,bigint,text[],boolean,boolean,public.dating_interest,smallint,public.relationship_status)',
+    'public.update_my_luxy_profile(text,text,text,public.gender_identity,bigint,text[],boolean,boolean,text,public.dating_interest,smallint,smallint,public.relationship_status,public.children_status,public.smoking_status,public.drinking_status,public.education_level,text,text,smallint,smallint,public.profile_lifestyle_tag[],text[])',
     'EXECUTE'
   ),
   'anonymous users cannot execute the Luxy profile RPC'
@@ -109,17 +142,13 @@ select set_config(
 
 select throws_ok(
   $$select public.update_my_luxy_profile(
-    'lx07_user_b'::text,
-    'LX07 User B'::text,
-    null::text,
-    'male'::public.gender_identity,
-    (select id from public.administrative_areas where country_code='VN' and code='79'),
-    '{}'::text[],
-    true,
-    false,
-    'female'::public.dating_interest,
-    175::smallint,
-    'single'::public.relationship_status
+    p_username => 'lx07_user_b'::text,
+    p_display_name => 'LX07 User B'::text,
+    p_gender => 'male'::public.gender_identity,
+    p_province_id => (select id from public.administrative_areas where country_code='VN' and code='79'),
+    p_interested_in => 'female'::public.dating_interest,
+    p_height_cm => 175::smallint,
+    p_relationship_status => 'single'::public.relationship_status
   )$$,
   '42501',
   'adult_onboarding_required',
@@ -144,37 +173,94 @@ select lives_ok(
 
 select lives_ok(
   $$select public.update_my_luxy_profile(
-    'lx07_user_a'::text,
-    'LX07 User A'::text,
-    'Seeking-derived Luxy profile'::text,
-    'male'::public.gender_identity,
-    (select id from public.administrative_areas where country_code='VN' and code='79'),
-    array['Du lịch','Ẩm thực']::text[],
-    true,
-    true,
-    'female'::public.dating_interest,
-    178::smallint,
-    'single'::public.relationship_status
+    p_username => 'lx07_user_a'::text,
+    p_display_name => 'LX07 User A'::text,
+    p_bio => 'Seeking-derived Luxy profile'::text,
+    p_gender => 'male'::public.gender_identity,
+    p_province_id => (select id from public.administrative_areas where country_code='VN' and code='79'),
+    p_interests => array['Du lịch','Ẩm thực']::text[],
+    p_discovery_enabled => true,
+    p_nearby_enabled => true,
+    p_headline => 'Doanh nhân yêu du lịch'::text,
+    p_interested_in => 'female'::public.dating_interest,
+    p_height_cm => 178::smallint,
+    p_weight_kg => 72::smallint,
+    p_relationship_status => 'single'::public.relationship_status,
+    p_children_status => 'no_children'::public.children_status,
+    p_smoking_status => 'never'::public.smoking_status,
+    p_drinking_status => 'socially'::public.drinking_status,
+    p_education_level => 'masters'::public.education_level,
+    p_occupation => 'Doanh nhân'::text,
+    p_looking_for => 'Mối quan hệ nghiêm túc, tôn trọng và cùng phát triển.'::text,
+    p_age_preference_min => 25::smallint,
+    p_age_preference_max => 40::smallint,
+    p_lifestyle_tags => array['long_term','marriage_minded','long_term','ready_to_travel']::public.profile_lifestyle_tag[],
+    p_languages => array[' Tiếng Việt ','tiếng việt','English']::text[]
   )$$,
-  'authenticated adult can save the Luxy profile contract'
+  'authenticated adult can save the complete Luxy profile contract'
 );
 
 select is(
-  (select interested_in::text from public.profiles where id='17000000-0000-0000-0000-000000000001'),
-  'female',
-  'Luxy RPC persists interested_in'
+  (
+    select concat_ws('|', headline, interested_in::text)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'Doanh nhân yêu du lịch|female',
+  'Luxy RPC persists headline and interested_in'
 );
 
 select is(
-  (select height_cm from public.profiles where id='17000000-0000-0000-0000-000000000001'),
-  178::smallint,
-  'Luxy RPC persists height_cm'
+  (
+    select concat_ws('|', height_cm::text, weight_kg::text)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  '178|72',
+  'Luxy RPC persists physical fields'
 );
 
 select is(
-  (select relationship_status::text from public.profiles where id='17000000-0000-0000-0000-000000000001'),
-  'single',
-  'Luxy RPC persists relationship_status'
+  (
+    select concat_ws('|', relationship_status::text, children_status::text, smoking_status::text, drinking_status::text)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'single|no_children|never|socially',
+  'Luxy RPC persists relationship and lifestyle fields'
+);
+
+select is(
+  (
+    select concat_ws('|', education_level::text, occupation)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'masters|Doanh nhân',
+  'Luxy RPC persists education and occupation'
+);
+
+select is(
+  (
+    select concat_ws('|', looking_for, age_preference_min::text, age_preference_max::text)
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'Mối quan hệ nghiêm túc, tôn trọng và cùng phát triển.|25|40',
+  'Luxy RPC persists looking-for copy and preferred age range'
+);
+
+select is(
+  (
+    select array_to_string(lifestyle_tags::text[], ',')
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'long_term,marriage_minded,ready_to_travel',
+  'Luxy RPC de-duplicates and persists canonical lifestyle tags'
+);
+
+select is(
+  (
+    select array_to_string(languages, '|')
+    from public.profiles where id='17000000-0000-0000-0000-000000000001'
+  ),
+  'Tiếng Việt|English',
+  'Luxy RPC trims and de-duplicates public language labels'
 );
 
 select lives_ok(
@@ -193,31 +279,72 @@ select lives_ok(
 
 select is(
   (
-    select concat_ws('|', interested_in::text, height_cm::text, relationship_status::text)
+    select concat_ws('|', headline, interested_in::text, height_cm::text, relationship_status::text, occupation)
     from public.profiles
     where id='17000000-0000-0000-0000-000000000001'
   ),
-  'female|178|single',
-  'legacy profile writes preserve the new Luxy fields'
+  'Doanh nhân yêu du lịch|female|178|single|Doanh nhân',
+  'legacy profile writes preserve all new Luxy fields'
 );
 
 select throws_ok(
   $$select public.update_my_luxy_profile(
-    'lx07_user_a'::text,
-    'LX07 User A'::text,
-    null::text,
-    'male'::public.gender_identity,
-    (select id from public.administrative_areas where country_code='VN' and code='79'),
-    '{}'::text[],
-    true,
-    false,
-    'female'::public.dating_interest,
-    119::smallint,
-    'single'::public.relationship_status
+    p_username => 'lx07_user_a'::text,
+    p_display_name => 'LX07 User A'::text,
+    p_height_cm => 119::smallint
   )$$,
   '22023',
   'invalid_height_cm',
   'height outside the supported profile range is rejected'
+);
+
+select throws_ok(
+  $$select public.update_my_luxy_profile(
+    p_username => 'lx07_user_a'::text,
+    p_display_name => 'LX07 User A'::text,
+    p_weight_kg => 251::smallint
+  )$$,
+  '22023',
+  'invalid_weight_kg',
+  'weight outside the supported profile range is rejected'
+);
+
+select throws_ok(
+  $$select public.update_my_luxy_profile(
+    p_username => 'lx07_user_a'::text,
+    p_display_name => 'LX07 User A'::text,
+    p_age_preference_min => 45::smallint,
+    p_age_preference_max => 30::smallint
+  )$$,
+  '22023',
+  'invalid_age_preference',
+  'inverted preferred age range is rejected'
+);
+
+select throws_ok(
+  $$select public.update_my_luxy_profile(
+    p_username => 'lx07_user_a'::text,
+    p_display_name => 'LX07 User A'::text,
+    p_lifestyle_tags => array[
+      'true_love','luxury_lifestyle','active_lifestyle','flexible_schedule',
+      'emotional_connection','refined','fine_dining','friendship','long_term',
+      'marriage_minded','monogamous','romantic','ready_to_travel'
+    ]::public.profile_lifestyle_tag[]
+  )$$,
+  '22023',
+  'too_many_lifestyle_tags',
+  'more than 12 lifestyle tags are rejected'
+);
+
+select throws_ok(
+  $$select public.update_my_luxy_profile(
+    p_username => 'lx07_user_a'::text,
+    p_display_name => 'LX07 User A'::text,
+    p_languages => array['a']::text[]
+  )$$,
+  '22023',
+  'invalid_language',
+  'invalid public language labels are rejected'
 );
 
 select * from finish();
