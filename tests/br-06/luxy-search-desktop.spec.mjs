@@ -107,7 +107,8 @@ test('LX-10 desktop Search follows Seeking rail + 3-column photo-grid hierarchy'
 
     await page.setViewportSize({ width: 1023, height: 768 });
     await expect(page.getByTestId('luxy-search-desktop')).toHaveCount(0);
-    await expect(page.getByText('Khám phá', { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId('luxy-search-mobile')).toBeVisible();
+    await expect(page.getByTestId('luxy-search-mobile-grid')).toBeVisible();
     await expectNoHorizontalOverflow(page);
   } finally {
     await context.close();
