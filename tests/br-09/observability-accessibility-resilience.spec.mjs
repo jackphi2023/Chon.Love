@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const viewerEmail = 'br06.viewer@example.test';
+const luxyWebTitle = 'Luxy.Love — Hẹn hò cho người thật và thành đạt';
 
 async function openMobileLogin(browser) {
   const context = await browser.newContext({
@@ -14,10 +15,10 @@ async function openMobileLogin(browser) {
   });
   const page = await context.newPage();
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Tham gia MyFan' })).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập MyFan' }).first().click();
+  await expect(page.getByTestId('luxy-public-homepage')).toBeVisible();
+  await page.getByRole('button', { name: 'Đăng nhập' }).first().click();
   await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
-  await expect(page).toHaveTitle('MyFan — Mạng xã hội Creator 18+');
+  await expect(page).toHaveTitle(luxyWebTitle);
   await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   return { context, page };
 }
