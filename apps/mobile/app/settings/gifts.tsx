@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   pendingPreferences: { paddingHorizontal: luxySpacing.lg },
   preferenceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: luxySpacing.lg, minHeight: 84, paddingVertical: luxySpacing.md },
   preferenceText: { flex: 1 },
-  preferenceTitle: { color: luxyColors.text, fontSize: 14.5, fontWeight: '650' },
+  preferenceTitle: { color: luxyColors.text, fontSize: 14.5, fontWeight: '600' },
   preferenceDescription: { color: luxyColors.muted, fontSize: 12.5, lineHeight: 18, marginTop: 3 },
   fakeSwitch: { backgroundColor: '#D9DDE1', borderRadius: luxyRadii.pill, height: 28, opacity: 0.7, padding: 3, width: 50 },
   fakeSwitchKnob: { backgroundColor: luxyColors.surface, borderRadius: luxyRadii.pill, height: 22, width: 22 },
