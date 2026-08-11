@@ -116,9 +116,14 @@ export default function HomeScreen() {
     );
   }
 
-  const openAuth = () => {
+  const openJoin = () => {
     setMobileMenuOpen(false);
-    router.push('/(auth)');
+    router.push('/auth');
+  };
+
+  const openLogin = () => {
+    setMobileMenuOpen(false);
+    router.push('/auth?mode=login');
   };
 
   const scrollTo = (id: string) => {
@@ -142,8 +147,8 @@ export default function HomeScreen() {
           compact={isPhone}
           compactPhone={isCompactPhone}
           menuOpen={mobileMenuOpen}
-          onJoin={openAuth}
-          onLogin={openAuth}
+          onJoin={openJoin}
+          onLogin={openLogin}
           onMenu={() => setMobileMenuOpen((value) => !value)}
           onNavigate={scrollTo}
         />
@@ -156,7 +161,7 @@ export default function HomeScreen() {
             <Pressable
               accessibilityLabel="Tham gia Luxy.Love"
               accessibilityRole="button"
-              onPress={openAuth}
+              onPress={openJoin}
               style={({ pressed }) => [styles.menuJoinButton, pressed && styles.pressed]}
             >
               <Text style={styles.menuJoinText}>Tham gia ngay</Text>
@@ -175,7 +180,7 @@ export default function HomeScreen() {
           <Pressable
             accessibilityLabel="Tham gia Luxy.Love ngay"
             accessibilityRole="button"
-            onPress={openAuth}
+            onPress={openJoin}
             style={({ pressed }) => [styles.primaryCta, pressed && styles.pressed]}
           >
             <Text style={styles.primaryCtaText}>Tham gia ngay</Text>
@@ -199,7 +204,7 @@ export default function HomeScreen() {
         <Pressable
           accessibilityLabel="Bắt đầu với Luxy.Love"
           accessibilityRole="button"
-          onPress={openAuth}
+          onPress={openJoin}
           style={({ pressed }) => [styles.primaryCta, styles.sectionCta, pressed && styles.pressed]}
         >
           <Text style={styles.primaryCtaText}>Bắt đầu ngay</Text>
@@ -270,7 +275,7 @@ export default function HomeScreen() {
           <Pressable
             accessibilityLabel="Tham gia Luxy.Love"
             accessibilityRole="button"
-            onPress={openAuth}
+            onPress={openJoin}
             style={({ pressed }) => [styles.primaryCta, styles.sectionCta, pressed && styles.pressed]}
           >
             <Text style={styles.primaryCtaText}>Tham gia ngay</Text>
@@ -289,7 +294,7 @@ export default function HomeScreen() {
         <Pressable
           accessibilityLabel="Tham gia Luxy.Love từ phần sứ mệnh"
           accessibilityRole="button"
-          onPress={openAuth}
+          onPress={openJoin}
           style={({ pressed }) => [styles.primaryCta, styles.missionCta, pressed && styles.pressed]}
         >
           <Text style={styles.primaryCtaText}>Tham gia ngay</Text>
@@ -335,7 +340,7 @@ export default function HomeScreen() {
           <Pressable
             accessibilityLabel="Tham gia Luxy.Love miễn phí"
             accessibilityRole="button"
-            onPress={openAuth}
+            onPress={openJoin}
             style={({ pressed }) => [styles.primaryCta, styles.finalButton, pressed && styles.pressed]}
           >
             <Text style={styles.primaryCtaText}>Tham gia Luxy</Text>
@@ -356,8 +361,8 @@ export default function HomeScreen() {
           <View style={styles.footerLinks}>
             <FooterLink label="Điều khoản" onPress={() => router.push('/legal/terms')} />
             <FooterLink label="Tiêu chuẩn cộng đồng" onPress={() => router.push('/legal/community-standards')} />
-            <FooterLink label="Đăng nhập" onPress={openAuth} />
-            <FooterLink label="Tham gia miễn phí" onPress={openAuth} />
+            <FooterLink label="Đăng nhập" onPress={openLogin} />
+            <FooterLink label="Tham gia miễn phí" onPress={openJoin} />
           </View>
           <View style={styles.footerAbout}>
             <Text style={styles.footerDescription}>
