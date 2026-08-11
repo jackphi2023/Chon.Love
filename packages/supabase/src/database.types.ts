@@ -2822,6 +2822,65 @@ export type Database = {
           unspent_debited_units: number
         }[]
       }
+      search_luxy_profiles_v2: {
+        Args: {
+          p_children_statuses?: Database["public"]["Enums"]["children_status"][]
+          p_drinking_statuses?: Database["public"]["Enums"]["drinking_status"][]
+          p_education_levels?: Database["public"]["Enums"]["education_level"][]
+          p_genders?: Database["public"]["Enums"]["gender_identity"][]
+          p_has_photo?: boolean
+          p_interests?: string[]
+          p_languages?: string[]
+          p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          p_limit?: number
+          p_max_age?: number
+          p_max_distance_km?: number
+          p_max_height_cm?: number
+          p_max_weight_kg?: number
+          p_min_age?: number
+          p_min_height_cm?: number
+          p_min_weight_kg?: number
+          p_occupation_text?: string
+          p_offset?: number
+          p_online_now?: boolean
+          p_profile_text?: string
+          p_province_id?: number
+          p_relationship_statuses?: Database["public"]["Enums"]["relationship_status"][]
+          p_smoking_statuses?: Database["public"]["Enums"]["smoking_status"][]
+          p_sort?: string
+        }
+        Returns: {
+          age: number
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          bio: string
+          children_status: Database["public"]["Enums"]["children_status"]
+          display_name: string
+          distance_km: number
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
+          gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string
+          height_cm: number
+          id: string
+          interests: string[]
+          is_online: boolean
+          languages: string[]
+          last_active_at: string
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string
+          member_since: string
+          occupation: string
+          photo_count: number
+          province_id: number
+          province_name: string
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
+          username: string
+          weight_kg: number
+        }[]
+      }
       send_friend_request: {
         Args: { p_addressee_id: string; p_greeting_message?: string }
         Returns: {
