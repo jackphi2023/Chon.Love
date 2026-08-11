@@ -24,6 +24,7 @@ const accountItems = [
   { label: 'Hoạt động', href: '/(tabs)/activity' as const },
   { label: 'Quà', href: '/(tabs)/gifts' as const },
   { label: 'Số dư', href: '/(tabs)/balance' as const },
+  { label: 'Cài đặt', href: '/settings' as const },
 ] as const;
 
 type PrimaryItem = (typeof primaryItems)[number];
@@ -36,7 +37,7 @@ function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
 }
 
 function isAccountRoute(pathname: string): boolean {
-  return ['/profile', '/activity', '/gifts', '/balance'].some((route) => pathname.startsWith(route));
+  return ['/profile', '/activity', '/gifts', '/balance', '/settings'].some((route) => pathname.startsWith(route));
 }
 
 export function LuxyShellNavigation() {
@@ -135,7 +136,7 @@ export function LuxyShellNavigation() {
         </Pressable>
       ))}
       <View style={styles.menuDivider} />
-      <Text style={styles.menuNote}>Luxy.Love · responsive shell LX-04</Text>
+      <Text style={styles.menuNote}>Luxy.Love · hồ sơ & cài đặt</Text>
     </View>
   ) : null;
 
