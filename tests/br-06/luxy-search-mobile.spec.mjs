@@ -35,7 +35,7 @@ async function assertTwoColumnGrid(page) {
   expect(Math.abs(first.width - second.width)).toBeLessThan(3);
 }
 
-test('LX-11 phone Search follows Seeking two-column grid + filter/sort sheets', async ({ browser }, testInfo) => {
+test('LX-11/12 phone Search keeps two-column grid and activates relationship filters', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
 
@@ -44,12 +44,12 @@ test('LX-11 phone Search follows Seeking two-column grid + filter/sort sheets', 
     await expect(page.getByRole('heading', { name: 'Tìm kiếm' })).toBeVisible();
     await expect(page.getByTestId('luxy-search-mobile-grid')).toBeVisible();
     await assertTwoColumnGrid(page);
+    await expect(page.getByRole('button', { name: /^Yêu thích BR06 / }).first()).toBeVisible();
 
     const filterButton = page.getByTestId('luxy-search-mobile-filter-button');
     const sortButton = page.getByTestId('luxy-search-mobile-sort-button');
-    await expect(filterButton).toBeVisible();
-    await expect(sortButton).toBeVisible();
     for (const button of [filterButton, sortButton]) {
+      await expect(button).toBeVisible();
       const box = await button.boundingBox();
       expect(box).not.toBeNull();
       expect(box.height).toBeGreaterThanOrEqual(44);
@@ -64,7 +64,12 @@ test('LX-11 phone Search follows Seeking two-column grid + filter/sort sheets', 
     await expect(filterSheet.getByText('Tùy chọn', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Đã xác thực ảnh', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('LX-20', { exact: true }).first()).toBeVisible();
-    await expect(filterSheet.getByText('LX-12', { exact: true }).first()).toBeVisible();
+    await expect(filterSheet.getByText('Lịch sử xem', { exact: true })).toBeVisible();
+    await expect(filterSheet.getByText('Chưa xem', { exact: true })).toBeVisible();
+    await expect(filterSheet.getByText('Đã xem', { exact: true })).toBeVisible();
+    await expect(filterSheet.getByText('Tôi yêu thích', { exact: true })).toBeVisible();
+    await expect(filterSheet.getByText('Yêu thích tôi', { exact: true })).toBeVisible();
+    await expect(filterSheet.getByText('LX-12', { exact: true })).toHaveCount(0);
 
     const applyButton = page.getByTestId('luxy-search-mobile-filter-apply');
     const applyBox = await applyButton.boundingBox();
@@ -78,34 +83,20 @@ test('LX-11 phone Search follows Seeking two-column grid + filter/sort sheets', 
     await expect(sortSheet).toBeVisible();
     await expect(sortSheet.getByText('Gần nhất', { exact: true })).toBeVisible();
     const recent = page.getByTestId('luxy-search-mobile-sort-recent');
-    await expect(recent).toBeVisible();
     await recent.click();
     await expect(sortSheet).toHaveCount(0);
     await expect(sortButton).toHaveAttribute('aria-label', 'Sắp xếp: Hoạt động gần đây');
 
     await noHorizontalOverflow(page);
-    await testInfo.attach('lx11-search-mobile-390', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
+    await testInfo.attach('lx12-search-mobile-390', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
 
     await page.setViewportSize({ width: 430, height: 932 });
-    await expect(page.getByTestId('luxy-search-mobile')).toBeVisible();
     await assertTwoColumnGrid(page);
     await noHorizontalOverflow(page);
-    await testInfo.attach('lx11-search-mobile-430', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
 
     await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(page.getByTestId('luxy-search-mobile')).toBeVisible();
     await assertTwoColumnGrid(page);
     await noHorizontalOverflow(page);
-    await testInfo.attach('lx11-search-mobile-768', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
 
     await page.setViewportSize({ width: 1023, height: 768 });
     await expect(page.getByTestId('luxy-search-mobile')).toBeVisible();
