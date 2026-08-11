@@ -14,7 +14,7 @@ async function openMobileLogin(browser) {
     reducedMotion: 'reduce',
   });
   const page = await context.newPage();
-  await page.goto('/(auth)?mode=login');
+  await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
   await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
   await expect(page).toHaveTitle(luxyWebTitle);
