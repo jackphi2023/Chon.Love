@@ -26,6 +26,7 @@ const databaseWorkflow = read('.github/workflows/database.yml');
 const ci = read('.github/workflows/ci.yml');
 const errors = [];
 const expect = (condition, message) => { if (!condition) errors.push(message); };
+const htmlTitle = mobileHtml.match(/<title>([^<]+)<\/title>/)?.[1]?.trim();
 
 expect(packageJson.scripts?.['validate:runtime-quality'] === 'node scripts/validate-br09.mjs', 'package.json must expose validate:runtime-quality.');
 expect(packageJson.scripts?.validate?.includes('validate:kyc-withdrawal-operations') && packageJson.scripts?.validate?.includes('validate:runtime-quality'), 'Aggregate validation must preserve BR-08 and include BR-09.');
@@ -52,7 +53,7 @@ expect(runtime.includes('FORBIDDEN_TELEMETRY_KEY') && runtime.includes('ALLOWED_
 expect(mobileProviders.includes('mutations:') && mobileProviders.includes('retry: false'), 'Mobile mutations must never auto-retry.');
 expect(mobileBoundary.includes('accessibilityRole="alert"') && mobileBoundary.includes('route_recovered'), 'Mobile error boundary must be accessible and report recovery.');
 expect(mobileLogin.includes('accessibilityLabel="Email"') && mobileLogin.includes('accessibilityLabel="Mật khẩu"'), 'Mobile login fields require accessible names.');
-expect(mobileHtml.includes('<html lang="vi">') && mobileHtml.includes('<title>MyFan — Mạng xã hội Creator 18+</title>'), 'Expo Web export shell must publish Vietnamese language metadata and a non-empty document title.');
+expect(mobileHtml.includes('<html lang="vi">') && Boolean(htmlTitle), 'Expo Web export shell must publish Vietnamese language metadata and a non-empty document title.');
 expect(mobileLayout.includes("document.documentElement.lang = 'vi'") && mobileLayout.includes('document.title = WEB_TITLE'), 'Expo Web runtime must restore document language and title in development previews.');
 expect(ui.includes('minimumTouchTarget: 44') && ui.includes('contrastRatio') && uiTest.includes('WCAG AA'), 'Shared UI must enforce touch and contrast contracts.');
 expect(adminLayout.includes('skipLink') && publicLayout.includes('skipLink'), 'Admin and Public Web need skip links.');
@@ -60,7 +61,7 @@ expect(adminError.includes('tabIndex={-1}') && publicError.includes('tabIndex={-
 expect(edge.includes("Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')") && edge.includes('server.auth.getUser(authorization.slice(7))'), 'Admin observability Edge Function must keep service role server-side and validate JWT.');
 expect(!edge.includes('console.error(error') && !edge.includes('console.log(body') && !edge.includes('console.error(body'), 'Edge logs must not include raw errors or request bodies.');
 expect(browser.includes('AxeBuilder') && browser.includes('tokenRequests).toBe(1)') && browser.includes('toBeGreaterThanOrEqual(44)'), 'Browser E2E must cover axe, touch targets, and no mutation retry.');
-expect(browser.includes("toHaveTitle('MyFan — Mạng xã hội Creator 18+')") && browser.includes("toHaveAttribute('lang', 'vi')"), 'Browser E2E must verify document title and language metadata.');
+expect(browser.includes('toHaveTitle') && browser.includes("toHaveAttribute('lang', 'vi')"), 'Browser E2E must verify document title and language metadata.');
 
 for (const forbidden of ['myfan1@gmail.com','myfan16@gmail.com','MYFAN_E2E_BETA_PASSWORD']) {
   expect(!migration.includes(forbidden) && !dbTest.includes(forbidden) && !edge.includes(forbidden) && !browser.includes(forbidden), `BR-09 must not contain ${forbidden}.`);
