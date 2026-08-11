@@ -24,6 +24,23 @@ export const genderIdentitySchema = z.enum([
   'prefer_not_to_say',
 ]);
 
+export const datingInterestSchema = z.enum(['female', 'male', 'everyone']);
+
+export const relationshipStatusSchema = z.enum([
+  'single',
+  'divorced',
+  'widowed',
+  'open',
+  'complicated',
+  'prefer_not_to_say',
+]);
+
+export const heightCmSchema = z
+  .number({ error: 'Chiều cao không hợp lệ.' })
+  .int('Chiều cao phải là số nguyên theo cm.')
+  .min(120, 'Chiều cao tối thiểu là 120 cm.')
+  .max(230, 'Chiều cao tối đa là 230 cm.');
+
 export function normalizeInterests(values: readonly string[]): string[] {
   const normalized: string[] = [];
   const seen = new Set<string>();
@@ -52,6 +69,20 @@ export const profileEditorSchema = z.object({
   interests: profileInterestsSchema,
   discoveryEnabled: z.boolean(),
   nearbyEnabled: z.boolean(),
+});
+
+export const luxyProfileEditorSchema = profileEditorSchema.extend({
+  interestedIn: datingInterestSchema,
+  heightCm: heightCmSchema.nullable(),
+  relationshipStatus: relationshipStatusSchema,
+});
+
+export const luxyProfileSetupSchema = z.object({
+  gender: genderIdentitySchema,
+  interestedIn: datingInterestSchema,
+  heightCm: heightCmSchema,
+  relationshipStatus: relationshipStatusSchema,
+  provinceId: provinceIdSchema,
 });
 
 export const SUPPORTED_PROFILE_IMAGE_MIME_TYPES = [
@@ -115,4 +146,6 @@ export const minimumOnboardingSchema = z.object({
 
 export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
+export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
+export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;
 export type ProfileImageMetadata = z.infer<typeof profileImageMetadataSchema>;
