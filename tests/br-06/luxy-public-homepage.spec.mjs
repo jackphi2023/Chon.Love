@@ -38,6 +38,22 @@ test('LX-05 public homepage follows the Seeking-derived long-form hierarchy on d
   });
 });
 
+test('LX-06 homepage sends Login and Join to their intended auth modes', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).first().click();
+  await expect(page).toHaveURL(/\/auth\?mode=login$/);
+  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
+  await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Tham gia Luxy.Love ngay' }).click();
+  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
+  await expect(page.getByText('Đăng ký', { exact: true })).toBeVisible();
+});
+
 for (const viewport of [
   { width: 390, height: 844, name: '390' },
   { width: 430, height: 932, name: '430' },
