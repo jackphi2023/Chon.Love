@@ -1078,61 +1078,106 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_preference_max: number
+          age_preference_min: number
           avatar_media_id: string | null
           bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
           created_at: string
           deleted_at: string | null
           discovery_enabled: boolean
           display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
           gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
           id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
           interests: string[]
           is_creator: boolean
+          languages: string[]
           last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
           nearby_enabled: boolean
+          occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
           province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          weight_kg: number | null
         }
         Insert: {
+          age_preference_max?: number
+          age_preference_min?: number
           avatar_media_id?: string | null
           bio?: string | null
+          children_status?: Database["public"]["Enums"]["children_status"]
           created_at?: string
           deleted_at?: string | null
           discovery_enabled?: boolean
           display_name?: string | null
+          drinking_status?: Database["public"]["Enums"]["drinking_status"]
+          education_level?: Database["public"]["Enums"]["education_level"]
           gender?: Database["public"]["Enums"]["gender_identity"]
+          headline?: string | null
+          height_cm?: number | null
           id: string
+          interested_in?: Database["public"]["Enums"]["dating_interest"]
           interests?: string[]
           is_creator?: boolean
+          languages?: string[]
           last_active_at?: string | null
+          lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for?: string | null
           nearby_enabled?: boolean
+          occupation?: string | null
           profile_status?: Database["public"]["Enums"]["profile_status"]
           province_id?: number | null
+          relationship_status?: Database["public"]["Enums"]["relationship_status"]
+          smoking_status?: Database["public"]["Enums"]["smoking_status"]
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
+          weight_kg?: number | null
         }
         Update: {
+          age_preference_max?: number
+          age_preference_min?: number
           avatar_media_id?: string | null
           bio?: string | null
+          children_status?: Database["public"]["Enums"]["children_status"]
           created_at?: string
           deleted_at?: string | null
           discovery_enabled?: boolean
           display_name?: string | null
+          drinking_status?: Database["public"]["Enums"]["drinking_status"]
+          education_level?: Database["public"]["Enums"]["education_level"]
           gender?: Database["public"]["Enums"]["gender_identity"]
+          headline?: string | null
+          height_cm?: number | null
           id?: string
+          interested_in?: Database["public"]["Enums"]["dating_interest"]
           interests?: string[]
           is_creator?: boolean
+          languages?: string[]
           last_active_at?: string | null
+          lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for?: string | null
           nearby_enabled?: boolean
+          occupation?: string | null
           profile_status?: Database["public"]["Enums"]["profile_status"]
           province_id?: number | null
+          relationship_status?: Database["public"]["Enums"]["relationship_status"]
+          smoking_status?: Database["public"]["Enums"]["smoking_status"]
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
+          weight_kg?: number | null
         }
         Relationships: [
           {
@@ -1857,23 +1902,38 @@ export type Database = {
       find_province_profiles: {
         Args: { p_cursor?: string; p_limit?: number; p_province_id: number }
         Returns: {
+          age_preference_max: number
+          age_preference_min: number
           avatar_media_id: string | null
           bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
           created_at: string
           deleted_at: string | null
           discovery_enabled: boolean
           display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
           gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
           id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
           interests: string[]
           is_creator: boolean
+          languages: string[]
           last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
           nearby_enabled: boolean
+          occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
           province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          weight_kg: number | null
         }[]
         SetofOptions: {
           from: "*"
@@ -2990,6 +3050,73 @@ export type Database = {
         }[]
       }
       unblock_user: { Args: { p_blocked_id: string }; Returns: boolean }
+      update_my_luxy_profile: {
+        Args: {
+          p_age_preference_max?: number
+          p_age_preference_min?: number
+          p_bio?: string
+          p_children_status?: Database["public"]["Enums"]["children_status"]
+          p_discovery_enabled?: boolean
+          p_display_name: string
+          p_drinking_status?: Database["public"]["Enums"]["drinking_status"]
+          p_education_level?: Database["public"]["Enums"]["education_level"]
+          p_gender?: Database["public"]["Enums"]["gender_identity"]
+          p_headline?: string
+          p_height_cm?: number
+          p_interested_in?: Database["public"]["Enums"]["dating_interest"]
+          p_interests?: string[]
+          p_languages?: string[]
+          p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          p_looking_for?: string
+          p_nearby_enabled?: boolean
+          p_occupation?: string
+          p_province_id?: number
+          p_relationship_status?: Database["public"]["Enums"]["relationship_status"]
+          p_smoking_status?: Database["public"]["Enums"]["smoking_status"]
+          p_username: string
+          p_weight_kg?: number
+        }
+        Returns: {
+          age_preference_max: number
+          age_preference_min: number
+          avatar_media_id: string | null
+          bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
+          created_at: string
+          deleted_at: string | null
+          discovery_enabled: boolean
+          display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
+          gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
+          id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
+          interests: string[]
+          is_creator: boolean
+          languages: string[]
+          last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
+          nearby_enabled: boolean
+          occupation: string | null
+          profile_status: Database["public"]["Enums"]["profile_status"]
+          province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
+          updated_at: string
+          username: string | null
+          username_changed_at: string | null
+          weight_kg: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_my_profile: {
         Args: {
           p_bio?: string
@@ -3002,23 +3129,38 @@ export type Database = {
           p_username: string
         }
         Returns: {
+          age_preference_max: number
+          age_preference_min: number
           avatar_media_id: string | null
           bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
           created_at: string
           deleted_at: string | null
           discovery_enabled: boolean
           display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
           gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
           id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
           interests: string[]
           is_creator: boolean
+          languages: string[]
           last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
           nearby_enabled: boolean
+          occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
           province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          weight_kg: number | null
         }
         SetofOptions: {
           from: "*"
@@ -3030,6 +3172,7 @@ export type Database = {
     }
     Enums: {
       album_type: "public" | "fan"
+      children_status: "no_children" | "has_children" | "prefer_not_to_say"
       conversation_type: "direct"
       creator_activity_content_type: "text" | "image" | "video"
       creator_activity_image_access_mode: "public" | "gift_locked"
@@ -3049,6 +3192,17 @@ export type Database = {
         | "rejected"
         | "suspended"
         | "closed"
+      dating_interest: "female" | "male" | "everyone"
+      drinking_status: "never" | "socially" | "regularly" | "prefer_not_to_say"
+      education_level:
+        | "high_school"
+        | "vocational"
+        | "college"
+        | "bachelors"
+        | "masters"
+        | "doctorate"
+        | "other"
+        | "prefer_not_to_say"
       fan_membership_status: "active" | "revoked"
       friendship_status: "pending" | "accepted" | "declined" | "cancelled"
       gender_identity:
@@ -3092,6 +3246,24 @@ export type Database = {
         | "automated_scan"
         | "admin_review"
         | "appeal"
+      profile_lifestyle_tag:
+        | "true_love"
+        | "luxury_lifestyle"
+        | "active_lifestyle"
+        | "flexible_schedule"
+        | "emotional_connection"
+        | "refined"
+        | "fine_dining"
+        | "friendship"
+        | "long_term"
+        | "marriage_minded"
+        | "monogamous"
+        | "romantic"
+        | "ready_to_travel"
+        | "travel_companion"
+        | "vacation"
+        | "entertainment_events"
+        | "platonic"
       profile_status:
         | "incomplete"
         | "pending_review"
@@ -3099,6 +3271,13 @@ export type Database = {
         | "suspended"
         | "deactivated"
         | "deleted"
+      relationship_status:
+        | "single"
+        | "divorced"
+        | "widowed"
+        | "open"
+        | "complicated"
+        | "prefer_not_to_say"
       report_priority: "low" | "normal" | "high" | "urgent"
       report_status:
         | "submitted"
@@ -3106,6 +3285,12 @@ export type Database = {
         | "in_review"
         | "resolved"
         | "dismissed"
+      smoking_status:
+        | "never"
+        | "socially"
+        | "regularly"
+        | "trying_to_quit"
+        | "prefer_not_to_say"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3234,6 +3419,7 @@ export const Constants = {
   public: {
     Enums: {
       album_type: ["public", "fan"],
+      children_status: ["no_children", "has_children", "prefer_not_to_say"],
       conversation_type: ["direct"],
       creator_activity_content_type: ["text", "image", "video"],
       creator_activity_image_access_mode: ["public", "gift_locked"],
@@ -3254,6 +3440,18 @@ export const Constants = {
         "rejected",
         "suspended",
         "closed",
+      ],
+      dating_interest: ["female", "male", "everyone"],
+      drinking_status: ["never", "socially", "regularly", "prefer_not_to_say"],
+      education_level: [
+        "high_school",
+        "vocational",
+        "college",
+        "bachelors",
+        "masters",
+        "doctorate",
+        "other",
+        "prefer_not_to_say",
       ],
       fan_membership_status: ["active", "revoked"],
       friendship_status: ["pending", "accepted", "declined", "cancelled"],
@@ -3304,6 +3502,25 @@ export const Constants = {
         "admin_review",
         "appeal",
       ],
+      profile_lifestyle_tag: [
+        "true_love",
+        "luxury_lifestyle",
+        "active_lifestyle",
+        "flexible_schedule",
+        "emotional_connection",
+        "refined",
+        "fine_dining",
+        "friendship",
+        "long_term",
+        "marriage_minded",
+        "monogamous",
+        "romantic",
+        "ready_to_travel",
+        "travel_companion",
+        "vacation",
+        "entertainment_events",
+        "platonic",
+      ],
       profile_status: [
         "incomplete",
         "pending_review",
@@ -3312,6 +3529,14 @@ export const Constants = {
         "deactivated",
         "deleted",
       ],
+      relationship_status: [
+        "single",
+        "divorced",
+        "widowed",
+        "open",
+        "complicated",
+        "prefer_not_to_say",
+      ],
       report_priority: ["low", "normal", "high", "urgent"],
       report_status: [
         "submitted",
@@ -3319,6 +3544,13 @@ export const Constants = {
         "in_review",
         "resolved",
         "dismissed",
+      ],
+      smoking_status: [
+        "never",
+        "socially",
+        "regularly",
+        "trying_to_quit",
+        "prefer_not_to_say",
       ],
     },
   },
