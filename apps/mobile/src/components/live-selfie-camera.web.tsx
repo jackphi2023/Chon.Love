@@ -11,7 +11,19 @@ type WebVideo = {
   videoHeight: number;
   play: () => Promise<void>;
 };
-type CanvasContext = { drawImage: (source: unknown, dx: number, dy: number, width: number, height: number) => void };
+type CanvasContext = {
+  drawImage: (
+    source: unknown,
+    sourceX: number,
+    sourceY: number,
+    sourceWidth: number,
+    sourceHeight: number,
+    destinationX: number,
+    destinationY: number,
+    destinationWidth: number,
+    destinationHeight: number,
+  ) => void;
+};
 type Canvas = {
   width: number;
   height: number;
@@ -104,9 +116,17 @@ export function LiveSelfieCamera({ disabled = false, onCapture, onError }: Props
       const context = canvas.getContext('2d');
       if (!context) throw new Error('canvas_context_unavailable');
 
-      // Draw the full preview into a square capture. The browser camera already
-      // uses the front-facing stream; no library/file input is exposed here.
-      context.drawImage(video as unknown, -sourceX, -sourceY, video.videoWidth, video.videoHeight);
+      context.drawImage(
+        video as unknown,
+        sourceX,
+        sourceY,
+        side,
+        side,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
       const previewUri = canvas.toDataURL('image/jpeg', 0.88);
       const response = await fetch(previewUri);
       const bytes = await response.arrayBuffer();
