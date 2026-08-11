@@ -30,29 +30,35 @@ test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px bre
     await login(page);
 
     const shellBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
+    const searchNav = page.getByRole('button', { name: 'Tìm kiếm', exact: true });
+    const favoritesNav = page.getByRole('button', { name: 'Yêu thích', exact: true });
+    const messagesNav = page.getByRole('button', { name: 'Tin nhắn', exact: true });
+    const upgradeNav = page.getByRole('button', { name: 'Nâng cấp', exact: true });
+    const accountButton = page.getByRole('button', { name: 'Mở menu tài khoản Luxy' });
+
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
     await expect(shellBrand).toBeVisible();
     await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
-    await expect(page.getByText('Tìm kiếm', { exact: true })).toBeVisible();
-    await expect(page.getByText('Yêu thích', { exact: true })).toBeVisible();
-    await expect(page.getByText('Tin nhắn', { exact: true })).toBeVisible();
-    await expect(page.getByText('Nâng cấp', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mở menu tài khoản Luxy' })).toBeVisible();
+    await expect(searchNav).toBeVisible();
+    await expect(favoritesNav).toBeVisible();
+    await expect(messagesNav).toBeVisible();
+    await expect(upgradeNav).toBeVisible();
+    await expect(accountButton).toBeVisible();
 
     const positions = await Promise.all([
       xPosition(shellBrand),
-      xPosition(page.getByText('Tìm kiếm', { exact: true })),
-      xPosition(page.getByText('Yêu thích', { exact: true })),
-      xPosition(page.getByText('Tin nhắn', { exact: true })),
-      xPosition(page.getByText('Nâng cấp', { exact: true })),
-      xPosition(page.getByRole('button', { name: 'Mở menu tài khoản Luxy' })),
+      xPosition(searchNav),
+      xPosition(favoritesNav),
+      xPosition(messagesNav),
+      xPosition(upgradeNav),
+      xPosition(accountButton),
     ]);
 
     for (let index = 1; index < positions.length; index += 1) {
       expect(positions[index]).toBeGreaterThan(positions[index - 1]);
     }
 
-    await page.getByRole('button', { name: 'Mở menu tài khoản Luxy' }).click();
+    await accountButton.click();
     await expect(page.getByRole('menu')).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Hồ sơ' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Hoạt động' })).toBeVisible();
