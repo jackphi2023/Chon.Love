@@ -79,7 +79,7 @@ describe('Luxy Search V2 client contract', () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
       data: [{
-        id: '19000000-0000-0000-0000-000000000002',
+        id: '19000000-0000-4000-8000-000000000002',
         username: 'lan',
         display_name: 'Lan',
         headline: 'Fine dining',
