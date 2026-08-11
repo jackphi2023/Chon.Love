@@ -10,11 +10,11 @@ export type MemberPhotoVerificationState = 'not_started' | 'pending_review' | 'a
 
 export type MemberPhotoVerificationResult = {
   state: MemberPhotoVerificationState;
-  profileStatus?: string;
+  profileStatus?: string | undefined;
   threshold: number;
-  maxSimilarity?: number | null;
-  caseId?: string;
-  message?: string | null;
+  maxSimilarity?: number | null | undefined;
+  caseId?: string | undefined;
+  message?: string | null | undefined;
 };
 
 type Client = NonNullable<ReturnType<typeof getMobileSupabaseClient>>;
