@@ -409,7 +409,7 @@ function AuthFooter({ compact }: { compact: boolean }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F7F7F7' },
-  header: { minHeight: 72, paddingHorizontal: 40, backgroundColor: luxyColors.navy, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { minHeight: 72, paddingHorizontal: 40, backgroundColor: luxyColors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerCompact: { minHeight: 62, paddingHorizontal: 18 },
   brandButton: { minHeight: 44, justifyContent: 'center' },
   brand: { color: '#FFFFFF', fontFamily: luxyTypography.families.brand, fontSize: 30, letterSpacing: -1.2 },
