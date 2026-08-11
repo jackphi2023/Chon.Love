@@ -100,6 +100,7 @@ jobs:
           test -f supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql
           test -f supabase/migrations/20260801045034_br_09_runtime_observability_resilience.sql
+          test -f supabase/migrations/20260811130000_lx_07_profile_schema.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -113,6 +114,7 @@ jobs:
           test -f supabase/tests/br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/tests/br_08_kyc_withdrawal_operational_flow.sql
           test -f supabase/tests/br_09_runtime_observability_resilience.sql
+          test -f supabase/tests/lx_07_profile_schema.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -148,6 +150,9 @@ jobs:
 
       - name: Run BR-09 runtime observability resilience
         run: supabase test db supabase/tests/br_09_runtime_observability_resilience.sql --local
+
+      - name: Run LX-07 profile schema contract
+        run: supabase test db supabase/tests/lx_07_profile_schema.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
