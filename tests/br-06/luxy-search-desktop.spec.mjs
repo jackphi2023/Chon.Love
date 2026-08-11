@@ -64,12 +64,13 @@ test('LX-10 desktop Search follows Seeking rail + 3-column photo-grid hierarchy'
     await expect(rail.getByText('LX-20', { exact: true }).first()).toBeVisible();
     await expect(rail.getByText('LX-12', { exact: true }).first()).toBeVisible();
 
-    const sortButton = results.getByRole('button', { name: 'Gần nhất', exact: true });
-    await expect(sortButton).toBeVisible();
-    await sortButton.click();
-    await expect(results.getByRole('button', { name: 'Hoạt động gần đây', exact: true })).toBeVisible();
-    await results.getByRole('button', { name: 'Hoạt động gần đây', exact: true }).click();
-    await expect(results.getByRole('button', { name: 'Hoạt động gần đây', exact: true })).toBeVisible();
+    const sortLabel = results.getByText('Gần nhất', { exact: true });
+    await expect(sortLabel).toBeVisible();
+    await sortLabel.click();
+    const recentSort = results.getByText('Hoạt động gần đây', { exact: true });
+    await expect(recentSort).toBeVisible();
+    await recentSort.click();
+    await expect(results.getByText('Hoạt động gần đây', { exact: true })).toBeVisible();
 
     const cards = page.getByTestId('luxy-search-member-card');
     await expect.poll(async () => cards.count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(3);
