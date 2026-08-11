@@ -461,6 +461,7 @@ export default function EditProfilePage() {
                 <PhotoRail
                   avatarUrl={avatarUrlQuery.data ?? null}
                   compact={compact}
+                  desktop={desktop}
                   displayName={profileQuery.data?.display_name ?? 'Luxy'}
                   items={publicAlbumQuery.data ?? []}
                   loading={avatarUrlQuery.isLoading || publicAlbumQuery.isLoading}
@@ -825,6 +826,7 @@ function FullPageLoading() {
 function PhotoRail({
   avatarUrl,
   compact,
+  desktop,
   displayName,
   items,
   loading,
@@ -834,6 +836,7 @@ function PhotoRail({
 }: {
   avatarUrl: string | null;
   compact: boolean;
+  desktop: boolean;
   displayName: string;
   items: AlbumItemWithUrl[];
   loading: boolean;
@@ -844,7 +847,7 @@ function PhotoRail({
   const visibleItems = items.slice(0, 5);
   const placeholderCount = Math.max(0, 4 - visibleItems.length);
   return (
-    <View style={styles.photoRail} testID="lx08-photo-rail">
+    <View style={[styles.photoRail, desktop && styles.photoRailDesktop]} testID="lx08-photo-rail">
       <Pressable
         accessibilityLabel="Thay ảnh chính"
         accessibilityRole="button"
@@ -911,7 +914,7 @@ function ProfilePhotoPlaceholder({ initial }: { initial: string }) {
   );
 }
 
-function FieldLabel({ symbol, text }: { symbol?: string; text: string }) {
+function FieldLabel({ symbol, text }: { symbol?: string | undefined; text: string }) {
   return (
     <View style={styles.fieldLabel}>
       {symbol ? <Text accessibilityElementsHidden style={styles.fieldSymbol}>{symbol}</Text> : null}
@@ -939,7 +942,7 @@ function ProvincePicker({
   open: boolean;
   otherProvinces: ProvinceOption[];
   search: string;
-  selectedProvince?: ProvinceOption;
+  selectedProvince: ProvinceOption | undefined;
   selectedProvinceId: number | null;
   setOpen: (value: boolean | ((current: boolean) => boolean)) => void;
 }) {
@@ -1456,6 +1459,7 @@ const styles = StyleSheet.create({
   editorLayout: { gap: luxySpacing.xl, width: '100%' },
   editorLayoutDesktop: { alignItems: 'flex-start', flexDirection: 'row', gap: luxySpacing.xxl },
   photoRail: { alignSelf: 'flex-start', gap: luxySpacing.md, width: '100%' },
+  photoRailDesktop: { maxWidth: 408 },
   primaryPhoto: {
     aspectRatio: 0.75,
     backgroundColor: '#BFC5CB',
@@ -1575,7 +1579,3 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.58 },
   pressed: { opacity: 0.72 },
 });
-
-if (luxyBreakpoints.desktop >= 1024) {
-  Object.assign(styles.photoRail, { maxWidth: 408 });
-}
