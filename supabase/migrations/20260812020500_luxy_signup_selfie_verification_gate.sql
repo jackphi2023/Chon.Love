@@ -135,11 +135,11 @@ create index if not exists moderation_cases_member_photo_verification_idx
   where reported_user_id is not null
     and 'member_photo_verification' = any(rule_codes);
 
--- A profile created during signup cannot become active simply by calling the
--- existing profile update RPC. Only a resolved/approved selfie verification case
--- opens the activation gate. Once the profile first enters pending_review, its
--- self-declared gender is frozen until verification resolves so a client cannot
--- swap the declared value between profile setup and selfie submission.
+-- Member-originated profile writes cannot promote a signup profile to active
+-- before an approved verification case exists. Trusted server/service operations
+-- use explicit service-only RPCs and are intentionally outside this client guard.
+-- Once a member's profile enters pending_review, their self-declared gender is
+-- frozen until verification resolves so the value cannot be swapped mid-flow.
 create or replace function private.enforce_member_photo_verification_gate()
 returns trigger
 language plpgsql
@@ -147,8 +147,16 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_actor_id uuid := auth.uid();
   v_has_approved_verification boolean;
 begin
+  -- Direct trusted database/service writes do not carry an end-user auth.uid().
+  -- The threat boundary here is authenticated member-originated writes such as
+  -- update_my_profile/update_my_luxy_profile and direct client updates.
+  if v_actor_id is null or v_actor_id <> new.id then
+    return new;
+  end if;
+
   select exists (
     select 1
     from public.moderation_cases mc
