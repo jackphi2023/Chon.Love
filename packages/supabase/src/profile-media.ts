@@ -56,7 +56,7 @@ export type UpdateMyLuxyProfileInput = UpdateMyProfileInput & {
 };
 
 export type PreparedImageUpload = {
-  visibility: Extract<MediaVisibility, 'avatar' | 'public' | 'fan'>;
+  visibility: Extract<MediaVisibility, 'avatar' | 'public' | 'fan' | 'private'>;
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
   extension: 'jpg' | 'png' | 'webp';
   width: number;
