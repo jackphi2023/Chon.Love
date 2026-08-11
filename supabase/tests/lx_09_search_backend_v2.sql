@@ -118,8 +118,8 @@ select ok((select distance_km between 0.1 and 2.0 from public.search_luxy_profil
 select ok((select distance_km > 100 from public.search_luxy_profiles_v2() where id='19000000-0000-0000-0000-000000000003'),'distance works across provinces instead of same-province-only discovery');
 select is((select count(*) from public.search_luxy_profiles_v2(p_max_distance_km=>5)),2::bigint,'max distance excludes far and missing-location candidates');
 select is((select count(*) from public.search_luxy_profiles_v2(p_province_id=>(select id from public.administrative_areas where country_code='VN' and code='01'))),1::bigint,'province filter uses canonical 34-province IDs');
-select is((select count(*) from public.search_luxy_profiles_v2(p_min_age=>29,p_max_age=>29)),1::bigint,'age filtering uses private DOB but returns only derived age');
-select is((select count(*) from public.search_luxy_profiles_v2(p_min_height_cm=>160,p_max_height_cm=>166,p_min_weight_kg=>50,p_max_weight_kg=>54)),1::bigint,'height and weight filters compose correctly');
+select is((select count(*) from public.search_luxy_profiles_v2(p_min_age=>29::smallint,p_max_age=>29::smallint)),1::bigint,'age filtering uses private DOB but returns only derived age');
+select is((select count(*) from public.search_luxy_profiles_v2(p_min_height_cm=>160::smallint,p_max_height_cm=>166::smallint,p_min_weight_kg=>50::smallint,p_max_weight_kg=>54::smallint)),1::bigint,'height and weight filters compose correctly');
 select is((select count(*) from public.search_luxy_profiles_v2(p_relationship_statuses=>array['single']::public.relationship_status[],p_children_statuses=>array['no_children']::public.children_status[])),1::bigint,'relationship and children filters compose correctly');
 select is((select count(*) from public.search_luxy_profiles_v2(p_smoking_statuses=>array['never']::public.smoking_status[],p_drinking_statuses=>array['socially']::public.drinking_status[],p_education_levels=>array['masters']::public.education_level[])),1::bigint,'lifestyle and education filters compose correctly');
 select is((select count(*) from public.search_luxy_profiles_v2(p_lifestyle_tags=>array['fine_dining','long_term']::public.profile_lifestyle_tag[])),1::bigint,'all requested Luxy lifestyle tags are required');
@@ -135,7 +135,7 @@ select is((select count(*) from public.search_luxy_profiles_v2(p_limit=>2,p_offs
 select lives_ok($$select public.block_user('19000000-0000-0000-0000-000000000005','search privacy')$$,'viewer can block a candidate');
 select is((select count(*) from public.search_luxy_profiles_v2() where id='19000000-0000-0000-0000-000000000005'),0::bigint,'blocked profiles are excluded from Search V2');
 select throws_ok($$select * from public.search_luxy_profiles_v2(p_sort=>'popular')$$,'22023','invalid_search_sort','unsupported sort values are rejected');
-select throws_ok($$select * from public.search_luxy_profiles_v2(p_min_age=>40,p_max_age=>20)$$,'22023','invalid_search_age_range','invalid age ranges are rejected');
+select throws_ok($$select * from public.search_luxy_profiles_v2(p_min_age=>40::smallint,p_max_age=>20::smallint)$$,'22023','invalid_search_age_range','invalid age ranges are rejected');
 select throws_ok($$select * from public.search_luxy_profiles_v2(p_max_distance_km=>4000)$$,'22023','invalid_search_distance','unbounded distance inputs are rejected');
 
 select * from finish();
