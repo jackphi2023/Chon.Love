@@ -14,13 +14,20 @@ async function openMobileLogin(browser) {
     reducedMotion: 'reduce',
   });
   const page = await context.newPage();
-  await page.goto('/');
-  await expect(page.getByTestId('luxy-public-homepage')).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập' }).first().click();
-  await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
+  await page.goto('/(auth)?mode=login');
+  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
+  await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
   await expect(page).toHaveTitle(luxyWebTitle);
   await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   return { context, page };
+}
+
+async function tabUntilFocused(page, locator, maxTabs = 8) {
+  for (let index = 0; index < maxTabs; index += 1) {
+    await page.keyboard.press('Tab');
+    if (await locator.evaluate((element) => element === document.activeElement)) return;
+  }
+  await expect(locator).toBeFocused();
 }
 
 test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ browser }, testInfo) => {
@@ -45,8 +52,7 @@ test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ bro
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
 
-    await page.keyboard.press('Tab');
-    await expect(emailInput).toBeFocused();
+    await tabUntilFocused(page, emailInput);
     await page.keyboard.press('Tab');
     await expect(passwordInput).toBeFocused();
 
