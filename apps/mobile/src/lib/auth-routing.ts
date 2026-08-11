@@ -27,11 +27,14 @@ export function getReadableAuthError(error: unknown): string {
   if (/invalid login credentials|invalid_credentials/iu.test(message)) {
     return 'Email hoặc mật khẩu không đúng.';
   }
+  if (/user already registered|already been registered|email.*registered/iu.test(message)) {
+    return 'Email này đã có tài khoản. Hãy chuyển sang Đăng nhập.';
+  }
   if (/email not confirmed/iu.test(message)) {
     return 'Email chưa được xác nhận.';
   }
   if (/password_too_short|weak password|password should be at least/iu.test(message)) {
-    return 'Mật khẩu mới cần ít nhất 10 ký tự và nên có chữ hoa, chữ thường, số và ký tự đặc biệt.';
+    return 'Mật khẩu cần ít nhất 10 ký tự và nên có chữ hoa, chữ thường, số và ký tự đặc biệt.';
   }
   if (/same password|new password should be different/iu.test(message)) {
     return 'Mật khẩu mới phải khác mật khẩu hiện tại.';
