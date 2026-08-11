@@ -1,7 +1,6 @@
 import {
   luxyBrand,
   luxyColors,
-  luxySpacing,
   luxyTypography,
 } from '@myfan/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
