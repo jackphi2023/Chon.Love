@@ -50,7 +50,7 @@ set profile_status='active',
       else (select id from public.administrative_areas where country_code='VN' and code='79') end,
     headline=case
       when p.id='19000000-0000-0000-0000-000000000002' then 'Yêu ẩm thực cao cấp'
-      when p.id='19000000-0000-0000-000000000003' then 'Sẵn sàng du lịch'
+      when p.id='19000000-0000-0000-0000-000000000003' then 'Sẵn sàng du lịch'
       else null end,
     bio=case when p.id='19000000-0000-0000-0000-000000000002' then 'Tìm kết nối nghiêm túc tại Sài Gòn' else null end,
     height_cm=case when p.id='19000000-0000-0000-0000-000000000002' then 165 else 170 end,
