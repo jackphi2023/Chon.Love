@@ -259,7 +259,7 @@ export function LuxySearchDesktop() {
   }, [profilesQuery.data?.pages]);
 
   const selectedProvince = (provincesQuery.data ?? []).find((item) => item.id === draft.provinceId) ?? null;
-  const activeSort = SORT_OPTIONS.find((item) => item.value === sort) ?? SORT_OPTIONS[0];
+  const activeSort = SORT_OPTIONS.find((item) => item.value === sort) ?? SORT_OPTIONS[0]!;
 
   function applyFilters(nextDraft = draft, nextSort = sort) {
     try {
