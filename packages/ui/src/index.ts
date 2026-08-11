@@ -85,15 +85,25 @@ export const luxyBreakpoints = {
 } as const;
 
 export type LuxyShellMode = 'compact' | 'desktop';
+export type LuxyResponsiveShellMode = 'phone' | 'tablet' | 'desktop';
 
-/** LX-03 contract: the full Seeking-style authenticated desktop shell starts at 1024 px. */
+/** LX-03 compatibility contract: the full Seeking-style authenticated desktop shell starts at 1024 px. */
 export function resolveLuxyShellMode(width: number): LuxyShellMode {
   return width >= luxyBreakpoints.desktop ? 'desktop' : 'compact';
+}
+
+/** LX-04 contract: phone and tablet get distinct non-bottom-tab authenticated shell layouts. */
+export function resolveLuxyResponsiveShellMode(width: number): LuxyResponsiveShellMode {
+  if (width >= luxyBreakpoints.desktop) return 'desktop';
+  if (width >= luxyBreakpoints.mobile) return 'tablet';
+  return 'phone';
 }
 
 export const luxyLayout = {
   authenticatedPromoHeight: 46,
   authenticatedNavHeight: 60,
+  authenticatedPhoneTopHeight: 54,
+  authenticatedPhoneNavHeight: 54,
   contentMaxWidth: 1440,
   contentHorizontalPaddingMobile: 16,
   contentHorizontalPaddingDesktop: 24,
