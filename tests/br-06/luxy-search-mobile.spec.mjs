@@ -23,16 +23,19 @@ async function noHorizontalOverflow(page) {
 async function assertTwoColumnGrid(page) {
   const cards = page.getByTestId('luxy-search-mobile-card');
   await expect.poll(async () => cards.count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(3);
-  const first = await cards.nth(0).boundingBox();
-  const second = await cards.nth(1).boundingBox();
-  const third = await cards.nth(2).boundingBox();
-  expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
-  expect(third).not.toBeNull();
-  expect(Math.abs(first.y - second.y)).toBeLessThan(3);
-  expect(second.x).toBeGreaterThan(first.x);
-  expect(third.y).toBeGreaterThan(first.y + 10);
-  expect(Math.abs(first.width - second.width)).toBeLessThan(3);
+  // Viewport changes can briefly expose the previous RN-web layout frame. Poll the
+  // actual card geometry so the regression locks the settled two-column contract
+  // rather than depending on a single animation/layout tick.
+  await expect.poll(async () => {
+    const first = await cards.nth(0).boundingBox();
+    const second = await cards.nth(1).boundingBox();
+    const third = await cards.nth(2).boundingBox();
+    if (!first || !second || !third) return false;
+    return Math.abs(first.y - second.y) < 3
+      && second.x > first.x
+      && third.y > first.y + 10
+      && Math.abs(first.width - second.width) < 3;
+  }, { timeout: 10_000, intervals: [100, 200, 400, 800] }).toBe(true);
 }
 
 test('LX-11/12 phone Search keeps two-column grid and activates relationship filters', async ({ browser }, testInfo) => {
