@@ -23,7 +23,7 @@ describe('Luxy Search V2 client contract', () => {
     expect(() => parseLuxySearchInput({ minWeightKg: 90, maxWeightKg: 50 })).toThrow('invalid_search_weight_range');
   });
 
-  it('maps Seeking-derived filters to the V2 RPC without inventing verification/favorite state', async () => {
+  it('maps Seeking-derived profile and LX-12 relationship filters to Search V2', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
     const client = { rpc } as never;
 
@@ -44,6 +44,8 @@ describe('Luxy Search V2 client contract', () => {
       onlineNow: true,
       occupationText: 'kiến trúc',
       profileText: 'nghiêm túc',
+      viewState: 'unviewed',
+      favoriteScope: 'favorited_me',
       limit: 20,
       offset: 40,
     });
@@ -67,15 +69,15 @@ describe('Luxy Search V2 client contract', () => {
       p_online_now: true,
       p_occupation_text: 'kiến trúc',
       p_profile_text: 'nghiêm túc',
+      p_view_state: 'unviewed',
+      p_favorite_scope: 'favorited_me',
       p_limit: 20,
       p_offset: 40,
     });
     expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_verified');
-    expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_favorited');
-    expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_viewed_me');
   });
 
-  it('validates and returns the privacy-safe result shape', async () => {
+  it('validates and returns the privacy-safe result + LX-12 relationship state', async () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
       data: [{
@@ -108,11 +110,21 @@ describe('Luxy Search V2 client contract', () => {
         is_online: true,
         distance_km: 0.7,
         member_since: '2026-08-01T00:00:00.000Z',
+        is_favorited: true,
+        is_favorited_by: false,
+        is_viewed: true,
       }],
     });
 
     const result = await searchLuxyProfilesV2({ rpc } as never);
-    expect(result[0]).toMatchObject({ age: 29, distance_km: 0.7, photo_count: 2 });
+    expect(result[0]).toMatchObject({
+      age: 29,
+      distance_km: 0.7,
+      photo_count: 2,
+      is_favorited: true,
+      is_favorited_by: false,
+      is_viewed: true,
+    });
     expect(result[0]).not.toHaveProperty('date_of_birth');
     expect(result[0]).not.toHaveProperty('latitude');
     expect(result[0]).not.toHaveProperty('longitude');
