@@ -128,7 +128,7 @@ export default function SelfieVerificationOnboarding() {
     >
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Điều kiện tự động duyệt</Text>
-        <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng ít nhất {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với một ảnh hồ sơ.</Text>
+        <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
         <Text style={styles.ruleText}>• Giới tính tự khai báo được khóa theo hồ sơ trong lần xác minh này để tránh thay đổi dữ liệu giữa luồng.</Text>
         <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng → chuyển Admin review, không tự động khóa vĩnh viễn.</Text>
       </View>
