@@ -60,7 +60,7 @@ test('LX-06 login reuses existing email auth and remains responsive at 390px', a
     await page.getByPlaceholder('email@example.com').fill(actor.email);
     await page.getByPlaceholder('Nhập mật khẩu').fill(password);
     await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-    await expect(page.getByText('Khám phá', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 
     await testInfo.attach('lx06-login-390-authenticated', {
       body: await page.screenshot({ fullPage: true }),
