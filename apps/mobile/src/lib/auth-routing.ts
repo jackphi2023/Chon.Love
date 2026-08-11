@@ -13,6 +13,10 @@ export function resolveAuthenticatedRoute(
   if (!status) return '/(onboarding)';
   if (!status.age_verified || !status.policies_accepted) return '/(onboarding)';
   if (status.account_status !== 'active') return '/(onboarding)';
+  // Luxy member surfaces are available only after profile setup + selfie
+  // verification. pending_review/incomplete users stay inside onboarding even
+  // when they already hold an authenticated Supabase session.
+  if (status.profile_status !== 'active') return '/(onboarding)';
   return '/(tabs)';
 }
 
