@@ -3,7 +3,8 @@ name: LX-10 Route Split
 on:
   push:
     branches: ['agent/luxy-seeking-ui-foundation']
-    paths: ['.github/workflows/lx10-route-split.yml']
+    paths:
+      - '.github/workflows/lx10-route-split.yml'
 
 permissions:
   contents: write
@@ -29,16 +30,19 @@ jobs:
           if needle not in text:
               raise SystemExit('legacy discovery entrypoint not found')
           legacy.write_text(text.replace(needle, 'export default function LegacyDiscoveryScreen() {', 1))
-          source.write_text("""import { luxyBreakpoints } from '@myfan/ui';
-import { useWindowDimensions } from 'react-native';
-import LegacyDiscoveryScreen from '@/components/legacy-discovery-screen';
-import { LuxySearchDesktop } from '@/components/luxy-search-desktop';
-
-export default function Page() {
-  const { width } = useWindowDimensions();
-  return width >= luxyBreakpoints.desktop ? <LuxySearchDesktop /> : <LegacyDiscoveryScreen />;
-}
-""")
+          wrapper = '\n'.join([
+              "import { luxyBreakpoints } from '@myfan/ui';",
+              "import { useWindowDimensions } from 'react-native';",
+              "import LegacyDiscoveryScreen from '@/components/legacy-discovery-screen';",
+              "import { LuxySearchDesktop } from '@/components/luxy-search-desktop';",
+              '',
+              'export default function Page() {',
+              '  const { width } = useWindowDimensions();',
+              '  return width >= luxyBreakpoints.desktop ? <LuxySearchDesktop /> : <LegacyDiscoveryScreen />;',
+              '}',
+              '',
+          ])
+          source.write_text(wrapper)
           PY
 
       - name: Commit route split
