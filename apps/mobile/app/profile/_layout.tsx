@@ -25,7 +25,7 @@ export default function PublicProfileRouteLayout() {
     if (!client) return;
     void recordProfileViewByUsername(client, username).catch((error) => {
       // Profile rendering must not fail because the non-critical view signal could not be recorded.
-      logger.warn('Unable to record Luxy profile view', error);
+      logger.error('Unable to record Luxy profile view', error);
     });
   }, [auth.userId, username]);
 
