@@ -8,6 +8,13 @@ export type ProfileMediaRow = Database['public']['Tables']['media_assets']['Row'
 export type MediaVisibility = Database['public']['Enums']['media_visibility'];
 export type GenderIdentity = Database['public']['Enums']['gender_identity'];
 export type AlbumType = Database['public']['Enums']['album_type'];
+export type DatingInterest = Database['public']['Enums']['dating_interest'];
+export type RelationshipStatus = Database['public']['Enums']['relationship_status'];
+export type ChildrenStatus = Database['public']['Enums']['children_status'];
+export type SmokingStatus = Database['public']['Enums']['smoking_status'];
+export type DrinkingStatus = Database['public']['Enums']['drinking_status'];
+export type EducationLevel = Database['public']['Enums']['education_level'];
+export type ProfileLifestyleTag = Database['public']['Enums']['profile_lifestyle_tag'];
 
 export const VN_FEATURED_PROVINCE_COUNT = 6;
 export const VN_CANONICAL_PROVINCE_COUNT = 34;
@@ -28,6 +35,24 @@ export type UpdateMyProfileInput = {
   interests: string[];
   discoveryEnabled: boolean;
   nearbyEnabled: boolean;
+};
+
+export type UpdateMyLuxyProfileInput = UpdateMyProfileInput & {
+  headline: string;
+  interestedIn: DatingInterest;
+  heightCm: number | null;
+  weightKg: number | null;
+  relationshipStatus: RelationshipStatus;
+  childrenStatus: ChildrenStatus;
+  smokingStatus: SmokingStatus;
+  drinkingStatus: DrinkingStatus;
+  educationLevel: EducationLevel;
+  occupation: string;
+  lookingFor: string;
+  agePreferenceMin: number;
+  agePreferenceMax: number;
+  lifestyleTags: ProfileLifestyleTag[];
+  languages: string[];
 };
 
 export type PreparedImageUpload = {
@@ -106,6 +131,38 @@ export async function updateMyProfile(
     p_interests: input.interests,
     p_discovery_enabled: input.discoveryEnabled,
     p_nearby_enabled: input.nearbyEnabled,
+  });
+  return assertData(data, error);
+}
+
+export async function updateMyLuxyProfile(
+  client: Client,
+  input: UpdateMyLuxyProfileInput,
+): Promise<ProfileRow> {
+  const { data, error } = await client.rpc('update_my_luxy_profile', {
+    p_username: input.username,
+    p_display_name: input.displayName,
+    ...(input.bio ? { p_bio: input.bio } : {}),
+    p_gender: input.gender,
+    p_province_id: input.provinceId,
+    p_interests: input.interests,
+    p_discovery_enabled: input.discoveryEnabled,
+    p_nearby_enabled: input.nearbyEnabled,
+    ...(input.headline ? { p_headline: input.headline } : {}),
+    p_interested_in: input.interestedIn,
+    ...(input.heightCm === null ? {} : { p_height_cm: input.heightCm }),
+    ...(input.weightKg === null ? {} : { p_weight_kg: input.weightKg }),
+    p_relationship_status: input.relationshipStatus,
+    p_children_status: input.childrenStatus,
+    p_smoking_status: input.smokingStatus,
+    p_drinking_status: input.drinkingStatus,
+    p_education_level: input.educationLevel,
+    ...(input.occupation ? { p_occupation: input.occupation } : {}),
+    ...(input.lookingFor ? { p_looking_for: input.lookingFor } : {}),
+    p_age_preference_min: input.agePreferenceMin,
+    p_age_preference_max: input.agePreferenceMax,
+    p_lifestyle_tags: input.lifestyleTags,
+    p_languages: input.languages,
   });
   return assertData(data, error);
 }
