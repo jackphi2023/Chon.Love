@@ -1,5 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, GenderIdentity } from '@myfan/supabase';
+import type { GenderIdentity } from '@myfan/supabase';
 import type { PreparedLocalProfileImage } from './profile-media';
 import { getMobileSupabaseClient } from './supabase';
 
@@ -18,7 +17,7 @@ export type MemberPhotoVerificationResult = {
   message?: string | null;
 };
 
-type Client = SupabaseClient<Database>;
+type Client = NonNullable<ReturnType<typeof getMobileSupabaseClient>>;
 
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
