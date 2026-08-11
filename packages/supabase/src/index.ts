@@ -68,6 +68,7 @@ export * from './chat';
 export * from './discovery';
 export * from './gifts';
 export * from './homepage';
+export * from './interests';
 export * from './profile-media';
 export * from './search';
 export * from './social-safety';
