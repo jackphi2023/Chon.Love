@@ -5,7 +5,7 @@ import {
   luxyTypography,
 } from '@myfan/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -51,13 +51,6 @@ export default function AuthHome() {
   const compact = width < 768;
   const disabled = !auth.isConfigured || submitMode !== null;
   const googleDisabled = disabled || !googleAuthEnabled;
-
-  useEffect(() => {
-    setMode(params.mode === 'login' ? 'login' : 'join');
-    setJoinStep('preferences');
-    setErrorMessage(null);
-    setSuccessMessage(null);
-  }, [params.mode]);
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -251,7 +244,7 @@ function JoinPreferences({
   );
 }
 
-function ChoiceGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function ChoiceGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <View style={styles.choiceGroup}>
       <Text style={styles.choiceLabel}>{label}</Text>
