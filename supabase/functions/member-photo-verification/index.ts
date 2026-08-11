@@ -357,7 +357,7 @@ Deno.serve(async (request: Request) => {
 
     await server
       .from('profiles')
-      .update({ profile_status: 'pending_review', discovery_enabled: false })
+      .update({ profile_status: 'pending_review', discovery_enabled: false, nearby_enabled: false })
       .eq('id', actorId);
 
     const attemptId = crypto.randomUUID();
@@ -384,10 +384,10 @@ Deno.serve(async (request: Request) => {
       maxSimilarity = comparison.maxSimilarity;
       matchedMediaId = comparison.matchedMediaId;
       providerErrors = comparison.errors;
-      if (maxSimilarity < FACE_SIMILARITY_THRESHOLD) {
+      if (maxSimilarity <= FACE_SIMILARITY_THRESHOLD) {
         pendingReason = providerErrors.length === media.length
           ? 'face_comparison_quality_or_provider_error'
-          : 'face_similarity_below_threshold';
+          : 'face_similarity_not_above_threshold';
       }
     }
 
@@ -406,13 +406,13 @@ Deno.serve(async (request: Request) => {
       submittedAt: new Date().toISOString(),
     };
 
-    if (!pendingReason && maxSimilarity >= FACE_SIMILARITY_THRESHOLD) {
+    if (!pendingReason && maxSimilarity > FACE_SIMILARITY_THRESHOLD) {
       const approvedCase = await insertVerificationCase(server, {
         userId: actorId,
         status: 'resolved',
         priority: 'normal',
         decision: 'approve',
-        notes: `Auto-approved: face similarity ${maxSimilarity.toFixed(2)}% >= ${FACE_SIMILARITY_THRESHOLD}%`,
+        notes: `Auto-approved: face similarity ${maxSimilarity.toFixed(2)}% > ${FACE_SIMILARITY_THRESHOLD}%`,
         score,
       });
       const { error: activateError } = await server
