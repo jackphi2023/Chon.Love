@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   phoneSymbol: { color: luxyColors.text, fontSize: 18, fontWeight: '400', lineHeight: 20 },
   navTextActive: { fontWeight: '700' },
   upgrade: { alignSelf: 'center', backgroundColor: luxyColors.actionRed, borderBottomWidth: 0, borderRadius: luxyRadii.pill, marginHorizontal: luxySpacing.sm, minHeight: 36, minWidth: 108, paddingHorizontal: luxySpacing.lg },
-  tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minWidth: 0, paddingHorizontal: luxySpacing.sm },
+  tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.sm },
   phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
   upgradeText: { color: luxyColors.surface, fontWeight: '600' },
   pending: { opacity: 0.72 },
