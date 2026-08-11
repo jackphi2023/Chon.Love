@@ -84,6 +84,13 @@ export const luxyBreakpoints = {
   wideDesktop: 1280,
 } as const;
 
+export type LuxyShellMode = 'compact' | 'desktop';
+
+/** LX-03 contract: the full Seeking-style authenticated desktop shell starts at 1024 px. */
+export function resolveLuxyShellMode(width: number): LuxyShellMode {
+  return width >= luxyBreakpoints.desktop ? 'desktop' : 'compact';
+}
+
 export const luxyLayout = {
   authenticatedPromoHeight: 46,
   authenticatedNavHeight: 60,
