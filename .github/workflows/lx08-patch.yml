@@ -1,0 +1,48 @@
+name: LX08 Patch
+
+on:
+  push:
+    branches: ['agent/luxy-seeking-ui-foundation']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lx08-patch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/luxy-seeking-ui-foundation
+      - name: Apply focused LX-08 fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('apps/mobile/app/profile/edit.tsx')
+          s = p.read_text()
+          s = s.replace('''                <PhotoRail\n                  avatarUrl={avatarUrlQuery.data ?? null}\n                  compact={compact}\n''', '''                <PhotoRail\n                  avatarUrl={avatarUrlQuery.data ?? null}\n                  compact={compact}\n                  desktop={desktop}\n''')
+          s = s.replace('''  compact,\n  displayName,\n''', '''  compact,\n  desktop,\n  displayName,\n''')
+          s = s.replace('''  compact: boolean;\n  displayName: string;\n''', '''  compact: boolean;\n  desktop: boolean;\n  displayName: string;\n''')
+          s = s.replace('''    <View style={styles.photoRail} testID="lx08-photo-rail">''', '''    <View style={[styles.photoRail, desktop && styles.photoRailDesktop]} testID="lx08-photo-rail">''')
+          s = s.replace('''  selectedProvince?: ProvinceOption;''', '''  selectedProvince: ProvinceOption | undefined;''')
+          s = s.replace('''function FieldLabel({ symbol, text }: { symbol?: string; text: string })''', '''function FieldLabel({ symbol, text }: { symbol?: string | undefined; text: string })''')
+          s = s.replace('''  photoRail: { alignSelf: 'flex-start', gap: luxySpacing.md, width: '100%' },\n''', '''  photoRail: { alignSelf: 'flex-start', gap: luxySpacing.md, width: '100%' },\n  photoRailDesktop: { maxWidth: 408 },\n''')
+          s = s.replace('''\nif (luxyBreakpoints.desktop >= 1024) {\n  Object.assign(styles.photoRail, { maxWidth: 408 });\n}\n''', '''\n''')
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Commit focused patch
+        run: |
+          if git diff --quiet; then
+            echo 'No patch needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/mobile/app/profile/edit.tsx
+          git commit -m 'LX-08 fix typed responsive edit profile'
+          git push origin HEAD:agent/luxy-seeking-ui-foundation
