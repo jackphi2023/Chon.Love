@@ -1,0 +1,45 @@
+name: Sync generated database types (temporary)
+
+on:
+  push:
+    branches:
+      - agent/luxy-signup-selfie-verification
+    paths:
+      - .github/workflows/sync-generated-types-temp.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/luxy-signup-selfie-verification
+          fetch-depth: 0
+
+      - name: Download exact typegen artifact from Database run 554
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/br09types
+          mkdir -p /tmp/br09types
+          gh run download 31529593212 -R jackphi2023/Luxy.Love -n br-09-database-types -D /tmp/br09types
+          test -s /tmp/br09types/database.types.ts
+          cp /tmp/br09types/database.types.ts packages/supabase/src/database.types.ts
+
+      - name: Commit generated contract if changed
+        run: |
+          if git diff --quiet -- packages/supabase/src/database.types.ts; then
+            echo 'Generated contract already matches repository.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts
+          git commit -m 'Sync generated Supabase database types'
+          git push origin HEAD:agent/luxy-signup-selfie-verification
