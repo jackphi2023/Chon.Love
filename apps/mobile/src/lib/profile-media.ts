@@ -23,7 +23,10 @@ function getResizeTarget(width: number, height: number): { width: number | null;
   return { width: null, height: MAX_RENDER_DIMENSION };
 }
 
-async function selectImage(source: ProfileImageSource): Promise<ImagePicker.ImagePickerAsset | null> {
+async function selectImages(
+  source: ProfileImageSource,
+  allowsMultipleSelection: boolean,
+): Promise<ImagePicker.ImagePickerAsset[]> {
   if (source === 'camera') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) throw new Error('camera_permission_denied');
@@ -33,24 +36,22 @@ async function selectImage(source: ProfileImageSource): Promise<ImagePicker.Imag
       aspect: [1, 1],
       quality: 1,
     });
-    return result.canceled ? null : (result.assets[0] ?? null);
+    return result.canceled ? [] : (result.assets.slice(0, 1));
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsEditing: false,
-    allowsMultipleSelection: false,
+    allowsMultipleSelection,
     quality: 1,
   });
-  return result.canceled ? null : (result.assets[0] ?? null);
+  return result.canceled ? [] : result.assets;
 }
 
-export async function pickAndPrepareProfileImage(
-  source: ProfileImageSource,
+async function prepareSelectedImage(
+  asset: ImagePicker.ImagePickerAsset,
   visibility: PreparedImageUpload['visibility'],
-): Promise<PreparedLocalProfileImage | null> {
-  const asset = await selectImage(source);
-  if (!asset) return null;
+): Promise<PreparedLocalProfileImage> {
   if (asset.type && asset.type !== 'image') throw new Error('unsupported_media_type');
   if (!asset.width || !asset.height) throw new Error('invalid_media_dimensions');
 
@@ -86,10 +87,30 @@ export async function pickAndPrepareProfileImage(
   };
 }
 
+export async function pickAndPrepareProfileImage(
+  source: ProfileImageSource,
+  visibility: PreparedImageUpload['visibility'],
+): Promise<PreparedLocalProfileImage | null> {
+  const asset = (await selectImages(source, false))[0];
+  if (!asset) return null;
+  return prepareSelectedImage(asset, visibility);
+}
+
+export async function pickAndPrepareProfileImages(
+  visibility: PreparedImageUpload['visibility'],
+): Promise<PreparedLocalProfileImage[]> {
+  const assets = await selectImages('library', true);
+  const prepared: PreparedLocalProfileImage[] = [];
+  for (const asset of assets) {
+    prepared.push(await prepareSelectedImage(asset, visibility));
+  }
+  return prepared;
+}
+
 export function getReadableProfileMediaError(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('camera_permission_denied')) {
-    return 'MyFan chỉ dùng camera khi bạn chủ động chụp ảnh. Hãy cấp quyền camera để tiếp tục.';
+    return 'Luxy.Love chỉ dùng camera khi bạn chủ động chụp ảnh. Hãy cấp quyền camera để tiếp tục.';
   }
   if (message.includes('invalid_media_file_size') || message.includes('too large')) {
     return 'Ảnh vượt quá dung lượng cho phép. Hãy chọn ảnh nhỏ hơn.';
@@ -99,13 +120,13 @@ export function getReadableProfileMediaError(error: unknown): string {
     message.includes('mime') ||
     message.includes('extension')
   ) {
-    return 'MyFan chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP.';
+    return 'Luxy.Love chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP.';
   }
   if (message.includes('username_change_cooldown')) {
-    return 'Username chỉ có thể thay đổi một lần trong 30 ngày.';
+    return 'Tên người dùng chỉ có thể thay đổi một lần trong 30 ngày.';
   }
   if (message.includes('duplicate key') || message.includes('profiles_username')) {
-    return 'Username này đã được sử dụng.';
+    return 'Tên người dùng này đã được sử dụng.';
   }
   if (message.includes('account_not_available')) {
     return 'Tài khoản hiện không thể cập nhật hồ sơ.';
