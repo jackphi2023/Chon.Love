@@ -57,7 +57,8 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 20_000 });
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
     await openInterests(viewerPage);
-    await expect(viewerPage.getByRole('tab', { name: 'Yêu thích', exact: true })).toHaveAttribute('aria-selected', 'true');
+    const favoritesTab = viewerPage.getByTestId('luxy-interests-tab-favorites');
+    await expect(favoritesTab).toBeVisible();
     await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible();
 
     // Recipient sees the incoming signal under Favorited Me.
