@@ -95,6 +95,13 @@ If the provider secrets are absent, the system intentionally returns `pending_re
 
 - `20260812020500_luxy_signup_selfie_verification_gate.sql`
 - `20260812020600_luxy_member_photo_verification_admin.sql`
+- `20260812020700_lx09_search_v2_backward_compat_signature.sql`
+
+The third migration restores the original LX-09 24-argument Search V2 signature as a no-default backward-compatible overload after LX-12 extended Search V2 with `view_state` and `favorite_scope`. Current calls with optional/named arguments still resolve to the LX-12 function.
+
+## Generated database contract
+
+`packages/supabase/src/database.types.ts` is synchronized from the exact Supabase CLI artifact generated after a clean reset of this branch. This keeps the two admin verification RPCs and the LX-09/LX-12 Search V2 overloads aligned with the database contract.
 
 ## Release rule
 
