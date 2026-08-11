@@ -19,7 +19,7 @@ async function createMobilePage(browser) {
 }
 
 async function login(page, actor) {
-  await page.goto('/(auth)?mode=login');
+  await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
   await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
   await page.getByPlaceholder('email@example.com').fill(actor.email);
