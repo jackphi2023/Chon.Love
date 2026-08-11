@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   iconText: { color: luxyColors.ink, fontSize: 17, fontWeight: '700' },
   rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { color: luxyColors.text, fontSize: 15.5, fontWeight: '650' },
+  rowTitle: { color: luxyColors.text, fontSize: 15.5, fontWeight: '600' },
   rowDescription: { color: luxyColors.muted, fontSize: 12.5, lineHeight: 18, marginTop: 3 },
   rowTail: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.sm, marginLeft: luxySpacing.sm },
   status: { color: luxyColors.muted, fontSize: 12.5, maxWidth: 118, textAlign: 'right' },
