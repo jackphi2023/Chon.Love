@@ -14,7 +14,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 
 const primaryItems = [
   { key: 'search', label: 'Tìm kiếm', symbol: '⌕', href: '/(tabs)' as const, pending: false },
-  { key: 'favorites', label: 'Yêu thích', symbol: '♡', href: null, pending: true },
+  { key: 'favorites', label: 'Yêu thích', symbol: '♡', href: '/(tabs)/favorites' as const, pending: false },
   { key: 'messages', label: 'Tin nhắn', symbol: '✉︎', href: '/(tabs)/friends' as const, pending: false },
   { key: 'upgrade', label: 'Nâng cấp', symbol: '↑', href: null, pending: true },
 ] as const;
@@ -32,6 +32,7 @@ type ShellVariant = 'phone' | 'tablet' | 'desktop';
 
 function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
   if (key === 'search') return pathname === '/' || pathname === '/index';
+  if (key === 'favorites') return pathname.startsWith('/favorites');
   if (key === 'messages') return pathname.startsWith('/friends') || pathname.startsWith('/chat');
   return false;
 }
