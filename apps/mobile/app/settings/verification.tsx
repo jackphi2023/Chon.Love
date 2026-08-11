@@ -124,9 +124,9 @@ function CaptureCard({
   actionLabel,
   onAction,
 }: {
-  title?: string;
+  title?: string | undefined;
   status: string;
-  image?: PreparedLocalProfileImage;
+  image?: PreparedLocalProfileImage | undefined;
   actionLabel: string;
   onAction: () => void;
 }) {
