@@ -177,6 +177,7 @@ begin
      and not v_has_approved_verification then
     new.profile_status := 'pending_review'::public.profile_status;
     new.discovery_enabled := false;
+    new.nearby_enabled := false;
   end if;
 
   return new;
