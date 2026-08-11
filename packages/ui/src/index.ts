@@ -5,6 +5,9 @@ export const luxyColors = {
   brandCoral: '#FF4A4A',
   /** Darker reference red used for accessible action surfaces with white text. */
   actionRed: '#C81C1D',
+  /** Semantic action aliases keep page code independent from the concrete red token name. */
+  action: '#C81C1D',
+  actionAccessible: '#C81C1D',
   danger: '#CF0404',
   surface: '#FFFFFF',
   background: '#FFFFFF',
