@@ -10,8 +10,8 @@ Status: implementation patch on top of completed LX-12. This is intentionally se
 → upload at least one avatar/public profile image
 → live selfie camera
 → server face comparison against up to five uploaded profile images
-→ >= 60%: approve + activate
-→ < 60% / no reliable comparison / provider error: pending_review
+→ > 60%: approve + activate
+→ <= 60% / no reliable comparison / provider error: pending_review
 → admin approve or hide/deactivate
 ```
 
@@ -26,7 +26,8 @@ A pending user may still have a Supabase authentication session so the app can d
 - Mobile route resolver requires `account_status=active` and `profile_status=active`.
 - Authenticated tabs layout re-checks the resolver before rendering Search/Favorite/Profile.
 - Existing Search/Favorite/social database RPCs remain protected by `private.is_active_adult()`, which requires an active profile.
-- Database trigger prevents the existing profile-update RPC from promoting `incomplete/pending_review` to `active` unless a resolved/approved member-photo-verification moderation case exists.
+- Database trigger prevents member-originated profile writes from promoting `incomplete/pending_review` to `active` unless a resolved/approved member-photo-verification moderation case exists.
+- While verification is pending, `discovery_enabled=false` and `nearby_enabled=false`.
 - Existing profiles that were already active before this migration are grandfathered.
 
 ## Camera
@@ -45,11 +46,12 @@ This is a live camera capture requirement, not a challenge-response anti-spoof l
 
 Server Edge Function: `member-photo-verification`.
 
-- Default threshold: 60.
+- Boundary threshold: 60.
 - Compare selfie against up to five newest avatar/public images that are uploaded and in `pending_review` or `approved` media status.
 - Use the maximum similarity result.
-- Auto-approve only when a reliable result reaches the threshold.
-- Fail closed to `pending_review` when the provider is unconfigured, comparison fails, image quality is insufficient, or maximum similarity is below threshold.
+- Auto-approve only when a reliable result is **strictly above 60%**.
+- A result of exactly `60.00%` remains `pending_review`.
+- Fail closed to `pending_review` when the provider is unconfigured, comparison fails, image quality is insufficient, or maximum similarity is not above the threshold.
 - Selfie is stored in private bucket `member-verification`.
 - Admin review URLs are signed for 60 seconds.
 
