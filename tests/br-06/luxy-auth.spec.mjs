@@ -15,7 +15,7 @@ test('LX-06 Seeking-style join flow keeps preference hierarchy and 18+ handoff',
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
-    await page.goto('/(auth)');
+    await page.goto('/auth');
     await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
     await expect(page.getByText('Đăng ký', { exact: true })).toBeVisible();
     await expect(page.getByText('Tôi là...', { exact: true })).toBeVisible();
@@ -50,7 +50,7 @@ test('LX-06 login reuses existing email auth and remains responsive at 390px', a
   });
   const page = await context.newPage();
   try {
-    await page.goto('/(auth)?mode=login');
+    await page.goto('/auth?mode=login');
     await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
     await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Tham gia', exact: true })).toBeVisible();
