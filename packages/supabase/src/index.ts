@@ -69,6 +69,7 @@ export * from './discovery';
 export * from './gifts';
 export * from './homepage';
 export * from './profile-media';
+export * from './search';
 export * from './social-safety';
 export * from './vietqr';
 export * from './vietqr-reconciliation';
