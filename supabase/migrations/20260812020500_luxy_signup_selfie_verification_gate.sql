@@ -137,25 +137,36 @@ create index if not exists moderation_cases_member_photo_verification_idx
 
 -- A profile created during signup cannot become active simply by calling the
 -- existing profile update RPC. Only a resolved/approved selfie verification case
--- opens the activation gate. This keeps Search/Favorite/social RPCs protected by
--- private.is_active_adult(), which already requires profile_status = active.
+-- opens the activation gate. Once the profile first enters pending_review, its
+-- self-declared gender is frozen until verification resolves so a client cannot
+-- swap the declared value between profile setup and selfie submission.
 create or replace function private.enforce_member_photo_verification_gate()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_has_approved_verification boolean;
 begin
+  select exists (
+    select 1
+    from public.moderation_cases mc
+    where mc.reported_user_id = new.id
+      and 'member_photo_verification' = any(mc.rule_codes)
+      and mc.status = 'resolved'::public.moderation_case_status
+      and mc.decision = 'approve'::public.moderation_decision
+  ) into v_has_approved_verification;
+
+  if old.profile_status = 'pending_review'::public.profile_status
+     and new.gender is distinct from old.gender
+     and not v_has_approved_verification then
+    raise exception using errcode='42501', message='declared_gender_locked_for_verification';
+  end if;
+
   if old.profile_status in ('incomplete'::public.profile_status, 'pending_review'::public.profile_status)
      and new.profile_status = 'active'::public.profile_status
-     and not exists (
-       select 1
-       from public.moderation_cases mc
-       where mc.reported_user_id = new.id
-         and 'member_photo_verification' = any(mc.rule_codes)
-         and mc.status = 'resolved'::public.moderation_case_status
-         and mc.decision = 'approve'::public.moderation_decision
-     ) then
+     and not v_has_approved_verification then
     new.profile_status := 'pending_review'::public.profile_status;
     new.discovery_enabled := false;
   end if;
@@ -168,6 +179,6 @@ revoke all on function private.enforce_member_photo_verification_gate() from pub
 
 drop trigger if exists profiles_member_photo_verification_gate on public.profiles;
 create trigger profiles_member_photo_verification_gate
-before update of profile_status on public.profiles
+before update of profile_status, gender on public.profiles
 for each row
 execute function private.enforce_member_photo_verification_gate();
