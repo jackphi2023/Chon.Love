@@ -10,6 +10,7 @@ import {
   luxyRadii,
   luxySpacing,
   meetsWcagAa,
+  resolveLuxyResponsiveShellMode,
   resolveLuxyShellMode,
 } from './index';
 
@@ -32,8 +33,11 @@ describe('Luxy.Love shared UI foundation', () => {
   });
 
   it('locks the core responsive and Search layout measurements', () => {
+    expect(luxyBreakpoints.compactPhone).toBe(430);
     expect(luxyBreakpoints.mobile).toBe(768);
     expect(luxyBreakpoints.desktop).toBe(1024);
+    expect(luxyLayout.authenticatedPhoneTopHeight).toBeGreaterThanOrEqual(44);
+    expect(luxyLayout.authenticatedPhoneNavHeight).toBeGreaterThanOrEqual(44);
     expect(luxyLayout.searchSidebarWidth).toBeGreaterThanOrEqual(330);
     expect(luxyLayout.searchSidebarWidth).toBeLessThanOrEqual(370);
     expect(luxyLayout.memberCardAspectRatio).toBeCloseTo(0.75, 4);
@@ -47,6 +51,16 @@ describe('Luxy.Love shared UI foundation', () => {
     expect(resolveLuxyShellMode(1023)).toBe('compact');
     expect(resolveLuxyShellMode(1024)).toBe('desktop');
     expect(resolveLuxyShellMode(1440)).toBe('desktop');
+  });
+
+  it('splits LX-04 phone, tablet and desktop responsive shell modes at 768/1024px', () => {
+    expect(resolveLuxyResponsiveShellMode(390)).toBe('phone');
+    expect(resolveLuxyResponsiveShellMode(430)).toBe('phone');
+    expect(resolveLuxyResponsiveShellMode(767)).toBe('phone');
+    expect(resolveLuxyResponsiveShellMode(768)).toBe('tablet');
+    expect(resolveLuxyResponsiveShellMode(1023)).toBe('tablet');
+    expect(resolveLuxyResponsiveShellMode(1024)).toBe('desktop');
+    expect(resolveLuxyResponsiveShellMode(1440)).toBe('desktop');
   });
 
   it.each([
