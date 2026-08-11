@@ -1,5 +1,6 @@
 import { SaveFormat, ImageManipulator } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 import {
   profileImageMetadataSchema,
   type ProfileImageMetadata,
@@ -28,15 +29,17 @@ async function selectImages(
   allowsMultipleSelection: boolean,
 ): Promise<ImagePicker.ImagePickerAsset[]> {
   if (source === 'camera') {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) throw new Error('camera_permission_denied');
+    if (Platform.OS !== 'web') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) throw new Error('camera_permission_denied');
+    }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
     });
-    return result.canceled ? [] : (result.assets.slice(0, 1));
+    return result.canceled ? [] : result.assets.slice(0, 1);
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
