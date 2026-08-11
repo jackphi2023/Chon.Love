@@ -1,13 +1,14 @@
-import { colors, spacing } from '@myfan/ui';
-import { Redirect, Tabs } from 'expo-router';
+import { colors, luxyColors, spacing } from '@myfan/ui';
+import { Redirect, Slot } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { LuxyShellNavigation } from '@/components/luxy-shell-navigation';
 import { getAuthenticatedDestination } from '@/lib/auth';
 import type { AuthenticatedRoute } from '@/lib/auth-routing';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/providers/auth-provider';
 
-export default function TabsLayout() {
+export default function AuthenticatedLuxyLayout() {
   const auth = useAuth();
   const [destination, setDestination] = useState<AuthenticatedRoute | null>(null);
 
@@ -19,7 +20,7 @@ export default function TabsLayout() {
         if (active) setDestination(route);
       })
       .catch((error) => {
-        logger.error('Unable to authorize protected tabs', error);
+        logger.error('Unable to authorize protected Luxy routes', error);
         if (active) setDestination('/(onboarding)');
       });
     return () => {
@@ -33,14 +34,12 @@ export default function TabsLayout() {
   if (destination !== '/(tabs)') return <Redirect href="/(onboarding)" />;
 
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index" options={{ title: 'Khám phá' }} />
-      <Tabs.Screen name="activity" options={{ title: 'Hoạt động' }} />
-      <Tabs.Screen name="friends" options={{ title: 'Kết nối' }} />
-      <Tabs.Screen name="gifts" options={{ title: 'Quà' }} />
-      <Tabs.Screen name="balance" options={{ title: '❤️' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Hồ sơ' }} />
-    </Tabs>
+    <View style={styles.shell}>
+      <LuxyShellNavigation />
+      <View style={styles.routeContent}>
+        <Slot />
+      </View>
+    </View>
   );
 }
 
@@ -54,6 +53,24 @@ function RouteLoading() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: colors.background },
-  loadingText: { color: colors.muted, fontSize: 14 },
+  shell: {
+    backgroundColor: luxyColors.background,
+    flex: 1,
+  },
+  routeContent: {
+    backgroundColor: luxyColors.background,
+    flex: 1,
+    minHeight: 0,
+  },
+  loading: {
+    alignItems: 'center',
+    backgroundColor: luxyColors.background,
+    flex: 1,
+    gap: spacing.md,
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: colors.muted,
+    fontSize: 14,
+  },
 });
