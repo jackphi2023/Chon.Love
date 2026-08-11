@@ -4,10 +4,9 @@ const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const actor = { email: 'br06.viewer@example.test' };
 
 async function login(page) {
-  await page.goto('/');
-  await expect(page.getByTestId('luxy-public-homepage')).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).first().click();
-  await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
+  await page.goto('/(auth)?mode=login');
+  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
+  await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
   await page.getByPlaceholder('email@example.com').fill(actor.email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
