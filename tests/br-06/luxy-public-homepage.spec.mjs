@@ -44,14 +44,16 @@ test('LX-06 homepage sends Login and Join to their intended auth modes', async (
 
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).first().click();
   await expect(page).toHaveURL(/\/auth\?mode=login$/);
-  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
-  await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
+  const loginScreen = page.getByTestId('luxy-auth-screen');
+  await expect(loginScreen).toBeVisible();
+  await expect(loginScreen.getByRole('heading', { name: 'Đăng nhập', exact: true })).toBeVisible();
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Tham gia Luxy.Love ngay' }).click();
   await expect(page).toHaveURL(/\/auth$/);
-  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
-  await expect(page.getByText('Đăng ký', { exact: true })).toBeVisible();
+  const joinScreen = page.getByTestId('luxy-auth-screen');
+  await expect(joinScreen).toBeVisible();
+  await expect(joinScreen.getByRole('heading', { name: 'Đăng ký', exact: true })).toBeVisible();
 });
 
 for (const viewport of [
