@@ -109,9 +109,17 @@ select set_config(
 
 select throws_ok(
   $$select public.update_my_luxy_profile(
-    'lx07_user_b','LX07 User B',null,'male',
+    'lx07_user_b'::text,
+    'LX07 User B'::text,
+    null::text,
+    'male'::public.gender_identity,
     (select id from public.administrative_areas where country_code='VN' and code='79'),
-    '{}'::text[],true,false,'female',175,'single'
+    '{}'::text[],
+    true,
+    false,
+    'female'::public.dating_interest,
+    175::smallint,
+    'single'::public.relationship_status
   )$$,
   '42501',
   'adult_onboarding_required',
@@ -127,8 +135,8 @@ select set_config(
 select lives_ok(
   $$select public.complete_my_onboarding(
     (current_date - interval '30 years')::date,
-    '2026-07',
-    '2026-07',
+    'terms-2026-07-30-v1',
+    'community-2026-07-30-v1',
     'self_declared'
   )$$,
   'adult onboarding succeeds before Luxy profile completion'
@@ -136,17 +144,17 @@ select lives_ok(
 
 select lives_ok(
   $$select public.update_my_luxy_profile(
-    'lx07_user_a',
-    'LX07 User A',
-    'Seeking-derived Luxy profile',
-    'male',
+    'lx07_user_a'::text,
+    'LX07 User A'::text,
+    'Seeking-derived Luxy profile'::text,
+    'male'::public.gender_identity,
     (select id from public.administrative_areas where country_code='VN' and code='79'),
-    array['Du lịch','Ẩm thực'],
+    array['Du lịch','Ẩm thực']::text[],
     true,
     true,
-    'female',
-    178,
-    'single'
+    'female'::public.dating_interest,
+    178::smallint,
+    'single'::public.relationship_status
   )$$,
   'authenticated adult can save the Luxy profile contract'
 );
@@ -195,9 +203,17 @@ select is(
 
 select throws_ok(
   $$select public.update_my_luxy_profile(
-    'lx07_user_a','LX07 User A',null,'male',
+    'lx07_user_a'::text,
+    'LX07 User A'::text,
+    null::text,
+    'male'::public.gender_identity,
     (select id from public.administrative_areas where country_code='VN' and code='79'),
-    '{}'::text[],true,false,'female',119,'single'
+    '{}'::text[],
+    true,
+    false,
+    'female'::public.dating_interest,
+    119::smallint,
+    'single'::public.relationship_status
   )$$,
   '22023',
   'invalid_height_cm',
