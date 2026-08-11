@@ -115,7 +115,7 @@ export default function AuthHome() {
           onPress={() => router.replace('/')}
           style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
         >
-          <Text style={[styles.brand, compact && styles.brandCompact]}>{compact ? luxyBrand.shortName : luxyBrand.productName}</Text>
+          <Text style={[styles.brand, compact && styles.brandCompact]}>{luxyBrand.productName}</Text>
         </Pressable>
         <View style={styles.headerActions}>
           <Text style={[styles.headerPrompt, compact && styles.headerPromptCompact]}>
@@ -137,11 +137,10 @@ export default function AuthHome() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.authPanel, compact && styles.authPanelCompact]}>
-          <Text style={styles.panelBrand}>{luxyBrand.productName}</Text>
-
           {mode === 'join' ? (
             joinStep === 'preferences' ? (
               <JoinPreferences
+                errorMessage={errorMessage}
                 gender={gender}
                 interest={interest}
                 onGender={setGender}
@@ -157,7 +156,6 @@ export default function AuthHome() {
               />
             ) : (
               <AccountForm
-                compact={compact}
                 disabled={disabled}
                 email={email}
                 errorMessage={errorMessage}
@@ -179,7 +177,6 @@ export default function AuthHome() {
             )
           ) : (
             <AccountForm
-              compact={compact}
               disabled={disabled}
               email={email}
               errorMessage={errorMessage}
@@ -204,12 +201,14 @@ export default function AuthHome() {
 }
 
 function JoinPreferences({
+  errorMessage,
   gender,
   interest,
   onGender,
   onInterest,
   onContinue,
 }: {
+  errorMessage: string | null;
   gender: Gender | null;
   interest: Interest | null;
   onGender: (value: Gender) => void;
@@ -219,6 +218,7 @@ function JoinPreferences({
   return (
     <View style={styles.preferenceForm}>
       <Text accessibilityRole="header" style={styles.heading}>Đăng ký</Text>
+
       <ChoiceGroup label="Tôi là...">
         <ChoiceButton label="Nam" selected={gender === 'male'} onPress={() => onGender('male')} />
         <ChoiceButton label="Nữ" selected={gender === 'female'} onPress={() => onGender('female')} />
@@ -230,6 +230,8 @@ function JoinPreferences({
         <ChoiceButton label="Tất cả" selected={interest === 'everyone'} onPress={() => onInterest('everyone')} />
       </ChoiceGroup>
 
+      {errorMessage ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
+
       <Pressable
         accessibilityLabel="Tiếp tục đăng ký"
         accessibilityRole="button"
@@ -238,7 +240,8 @@ function JoinPreferences({
       >
         <Text style={styles.primaryButtonText}>Tiếp tục</Text>
       </Pressable>
-      <Text style={styles.ageNote}>Luxy.Love chỉ dành cho người từ đủ 18 tuổi. Xác minh tuổi là bước bắt buộc sau khi tạo tài khoản.</Text>
+
+      <Text style={styles.ageNote}>Chỉ dành cho người từ đủ 18 tuổi. Sau khi tạo tài khoản, Luxy.Love sẽ yêu cầu xác minh tuổi trước khi sử dụng đầy đủ.</Text>
     </View>
   );
 }
@@ -266,7 +269,6 @@ function ChoiceButton({ label, selected, onPress }: { label: string; selected: b
 }
 
 function AccountForm({
-  compact,
   disabled,
   email,
   errorMessage,
@@ -282,7 +284,6 @@ function AccountForm({
   submitMode,
   successMessage,
 }: {
-  compact: boolean;
   disabled: boolean;
   email: string;
   errorMessage: string | null;
@@ -306,8 +307,9 @@ function AccountForm({
           <Text style={styles.backText}>‹ Quay lại</Text>
         </Pressable>
       ) : null}
-      <Text accessibilityRole="header" style={[styles.heading, compact && styles.headingCompact]}>{login ? 'Đăng nhập' : 'Tạo tài khoản'}</Text>
-      <Text style={styles.subheading}>{login ? 'Chào mừng bạn trở lại Luxy.Love.' : 'Tạo thông tin đăng nhập để tiếp tục hồ sơ của bạn.'}</Text>
+
+      <Text accessibilityRole="header" style={styles.heading}>{login ? 'Đăng nhập' : 'Đăng ký'}</Text>
+      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Luxy.Love.' : 'Tạo thông tin đăng nhập cho tài khoản Luxy.Love của bạn.'}</Text>
 
       <View style={styles.formFields}>
         <Text style={styles.fieldLabel}>Email</Text>
@@ -322,6 +324,7 @@ function AccountForm({
           style={styles.input}
           value={email}
         />
+
         <Text style={styles.fieldLabel}>Mật khẩu</Text>
         <TextInput
           accessibilityLabel="Mật khẩu"
@@ -375,20 +378,11 @@ function AccountForm({
         {submitMode === 'google' ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>}
       </Pressable>
 
-      {!googleAuthEnabled ? <Text style={styles.oauthNote}>Google đang tạm tắt cho đến khi provider được bật trong Supabase.</Text> : null}
-      {!authConfiguredMessage(disabled, submitMode) ? null : <Text style={styles.oauthNote}>Cần cấu hình Supabase để bật xác thực.</Text>}
-
       {!login ? (
-        <Text style={styles.termsText}>
-          Bằng cách tạo tài khoản, bạn đồng ý tiếp tục tới bước xác minh 18+ và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Luxy.Love.
-        </Text>
+        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý tiếp tục tới bước xác minh 18+ và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Luxy.Love.</Text>
       ) : null}
     </View>
   );
-}
-
-function authConfiguredMessage(disabled: boolean, submitMode: SubmitMode): boolean {
-  return disabled && submitMode === null;
 }
 
 function AuthFooter({ compact }: { compact: boolean }) {
@@ -396,6 +390,7 @@ function AuthFooter({ compact }: { compact: boolean }) {
     <View style={[styles.footer, compact && styles.footerCompact]}>
       <Text style={styles.footerLanguage}>Tiếng Việt</Text>
       <View style={styles.footerLinks}>
+        <Text style={styles.footerLink}>Blog</Text>
         <Text style={styles.footerLink}>Quyền riêng tư</Text>
         <Text style={styles.footerLink}>Điều khoản</Text>
         <Text style={styles.footerLink}>Hẹn hò an toàn</Text>
@@ -408,62 +403,121 @@ function AuthFooter({ compact }: { compact: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F7F7F7' },
-  header: { minHeight: 72, paddingHorizontal: 40, backgroundColor: luxyColors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerCompact: { minHeight: 62, paddingHorizontal: 18 },
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: {
+    minHeight: 64,
+    paddingHorizontal: 34,
+    backgroundColor: luxyColors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerCompact: { minHeight: 60, paddingHorizontal: 16 },
   brandButton: { minHeight: 44, justifyContent: 'center' },
-  brand: { color: '#FFFFFF', fontFamily: luxyTypography.families.brand, fontSize: 30, letterSpacing: -1.2 },
-  brandCompact: { fontSize: 26 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  brand: { color: '#FFFFFF', fontFamily: luxyTypography.families.brand, fontSize: 28, letterSpacing: -1.1 },
+  brandCompact: { fontSize: 24 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerPrompt: { color: '#DDE3E8', fontSize: 14 },
   headerPromptCompact: { display: 'none' },
-  headerActionButton: { minHeight: 44, minWidth: 92, paddingHorizontal: 16, borderWidth: 1, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  headerActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  scrollContent: { flexGrow: 1, minHeight: '100%', alignItems: 'center', paddingTop: 56 },
-  scrollContentCompact: { paddingTop: 24 },
-  authPanel: { width: '100%', maxWidth: 520, backgroundColor: '#FFFFFF', paddingHorizontal: 48, paddingVertical: 42, borderWidth: 1, borderColor: '#E3E3E3' },
-  authPanelCompact: { maxWidth: 520, width: '100%', borderLeftWidth: 0, borderRightWidth: 0, paddingHorizontal: 24, paddingVertical: 32 },
-  panelBrand: { color: luxyColors.brandCoral, fontFamily: luxyTypography.families.brand, fontSize: 34, letterSpacing: -1.3, textAlign: 'center', marginBottom: 24 },
-  preferenceForm: { gap: 24 },
-  heading: { color: luxyColors.ink, fontSize: 30, lineHeight: 38, fontWeight: '600', textAlign: 'center' },
-  headingCompact: { fontSize: 28 },
-  subheading: { color: luxyColors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 8 },
-  choiceGroup: { gap: 10 },
-  choiceLabel: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
-  choiceRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  choiceButton: { minHeight: 50, flexGrow: 1, minWidth: 120, borderWidth: 1, borderColor: '#C7CDD2', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  choiceButtonSelected: { borderColor: luxyColors.actionRed, backgroundColor: '#FFF4F3' },
-  choiceButtonText: { color: luxyColors.ink, fontSize: 15, fontWeight: '600' },
-  choiceButtonTextSelected: { color: luxyColors.actionRed },
-  ageNote: { color: luxyColors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  headerActionButton: {
+    minHeight: 44,
+    minWidth: 88,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    borderRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingTop: 48, backgroundColor: '#FFFFFF' },
+  scrollContentCompact: { paddingTop: 28 },
+  authPanel: { width: '100%', maxWidth: 456, paddingHorizontal: 8, paddingVertical: 0 },
+  authPanelCompact: { paddingHorizontal: 24 },
+  preferenceForm: { gap: 0 },
+  heading: { color: luxyColors.ink, fontSize: 26, lineHeight: 34, fontWeight: '500', textAlign: 'center', marginBottom: 30 },
+  subheading: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: -18, marginBottom: 22 },
+  choiceGroup: { marginBottom: 26 },
+  choiceLabel: { color: luxyColors.ink, fontSize: 20, lineHeight: 27, fontWeight: '500', marginBottom: 12 },
+  choiceRow: { flexDirection: 'row', gap: 10 },
+  choiceButton: {
+    minHeight: 48,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#AEB5BB',
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  choiceButtonSelected: { borderWidth: 2, borderColor: luxyColors.actionRed, backgroundColor: '#FFF8F7' },
+  choiceButtonText: { color: luxyColors.ink, fontSize: 15, fontWeight: '500' },
+  choiceButtonTextSelected: { color: luxyColors.actionRed, fontWeight: '600' },
+  ageNote: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 14 },
   accountForm: { gap: 0 },
-  backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 4 },
-  backText: { color: luxyColors.ink, fontSize: 14, fontWeight: '600' },
-  formFields: { marginTop: 26, gap: 8 },
-  fieldLabel: { color: luxyColors.ink, fontSize: 14, fontWeight: '600', marginTop: 8 },
-  input: { minHeight: 52, borderWidth: 1, borderColor: '#BFC5CA', backgroundColor: '#FFFFFF', paddingHorizontal: 14, color: luxyColors.ink, fontSize: 16 },
+  backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 2 },
+  backText: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
+  formFields: { gap: 8 },
+  fieldLabel: { color: luxyColors.ink, fontSize: 14, fontWeight: '500', marginTop: 8 },
+  input: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: '#AEB5BB',
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    color: luxyColors.ink,
+    fontSize: 16,
+  },
   forgotButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
   linkText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '600' },
-  primaryButton: { minHeight: 52, marginTop: 18, backgroundColor: luxyColors.actionRed, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  primaryButton: {
+    minHeight: 50,
+    marginTop: 8,
+    backgroundColor: luxyColors.actionRed,
+    borderRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22 },
   divider: { flex: 1, height: 1, backgroundColor: '#D9D9D9' },
-  dividerText: { color: luxyColors.muted, fontSize: 13 },
-  googleButton: { minHeight: 52, marginTop: 18, borderWidth: 1, borderColor: '#C7CDD2', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center' },
-  googleMark: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#F3F5F6', alignItems: 'center', justifyContent: 'center' },
-  googleMarkText: { color: '#4285F4', fontSize: 17, fontWeight: '800' },
-  googleButtonText: { color: luxyColors.ink, fontSize: 15, fontWeight: '600' },
-  oauthNote: { color: luxyColors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 12 },
-  termsText: { color: luxyColors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 16 },
-  error: { color: luxyColors.danger, fontSize: 13, lineHeight: 19, marginTop: 12, textAlign: 'center' },
-  success: { color: '#17653A', fontSize: 13, lineHeight: 19, marginTop: 12, textAlign: 'center' },
-  footer: { width: '100%', maxWidth: 1040, alignItems: 'center', paddingHorizontal: 24, paddingTop: 38, paddingBottom: 30, gap: 12 },
-  footerCompact: { paddingTop: 28, paddingBottom: 24 },
-  footerLanguage: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
-  footerLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 16 },
-  footerLink: { color: luxyColors.muted, fontSize: 12 },
-  footerNotice: { color: luxyColors.muted, fontSize: 10, lineHeight: 15, maxWidth: 760, textAlign: 'center', textTransform: 'uppercase' },
-  footerCopyright: { color: luxyColors.muted, fontSize: 11 },
+  dividerText: { color: luxyColors.muted, fontSize: 12 },
+  googleButton: {
+    minHeight: 50,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#AEB5BB',
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleMark: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#F3F5F6', alignItems: 'center', justifyContent: 'center' },
+  googleMarkText: { color: '#4285F4', fontSize: 16, fontWeight: '800' },
+  googleButtonText: { color: luxyColors.ink, fontSize: 14, fontWeight: '600' },
+  termsText: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 16 },
+  error: { color: luxyColors.danger, fontSize: 12, lineHeight: 18, marginBottom: 10, textAlign: 'center' },
+  success: { color: '#17653A', fontSize: 12, lineHeight: 18, marginBottom: 10, textAlign: 'center' },
+  footer: {
+    width: '100%',
+    maxWidth: 920,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 54,
+    paddingBottom: 28,
+    gap: 12,
+  },
+  footerCompact: { paddingTop: 38, paddingBottom: 24 },
+  footerLanguage: { color: luxyColors.ink, fontSize: 12, fontWeight: '600' },
+  footerLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14 },
+  footerLink: { color: luxyColors.muted, fontSize: 11 },
+  footerNotice: { color: luxyColors.muted, fontSize: 9, lineHeight: 14, maxWidth: 720, textAlign: 'center', textTransform: 'uppercase' },
+  footerCopyright: { color: luxyColors.muted, fontSize: 10 },
   pressed: { opacity: 0.76 },
   disabled: { opacity: 0.48 },
 });
