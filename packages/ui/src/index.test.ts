@@ -10,6 +10,7 @@ import {
   luxyRadii,
   luxySpacing,
   meetsWcagAa,
+  resolveLuxyShellMode,
 } from './index';
 
 describe('Luxy.Love shared UI foundation', () => {
@@ -38,6 +39,14 @@ describe('Luxy.Love shared UI foundation', () => {
     expect(luxyLayout.memberCardAspectRatio).toBeCloseTo(0.75, 4);
     expect(luxyRadii.pill).toBe(999);
     expect(luxySpacing.huge).toBe(64);
+  });
+
+  it('starts the LX-03 full desktop shell at 1024px exactly', () => {
+    expect(resolveLuxyShellMode(390)).toBe('compact');
+    expect(resolveLuxyShellMode(768)).toBe('compact');
+    expect(resolveLuxyShellMode(1023)).toBe('compact');
+    expect(resolveLuxyShellMode(1024)).toBe('desktop');
+    expect(resolveLuxyShellMode(1440)).toBe('desktop');
   });
 
   it.each([
