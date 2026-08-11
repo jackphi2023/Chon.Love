@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import type { Database } from './database.types';
 import type {
   ChildrenStatus,
   DrinkingStatus,
@@ -11,7 +10,9 @@ import type {
   SmokingStatus,
 } from './profile-media';
 
-type Client = SupabaseClient<Database>;
+// Search V2 is runtime-validated with zod. LX-12 extends the RPC before the next
+// generated Supabase type checkpoint, so keep this call boundary structural.
+type Client = SupabaseClient;
 
 export const LUXY_SEARCH_DEFAULT_PAGE_SIZE = 24;
 export const LUXY_SEARCH_MAX_PAGE_SIZE = 40;
@@ -19,6 +20,8 @@ export const LUXY_SEARCH_MAX_RESULTS = 200;
 export const LUXY_SEARCH_MAX_DISTANCE_KM = 3000;
 
 export type LuxySearchSort = 'distance' | 'recent' | 'newest';
+export type LuxySearchViewState = 'viewed' | 'unviewed';
+export type LuxySearchFavoriteScope = 'favorites' | 'favorited_me';
 
 export type LuxySearchFilters = {
   provinceId?: number | null;
@@ -42,6 +45,8 @@ export type LuxySearchFilters = {
   onlineNow?: boolean | null;
   occupationText?: string | null;
   profileText?: string | null;
+  viewState?: LuxySearchViewState | null;
+  favoriteScope?: LuxySearchFavoriteScope | null;
 };
 
 export type SearchLuxyProfilesInput = LuxySearchFilters & {
@@ -62,6 +67,8 @@ const lifestyleTagSchema = z.enum([
   'marriage_minded', 'monogamous', 'romantic', 'ready_to_travel',
   'travel_companion', 'vacation', 'entertainment_events', 'platonic',
 ]);
+const viewStateSchema = z.enum(['viewed', 'unviewed']);
+const favoriteScopeSchema = z.enum(['favorites', 'favorited_me']);
 
 const luxySearchProfileSchema = z.object({
   id: z.string().uuid(),
@@ -93,6 +100,9 @@ const luxySearchProfileSchema = z.object({
   is_online: z.boolean(),
   distance_km: z.coerce.number().nonnegative().nullable(),
   member_since: z.string(),
+  is_favorited: z.boolean(),
+  is_favorited_by: z.boolean(),
+  is_viewed: z.boolean(),
 });
 
 const searchInputSchema = z.object({
@@ -118,6 +128,8 @@ const searchInputSchema = z.object({
   onlineNow: z.boolean().nullable().optional(),
   occupationText: z.string().trim().max(120).nullable().optional(),
   profileText: z.string().trim().max(120).nullable().optional(),
+  viewState: viewStateSchema.nullable().optional(),
+  favoriteScope: favoriteScopeSchema.nullable().optional(),
   limit: z.number().int().min(1).max(LUXY_SEARCH_MAX_PAGE_SIZE).default(LUXY_SEARCH_DEFAULT_PAGE_SIZE),
   offset: z.number().int().min(0).max(LUXY_SEARCH_MAX_RESULTS - 1).default(0),
 }).superRefine((input, ctx) => {
@@ -141,7 +153,7 @@ export async function searchLuxyProfilesV2(
   input: SearchLuxyProfilesInput = {},
 ): Promise<LuxySearchProfile[]> {
   const parsed = parseLuxySearchInput(input);
-  const args: Database['public']['Functions']['search_luxy_profiles_v2']['Args'] = {
+  const args = {
     p_sort: parsed.sort,
     p_min_age: parsed.minAge,
     p_max_age: parsed.maxAge,
@@ -166,6 +178,8 @@ export async function searchLuxyProfilesV2(
     ...(parsed.onlineNow == null ? {} : { p_online_now: parsed.onlineNow }),
     ...(parsed.occupationText ? { p_occupation_text: parsed.occupationText } : {}),
     ...(parsed.profileText ? { p_profile_text: parsed.profileText } : {}),
+    ...(parsed.viewState ? { p_view_state: parsed.viewState } : {}),
+    ...(parsed.favoriteScope ? { p_favorite_scope: parsed.favoriteScope } : {}),
   };
   const { data, error } = await client.rpc('search_luxy_profiles_v2', args);
   if (error) throw error;
