@@ -33,10 +33,16 @@ const accountItems = [
   { label: 'Số dư', href: '/(tabs)/balance' as const },
 ] as const;
 
-function isPrimaryActive(key: (typeof primaryItems)[number]['key'], pathname: string): boolean {
+type PrimaryItem = (typeof primaryItems)[number];
+
+function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
   if (key === 'search') return pathname === '/' || pathname === '/index';
   if (key === 'messages') return pathname.startsWith('/friends') || pathname.startsWith('/chat');
   return false;
+}
+
+function isAccountRoute(pathname: string): boolean {
+  return ['/profile', '/activity', '/gifts', '/balance'].some((route) => pathname.startsWith(route));
 }
 
 export function LuxyShellNavigation() {
@@ -44,106 +50,151 @@ export function LuxyShellNavigation() {
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const [accountOpen, setAccountOpen] = useState(false);
-  const desktop = width >= luxyBreakpoints.mobile;
+  const desktop = width >= luxyBreakpoints.desktop;
+
+  const navigateHome = () => {
+    setAccountOpen(false);
+    router.replace('/(tabs)');
+  };
+
+  const renderPrimaryItem = (item: PrimaryItem, compact: boolean) => {
+    const active = isPrimaryActive(item.key, pathname);
+    const isUpgrade = item.key === 'upgrade';
+
+    return (
+      <Pressable
+        accessibilityHint={item.pending ? 'Tính năng sẽ được kích hoạt ở phiên Luxy tiếp theo.' : undefined}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: item.pending, selected: active }}
+        disabled={item.pending}
+        key={item.key}
+        onPress={() => {
+          if (!item.href) return;
+          setAccountOpen(false);
+          router.push(item.href);
+        }}
+        style={({ pressed }) => [
+          styles.navigationItem,
+          compact && styles.compactNavigationItem,
+          active && styles.navigationItemActive,
+          isUpgrade && styles.upgradeItem,
+          compact && isUpgrade && styles.compactUpgradeItem,
+          item.pending && !isUpgrade && styles.pendingItem,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.navigationLabel,
+            active && styles.navigationLabelActive,
+            isUpgrade && styles.upgradeLabel,
+          ]}
+        >
+          {compact ? item.compactLabel : item.label}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  const accountControl = (compact: boolean) => (
+    <Pressable
+      accessibilityLabel="Mở menu tài khoản Luxy"
+      accessibilityRole="button"
+      accessibilityState={{ expanded: accountOpen, selected: isAccountRoute(pathname) }}
+      onPress={() => setAccountOpen((value) => !value)}
+      style={({ pressed }) => [
+        styles.accountButton,
+        compact && styles.compactAccountButton,
+        isAccountRoute(pathname) && styles.accountButtonActive,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.accountAvatar}>
+        <Text style={styles.accountAvatarText}>L</Text>
+      </View>
+      {!compact ? <Text numberOfLines={1} style={styles.accountLabel}>Tài khoản</Text> : null}
+      <Text accessibilityElementsHidden style={styles.accountChevron}>{accountOpen ? '⌃' : '⌄'}</Text>
+    </Pressable>
+  );
+
+  const accountMenu = (
+    accountOpen ? (
+      <View accessibilityRole="menu" style={styles.accountMenu}>
+        {accountItems.map((item) => (
+          <Pressable
+            accessibilityRole="menuitem"
+            key={item.label}
+            onPress={() => {
+              setAccountOpen(false);
+              router.push(item.href);
+            }}
+            style={({ pressed }) => [styles.accountMenuItem, pressed && styles.accountMenuItemPressed]}
+          >
+            <Text style={styles.accountMenuLabel}>{item.label}</Text>
+          </Pressable>
+        ))}
+        <View style={styles.accountMenuDivider} />
+        <Text style={styles.accountMenuNote}>Luxy.Love · authenticated shell LX-03</Text>
+      </View>
+    ) : null
+  );
+
+  if (!desktop) {
+    return (
+      <View style={styles.shellHeader}>
+        <View style={styles.navigationRow}>
+          <Pressable
+            accessibilityLabel="Luxy.Love — về Tìm kiếm"
+            accessibilityRole="button"
+            onPress={navigateHome}
+            style={({ pressed }) => [styles.brandButton, styles.compactBrandButton, pressed && styles.pressed]}
+          >
+            <Text numberOfLines={1} style={[styles.brandText, styles.compactBrandText]}>{luxyBrand.shortName}</Text>
+          </Pressable>
+
+          <ScrollView
+            contentContainerStyle={styles.compactPrimaryNavigation}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.primaryNavigationScroller}
+          >
+            {primaryItems.map((item) => renderPrimaryItem(item, true))}
+          </ScrollView>
+
+          {accountControl(true)}
+          {accountMenu}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.shellHeader}>
-      {desktop ? (
-        <View style={styles.promoStrip}>
-          <Text style={styles.promoText}>
-            <Text style={styles.promoStrong}>Nâng cấp</Text> để mở toàn bộ trải nghiệm nhắn tin
-          </Text>
-        </View>
-      ) : null}
+      <View style={styles.promoStrip}>
+        <Text style={styles.promoText}>
+          <Text style={styles.promoStrong}>Nâng cấp ngay</Text> để mở toàn bộ trải nghiệm nhắn tin
+        </Text>
+      </View>
 
       <View style={styles.navigationRow}>
-        <Pressable
-          accessibilityLabel="Luxy.Love — về Tìm kiếm"
-          accessibilityRole="button"
-          onPress={() => {
-            setAccountOpen(false);
-            router.replace('/(tabs)');
-          }}
-          style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
-        >
-          <Text numberOfLines={1} style={styles.brandText}>{desktop ? luxyBrand.productName : luxyBrand.shortName}</Text>
-        </Pressable>
+        <View style={styles.desktopNavigationInner}>
+          <Pressable
+            accessibilityLabel="Luxy.Love — về Tìm kiếm"
+            accessibilityRole="button"
+            onPress={navigateHome}
+            style={({ pressed }) => [styles.brandButton, styles.desktopBrandButton, pressed && styles.pressed]}
+          >
+            <Text numberOfLines={1} style={styles.brandText}>{luxyBrand.productName}</Text>
+          </Pressable>
 
-        <ScrollView
-          contentContainerStyle={styles.primaryNavigation}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.primaryNavigationScroller}
-        >
-          {primaryItems.map((item) => {
-            const active = isPrimaryActive(item.key, pathname);
-            const isUpgrade = item.key === 'upgrade';
-            return (
-              <Pressable
-                accessibilityHint={item.pending ? 'Tính năng sẽ được kích hoạt ở phiên Luxy tiếp theo.' : undefined}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: item.pending, selected: active }}
-                disabled={item.pending}
-                key={item.key}
-                onPress={() => {
-                  if (!item.href) return;
-                  setAccountOpen(false);
-                  router.push(item.href);
-                }}
-                style={({ pressed }) => [
-                  styles.navigationItem,
-                  active && styles.navigationItemActive,
-                  isUpgrade && styles.upgradeItem,
-                  item.pending && !isUpgrade && styles.pendingItem,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.navigationLabel,
-                    active && styles.navigationLabelActive,
-                    isUpgrade && styles.upgradeLabel,
-                  ]}
-                >
-                  {desktop ? item.label : item.compactLabel}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <Pressable
-          accessibilityLabel="Mở menu tài khoản Luxy"
-          accessibilityRole="button"
-          accessibilityState={{ expanded: accountOpen }}
-          onPress={() => setAccountOpen((value) => !value)}
-          style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}
-        >
-          <View style={styles.accountAvatar}><Text style={styles.accountAvatarText}>L</Text></View>
-          {desktop ? <Text numberOfLines={1} style={styles.accountLabel}>Tài khoản</Text> : null}
-          <Text accessibilityElementsHidden style={styles.accountChevron}>{accountOpen ? '⌃' : '⌄'}</Text>
-        </Pressable>
-
-        {accountOpen ? (
-          <View accessibilityRole="menu" style={styles.accountMenu}>
-            {accountItems.map((item) => (
-              <Pressable
-                accessibilityRole="menuitem"
-                key={item.label}
-                onPress={() => {
-                  setAccountOpen(false);
-                  router.push(item.href);
-                }}
-                style={({ pressed }) => [styles.accountMenuItem, pressed && styles.accountMenuItemPressed]}
-              >
-                <Text style={styles.accountMenuLabel}>{item.label}</Text>
-              </Pressable>
-            ))}
-            <View style={styles.accountMenuDivider} />
-            <Text style={styles.accountMenuNote}>Luxy.Love UI foundation · LX-02</Text>
+          <View style={styles.desktopPrimaryNavigation}>
+            {primaryItems.map((item) => renderPrimaryItem(item, false))}
           </View>
-        ) : null}
+
+          {accountControl(false)}
+          {accountMenu}
+        </View>
       </View>
     </View>
   );
@@ -173,16 +224,30 @@ const styles = StyleSheet.create({
   navigationRow: {
     alignItems: 'stretch',
     backgroundColor: luxyColors.surface,
-    flexDirection: 'row',
     height: luxyLayout.authenticatedNavHeight,
     position: 'relative',
     ...luxyShadows.navigation,
   },
+  desktopNavigationInner: {
+    alignSelf: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    maxWidth: luxyLayout.contentMaxWidth,
+    position: 'relative',
+    width: '100%',
+  },
   brandButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 88,
     paddingHorizontal: luxySpacing.lg,
+  },
+  desktopBrandButton: {
+    minWidth: 188,
+    paddingHorizontal: luxySpacing.xl,
+  },
+  compactBrandButton: {
+    minWidth: 76,
+    paddingHorizontal: luxySpacing.md,
   },
   brandText: {
     color: luxyColors.brandCoral,
@@ -191,10 +256,19 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     letterSpacing: -1.4,
   },
+  compactBrandText: {
+    fontSize: 23,
+    letterSpacing: -1,
+  },
+  desktopPrimaryNavigation: {
+    alignItems: 'stretch',
+    flex: 1,
+    flexDirection: 'row',
+  },
   primaryNavigationScroller: {
     flex: 1,
   },
-  primaryNavigation: {
+  compactPrimaryNavigation: {
     alignItems: 'stretch',
     flexDirection: 'row',
   },
@@ -204,8 +278,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     justifyContent: 'center',
     minHeight: luxyLayout.authenticatedNavHeight,
-    minWidth: 72,
-    paddingHorizontal: luxySpacing.lg,
+    minWidth: 104,
+    paddingHorizontal: luxySpacing.xl,
+  },
+  compactNavigationItem: {
+    minWidth: 68,
+    paddingHorizontal: luxySpacing.md,
   },
   navigationItemActive: {
     backgroundColor: luxyColors.subtleSurface,
@@ -227,8 +305,11 @@ const styles = StyleSheet.create({
     borderRadius: luxyRadii.pill,
     marginHorizontal: luxySpacing.sm,
     minHeight: 36,
-    minWidth: 96,
+    minWidth: 108,
     paddingHorizontal: luxySpacing.lg,
+  },
+  compactUpgradeItem: {
+    minWidth: 92,
   },
   upgradeLabel: {
     color: luxyColors.surface,
@@ -242,8 +323,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: luxySpacing.sm,
     justifyContent: 'center',
+    minWidth: 164,
+    paddingHorizontal: luxySpacing.xl,
+  },
+  compactAccountButton: {
     minWidth: 64,
     paddingHorizontal: luxySpacing.md,
+  },
+  accountButtonActive: {
+    backgroundColor: luxyColors.subtleSurface,
   },
   accountAvatar: {
     alignItems: 'center',
@@ -275,7 +363,7 @@ const styles = StyleSheet.create({
     borderColor: luxyColors.border,
     borderRadius: luxyRadii.sm,
     borderWidth: 1,
-    minWidth: 210,
+    minWidth: 224,
     paddingVertical: luxySpacing.sm,
     position: 'absolute',
     right: luxySpacing.md,
