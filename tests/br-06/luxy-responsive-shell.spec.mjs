@@ -43,14 +43,15 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
 
   try {
     await login(page);
+    const shellBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
 
     // Compact phone: two-row shell, short brand and fixed four-item navigation.
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Luxy', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Luxy', { exact: true })).toBeVisible();
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
-    const compactBrandBox = await page.getByText('Luxy', { exact: true }).boundingBox();
+    const compactBrandBox = await shellBrand.boundingBox();
     const compactSearchBox = await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).boundingBox();
     expect(compactBrandBox).not.toBeNull();
     expect(compactSearchBox).not.toBeNull();
@@ -71,12 +72,12 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
 
     // 430px phone: same two-row behavior, full Luxy.Love brand when there is room.
     await page.setViewportSize({ width: 430, height: 932 });
-    await expect(page.getByText('Luxy.Love', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
-    const phoneBrandBox = await page.getByText('Luxy.Love', { exact: true }).boundingBox();
+    const phoneBrandBox = await shellBrand.boundingBox();
     const phoneSearchBox = await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).boundingBox();
     expect(phoneBrandBox).not.toBeNull();
     expect(phoneSearchBox).not.toBeNull();
@@ -89,12 +90,12 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
 
     // Tablet: a single restrained top row, still no desktop promo strip and no scroller.
     await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(page.getByText('Luxy', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Luxy', { exact: true })).toBeVisible();
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
-    const tabletBrandBox = await page.getByText('Luxy', { exact: true }).boundingBox();
+    const tabletBrandBox = await shellBrand.boundingBox();
     const tabletSearchBox = await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).boundingBox();
     expect(tabletBrandBox).not.toBeNull();
     expect(tabletSearchBox).not.toBeNull();
@@ -108,7 +109,7 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
     // LX-03 desktop boundary remains intact.
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
-    await expect(page.getByText('Luxy.Love', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
   } finally {
     await context.close();
   }
