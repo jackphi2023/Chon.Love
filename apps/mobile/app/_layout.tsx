@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { AppProviders } from '@/providers/app-providers';
 
-const WEB_TITLE = 'MyFan — Mạng xã hội Creator 18+';
+const WEB_TITLE = 'Luxy.Love — Hẹn hò cho người thật và thành đạt';
 
 function WebDocumentMetadata() {
   useEffect(() => {
