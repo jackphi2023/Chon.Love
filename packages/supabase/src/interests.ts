@@ -11,6 +11,7 @@ export const LUXY_INTERESTS_MAX_RESULTS = 200;
 export type LuxyInterestScope = 'favorites' | 'viewed_me' | 'favorited_me';
 
 const uuidSchema = z.string().uuid();
+const usernameSchema = z.string().trim().min(1).max(48);
 const interestScopeSchema = z.enum(['favorites', 'viewed_me', 'favorited_me']);
 
 const favoriteStateSchema = z.object({
@@ -81,6 +82,14 @@ export async function getProfileInterestState(
 export async function recordProfileView(client: Client, profileId: string): Promise<boolean> {
   const { data, error } = await client.rpc('record_profile_view', {
     p_profile_id: parseProfileId(profileId),
+  });
+  if (error) throw error;
+  return z.boolean().parse(data);
+}
+
+export async function recordProfileViewByUsername(client: Client, username: string): Promise<boolean> {
+  const { data, error } = await client.rpc('record_profile_view_by_username', {
+    p_username: usernameSchema.parse(username),
   });
   if (error) throw error;
   return z.boolean().parse(data);
