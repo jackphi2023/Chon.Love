@@ -10,7 +10,7 @@ async function login(page) {
   await page.getByPlaceholder('email@example.com').fill(actor.email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-  await expect(page.getByText('Khám phá', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
 
 async function expectNoHorizontalOverflow(page) {
