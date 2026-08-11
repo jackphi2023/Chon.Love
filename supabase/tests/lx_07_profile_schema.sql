@@ -1,6 +1,6 @@
 begin;
 
-select plan(29);
+select plan(30);
 
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,
