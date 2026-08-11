@@ -20,8 +20,8 @@ async function createMobilePage(browser) {
 
 async function login(page, actor) {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Tham gia MyFan' })).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập MyFan' }).first().click();
+  await expect(page.getByTestId('luxy-public-homepage')).toBeVisible();
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).first().click();
   await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
   await page.getByPlaceholder('email@example.com').fill(actor.email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
