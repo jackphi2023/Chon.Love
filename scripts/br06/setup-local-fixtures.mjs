@@ -63,26 +63,41 @@ for (const actor of actors) created.push(await createActor(actor));
 
 const actorByKey = Object.fromEntries(created.map((actor) => [actor.key, actor]));
 const creator = actorByKey.creator;
+const viewer = actorByKey.viewer;
 const fan = actorByKey.fan;
+const outsider = actorByKey.outsider;
 const moderator = actorByKey.moderator;
-if (!creator || !fan || !moderator) throw new Error('BR-06 Creator, Fan, or moderator fixture was not created.');
+if (!creator || !viewer || !fan || !outsider || !moderator) {
+  throw new Error('BR-06 Creator, Viewer, Fan, Outsider, or moderator fixture was not created.');
+}
 
-const mediaId = randomUUID();
+const activityMediaId = randomUUID();
+const avatarMediaId = randomUUID();
+const publicMediaId = randomUUID();
+const publicAlbumId = randomUUID();
 const postId = randomUUID();
-const mediaPath = `${creator.id}/${mediaId}/br06-activity.png`;
+const activityMediaPath = `${creator.id}/${activityMediaId}/br06-activity.png`;
+const avatarMediaPath = `${creator.id}/${avatarMediaId}/br06-avatar.png`;
+const publicMediaPath = `${creator.id}/${publicMediaId}/br06-public-profile.png`;
 const tinyPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2n6sAAAAASUVORK5CYII=',
   'base64',
 );
 
-await request(`/storage/v1/object/profile-media/${mediaPath.split('/').map(encodeURIComponent).join('/')}`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'image/png',
-    'x-upsert': 'false',
-  },
-  body: tinyPng,
-});
+async function uploadFixtureImage(path) {
+  await request(`/storage/v1/object/profile-media/${path.split('/').map(encodeURIComponent).join('/')}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'image/png',
+      'x-upsert': 'false',
+    },
+    body: tinyPng,
+  });
+}
+
+await uploadFixtureImage(activityMediaPath);
+await uploadFixtureImage(avatarMediaPath);
+await uploadFixtureImage(publicMediaPath);
 
 const sqlLiteral = (value) => `'${String(value).replaceAll("'", "''")}'`;
 const uuidLiteral = (value) => `${sqlLiteral(value)}::uuid`;
@@ -121,6 +136,24 @@ set
   interests = array['Creator', 'Community']::text[]
 where id in (${actorIds});
 
+update public.profiles
+set
+  gender = 'male',
+  interested_in = 'female',
+  headline = 'Kết nối có chủ đích, sống tích cực và tôn trọng.',
+  height_cm = 178,
+  weight_kg = 74,
+  relationship_status = 'single',
+  children_status = 'no_children',
+  smoking_status = 'never',
+  drinking_status = 'socially',
+  education_level = 'bachelors',
+  occupation = 'Founder',
+  looking_for = 'Một người đồng hành chân thành, độc lập và cùng yêu trải nghiệm mới.',
+  lifestyle_tags = array['fine_dining','ready_to_travel','long_term']::public.profile_lifestyle_tag[],
+  languages = array['Tiếng Việt','English']::text[]
+where id = ${uuidLiteral(creator.id)};
+
 insert into private.user_roles(user_id, role, granted_by)
 values (${uuidLiteral(moderator.id)}, 'moderator', ${uuidLiteral(moderator.id)});
 
@@ -152,6 +185,20 @@ set
   activity_visibility = excluded.activity_visibility,
   suspended_at = null;
 
+insert into private.luxy_memberships(user_id, tier, status, messaging_enabled, starts_at, expires_at, source)
+values
+  (${uuidLiteral(creator.id)}, 'diamond', 'active', true, now() - interval '1 day', now() + interval '30 days', 'br06_fixture'),
+  (${uuidLiteral(viewer.id)}, 'premium', 'active', true, now() - interval '1 day', now() + interval '30 days', 'br06_fixture')
+on conflict (user_id) do update
+set
+  tier = excluded.tier,
+  status = excluded.status,
+  messaging_enabled = excluded.messaging_enabled,
+  starts_at = excluded.starts_at,
+  expires_at = excluded.expires_at,
+  source = excluded.source,
+  updated_at = now();
+
 insert into public.media_assets(
   id,
   owner_id,
@@ -168,23 +215,68 @@ insert into public.media_assets(
   uploaded_at,
   approved_at,
   approved_by
-) values (
-  ${uuidLiteral(mediaId)},
-  ${uuidLiteral(creator.id)},
-  'profile-media',
-  ${sqlLiteral(mediaPath)},
-  'image',
-  'image/png',
-  ${tinyPng.length},
-  1,
-  1,
-  repeat('d', 64),
-  'private',
-  'approved',
-  now(),
-  now(),
-  ${uuidLiteral(moderator.id)}
-);
+) values
+  (
+    ${uuidLiteral(activityMediaId)},
+    ${uuidLiteral(creator.id)},
+    'profile-media',
+    ${sqlLiteral(activityMediaPath)},
+    'image',
+    'image/png',
+    ${tinyPng.length},
+    1,
+    1,
+    repeat('d', 64),
+    'private',
+    'approved',
+    now(),
+    now(),
+    ${uuidLiteral(moderator.id)}
+  ),
+  (
+    ${uuidLiteral(avatarMediaId)},
+    ${uuidLiteral(creator.id)},
+    'profile-media',
+    ${sqlLiteral(avatarMediaPath)},
+    'image',
+    'image/png',
+    ${tinyPng.length},
+    1,
+    1,
+    repeat('e', 64),
+    'avatar',
+    'approved',
+    now(),
+    now(),
+    ${uuidLiteral(moderator.id)}
+  ),
+  (
+    ${uuidLiteral(publicMediaId)},
+    ${uuidLiteral(creator.id)},
+    'profile-media',
+    ${sqlLiteral(publicMediaPath)},
+    'image',
+    'image/png',
+    ${tinyPng.length},
+    1,
+    1,
+    repeat('f', 64),
+    'public',
+    'approved',
+    now(),
+    now(),
+    ${uuidLiteral(moderator.id)}
+  );
+
+update public.profiles
+set avatar_media_id = ${uuidLiteral(avatarMediaId)}
+where id = ${uuidLiteral(creator.id)};
+
+insert into public.albums(id, owner_id, name, album_type, fan_threshold_units, is_active)
+values (${uuidLiteral(publicAlbumId)}, ${uuidLiteral(creator.id)}, 'Ảnh công khai', 'public', 0, true);
+
+insert into public.album_media(album_id, media_id, sort_order)
+values (${uuidLiteral(publicAlbumId)}, ${uuidLiteral(publicMediaId)}, 0);
 
 insert into public.creator_posts(
   id,
@@ -207,7 +299,7 @@ insert into public.creator_posts(
 );
 
 insert into public.creator_post_media(post_id, media_id)
-values (${uuidLiteral(postId)}, ${uuidLiteral(mediaId)});
+values (${uuidLiteral(postId)}, ${uuidLiteral(activityMediaId)});
 
 insert into public.fan_progress(
   creator_id,
@@ -244,7 +336,10 @@ await writeFile('/tmp/br06-fixture-manifest.json', JSON.stringify({
     username: actor.username,
     displayName: actor.displayName,
   }])),
-  mediaId,
+  activityMediaId,
+  avatarMediaId,
+  publicMediaId,
+  publicAlbumId,
   postId,
 }, null, 2), 'utf8');
 
