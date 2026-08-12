@@ -2,9 +2,9 @@ begin;
 
 select plan(24);
 
-select has_column('public','conversations','direct_member_low_id','LX-15 stores canonical lower direct participant');
-select has_column('public','conversations','direct_member_high_id','LX-15 stores canonical higher direct participant');
-select col_is_null('public','conversations','friendship_id','Legacy friendship pointer is optional after LX-15');
+select has_table('private','direct_conversation_pairs','LX-15 keeps canonical direct participants in private schema');
+select col_not_null('public','conversations','friendship_id','LX-15 preserves the existing public conversations shape');
+select ok(not has_table_privilege('authenticated','private.direct_conversation_pairs','select'),'Authenticated clients cannot read canonical participant mapping directly');
 select ok(has_function_privilege('authenticated','public.get_luxy_profile_conversation(uuid)','execute'),'Authenticated member can call paid-gated profile conversation RPC');
 select ok(has_function_privilege('authenticated','public.get_direct_conversation(uuid)','execute'),'Authenticated participant can look up an existing direct conversation');
 select ok(not has_function_privilege('anon','public.get_luxy_profile_conversation(uuid)','execute'),'Anonymous cannot create direct conversations');
@@ -57,22 +57,27 @@ values
 ('25000000-0000-0000-0000-000000000001','premium','active',true,now()-interval '1 day',now()+interval '30 days','lx15_test'),
 ('25000000-0000-0000-0000-000000000003','diamond','active',true,now()-interval '1 day',now()+interval '30 days','lx15_test');
 
--- Premium starts a direct conversation with a Free recipient without creating friendship.
+-- Premium starts a direct conversation with a Free recipient without an accepted/pending friendship.
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"25000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select set_config('lx15.direct_id',public.get_luxy_profile_conversation('25000000-0000-0000-0000-000000000002')::text,true);
-select ok(current_setting('lx15.direct_id')::uuid is not null,'Premium creates a direct conversation without friendship');
+select ok(current_setting('lx15.direct_id')::uuid is not null,'Premium creates a direct conversation without friendship acceptance');
 reset role;
 
 select is(
-  (select count(*) from public.friendships where pair_low_id='25000000-0000-0000-0000-000000000001' and pair_high_id='25000000-0000-0000-0000-000000000002'),
+  (select count(*) from public.friendships
+   where pair_low_id='25000000-0000-0000-0000-000000000001'
+     and pair_high_id='25000000-0000-0000-0000-000000000002'
+     and status in ('pending','accepted')),
   0::bigint,
-  'Starting direct messaging does not create a friendship row'
+  'Starting direct messaging creates no pending or accepted friendship relationship'
 );
 select is(
-  (select friendship_id from public.conversations where id=current_setting('lx15.direct_id')::uuid),
-  null::uuid,
-  'New Seeking-style direct conversation has no friendship pointer'
+  (select f.status::text
+   from public.conversations c join public.friendships f on f.id=c.friendship_id
+   where c.id=current_setting('lx15.direct_id')::uuid),
+  'cancelled',
+  'Legacy FK is satisfied only by a terminal technical relationship row'
 );
 select is(
   (select count(*) from public.conversation_members where conversation_id=current_setting('lx15.direct_id')::uuid),
@@ -80,14 +85,14 @@ select is(
   'Both sender and recipient are conversation members'
 );
 select is(
-  (select direct_member_low_id from public.conversations where id=current_setting('lx15.direct_id')::uuid),
+  (select member_low_id from private.direct_conversation_pairs where conversation_id=current_setting('lx15.direct_id')::uuid),
   '25000000-0000-0000-0000-000000000001'::uuid,
-  'Canonical lower participant is persisted'
+  'Canonical lower participant is persisted privately'
 );
 select is(
-  (select direct_member_high_id from public.conversations where id=current_setting('lx15.direct_id')::uuid),
+  (select member_high_id from private.direct_conversation_pairs where conversation_id=current_setting('lx15.direct_id')::uuid),
   '25000000-0000-0000-0000-000000000002'::uuid,
-  'Canonical higher participant is persisted'
+  'Canonical higher participant is persisted privately'
 );
 
 set local role authenticated;
@@ -108,7 +113,7 @@ select lives_ok(
 select is(
   (select friendship_status from public.get_conversation_detail(current_setting('lx15.direct_id')::uuid)),
   'direct',
-  'Conversation detail exposes direct context rather than faking friendship'
+  'Conversation detail exposes direct context rather than technical relationship state'
 );
 select is(
   (select can_send from public.get_conversation_detail(current_setting('lx15.direct_id')::uuid)),
@@ -149,7 +154,7 @@ select throws_ok(
 );
 reset role;
 
--- Blocking immediately prevents paid sender from using the existing conversation.
+-- Blocking immediately prevents the paid sender from using the existing conversation.
 insert into public.user_blocks(blocker_id,blocked_id,reason_code)
 values('25000000-0000-0000-0000-000000000002','25000000-0000-0000-0000-000000000001','lx15_test');
 set local role authenticated;
@@ -165,7 +170,7 @@ select throws_ok(
 reset role;
 delete from public.user_blocks where blocker_id='25000000-0000-0000-0000-000000000002' and blocked_id='25000000-0000-0000-0000-000000000001';
 
--- Existing friendship workflow remains backward compatible and populates canonical pair columns.
+-- Existing friendship workflow remains backward compatible and uses the same private pair model.
 insert into public.friendships(id,requester_id,addressee_id,status)
 values(
   '25000000-0000-4000-8000-000000000201',
@@ -178,12 +183,17 @@ set status='accepted',responded_at=now()
 where id='25000000-0000-4000-8000-000000000201';
 
 select is(
-  (select friendship_id from public.conversations where direct_member_low_id='25000000-0000-0000-0000-000000000001' and direct_member_high_id='25000000-0000-0000-0000-000000000003'),
+  (select c.friendship_id
+   from private.direct_conversation_pairs d join public.conversations c on c.id=d.conversation_id
+   where d.member_low_id='25000000-0000-0000-0000-000000000001'
+     and d.member_high_id='25000000-0000-0000-0000-000000000003'),
   '25000000-0000-4000-8000-000000000201'::uuid,
   'Legacy accepted friendship links to its canonical conversation'
 );
 select is(
-  (select count(*) from public.conversations where direct_member_low_id='25000000-0000-0000-0000-000000000001' and direct_member_high_id='25000000-0000-0000-0000-000000000003'),
+  (select count(*) from private.direct_conversation_pairs
+   where member_low_id='25000000-0000-0000-0000-000000000001'
+     and member_high_id='25000000-0000-0000-0000-000000000003'),
   1::bigint,
   'Legacy trigger cannot create duplicate pair conversations'
 );
