@@ -223,6 +223,7 @@ function InterestRow({ member, scope, desktop }: { member: LuxyInterestMember; s
         <LuxySeekingMemberPhoto
           height={desktop ? 112 : 106}
           mediaId={member.avatar_media_id}
+          membershipTier={member.membership_tier}
           name={name}
           photoCount={member.photo_count}
           storageBucket={member.avatar_storage_bucket}
