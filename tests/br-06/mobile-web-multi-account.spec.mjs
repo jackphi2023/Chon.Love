@@ -38,14 +38,15 @@ async function openCreatorProfile(page) {
   await expect(page.getByRole('heading', { name: new RegExp(`^${actors.creator.displayName},`) })).toBeVisible();
 }
 
-async function setCreatorVisibility(page, label) {
+async function setCreatorVisibility(page, label, expectConfirmation = true) {
   await page.goto('/activity');
   await expect(page.getByText('Ai được xem toàn bộ Hoạt động?', { exact: true })).toBeVisible();
   const radio = page.getByRole('radio', { name: new RegExp(label, 'i') });
   await expect(radio).toBeVisible();
-  if ((await radio.getAttribute('aria-checked')) === 'true') return;
   await radio.click();
-  await expect(page.getByRole('alert')).toContainText(`Đã đặt quyền Hoạt động: ${label}`);
+  if (expectConfirmation) {
+    await expect(page.getByRole('alert')).toContainText(`Đã đặt quyền Hoạt động: ${label}`);
+  }
 }
 
 test('BR-06 mobile web multi-account social and Creator privacy lifecycle', async ({ browser }, testInfo) => {
@@ -67,9 +68,10 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
       login(outsiderPage, actors.outsider),
     ]);
 
-    // Retries share the same local DB. Normalize Creator visibility so the first
-    // public-profile assertion is deterministic even after a prior failed attempt.
-    await setCreatorVisibility(creatorPage, 'Công khai');
+    // Retries share the same local DB. Clicking Public is idempotent; if it was
+    // already selected the UI intentionally emits no confirmation alert. The
+    // public-profile assertions immediately below verify the effective state.
+    await setCreatorVisibility(creatorPage, 'Công khai', false);
 
     await openCreatorProfile(viewerPage);
     await expect(viewerPage.getByText('BR06 approved Activity image', { exact: true })).toBeVisible();
