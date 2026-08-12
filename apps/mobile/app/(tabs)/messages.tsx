@@ -245,6 +245,7 @@ function MailboxRow({
         <LuxySeekingMemberPhoto
           height={desktop ? 105 : 92}
           mediaId={item.avatar_media_id}
+          membershipTier={item.membership_tier}
           name={name}
           storageBucket={item.avatar_storage_bucket}
           storagePath={item.avatar_storage_path}
