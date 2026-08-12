@@ -1,14 +1,9 @@
 import {
   createPrivateMediaUrl,
-  getReadablePrivatePhotoError,
   isMediaVisibleToOwner,
   listMyMedia,
-  listReceivedPrivatePhotoRequests,
-  respondPrivatePhotoAccess,
-  revokePrivatePhotoAccess,
-  uploadProfileImage,
+  setMyProfilePhotoVisibility,
   type MyMediaItem,
-  type ReceivedPrivatePhotoRequest,
 } from '@myfan/supabase';
 import { luxyColors, luxyRadii, luxySpacing } from '@myfan/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,15 +15,11 @@ import {
   SettingsNotice,
   SettingsSection,
 } from '@/components/luxy-settings-layout';
-import {
-  getReadableProfileMediaError,
-  pickAndPrepareProfileImages,
-} from '@/lib/profile-media';
+import { getReadableProfileMediaError } from '@/lib/profile-media';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 type PrivatePhoto = MyMediaItem & { url: string };
-type RequestWithAvatar = ReceivedPrivatePhotoRequest & { avatarUrl: string | null };
 
 export default function PrivatePhotosSettingsPage() {
   const auth = useAuth();
@@ -52,93 +43,59 @@ export default function PrivatePhotosSettingsPage() {
     },
   });
 
-  const requestsQuery = useQuery({
-    queryKey: ['private-photo-requests', auth.userId],
-    enabled: Boolean(client && auth.userId),
-    staleTime: 10_000,
-    queryFn: async () => {
-      if (!client) return [] as RequestWithAvatar[];
-      const rows = await listReceivedPrivatePhotoRequests(client);
-      return Promise.all(rows.map(async (request) => {
-        if (!request.avatar_storage_bucket || !request.avatar_storage_path) return { ...request, avatarUrl: null };
-        try {
-          const avatarUrl = await createPrivateMediaUrl(client, {
-            storage_bucket: request.avatar_storage_bucket,
-            storage_path: request.avatar_storage_path,
-          });
-          return { ...request, avatarUrl };
-        } catch {
-          return { ...request, avatarUrl: null };
-        }
-      }));
-    },
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
+  const visibilityMutation = useMutation({
+    mutationFn: async (photoId: string) => {
       if (!client) throw new Error('supabase_not_configured');
-      const prepared = await pickAndPrepareProfileImages('private');
-      if (!prepared.length) return 0;
-      for (const image of prepared) await uploadProfileImage(client, image);
-      return prepared.length;
+      return setMyProfilePhotoVisibility(client, photoId, 'public');
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['settings', 'private-photos', auth.userId] });
-      await queryClient.invalidateQueries({ queryKey: ['profile', 'media', auth.userId] });
-    },
-  });
-
-  const accessMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'declined' | 'revoked' }) => {
-      if (!client) throw new Error('supabase_not_configured');
-      if (action === 'revoked') return revokePrivatePhotoAccess(client, requestId);
-      return respondPrivatePhotoAccess(client, requestId, action);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['private-photo-requests', auth.userId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['settings', 'private-photos', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['profile', 'media', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['luxy-member-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['private-photo-media'] }),
+        queryClient.invalidateQueries({ queryKey: ['private-photo-access'] }),
+      ]);
     },
   });
 
   if (!auth.isRestoring && !auth.userId) return <Redirect href="/(auth)" />;
 
-  const error = uploadMutation.error ?? photosQuery.error ?? requestsQuery.error ?? accessMutation.error;
-  const pending = requestsQuery.data?.filter((item) => item.status === 'pending') ?? [];
-  const decided = requestsQuery.data?.filter((item) => item.status !== 'pending') ?? [];
+  const error = photosQuery.error ?? visibilityMutation.error;
 
   return (
     <LuxySettingsPage
-      description="Ảnh riêng tư chỉ được mở cho thành viên Premium/Diamond sau khi bạn chấp thuận yêu cầu."
+      description="Các ảnh bạn đã chọn Ẩn trong trang Hồ sơ. Premium và Diamond có thể xem; Free chỉ thấy khu vực ảnh bị khóa."
       testID="luxy-private-photo-settings"
       title="Ảnh riêng tư"
     >
-      <SettingsNotice title="Bạn luôn kiểm soát quyền xem">
-        Quà tặng, Fan và trạng thái kết nối không mở khóa ảnh riêng tư. Bạn có thể duyệt, từ chối hoặc thu hồi quyền đã cấp bất cứ lúc nào.
+      <SettingsNotice title="Ảnh mới luôn công khai trước">
+        Theo luồng Luxy V1, ảnh hồ sơ mới được upload ở trạng thái Công khai. Vào “Hồ sơ của tôi” và chọn “Ẩn” trên từng ảnh để đưa ảnh vào đây. Quà tặng, Fan hoặc kết nối không mở khóa ảnh.
       </SettingsNotice>
 
       <SettingsSection
-        description="Ảnh được tải với media visibility = private và vẫn đi qua pipeline moderation hiện tại."
+        description="Bạn có thể đưa bất kỳ ảnh riêng tư nào trở lại hồ sơ công khai ngay lập tức."
         testID="private-photo-library"
-        title="Thư viện ảnh riêng tư"
+        title={`Thư viện ảnh riêng tư${photosQuery.data?.length ? ` (${photosQuery.data.length})` : ''}`}
       >
         <View style={styles.content}>
-          <View style={styles.actionRow}>
-            <SettingsAction
-              disabled={uploadMutation.isPending}
-              label={uploadMutation.isPending ? 'Đang tải ảnh…' : 'Chọn ảnh riêng tư'}
-              onPress={() => uploadMutation.mutate()}
-              testID="private-photo-upload"
-            />
-            <Text style={styles.actionHelp}>Có thể chọn nhiều ảnh cùng lúc. Ảnh không được đưa vào album công khai.</Text>
-          </View>
-
           {photosQuery.isLoading ? (
             <ActivityIndicator accessibilityLabel="Đang tải ảnh riêng tư" color={luxyColors.ink} />
           ) : photosQuery.data?.length ? (
             <View style={styles.gallery}>
               {photosQuery.data.map((photo) => (
                 <View key={photo.id} style={styles.photoWrap}>
-                  <Image accessibilityLabel="Ảnh riêng tư" source={{ uri: photo.url }} style={styles.photo} />
+                  <View style={styles.photoFrame}>
+                    <Image accessibilityLabel="Ảnh riêng tư" source={{ uri: photo.url }} style={styles.photo} />
+                    <View style={styles.privateBadge}><Text style={styles.privateBadgeText}>Ảnh riêng tư</Text></View>
+                  </View>
                   <Text style={styles.photoStatus}>{statusLabel(photo.moderation_status)}</Text>
+                  <SettingsAction
+                    disabled={visibilityMutation.isPending}
+                    label="Hiện công khai"
+                    onPress={() => visibilityMutation.mutate(photo.id)}
+                    secondary
+                  />
                 </View>
               ))}
             </View>
@@ -146,101 +103,31 @@ export default function PrivatePhotosSettingsPage() {
             <View style={styles.empty}>
               <Text style={styles.emptySymbol}>▣</Text>
               <Text style={styles.emptyTitle}>Chưa có ảnh riêng tư</Text>
-              <Text style={styles.emptyText}>Chọn ảnh ở trên để tạo thư viện riêng tư đầu tiên.</Text>
+              <Text style={styles.emptyText}>Mở Hồ sơ của tôi, upload ảnh công khai rồi chọn “Ẩn” trên ảnh muốn bảo mật.</Text>
+              <SettingsAction label="Quản lý ảnh hồ sơ" onPress={() => router.push('/(tabs)/profile')} />
             </View>
           )}
         </View>
       </SettingsSection>
 
       <SettingsSection
-        description="Thành viên Premium/Diamond có thể gửi yêu cầu; không ai được xem trước khi bạn chấp thuận."
-        testID="private-photo-request-management"
-        title={`Yêu cầu đang chờ${pending.length ? ` (${pending.length})` : ''}`}
+        description="Quyền xem được kiểm tra lại ở server mỗi lần tải ảnh. Khi gói thành viên của viewer hết hạn, quyền xem ảnh riêng tư cũng hết ngay."
+        title="Ai được xem?"
       >
-        <View style={styles.requestList}>
-          {requestsQuery.isLoading ? (
-            <ActivityIndicator accessibilityLabel="Đang tải yêu cầu ảnh riêng tư" color={luxyColors.ink} />
-          ) : pending.length ? pending.map((request) => (
-            <PrivatePhotoRequestRow
-              busy={accessMutation.isPending}
-              key={request.request_id}
-              onAction={(action) => accessMutation.mutate({ requestId: request.request_id, action })}
-              request={request}
-            />
-          )) : (
-            <Text style={styles.requestEmpty}>Chưa có yêu cầu mới.</Text>
-          )}
+        <View style={styles.rules}>
+          <Text style={styles.rule}>• Premium: xem ảnh riêng tư.</Text>
+          <Text style={styles.rule}>• Diamond: xem ảnh riêng tư.</Text>
+          <Text style={styles.rule}>• Free: chỉ thấy số lượng/khu vực ảnh bị khóa và CTA nâng cấp.</Text>
+          <Text style={styles.rule}>• Chủ ảnh: luôn xem và đổi trạng thái ảnh của chính mình.</Text>
         </View>
       </SettingsSection>
 
-      {decided.length ? (
-        <SettingsSection
-          description="Quyền đã duyệt có thể thu hồi ngay; yêu cầu đã từ chối được lưu để bạn nhận biết lịch sử."
-          title="Đã xử lý"
-        >
-          <View style={styles.requestList}>
-            {decided.map((request) => (
-              <PrivatePhotoRequestRow
-                busy={accessMutation.isPending}
-                key={request.request_id}
-                onAction={(action) => accessMutation.mutate({ requestId: request.request_id, action })}
-                request={request}
-              />
-            ))}
-          </View>
-        </SettingsSection>
-      ) : null}
-
-      {uploadMutation.data ? (
-        <Text accessibilityRole="alert" style={styles.success}>Đã thêm {uploadMutation.data} ảnh riêng tư.</Text>
-      ) : null}
-      {error ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {error === accessMutation.error || error === requestsQuery.error ? getReadablePrivatePhotoError(error) : getReadableProfileMediaError(error)}
-        </Text>
-      ) : null}
+      {error ? <Text accessibilityRole="alert" style={styles.error}>{getReadableProfileMediaError(error)}</Text> : null}
 
       <View style={styles.backRow}>
         <SettingsAction label="Quay lại Cài đặt" onPress={() => router.push('/settings')} secondary />
       </View>
     </LuxySettingsPage>
-  );
-}
-
-function PrivatePhotoRequestRow({
-  request,
-  busy,
-  onAction,
-}: {
-  request: RequestWithAvatar;
-  busy: boolean;
-  onAction: (action: 'approved' | 'declined' | 'revoked') => void;
-}) {
-  const name = request.display_name || request.username;
-  return (
-    <View style={styles.requestCard} testID={`private-photo-request-${request.request_id}`}>
-      <View style={styles.requestIdentity}>
-        {request.avatarUrl ? (
-          <Image accessibilityLabel={`Ảnh đại diện của ${name}`} source={{ uri: request.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarFallback}><Text style={styles.avatarFallbackText}>{name.slice(0, 1).toUpperCase()}</Text></View>
-        )}
-        <View style={styles.requestCopy}>
-          <Text style={styles.requestName}>{name}</Text>
-          <Text style={styles.requestMeta}>{requestStatusLabel(request.status)} · {formatRequestDate(request.requested_at)}</Text>
-        </View>
-      </View>
-      {request.status === 'pending' ? (
-        <View style={styles.requestActions}>
-          <SettingsAction disabled={busy} label="Từ chối" onPress={() => onAction('declined')} secondary />
-          <SettingsAction disabled={busy} label="Duyệt xem ảnh" onPress={() => onAction('approved')} />
-        </View>
-      ) : request.status === 'approved' ? (
-        <View style={styles.requestActions}>
-          <SettingsAction disabled={busy} label="Thu hồi quyền" onPress={() => onAction('revoked')} secondary />
-        </View>
-      ) : null}
-    </View>
   );
 }
 
@@ -252,45 +139,21 @@ function statusLabel(status: MyMediaItem['moderation_status']): string {
   return status;
 }
 
-function requestStatusLabel(status: ReceivedPrivatePhotoRequest['status']): string {
-  if (status === 'pending') return 'Đang chờ';
-  if (status === 'approved') return 'Đã cấp quyền';
-  if (status === 'declined') return 'Đã từ chối';
-  return 'Đã thu hồi';
-}
-
-function formatRequestDate(value: string): string {
-  try {
-    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
-  } catch {
-    return '';
-  }
-}
-
 const styles = StyleSheet.create({
   content: { gap: luxySpacing.lg, padding: luxySpacing.lg },
-  actionRow: { gap: luxySpacing.sm },
-  actionHelp: { color: luxyColors.muted, fontSize: 12.5, lineHeight: 18 },
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: luxySpacing.md },
-  photoWrap: { gap: 5, width: '31.5%' },
-  photo: { aspectRatio: 0.78, backgroundColor: luxyColors.elevatedSubtle, borderRadius: luxyRadii.sm, width: '100%' },
+  photoWrap: { gap: 7, minWidth: 150, width: '31%' },
+  photoFrame: { aspectRatio: 0.78, backgroundColor: luxyColors.elevatedSubtle, borderRadius: luxyRadii.sm, overflow: 'hidden', position: 'relative', width: '100%' },
+  photo: { height: '100%', width: '100%' },
+  privateBadge: { backgroundColor: 'rgba(8,23,38,0.82)', borderRadius: luxyRadii.pill, left: 7, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 7 },
+  privateBadgeText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' },
   photoStatus: { color: luxyColors.muted, fontSize: 11.5 },
-  empty: { alignItems: 'center', gap: 5, justifyContent: 'center', minHeight: 180 },
+  empty: { alignItems: 'center', gap: luxySpacing.sm, justifyContent: 'center', minHeight: 210 },
   emptySymbol: { color: luxyColors.softMuted, fontSize: 36 },
   emptyTitle: { color: luxyColors.text, fontSize: 15.5, fontWeight: '700' },
-  emptyText: { color: luxyColors.muted, fontSize: 12.5, textAlign: 'center' },
-  requestList: { gap: luxySpacing.md, padding: luxySpacing.lg },
-  requestEmpty: { color: luxyColors.muted, fontSize: 13, paddingVertical: luxySpacing.md, textAlign: 'center' },
-  requestCard: { borderColor: luxyColors.border, borderRadius: luxyRadii.md, borderWidth: 1, gap: luxySpacing.md, padding: luxySpacing.md },
-  requestIdentity: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.md },
-  avatar: { backgroundColor: luxyColors.elevatedSubtle, borderRadius: 24, height: 48, width: 48 },
-  avatarFallback: { alignItems: 'center', backgroundColor: luxyColors.elevatedSubtle, borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
-  avatarFallbackText: { color: luxyColors.muted, fontSize: 18, fontWeight: '700' },
-  requestCopy: { flex: 1, gap: 3 },
-  requestName: { color: luxyColors.text, fontSize: 14.5, fontWeight: '700' },
-  requestMeta: { color: luxyColors.muted, fontSize: 11.5 },
-  requestActions: { flexDirection: 'row', flexWrap: 'wrap', gap: luxySpacing.sm },
-  success: { color: '#166534', fontSize: 13.5, marginBottom: luxySpacing.lg },
+  emptyText: { color: luxyColors.muted, fontSize: 12.5, lineHeight: 18, maxWidth: 420, textAlign: 'center' },
+  rules: { gap: 7, padding: luxySpacing.lg },
+  rule: { color: luxyColors.muted, fontSize: 13, lineHeight: 19 },
   error: { color: luxyColors.danger, fontSize: 13.5, marginBottom: luxySpacing.lg },
   backRow: { alignItems: 'flex-start', marginBottom: luxySpacing.xl },
 });
