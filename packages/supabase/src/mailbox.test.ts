@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   formatLuxyMailboxPreview,
-  getLuxyProfileConversation,
   getReadableLuxyMailboxError,
   listLuxyMailbox,
+  openLuxyProfileConversation,
   setConversationArchived,
 } from './mailbox';
 
@@ -54,7 +54,7 @@ describe('Luxy LX-16 mailbox client contract', () => {
 
   it('uses the LX-15 paid get-or-create boundary for starting a conversation', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null, data: conversationId });
-    await expect(getLuxyProfileConversation({ rpc } as never, profileId)).resolves.toBe(conversationId);
+    await expect(openLuxyProfileConversation({ rpc } as never, profileId)).resolves.toBe(conversationId);
     expect(rpc).toHaveBeenCalledWith('get_luxy_profile_conversation', { p_profile_id: profileId });
   });
 
