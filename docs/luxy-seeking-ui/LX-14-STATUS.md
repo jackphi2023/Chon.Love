@@ -1,6 +1,6 @@
 # LX-14 — Private Photo + Premium profile interaction gates
 
-Status: COMPLETED IN ROADMAP FOUNDATION — final hardening verification in progress.
+Status: COMPLETED IN ROADMAP FOUNDATION.
 
 ## Product policy implemented
 
@@ -82,6 +82,6 @@ Database contract:
 
 The contract verifies FREE bypass prevention, Premium request flow, owner-only approval, approval/revocation, paid re-check at view time, Favorite downgrade removal, profile-message paid gate, and absence of gift/Fan unlock paths.
 
-Browser E2E now includes a dedicated approved Private Photo fixture that is deliberately separate from Creator Activity media, and verifies the Seeking-inspired `Xem ảnh riêng tư!` Premium gate on both desktop and 390px mobile web.
+Browser E2E includes a dedicated approved Private Photo fixture that is deliberately separate from Creator Activity media, and verifies the Seeking-inspired `Xem ảnh riêng tư!` Premium gate on both desktop and 390px mobile web.
 
 Production Supabase deployment remains intentionally out of scope until a separate deployment/release step is requested.
