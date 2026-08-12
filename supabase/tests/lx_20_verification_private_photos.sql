@@ -44,11 +44,13 @@ where id::text like '30000000-0000-0000-0000-00000000000%';
 insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,starts_at,expires_at,source)
 values('30000000-0000-0000-0000-000000000002','premium','active',true,now()-interval '1 minute',now()+interval '30 days','lx20_test');
 
+-- Keep these fixtures in the pending-media location. LX-20 explicitly treats pending-review
+-- profile photos as owner/viewer-visible while moderation completes, matching the live upload flow.
 insert into public.media_assets(
   id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,visibility,moderation_status,uploaded_at
 ) values
-('30000000-0000-4000-8000-000000000101','30000000-0000-0000-0000-000000000003','pending-media','30000000-0000-0000-0000-000000000003/30000000-0000-4000-8000-000000000101/original.jpg','image/jpeg',1024,900,1200,'public','approved',now()),
-('30000000-0000-4000-8000-000000000102','30000000-0000-0000-0000-000000000003','pending-media','30000000-0000-0000-0000-000000000003/30000000-0000-4000-8000-000000000102/original.jpg','image/jpeg',1024,900,1200,'private','approved',now());
+('30000000-0000-4000-8000-000000000101','30000000-0000-0000-0000-000000000003','pending-media','30000000-0000-0000-0000-000000000003/30000000-0000-4000-8000-000000000101/original.jpg','image/jpeg',1024,900,1200,'public','pending_review',now()),
+('30000000-0000-4000-8000-000000000102','30000000-0000-0000-0000-000000000003','pending-media','30000000-0000-0000-0000-000000000003/30000000-0000-4000-8000-000000000102/original.jpg','image/jpeg',1024,900,1200,'private','pending_review',now());
 
 insert into public.albums(id,owner_id,name,album_type,fan_threshold_units)
 values('30000000-0000-4000-8000-000000000110','30000000-0000-0000-0000-000000000003','Ảnh công khai','public',0);
@@ -70,7 +72,7 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"30000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select is((select has_access from public.get_private_photo_access_state('30000000-0000-0000-0000-000000000003')),true,'Premium viewer automatically receives private-photo entitlement');
 select is((select count(*) from public.list_profile_private_media('30000000-0000-0000-0000-000000000003')),1::bigint,'Premium viewer receives every eligible private photo without owner approval');
-select ok(private.can_view_media_internal('30000000-0000-4000-8000-000000000102','30000000-0000-0000-0000-000000000002'),'Server media authorization recognizes paid private-photo viewer');
+select is((select can_request from public.get_private_photo_access_state('30000000-0000-0000-0000-000000000003')),false,'Paid access is a membership entitlement, not an approval request');
 reset role;
 
 set local role authenticated;
