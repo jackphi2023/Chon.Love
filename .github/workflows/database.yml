@@ -102,6 +102,7 @@ jobs:
           test -f supabase/migrations/20260801045034_br_09_runtime_observability_resilience.sql
           test -f supabase/migrations/20260811130000_lx_07_profile_schema.sql
           test -f supabase/migrations/20260811161500_lx_09_search_backend_v2.sql
+          test -f supabase/migrations/20260812094000_lx_13_member_profile_membership_presentation.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -117,11 +118,13 @@ jobs:
           test -f supabase/tests/br_09_runtime_observability_resilience.sql
           test -f supabase/tests/lx_07_profile_schema.sql
           test -f supabase/tests/lx_09_search_backend_v2.sql
+          test -f supabase/tests/lx_13_member_profile_membership_presentation.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
           test -f scripts/validate-br09.mjs
           test -f tests/br-06/mobile-web-multi-account.spec.mjs
+          test -f tests/br-06/luxy-member-profile.spec.mjs
 
       - name: Start local Supabase
         run: supabase start
@@ -158,6 +161,9 @@ jobs:
 
       - name: Run LX-09 Search Backend V2 contract
         run: supabase test db supabase/tests/lx_09_search_backend_v2.sql --local
+
+      - name: Run LX-13 Member Profile membership presentation contract
+        run: supabase test db supabase/tests/lx_13_member_profile_membership_presentation.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
