@@ -1,6 +1,6 @@
 begin;
 
-select plan(28);
+select plan(30);
 
 select is((select count(*) from public.gift_catalog where is_active and deleted_at is null),20::bigint,'LX-19 reuses exactly the existing 20 active gifts');
 select is((select min(display_hearts) from public.gift_catalog where is_active and deleted_at is null),1,'Existing gift catalog starts at 1 heart');
@@ -89,10 +89,9 @@ select set_config('lx19.crown_gift',(
 ),true);
 select is((select gross_heart_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),2000::bigint,'Existing Crown costs exactly 20 hearts');
 select is((select creator_reward_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),1400::bigint,'Recipient reward snapshots the existing 70 percent share');
-select ok((select available_at between now()+interval '6 days 23 hours' and now()+interval '7 days 1 hour' from private.creator_reward_positions where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Crown reward becomes available after seven days');
-select is((select available_units from private.heart_accounts where user_id='29000000-0000-0000-0000-000000000002'),48000::bigint,'Gift debit is atomic against sender balance');
+select ok((select reward_available_at between now()+interval '6 days 23 hours' and now()+interval '7 days 1 hour' from public.list_my_luxy_gifts('sent',30,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Crown reward becomes available after seven days');
+select is((select heart_balance_units from public.get_my_luxy_membership_snapshot()),48000::bigint,'Gift debit is atomic against sender balance');
 
--- Retry the exact same request. No second transaction and no second debit.
 select is((
   select gift_transaction_id
   from public.send_luxy_gift(
@@ -101,9 +100,8 @@ select is((
     '29000000-0000-4000-8000-000000000102',null,null
   )
 ),current_setting('lx19.crown_gift')::uuid,'Gift idempotency returns the original transaction');
-select is((select available_units from private.heart_accounts where user_id='29000000-0000-0000-0000-000000000002'),48000::bigint,'Idempotent gift retry does not double-debit hearts');
+select is((select heart_balance_units from public.get_my_luxy_membership_snapshot()),48000::bigint,'Idempotent gift retry does not double-debit hearts');
 
--- Attach an existing 1-heart Donut to an LX-15 direct conversation.
 select set_config('lx19.conversation_id',public.get_luxy_profile_conversation('29000000-0000-0000-0000-000000000003')::text,true);
 select set_config('lx19.chat_gift',(
   select gift_transaction_id::text
@@ -125,7 +123,6 @@ select is((select reward_pending_units from public.get_my_luxy_gift_wallet()),14
 select is((select count(*) from public.list_my_luxy_gifts('received',30,0)),2::bigint,'Recipient history returns both gifts');
 reset role;
 
--- Age only the Crown reward past seven days, then wallet read lazily releases it.
 update private.creator_reward_positions set available_at=now()-interval '1 second'
 where gift_transaction_id=current_setting('lx19.crown_gift')::uuid;
 
