@@ -24,6 +24,7 @@ const row = {
   avatar_storage_path: null,
   is_creator: false,
   is_online: true,
+  membership_tier: 'diamond',
   friendship_status: 'direct',
   can_send: false,
   blocked: false,
@@ -36,8 +37,8 @@ const row = {
   unread_count: 1,
 } as const;
 
-describe('Luxy LX-16 mailbox client contract', () => {
-  it('parses the Seeking mailbox read model while preserving nullable friendship', async () => {
+describe('Luxy LX-16/LX-17 mailbox client contract', () => {
+  it('parses the Seeking mailbox read model while preserving nullable friendship and paid tier', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null, data: [row] });
     await expect(listLuxyMailbox({ rpc } as never)).resolves.toEqual([row]);
     expect(rpc).toHaveBeenCalledWith('list_my_conversations', { p_limit: 30, p_offset: 0 });
