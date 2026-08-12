@@ -1,7 +1,10 @@
 import type { LuxyMembershipTier } from '@myfan/supabase';
 import { Image, StyleSheet, View } from 'react-native';
 
+// React Native/Metro requires static require() for bundled raster assets.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const PREMIUM_BADGE = require('../../assets/luxy/premium-badge.png');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const DIAMOND_BADGE = require('../../assets/luxy/diamond-badge.png');
 
 export function LuxyMembershipBadgeImage({
