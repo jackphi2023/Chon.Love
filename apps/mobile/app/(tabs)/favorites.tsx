@@ -105,7 +105,11 @@ export default function FavoritesPage() {
     <ScrollView contentContainerStyle={styles.page} testID="luxy-interests-page">
       <View style={styles.frame}>
         <View style={[styles.toolbar, !desktop && styles.toolbarMobile]}>
-          <View accessibilityRole="tablist" style={styles.tabs} testID="luxy-interests-tabs">
+          <View
+            accessibilityRole="tablist"
+            style={[styles.tabs, !desktop && styles.tabsMobile]}
+            testID="luxy-interests-tabs"
+          >
             {TABS.map((tab) => {
               const active = tab.key === scope;
               const badge = tab.key === 'favorited_me' ? (favoritedMeBadgeQuery.data ?? 0) : 0;
@@ -115,12 +119,19 @@ export default function FavoritesPage() {
                   accessibilityState={{ selected: active }}
                   key={tab.key}
                   onPress={() => setScope(tab.key)}
-                  style={[styles.tab, active && styles.tabActive]}
+                  style={[styles.tab, !desktop && styles.tabMobile, active && styles.tabActive]}
                   testID={`luxy-interests-tab-${tab.key}`}
                 >
-                  <Text numberOfLines={1} style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.tabText, !desktop && styles.tabTextMobile, active && styles.tabTextActive]}
+                  >
+                    {tab.label}
+                  </Text>
                   {badge > 0 ? (
-                    <View style={styles.tabBadge}><Text style={styles.tabBadgeText}>{badge > 99 ? '99+' : badge}</Text></View>
+                    <View style={styles.tabBadge}>
+                      <Text style={styles.tabBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+                    </View>
                   ) : null}
                 </Pressable>
               );
@@ -130,7 +141,7 @@ export default function FavoritesPage() {
             accessibilityLabel="Đổi thứ tự danh sách quan tâm"
             accessibilityRole="button"
             onPress={() => setSort((value) => value === 'newest' ? 'oldest' : 'newest')}
-            style={({ pressed }) => [styles.sortButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.sortButton, !desktop && styles.sortButtonMobile, pressed && styles.pressed]}
             testID="luxy-interests-sort"
           >
             <Text style={styles.sortText}>{sort === 'newest' ? 'Sắp xếp: mới nhất' : 'Sắp xếp: cũ nhất'}</Text>
@@ -139,7 +150,10 @@ export default function FavoritesPage() {
         </View>
 
         {query.isLoading && members.length === 0 ? (
-          <StatePanel><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.stateText}>Đang tải danh sách…</Text></StatePanel>
+          <StatePanel>
+            <ActivityIndicator color={luxyColors.ink} size="large" />
+            <Text style={styles.stateText}>Đang tải danh sách…</Text>
+          </StatePanel>
         ) : query.error ? (
           <StatePanel>
             <Text accessibilityRole="alert" style={styles.errorText}>Không thể tải danh sách quan tâm.</Text>
@@ -161,7 +175,10 @@ export default function FavoritesPage() {
         )}
 
         {query.isFetchingNextPage ? (
-          <View style={styles.loadMoreState}><ActivityIndicator color={luxyColors.ink} /><Text style={styles.stateText}>Đang tải thêm…</Text></View>
+          <View style={styles.loadMoreState}>
+            <ActivityIndicator color={luxyColors.ink} />
+            <Text style={styles.stateText}>Đang tải thêm…</Text>
+          </View>
         ) : query.hasNextPage ? (
           <Pressable accessibilityRole="button" onPress={() => void query.fetchNextPage()} style={styles.loadMoreButton}>
             <Text style={styles.loadMoreText}>Xem thêm</Text>
@@ -169,7 +186,11 @@ export default function FavoritesPage() {
         ) : null}
 
         {scope === 'viewed_me' ? (
-          <View style={styles.noteBar}><Text style={styles.noteText}><Text style={styles.noteStrong}>Lưu ý:</Text> Lượt xem hồ sơ chỉ hiển thị trong 180 ngày gần nhất.</Text></View>
+          <View style={styles.noteBar}>
+            <Text style={styles.noteText}>
+              <Text style={styles.noteStrong}>Lưu ý:</Text> Lượt xem hồ sơ chỉ hiển thị trong 180 ngày gần nhất.
+            </Text>
+          </View>
         ) : null}
       </View>
     </ScrollView>
@@ -230,7 +251,7 @@ function InterestRow({ member, scope, desktop }: { member: LuxyInterestMember; s
       ) : null}
 
       <View style={[styles.rowActions, !desktop && styles.rowActionsMobile]}>
-        <Text style={styles.interactionTime}>{interactionLabel}</Text>
+        <Text style={[styles.interactionTime, !desktop && styles.interactionTimeMobile]}>{interactionLabel}</Text>
         <View style={styles.actionButtons}>
           <LuxySeekingMessageButton name={name} profileId={member.id} />
           <LuxySeekingFavoriteButton initialFavorited={member.is_favorited} name={name} profileId={member.id} />
@@ -250,22 +271,95 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: '#FBFAF9', minHeight: '100%', paddingBottom: 92, paddingHorizontal: 12, paddingTop: 20 },
-  frame: { alignSelf: 'center', backgroundColor: '#FFFFFF', borderColor: '#E5E2DF', borderRadius: 3, borderWidth: 1, maxWidth: 1168, overflow: 'hidden', width: '100%' },
-  toolbar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, paddingHorizontal: 16 },
-  toolbarMobile: { alignItems: 'stretch', flexDirection: 'column', gap: 10, paddingBottom: 12, paddingHorizontal: 10, paddingTop: 4 },
+  page: {
+    backgroundColor: '#FBFAF9',
+    minHeight: '100%',
+    paddingBottom: 92,
+    paddingHorizontal: 12,
+    paddingTop: 20,
+  },
+  frame: {
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E2DF',
+    borderRadius: 3,
+    borderWidth: 1,
+    maxWidth: 1168,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  toolbar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 64,
+    paddingHorizontal: 16,
+  },
+  toolbarMobile: {
+    alignItems: 'stretch',
+    flexDirection: 'column',
+    gap: 10,
+    paddingBottom: 12,
+    paddingHorizontal: 10,
+    paddingTop: 4,
+  },
   tabs: { alignItems: 'stretch', flexDirection: 'row', minHeight: 64 },
-  tab: { alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 1, flexDirection: 'row', gap: 6, justifyContent: 'center', minWidth: 130, paddingHorizontal: 14 },
+  tabsMobile: { width: '100%' },
+  tab: {
+    alignItems: 'center',
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    minWidth: 130,
+    paddingHorizontal: 14,
+  },
+  tabMobile: { flex: 1, gap: 3, minWidth: 0, paddingHorizontal: 3 },
   tabActive: { borderBottomColor: luxyColors.brandCoral },
   tabText: { color: '#979CA4', fontSize: 15 },
+  tabTextMobile: { fontSize: 12 },
   tabTextActive: { color: luxyColors.brandCoral, fontWeight: '500' },
-  tabBadge: { alignItems: 'center', backgroundColor: luxyColors.brandCoral, borderRadius: 4, justifyContent: 'center', minHeight: 17, minWidth: 17, paddingHorizontal: 3 },
+  tabBadge: {
+    alignItems: 'center',
+    backgroundColor: luxyColors.brandCoral,
+    borderRadius: 4,
+    justifyContent: 'center',
+    minHeight: 17,
+    minWidth: 17,
+    paddingHorizontal: 3,
+  },
   tabBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-  sortButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: 8, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 34, minWidth: 240, paddingHorizontal: 14 },
+  sortButton: {
+    alignItems: 'center',
+    borderColor: luxyColors.ink,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 34,
+    minWidth: 240,
+    paddingHorizontal: 14,
+  },
+  sortButtonMobile: { minWidth: 0, width: '100%' },
   sortText: { color: luxyColors.ink, fontSize: 14 },
   chevron: { color: luxyColors.ink, fontSize: 15 },
-  memberRow: { alignItems: 'center', borderTopColor: '#E1DFDD', borderTopWidth: 1, flexDirection: 'row', minHeight: 172, paddingHorizontal: 16, paddingVertical: 16 },
-  memberRowMobile: { alignItems: 'stretch', flexDirection: 'column', gap: 13, minHeight: 0, paddingHorizontal: 12 },
+  memberRow: {
+    alignItems: 'center',
+    borderTopColor: '#E1DFDD',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    minHeight: 172,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  memberRowMobile: {
+    alignItems: 'stretch',
+    flexDirection: 'column',
+    gap: 13,
+    minHeight: 0,
+    paddingHorizontal: 12,
+  },
   identityArea: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, minWidth: 400, width: '38%' },
   identityAreaMobile: { minWidth: 0, width: '100%' },
   primaryFacts: { flex: 1, minWidth: 0, paddingTop: 3 },
@@ -281,20 +375,54 @@ const styles = StyleSheet.create({
   factRow: { flexDirection: 'row', gap: 10, minHeight: 21 },
   factLabel: { color: luxyColors.ink, fontSize: 12, fontWeight: '700', width: 72 },
   factValue: { color: '#34404D', fontSize: 12 },
-  rowActions: { alignItems: 'flex-end', flex: 1, gap: 56, justifyContent: 'space-between', minHeight: 112 },
+  rowActions: {
+    alignItems: 'flex-end',
+    flex: 1,
+    gap: 56,
+    justifyContent: 'space-between',
+    minHeight: 112,
+  },
   rowActionsMobile: { alignItems: 'stretch', gap: 10, minHeight: 0 },
   interactionTime: { color: '#697480', fontSize: 11, textAlign: 'right' },
+  interactionTimeMobile: { textAlign: 'left' },
   actionButtons: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   state: { alignItems: 'center', gap: 12, justifyContent: 'center', minHeight: 330, paddingHorizontal: 24 },
   stateText: { color: luxyColors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
-  emptyTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 20, textAlign: 'center' },
+  emptyTitle: {
+    color: luxyColors.text,
+    fontFamily: luxyTypography.families.display,
+    fontSize: 20,
+    textAlign: 'center',
+  },
   errorText: { color: luxyColors.danger, fontSize: 13 },
-  retryButton: { backgroundColor: luxyColors.ink, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 42, paddingHorizontal: 24 },
+  retryButton: {
+    backgroundColor: luxyColors.ink,
+    borderRadius: luxyRadii.pill,
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 24,
+  },
   retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
-  loadMoreButton: { alignSelf: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginVertical: luxySpacing.lg, minHeight: 42, paddingHorizontal: 24 },
+  loadMoreButton: {
+    alignSelf: 'center',
+    borderColor: luxyColors.ink,
+    borderRadius: luxyRadii.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginVertical: luxySpacing.lg,
+    minHeight: 42,
+    paddingHorizontal: 24,
+  },
   loadMoreText: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
   loadMoreState: { alignItems: 'center', gap: 8, paddingVertical: 20 },
-  noteBar: { alignItems: 'center', borderTopColor: '#D9D7D5', borderTopWidth: 1, justifyContent: 'center', minHeight: 34, paddingHorizontal: 12 },
+  noteBar: {
+    alignItems: 'center',
+    borderTopColor: '#D9D7D5',
+    borderTopWidth: 1,
+    justifyContent: 'center',
+    minHeight: 34,
+    paddingHorizontal: 12,
+  },
   noteText: { color: luxyColors.ink, fontSize: 11, textAlign: 'center' },
   noteStrong: { fontWeight: '700' },
   pressed: { opacity: 0.74 },
