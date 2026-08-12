@@ -1,6 +1,6 @@
 begin;
 
-select plan(30);
+select plan(35);
 
 select is((select count(*) from public.gift_catalog where is_active and deleted_at is null),20::bigint,'LX-19 reuses exactly the existing 20 active gifts');
 select is((select min(display_hearts) from public.gift_catalog where is_active and deleted_at is null),1,'Existing gift catalog starts at 1 heart');
@@ -11,6 +11,7 @@ select is((select name_vi from public.gift_catalog where slug='crown'),'Vương 
 select is(private.luxy_gift_hold_days(),7,'New Luxy gift reward hold is exactly seven days');
 select is(private.config_integer('creator_reward_hold_days'),7::bigint,'Compatibility reward hold is aligned to seven days');
 select ok(has_function_privilege('authenticated','public.send_luxy_gift(uuid,uuid,integer,uuid,uuid,uuid)','execute'),'Authenticated app may call the gated Luxy gift RPC');
+select ok(has_function_privilege('authenticated','public.list_my_received_gift_log(integer,integer)','execute'),'Authenticated recipient may read their own durable gift receipt log');
 select ok(not has_schema_privilege('authenticated','private','USAGE'),'Authenticated clients still cannot use the private accounting schema');
 
 insert into auth.users(
@@ -112,15 +113,21 @@ select set_config('lx19.chat_gift',(
     '29000000-0000-4000-8000-000000000104'
   )
 ),true);
-select is((select message_type::text from public.messages where gift_transaction_id=current_setting('lx19.chat_gift')::uuid),'gift','Chat gift creates a real gift message in the direct conversation');
-select is((select count(*) from public.fan_progress where creator_id='29000000-0000-0000-0000-000000000003' and fan_user_id='29000000-0000-0000-0000-000000000002'),0::bigint,'Luxy gifts do not recreate legacy Fan relationship semantics');
 select is((select count(*) from public.list_my_luxy_gifts('sent',30,0)),2::bigint,'Sender history returns both contextual gifts');
 reset role;
+
+select is((select message_type::text from public.messages where gift_transaction_id=current_setting('lx19.chat_gift')::uuid),'gift','Chat gift creates a real gift message in the direct conversation');
+select is((select count(*) from public.fan_progress where creator_id='29000000-0000-0000-0000-000000000003' and fan_user_id='29000000-0000-0000-0000-000000000002'),0::bigint,'Luxy gifts do not recreate legacy Fan relationship semantics');
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"29000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
 select is((select reward_pending_units from public.get_my_luxy_gift_wallet()),1470::bigint,'Recipient wallet shows 14.7 hearts pending before seven days');
 select is((select count(*) from public.list_my_luxy_gifts('received',30,0)),2::bigint,'Recipient history returns both gifts');
+select is((select count(*) from public.list_my_received_gift_log(50,0)),2::bigint,'Recipient-owned durable gift log contains every received gift');
+select is((select sender_id from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'29000000-0000-0000-0000-000000000002'::uuid,'Gift log preserves which user sent the gift');
+select is((select gift_name_vi from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Vương miện','Gift log preserves the gift snapshot name');
+select is((select gross_heart_units from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),2000::bigint,'Gift log preserves original gift value');
+select ok((select received_at is not null from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Gift log preserves exact receipt timestamp');
 reset role;
 
 update private.creator_reward_positions set available_at=now()-interval '1 second'
