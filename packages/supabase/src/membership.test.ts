@@ -4,8 +4,13 @@ import {
   calculateLuxyMembershipAmountVnd,
   createLuxyMembershipOrder,
   createLuxyUpgradeIntent,
+  formatLuxyMembershipAmount,
   formatLuxyMembershipPrice,
+  getLuxyMembershipOrderStatusLabel,
+  getMyLuxyMembershipCheckout,
   getMyLuxyMembershipSnapshot,
+  isTrustedLuxyMembershipQrImageUrl,
+  listMyLuxyMembershipOrders,
   updateMyLuxyMembershipPrivacy,
 } from './membership';
 
@@ -13,7 +18,7 @@ const intentId = '29000000-0000-4000-8000-000000000013';
 const orderId = '29000000-0000-4000-8000-000000000017';
 const requestId = '29000000-0000-4000-8000-000000000018';
 
-describe('Luxy LX-17 membership engine client', () => {
+describe('Luxy LX-17/LX-18 membership engine client', () => {
   it('parses the authoritative expanded entitlement snapshot', async () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
@@ -77,7 +82,7 @@ describe('Luxy LX-17 membership engine client', () => {
       }],
     });
 
-    await expect(createLuxyMembershipOrder({ rpc } as never, 'diamond', 3, requestId, 'membership')).resolves.toMatchObject({
+    await expect(createLuxyMembershipOrder({ rpc } as never, 'diamond', 3, requestId, 'upgrade_billing_web')).resolves.toMatchObject({
       order_id: orderId,
       tier: 'diamond',
       period_count: 3,
@@ -88,8 +93,67 @@ describe('Luxy LX-17 membership engine client', () => {
       p_tier: 'diamond',
       p_period_count: 3,
       p_request_id: requestId,
-      p_source: 'membership',
+      p_source: 'upgrade_billing_web',
     });
+  });
+
+  it('parses the caller-owned VietQR membership checkout and trusts only VietQR image host', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      error: null,
+      data: [{
+        order_id: orderId,
+        order_code: 'LXM0123456789AB',
+        status: 'awaiting_payment',
+        tier: 'diamond',
+        period_count: 3,
+        monthly_price_vnd: 5_000_000,
+        discount_bps: 2_000,
+        amount_due_vnd: 12_000_000,
+        heart_credit_units: 19_200,
+        heart_credit_display: 192,
+        bank_bin: '970436',
+        bank_code: 'VCB',
+        bank_name: 'Vietcombank',
+        account_no: '0011004000713',
+        account_name: 'Tieu Vo Dinh Phi',
+        transfer_content: 'LUXYLXM0123456789AB',
+        qr_image_url: 'https://img.vietqr.io/image/VCB-0011004000713-compact2.png?amount=12000000&addInfo=LUXYLXM0123456789AB',
+        submitted_at: null,
+        membership_expires_at: null,
+        created_at: '2026-08-12T12:00:00.000Z',
+      }],
+    });
+
+    await expect(getMyLuxyMembershipCheckout({ rpc } as never, orderId)).resolves.toMatchObject({
+      order_code: 'LXM0123456789AB',
+      amount_due_vnd: 12_000_000,
+      heart_credit_display: 192,
+      bank_code: 'VCB',
+    });
+    expect(rpc).toHaveBeenCalledWith('get_my_luxy_membership_checkout', { p_order_id: orderId });
+    expect(isTrustedLuxyMembershipQrImageUrl('https://img.vietqr.io/image/test.png')).toBe(true);
+    expect(isTrustedLuxyMembershipQrImageUrl('https://evil.example/image.png')).toBe(false);
+  });
+
+  it('lists only caller-owned membership billing history through the RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      error: null,
+      data: [{
+        order_id: orderId,
+        order_code: 'LXM0123456789AB',
+        status: 'awaiting_confirmation',
+        tier: 'premium',
+        period_count: 1,
+        amount_due_vnd: 1_000_000,
+        heart_credit_units: 0,
+        membership_expires_at: null,
+        submitted_at: '2026-08-12T12:05:00.000Z',
+        created_at: '2026-08-12T12:00:00.000Z',
+      }],
+    });
+
+    await expect(listMyLuxyMembershipOrders({ rpc } as never, { limit: 5 })).resolves.toHaveLength(1);
+    expect(rpc).toHaveBeenCalledWith('list_my_luxy_membership_orders', { p_limit: 5, p_offset: 0 });
   });
 
   it('sends privacy settings through the server entitlement gate', async () => {
@@ -104,7 +168,7 @@ describe('Luxy LX-17 membership engine client', () => {
     });
   });
 
-  it('keeps the legacy LX-13 upgrade intent until LX-18 replaces checkout presentation', async () => {
+  it('keeps the legacy LX-13 upgrade intent while LX-18 owns checkout presentation', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null, data: intentId });
     await expect(createLuxyUpgradeIntent({ rpc } as never, 'premium', 'member_profile_message')).resolves.toBe(intentId);
     expect(rpc).toHaveBeenCalledWith('create_luxy_upgrade_intent', {
@@ -117,11 +181,15 @@ describe('Luxy LX-17 membership engine client', () => {
     const rpc = vi.fn();
     await expect(createLuxyUpgradeIntent({ rpc } as never, 'premium', 'Member Profile!')).rejects.toThrow();
     await expect(createLuxyMembershipOrder({ rpc } as never, 'premium', 3, 'bad-uuid')).rejects.toThrow();
+    await expect(getMyLuxyMembershipCheckout({ rpc } as never, 'bad-uuid')).rejects.toThrow();
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it('formats the two Luxy paid tiers', () => {
+  it('formats billing amounts and order statuses for the Vietnamese UI', () => {
     expect(formatLuxyMembershipPrice('premium')).toContain('1.000.000');
     expect(formatLuxyMembershipPrice('diamond')).toContain('5.000.000');
+    expect(formatLuxyMembershipAmount(12_000_000)).toBe('12.000.000 đ');
+    expect(getLuxyMembershipOrderStatusLabel('awaiting_confirmation')).toBe('Chờ Admin xác nhận');
+    expect(getLuxyMembershipOrderStatusLabel('approved')).toBe('Đã kích hoạt');
   });
 });
