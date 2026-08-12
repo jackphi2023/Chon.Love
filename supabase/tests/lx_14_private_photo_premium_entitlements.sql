@@ -1,6 +1,6 @@
 begin;
 
-select plan(36);
+select plan(39);
 
 select has_table('private','private_photo_access_requests','Private Photo access requests are stored server-side');
 select ok(not has_table_privilege('authenticated','private.private_photo_access_requests','select'),'authenticated cannot read Private Photo request table directly');
@@ -68,16 +68,37 @@ insert into public.media_assets(
   'image','image/png',100,100,100,'private','approved',now(),now(),'24000000-0000-0000-0000-000000000099'
 );
 
+-- Build a valid accepted conversation so the messaging contract can prove that FREE cannot
+-- bypass the profile popup by calling send_message directly.
+insert into public.friendships(id,requester_id,addressee_id,status)
+values(
+  '24000000-0000-4000-8000-000000000201',
+  '24000000-0000-0000-0000-000000000001',
+  '24000000-0000-0000-0000-000000000002',
+  'pending'
+);
+update public.friendships
+set status='accepted',responded_at=now()
+where id='24000000-0000-4000-8000-000000000201';
+
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
 select is((select tier::text from public.get_my_luxy_membership_snapshot()),'free','LX-14 viewer starts Free');
-select is((select can_favorite from public.get_my_luxy_membership_snapshot()),false,'Free cannot add Favorite/Interest');
+select is((select can_favorite from public.get_my_luxy_membership_snapshot()),true,'Free can add Favorite/Interest');
 select is((select can_request_private_photo from public.get_my_luxy_membership_snapshot()),false,'Free cannot request Private Photos');
-select throws_ok(
+select lives_ok(
   $$select * from public.set_profile_favorite('24000000-0000-0000-0000-000000000002',true)$$,
-  '42501','premium_membership_required','Free cannot add Favorite by bypassing UI'
+  'Free can add Favorite without a paid-membership gate'
 );
+reset role;
+select is(
+  (select count(*) from public.profile_favorites where owner_id='24000000-0000-0000-0000-000000000001' and favorite_id='24000000-0000-0000-0000-000000000002'),
+  1::bigint,
+  'Free Favorite is persisted'
+);
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select throws_ok(
   $$select * from public.request_private_photo_access('24000000-0000-0000-0000-000000000002')$$,
   '42501','premium_membership_required','Free cannot request Private Photos by bypassing UI'
@@ -86,17 +107,19 @@ select throws_ok(
   $$select public.get_luxy_profile_conversation('24000000-0000-0000-0000-000000000002')$$,
   '42501','premium_membership_required','Free cannot use profile messaging RPC by bypassing UI'
 );
+select throws_ok(
+  $$select public.send_message(
+      (select id from public.conversations where friendship_id='24000000-0000-4000-8000-000000000201'),
+      'FREE must not send this text',
+      '24000000-0000-4000-8000-000000000301'
+    )$$,
+  '42501','premium_membership_required','Free cannot send text by calling send_message directly'
+);
 select is((select has_access from public.get_private_photo_access_state('24000000-0000-0000-0000-000000000002')),false,'Free has no Private Photo access');
 select is((select private_photo_count from public.get_private_photo_access_state('24000000-0000-0000-0000-000000000002')),1,'Private Photo state exposes safe approved count only');
-
-reset role;
-insert into public.profile_favorites(owner_id,favorite_id)
-values('24000000-0000-0000-0000-000000000001','24000000-0000-0000-0000-000000000002');
-set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select lives_ok(
   $$select * from public.set_profile_favorite('24000000-0000-0000-0000-000000000002',false)$$,
-  'Free/downgraded member can always remove an existing Favorite'
+  'Free can remove an existing Favorite'
 );
 reset role;
 select is((select count(*) from public.profile_favorites where owner_id='24000000-0000-0000-0000-000000000001'),0::bigint,'Favorite removal is persisted without weakening direct table ACLs');
@@ -108,11 +131,19 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select ok(
   (select can_message and can_favorite and can_request_private_photo from public.get_my_luxy_membership_snapshot()),
-  'Premium enables all profile interaction entitlements'
+  'Premium enables messaging and Private Photo requests while retaining Favorite'
 );
 select lives_ok(
   $$select * from public.set_profile_favorite('24000000-0000-0000-0000-000000000002',true)$$,
-  'Premium can add Favorite/Interest'
+  'Premium can also add Favorite/Interest'
+);
+select lives_ok(
+  $$select public.send_message(
+      (select id from public.conversations where friendship_id='24000000-0000-4000-8000-000000000201'),
+      'Premium can send this text',
+      '24000000-0000-4000-8000-000000000302'
+    )$$,
+  'Premium can send text in a valid conversation'
 );
 select lives_ok(
   $$select * from public.request_private_photo_access('24000000-0000-0000-0000-000000000002')$$,
