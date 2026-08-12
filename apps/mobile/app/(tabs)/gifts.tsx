@@ -1,5 +1,6 @@
 import {
   formatGiftAvailabilityDate,
+  formatGiftLogTimestamp,
   formatHeartUnitBalance,
   getMyLuxyGiftWallet,
   giftCatalogQueryKeys,
@@ -105,7 +106,7 @@ export default function LuxyGiftsAndIncomePage() {
                 <View style={styles.historyCopy}>
                   <Text style={styles.historyTitle}>{item.gift_name_vi}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</Text>
                   <Text numberOfLines={1} style={styles.historyMeta}>
-                    {direction === 'received' ? 'Từ' : 'Đến'} {item.other_display_name || item.other_username || 'Thành viên Luxy'} · {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                    {direction === 'received' ? 'Từ' : 'Đến'} {item.other_display_name || item.other_username || 'Thành viên Luxy'} · {formatGiftLogTimestamp(item.created_at)}
                   </Text>
                   {direction === 'received' && item.status !== 'reversed' && item.reward_available_at ? (
                     <Text style={styles.availability}>Thu nhập {formatHeartUnitBalance(item.recipient_reward_units)} · khả dụng từ {formatGiftAvailabilityDate(item.reward_available_at)}</Text>
