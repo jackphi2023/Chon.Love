@@ -85,7 +85,7 @@ insert into public.media_assets(
   visibility,moderation_status,uploaded_at
 ) values
 ('23000000-0000-4000-8000-000000000101','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000101/lx13-public.png','image','image/png',100,100,100,'public','pending_review',now()),
-('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','pending_review',now());
+('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','approved',now());
 
 -- Public media is visible to another member only when it belongs to an active public album.
 -- This preserves the same private.can_view_media_internal contract used by the app.
@@ -117,7 +117,7 @@ select is((select membership_tier::text from public.get_luxy_member_profile('lx1
 select is((select membership_badge_visible from public.get_luxy_member_profile('lx13_target')), true, 'paid target exposes a prominent membership badge signal');
 select is((select age::integer from public.get_luxy_member_profile('lx13_target')), 31, 'Member Profile derives age without exposing DOB');
 select is((select public_photo_count from public.get_luxy_member_profile('lx13_target')), 1, 'Member Profile exposes safe public-photo count');
-select is((select private_photo_count from public.get_luxy_member_profile('lx13_target')), 1, 'Member Profile exposes only private-photo count, not private image data');
+select is((select private_photo_count from public.get_luxy_member_profile('lx13_target')), 1, 'Member Profile exposes only approved private-photo count, not private image data');
 
 reset role;
 select is((select count(*) from private.luxy_upgrade_intents where user_id='23000000-0000-0000-0000-000000000001'), 1::bigint, 'upgrade handoff records one server-side intent');
