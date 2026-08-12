@@ -199,7 +199,9 @@ export type Database = {
           auto_delete_messages_after_days: number | null
           conversation_type: Database["public"]["Enums"]["conversation_type"]
           created_at: string
-          friendship_id: string
+          direct_member_high_id: string
+          direct_member_low_id: string
+          friendship_id: string | null
           id: string
           last_message_at: string | null
           message_retention_updated_at: string | null
@@ -210,7 +212,9 @@ export type Database = {
           auto_delete_messages_after_days?: number | null
           conversation_type?: Database["public"]["Enums"]["conversation_type"]
           created_at?: string
-          friendship_id: string
+          direct_member_high_id: string
+          direct_member_low_id: string
+          friendship_id?: string | null
           id?: string
           last_message_at?: string | null
           message_retention_updated_at?: string | null
@@ -221,7 +225,9 @@ export type Database = {
           auto_delete_messages_after_days?: number | null
           conversation_type?: Database["public"]["Enums"]["conversation_type"]
           created_at?: string
-          friendship_id?: string
+          direct_member_high_id?: string
+          direct_member_low_id?: string
+          friendship_id?: string | null
           id?: string
           last_message_at?: string | null
           message_retention_updated_at?: string | null
@@ -229,6 +235,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_direct_member_high_fkey"
+            columns: ["direct_member_high_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_direct_member_low_fkey"
+            columns: ["direct_member_low_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_friendship_id_fkey"
             columns: ["friendship_id"]
