@@ -1,6 +1,6 @@
 # LX-14 — Private Photo + paid profile interaction gates
 
-Status: COMPLETED IN ROADMAP FOUNDATION — policy correction under verification.
+Status: COMPLETED IN ROADMAP FOUNDATION.
 
 ## Product policy implemented
 
