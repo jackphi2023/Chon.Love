@@ -1,0 +1,45 @@
+name: Sync LX-14 generated database types (temporary)
+
+on:
+  push:
+    branches:
+      - agent/lx-14-private-photo-premium-gates
+    paths:
+      - .github/workflows/sync-lx14-generated-types-temp.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout LX-14 branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/lx-14-private-photo-premium-gates
+          fetch-depth: 0
+
+      - name: Download exact generated database types
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/lx14-types
+          mkdir -p /tmp/lx14-types
+          gh run download 31570166438 -R jackphi2023/Luxy.Love -n br-09-database-types -D /tmp/lx14-types
+          test -s /tmp/lx14-types/database.types.ts
+          cp /tmp/lx14-types/database.types.ts packages/supabase/src/database.types.ts
+
+      - name: Commit generated contract if changed
+        run: |
+          if git diff --quiet -- packages/supabase/src/database.types.ts; then
+            echo 'Generated contract already aligned.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts
+          git commit -m 'Sync LX-14 Supabase database types'
+          git push origin HEAD:agent/lx-14-private-photo-premium-gates
