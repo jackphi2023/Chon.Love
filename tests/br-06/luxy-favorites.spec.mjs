@@ -52,13 +52,15 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await favoriteCreator.click();
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
 
-    // Persistence survives a full reload and feeds the Favorites page.
+    // Persistence survives a full reload and feeds the Seeking-derived Favorites tab.
     await viewerPage.reload();
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 20_000 });
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
     await openInterests(viewerPage);
     const favoritesTab = viewerPage.getByTestId('luxy-interests-tab-favorites');
     await expect(favoritesTab).toBeVisible();
+    await favoritesTab.click();
+    await expect(favoritesTab).toHaveAttribute('aria-selected', 'true');
     await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible();
 
     // Recipient sees the incoming signal under Favorited Me.
@@ -74,7 +76,7 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await viewerPage.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
     await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible({ timeout: 20_000 });
 
-    // Removing the favorite is also persistent and removes the current Favorites card.
+    // Removing the favorite is also persistent and removes the current Favorites row.
     await viewerPage.getByRole('tab', { name: 'Yêu thích', exact: true }).click();
     const removeFavorite = viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) });
     await expect(removeFavorite).toBeVisible();
@@ -86,7 +88,7 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await creatorPage.getByRole('tab', { name: 'Yêu thích tôi', exact: true }).click();
     await expect(creatorPage.getByText(actors.viewer.name, { exact: true })).toHaveCount(0, { timeout: 20_000 });
 
-    await testInfo.attach('lx12-viewer-viewed-me', {
+    await testInfo.attach('lx16-viewer-viewed-me', {
       body: await viewerPage.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
