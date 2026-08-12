@@ -1,0 +1,53 @@
+name: LX-15 Contract
+
+on:
+  push:
+    branches: ['agent/lx-15-*']
+    paths:
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - '.github/workflows/lx15-contract.yml'
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - '.github/workflows/lx15-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lx15-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  direct-messaging-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run LX-14 regression contract
+        run: supabase test db supabase/tests/lx_14_private_photo_premium_entitlements.sql --local
+
+      - name: Run LX-15 direct messaging entitlement contract
+        run: supabase test db supabase/tests/lx_15_direct_messaging_entitlement.sql --local
+
+      - name: Lint changed schemas
+        run: supabase db lint --local --schema public --schema private --level warning
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
