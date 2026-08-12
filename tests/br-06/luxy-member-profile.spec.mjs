@@ -27,7 +27,7 @@ async function expectNoHorizontalOverflow(page) {
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
-test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and upgrade handoff', async ({ browser }, testInfo) => {
+test('LX-14 desktop Member Profile preserves LX-13 profile actions and adds private-photo consent', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
 
@@ -44,8 +44,6 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
     await expect(heroPhoto).toBeVisible();
     await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
 
-    // LX-14: the private-photo count stays visible as a consent gate, but the media
-    // itself remains unavailable until the owner explicitly approves the requester.
     const privateCard = page.getByTestId('private-photo-locked-card');
     await expect(privateCard).toBeVisible();
     await privateCard.click();
@@ -65,8 +63,6 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
       contentType: 'image/png',
     });
 
-    // The main portrait is a real profile photo and must open the same large photo viewer
-    // as gallery photos. This avoids coupling the modal contract to one fixture gallery file.
     await heroPhoto.click();
     const photoModal = page.getByTestId('luxy-profile-photo-modal');
     await expect(photoModal).toBeVisible();
@@ -100,7 +96,7 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
   }
 });
 
-test('LX-13 mobile Member Profile keeps Seeking hierarchy and gates profile messaging for Free', async ({ browser }, testInfo) => {
+test('LX-14 mobile Member Profile keeps Seeking hierarchy and private-photo consent responsive', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
