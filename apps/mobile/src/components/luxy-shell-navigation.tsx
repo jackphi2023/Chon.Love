@@ -46,6 +46,7 @@ function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
 }
 
 function isAccountRoute(pathname: string): boolean {
+  if (pathname.startsWith('/settings/membership')) return false;
   return ['/profile', '/activity', '/gifts', '/balance', '/settings'].some((route) => pathname.startsWith(route));
 }
 
@@ -102,7 +103,7 @@ export function LuxyShellNavigation() {
     const badge = badgeFor(item.key);
     return (
       <Pressable
-        accessibilityLabel={badge > 0 ? `${item.label}, ${badge} thông báo` : item.label}
+        accessibilityLabel={item.label}
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
         key={item.key}
@@ -128,7 +129,9 @@ export function LuxyShellNavigation() {
             <View style={styles.symbolWrap}>
               <Text accessibilityElementsHidden style={[styles.navSymbol, phone && styles.phoneSymbol]}>{item.symbol}</Text>
               {badge > 0 ? (
-                <View style={styles.navBadge}><Text style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text></View>
+                <View accessibilityElementsHidden style={styles.navBadge}>
+                  <Text accessibilityElementsHidden style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+                </View>
               ) : null}
             </View>
             <Text numberOfLines={1} style={[styles.navText, phone && styles.phoneNavText, active && styles.navTextActive]}>{item.label}</Text>
