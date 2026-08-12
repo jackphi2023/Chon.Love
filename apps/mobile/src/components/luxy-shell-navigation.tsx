@@ -1,4 +1,8 @@
 import {
+  listLuxyInterests,
+  listLuxyMailbox,
+} from '@myfan/supabase';
+import {
   luxyBrand,
   luxyColors,
   luxyLayout,
@@ -8,15 +12,18 @@ import {
   luxyTypography,
   resolveLuxyResponsiveShellMode,
 } from '@myfan/ui';
+import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { getMobileSupabaseClient } from '@/lib/supabase';
+import { useAuth } from '@/providers/auth-provider';
 
 const primaryItems = [
-  { key: 'search', label: 'Tìm kiếm', symbol: '⌕', href: '/(tabs)' as const, pending: false },
-  { key: 'favorites', label: 'Yêu thích', symbol: '♡', href: '/(tabs)/favorites' as const, pending: false },
-  { key: 'messages', label: 'Tin nhắn', symbol: '✉︎', href: '/(tabs)/friends' as const, pending: false },
-  { key: 'upgrade', label: 'Nâng cấp', symbol: '↑', href: null, pending: true },
+  { key: 'search', label: 'Tìm kiếm', symbol: '⌕', href: '/(tabs)' as const },
+  { key: 'favorites', label: 'Yêu thích', symbol: '♥', href: '/(tabs)/favorites' as const },
+  { key: 'messages', label: 'Tin nhắn', symbol: '▤', href: '/(tabs)/messages' as const },
+  { key: 'upgrade', label: 'Nâng cấp', symbol: '↑', href: '/settings/membership' as const },
 ] as const;
 
 const accountItems = [
@@ -33,7 +40,8 @@ type ShellVariant = 'phone' | 'tablet' | 'desktop';
 function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
   if (key === 'search') return pathname === '/' || pathname === '/index';
   if (key === 'favorites') return pathname.startsWith('/favorites');
-  if (key === 'messages') return pathname.startsWith('/friends') || pathname.startsWith('/chat');
+  if (key === 'messages') return pathname.startsWith('/messages') || pathname.startsWith('/chat');
+  if (key === 'upgrade') return pathname.startsWith('/settings/membership');
   return false;
 }
 
@@ -45,8 +53,41 @@ export function LuxyShellNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
+  const auth = useAuth();
+  const client = getMobileSupabaseClient();
   const [accountOpen, setAccountOpen] = useState(false);
   const shellMode = resolveLuxyResponsiveShellMode(width);
+
+  const interestsBadgeQuery = useQuery({
+    queryKey: ['luxy-nav-interests', auth.userId, 'favorited_me'],
+    enabled: Boolean(client && auth.userId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      if (!client) return 0;
+      return (await listLuxyInterests(client, 'favorited_me', { limit: 40, offset: 0 })).length;
+    },
+  });
+
+  const messagesBadgeQuery = useQuery({
+    queryKey: ['luxy-nav-messages', auth.userId],
+    enabled: Boolean(client && auth.userId),
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      if (!client) return 0;
+      const rows = await listLuxyMailbox(client, { limit: 50, offset: 0 });
+      return rows
+        .filter((row) => !row.is_archived && !row.blocked)
+        .reduce((sum, row) => sum + row.unread_count, 0);
+    },
+  });
+
+  const badgeFor = (key: PrimaryItem['key']) => {
+    if (key === 'favorites') return interestsBadgeQuery.data ?? 0;
+    if (key === 'messages') return messagesBadgeQuery.data ?? 0;
+    return 0;
+  };
 
   const navigateHome = () => {
     setAccountOpen(false);
@@ -58,16 +99,14 @@ export function LuxyShellNavigation() {
     const upgrade = item.key === 'upgrade';
     const phone = variant === 'phone';
     const tablet = variant === 'tablet';
+    const badge = badgeFor(item.key);
     return (
       <Pressable
-        accessibilityHint={item.pending ? 'Tính năng sẽ được kích hoạt ở phiên Luxy tiếp theo.' : undefined}
-        accessibilityLabel={item.label}
+        accessibilityLabel={badge > 0 ? `${item.label}, ${badge} thông báo` : item.label}
         accessibilityRole="button"
-        accessibilityState={{ disabled: item.pending, selected: active }}
-        disabled={item.pending}
+        accessibilityState={{ selected: active }}
         key={item.key}
         onPress={() => {
-          if (!item.href) return;
           setAccountOpen(false);
           router.push(item.href);
         }}
@@ -79,17 +118,21 @@ export function LuxyShellNavigation() {
           upgrade && styles.upgrade,
           phone && upgrade && styles.phoneUpgrade,
           tablet && upgrade && styles.tabletUpgrade,
-          item.pending && !upgrade && styles.pending,
           pressed && styles.pressed,
         ]}
       >
-        {phone ? (
-          <>
-            <Text accessibilityElementsHidden style={[styles.phoneSymbol, upgrade && styles.upgradeText]}>{item.symbol}</Text>
-            <Text numberOfLines={1} style={[styles.navText, styles.phoneNavText, active && styles.navTextActive, upgrade && styles.upgradeText]}>{item.label}</Text>
-          </>
+        {upgrade ? (
+          <Text numberOfLines={1} style={[styles.navText, styles.upgradeText]}>{item.label}</Text>
         ) : (
-          <Text numberOfLines={1} style={[styles.navText, active && styles.navTextActive, upgrade && styles.upgradeText]}>{item.label}</Text>
+          <View style={[styles.navStack, phone && styles.phoneNavStack]}>
+            <View style={styles.symbolWrap}>
+              <Text accessibilityElementsHidden style={[styles.navSymbol, phone && styles.phoneSymbol]}>{item.symbol}</Text>
+              {badge > 0 ? (
+                <View style={styles.navBadge}><Text style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text></View>
+              ) : null}
+            </View>
+            <Text numberOfLines={1} style={[styles.navText, phone && styles.phoneNavText, active && styles.navTextActive]}>{item.label}</Text>
+          </View>
         )}
       </Pressable>
     );
@@ -175,7 +218,7 @@ export function LuxyShellNavigation() {
 
   return (
     <View style={styles.shell}>
-      <View style={styles.promo}><Text style={styles.promoText}><Text style={styles.promoStrong}>Nâng cấp ngay</Text> để mở toàn bộ trải nghiệm nhắn tin</Text></View>
+      <View style={styles.promo}><Text style={styles.promoText}><Text style={styles.promoStrong}>Nâng cấp ngay</Text> để nhắn tin</Text></View>
       <View style={styles.navRow}>
         <View style={styles.desktopInner}>
           <Pressable accessibilityLabel="Luxy.Love — về Tìm kiếm" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.desktopBrandButton, pressed && styles.pressed]}>
@@ -209,19 +252,24 @@ const styles = StyleSheet.create({
   tabletPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row', minWidth: 0 },
   phoneTopRow: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'space-between', position: 'relative', zIndex: 110 },
   phoneNavRow: { alignItems: 'stretch', backgroundColor: luxyColors.surface, flexDirection: 'row', height: luxyLayout.authenticatedPhoneNavHeight, width: '100%', ...luxyShadows.navigation },
-  navItem: { alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 3, justifyContent: 'center', minHeight: luxyLayout.authenticatedNavHeight, minWidth: 104, paddingHorizontal: luxySpacing.xl },
-  tabletNavItem: { flex: 1, minWidth: 0, paddingHorizontal: luxySpacing.sm },
-  phoneNavItem: { flex: 1, gap: 1, minHeight: luxyLayout.authenticatedPhoneNavHeight, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: luxySpacing.xs },
+  navItem: { alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 3, justifyContent: 'center', minHeight: luxyLayout.authenticatedNavHeight, minWidth: 92, paddingHorizontal: luxySpacing.lg },
+  tabletNavItem: { flex: 1, minWidth: 0, paddingHorizontal: luxySpacing.xs },
+  phoneNavItem: { flex: 1, minHeight: luxyLayout.authenticatedPhoneNavHeight, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
   navActive: { backgroundColor: luxyColors.subtleSurface, borderBottomColor: luxyColors.ink },
-  navText: { color: luxyColors.text, fontSize: 15, fontWeight: '400', lineHeight: 20 },
-  phoneNavText: { fontSize: 11.5, lineHeight: 14 },
-  phoneSymbol: { color: luxyColors.text, fontSize: 18, fontWeight: '400', lineHeight: 20 },
+  navStack: { alignItems: 'center', gap: 1, justifyContent: 'center' },
+  phoneNavStack: { gap: 0 },
+  symbolWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 21, minWidth: 24, position: 'relative' },
+  navSymbol: { color: luxyColors.ink, fontSize: 20, fontWeight: '700', lineHeight: 21 },
+  navBadge: { alignItems: 'center', backgroundColor: luxyColors.brandCoral, borderRadius: 5, justifyContent: 'center', minHeight: 15, minWidth: 15, paddingHorizontal: 3, position: 'absolute', right: -8, top: -3 },
+  navBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
+  navText: { color: luxyColors.text, fontSize: 14, fontWeight: '400', lineHeight: 18 },
+  phoneNavText: { fontSize: 10.5, lineHeight: 13 },
+  phoneSymbol: { fontSize: 17, lineHeight: 18 },
   navTextActive: { fontWeight: '700' },
-  upgrade: { alignSelf: 'center', backgroundColor: luxyColors.actionRed, borderBottomWidth: 0, borderRadius: luxyRadii.pill, marginHorizontal: luxySpacing.sm, minHeight: 36, minWidth: 108, paddingHorizontal: luxySpacing.lg },
-  tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.sm },
-  phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
+  upgrade: { alignSelf: 'center', backgroundColor: luxyColors.actionRed, borderBottomWidth: 0, borderRadius: luxyRadii.pill, marginHorizontal: luxySpacing.sm, minHeight: 36, minWidth: 100, paddingHorizontal: luxySpacing.lg },
+  tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 42, minWidth: 0, paddingHorizontal: luxySpacing.sm },
+  phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 42, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
   upgradeText: { color: luxyColors.surface, fontWeight: '600' },
-  pending: { opacity: 0.72 },
   accountButton: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.sm, justifyContent: 'center', minWidth: 164, paddingHorizontal: luxySpacing.xl },
   tabletAccountButton: { minWidth: 64, paddingHorizontal: luxySpacing.sm },
   phoneAccountButton: { height: luxyLayout.authenticatedPhoneTopHeight, minWidth: 60, paddingHorizontal: luxySpacing.md },
