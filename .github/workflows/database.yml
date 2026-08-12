@@ -59,10 +59,8 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
 
-# Temporary write permission is scoped to the LX-13 branch-only generated-type sync step below.
-# It will be reverted to read-only immediately after the generated contract commit lands.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: database-${{ github.ref }}
@@ -215,20 +213,6 @@ jobs:
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
-
-      - name: One-time LX-13 sync generated public contract
-        if: github.event_name == 'push' && github.ref == 'refs/heads/agent/luxy-seeking-ui-foundation'
-        run: |
-          if cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts; then
-            echo 'Generated public contract already synchronized.'
-            exit 0
-          fi
-          cp /tmp/database.types.ts packages/supabase/src/database.types.ts
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add packages/supabase/src/database.types.ts
-          git commit -m 'chore: sync LX-13 generated database types'
-          git push origin HEAD:agent/luxy-seeking-ui-foundation
 
       - name: Verify generated public contract
         run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
