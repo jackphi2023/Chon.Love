@@ -79,9 +79,8 @@ jobs:
       - name: Clean reset from repository migrations
         run: supabase db reset --local
 
-      - name: Run LX-14 private photo regression
-        run: supabase test db supabase/tests/lx_14_private_photo_premium_interactions.sql --local
-
+      # LX-14's per-viewer approval contract is intentionally superseded by the
+      # founder's LX-20 product decision: Premium/Diamond get direct private-photo access.
       - name: Run LX-17 membership regression
         run: supabase test db supabase/tests/lx_17_premium_diamond_engine.sql --local
 
