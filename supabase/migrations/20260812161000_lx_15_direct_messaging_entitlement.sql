@@ -1,83 +1,62 @@
--- LX-15: Seeking-style direct messaging entitlement.
+-- LX-15: Seeking-style direct messaging entitlement with a stable public schema.
 --
 -- Product contract:
 -- - Friendship is no longer a prerequisite for a direct conversation.
 -- - Premium/Diamond may start a direct conversation and send member-authored text.
--- - Free members may read conversations/messages addressed to them but cannot start or send text.
--- - Block, active-adult, rate-limit, moderation and retention rules remain enforced.
--- - Existing friendship-backed conversations are preserved and become canonical pair conversations.
--- - No billing activation is implemented here; LX-17/LX-18 remain authoritative for membership/billing.
+-- - Free members may receive/read conversations addressed to them but cannot start/send text.
+-- - Block, active-adult, rate-limit, moderation, idempotency and retention rules remain enforced.
+-- - Existing friendship-backed conversations remain compatible.
+-- - Canonical direct participant pairs live in private schema so exact participant mapping is not
+--   added to the generated public client contract.
+-- - No billing activation is implemented here; LX-17/LX-18 remain authoritative.
 
-alter table public.conversations
-  add column if not exists direct_member_low_id uuid,
-  add column if not exists direct_member_high_id uuid;
+create table if not exists private.direct_conversation_pairs (
+  conversation_id uuid primary key references public.conversations(id) on delete cascade,
+  member_low_id uuid not null references public.profiles(id) on delete cascade,
+  member_high_id uuid not null references public.profiles(id) on delete cascade,
+  synthetic_friendship_id uuid references public.friendships(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint direct_conversation_pairs_not_self check(member_low_id<>member_high_id),
+  constraint direct_conversation_pairs_canonical check(
+    member_low_id=least(member_low_id,member_high_id)
+    and member_high_id=greatest(member_low_id,member_high_id)
+  ),
+  unique(member_low_id,member_high_id)
+);
 
-update public.conversations c
-set direct_member_low_id=least(f.requester_id,f.addressee_id),
-    direct_member_high_id=greatest(f.requester_id,f.addressee_id)
-from public.friendships f
-where c.friendship_id=f.id
-  and (c.direct_member_low_id is null or c.direct_member_high_id is null);
+create index if not exists direct_conversation_pairs_low_idx
+  on private.direct_conversation_pairs(member_low_id,member_high_id,conversation_id);
+create index if not exists direct_conversation_pairs_high_idx
+  on private.direct_conversation_pairs(member_high_id,member_low_id,conversation_id);
 
-alter table public.conversations
-  alter column direct_member_low_id set not null,
-  alter column direct_member_high_id set not null,
-  alter column friendship_id drop not null;
+alter table private.direct_conversation_pairs enable row level security;
+revoke all on table private.direct_conversation_pairs from public,anon,authenticated;
+revoke all on table private.direct_conversation_pairs from service_role;
+grant select,insert,update,delete on table private.direct_conversation_pairs to service_role;
 
-do $$
-begin
-  if not exists(
-    select 1 from pg_constraint
-    where conname='conversations_direct_member_low_fkey'
-      and conrelid='public.conversations'::regclass
-  ) then
-    alter table public.conversations
-      add constraint conversations_direct_member_low_fkey
-      foreign key(direct_member_low_id) references public.profiles(id) on delete cascade;
-  end if;
-  if not exists(
-    select 1 from pg_constraint
-    where conname='conversations_direct_member_high_fkey'
-      and conrelid='public.conversations'::regclass
-  ) then
-    alter table public.conversations
-      add constraint conversations_direct_member_high_fkey
-      foreign key(direct_member_high_id) references public.profiles(id) on delete cascade;
-  end if;
-  if not exists(
-    select 1 from pg_constraint
-    where conname='conversations_direct_members_not_self'
-      and conrelid='public.conversations'::regclass
-  ) then
-    alter table public.conversations
-      add constraint conversations_direct_members_not_self
-      check(direct_member_low_id<>direct_member_high_id);
-  end if;
-  if not exists(
-    select 1 from pg_constraint
-    where conname='conversations_direct_members_canonical'
-      and conrelid='public.conversations'::regclass
-  ) then
-    alter table public.conversations
-      add constraint conversations_direct_members_canonical
-      check(direct_member_low_id=least(direct_member_low_id,direct_member_high_id)
-        and direct_member_high_id=greatest(direct_member_low_id,direct_member_high_id));
-  end if;
-end $$;
+drop policy if exists direct_conversation_pairs_deny_client on private.direct_conversation_pairs;
+create policy direct_conversation_pairs_deny_client
+  on private.direct_conversation_pairs
+  for all
+  to anon,authenticated
+  using(false)
+  with check(false);
 
-create unique index if not exists conversations_direct_pair_unique_idx
-  on public.conversations(direct_member_low_id,direct_member_high_id);
-create index if not exists conversations_direct_low_last_message_idx
-  on public.conversations(direct_member_low_id,last_message_at desc nulls last,id);
-create index if not exists conversations_direct_high_last_message_idx
-  on public.conversations(direct_member_high_id,last_message_at desc nulls last,id);
+comment on table private.direct_conversation_pairs is
+  'LX-15 canonical direct-message participants. Server-only; preserves the existing public conversations contract.';
+comment on column private.direct_conversation_pairs.synthetic_friendship_id is
+  'Technical cancelled friendship row used only to satisfy the legacy conversations FK for direct-only conversations; never represents an accepted friendship.';
 
-comment on column public.conversations.friendship_id is
-  'Legacy optional relationship pointer. LX-15 direct messaging does not require friendship.';
-comment on column public.conversations.direct_member_low_id is
-  'Canonical lower UUID participant for a direct conversation.';
-comment on column public.conversations.direct_member_high_id is
-  'Canonical higher UUID participant for a direct conversation.';
+-- Backfill every existing legacy conversation from its actual friendship participants.
+insert into private.direct_conversation_pairs(conversation_id,member_low_id,member_high_id,synthetic_friendship_id)
+select c.id,least(f.requester_id,f.addressee_id),greatest(f.requester_id,f.addressee_id),null
+from public.conversations c
+join public.friendships f on f.id=c.friendship_id
+on conflict(conversation_id) do update
+set member_low_id=excluded.member_low_id,
+    member_high_id=excluded.member_high_id,
+    updated_at=now();
 
 create or replace function private.get_direct_conversation_other_user(
   p_conversation_id uuid,
@@ -90,20 +69,40 @@ security definer
 set search_path=''
 as $$
   select case
-    when c.direct_member_low_id=p_user_id then c.direct_member_high_id
-    when c.direct_member_high_id=p_user_id then c.direct_member_low_id
+    when d.member_low_id=p_user_id then d.member_high_id
+    when d.member_high_id=p_user_id then d.member_low_id
     else null::uuid
   end
-  from public.conversations c
-  where c.id=p_conversation_id
+  from private.direct_conversation_pairs d
+  where d.conversation_id=p_conversation_id
+$$;
+
+create or replace function private.is_synthetic_direct_friendship(
+  p_conversation_id uuid,
+  p_friendship_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  select exists(
+    select 1
+    from private.direct_conversation_pairs d
+    where d.conversation_id=p_conversation_id
+      and d.synthetic_friendship_id=p_friendship_id
+  )
 $$;
 
 revoke all on function private.get_direct_conversation_other_user(uuid,uuid) from public,anon,authenticated;
+revoke all on function private.is_synthetic_direct_friendship(uuid,uuid) from public,anon,authenticated;
 grant execute on function private.get_direct_conversation_other_user(uuid,uuid) to service_role;
+grant execute on function private.is_synthetic_direct_friendship(uuid,uuid) to service_role;
 
--- Keep the legacy accepted-friendship trigger for backwards compatibility. If a direct
--- conversation already exists, accepting friendship links that existing conversation instead
--- of creating a duplicate.
+-- Preserve the legacy accepted-friendship lifecycle. If a direct-only conversation already
+-- exists, accepting a real friendship attaches that relationship to the same conversation and
+-- removes the technical cancelled row used solely for the legacy FK.
 create or replace function private.ensure_direct_conversation()
 returns trigger
 language plpgsql
@@ -114,17 +113,43 @@ declare
   v_conversation_id uuid;
   v_low uuid;
   v_high uuid;
+  v_synthetic_friendship_id uuid;
 begin
   if new.status='accepted'::public.friendship_status and old.status is distinct from new.status then
     v_low:=least(new.requester_id,new.addressee_id);
     v_high:=greatest(new.requester_id,new.addressee_id);
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_low::text||':'||v_high::text,0));
 
-    insert into public.conversations(friendship_id,direct_member_low_id,direct_member_high_id)
-    values(new.id,v_low,v_high)
-    on conflict(direct_member_low_id,direct_member_high_id) do update
-      set friendship_id=coalesce(public.conversations.friendship_id,excluded.friendship_id),
-          updated_at=now()
-    returning id into v_conversation_id;
+    select d.conversation_id,d.synthetic_friendship_id
+      into v_conversation_id,v_synthetic_friendship_id
+    from private.direct_conversation_pairs d
+    where d.member_low_id=v_low and d.member_high_id=v_high
+    limit 1;
+
+    if v_conversation_id is null then
+      insert into public.conversations(friendship_id)
+      values(new.id)
+      on conflict(friendship_id) do update set updated_at=now()
+      returning id into v_conversation_id;
+
+      insert into private.direct_conversation_pairs(
+        conversation_id,member_low_id,member_high_id,synthetic_friendship_id
+      ) values(v_conversation_id,v_low,v_high,null)
+      on conflict(member_low_id,member_high_id) do update
+        set updated_at=now();
+    else
+      update public.conversations
+      set friendship_id=new.id,updated_at=now()
+      where id=v_conversation_id;
+
+      update private.direct_conversation_pairs
+      set synthetic_friendship_id=null,updated_at=now()
+      where conversation_id=v_conversation_id;
+
+      if v_synthetic_friendship_id is not null and v_synthetic_friendship_id<>new.id then
+        delete from public.friendships where id=v_synthetic_friendship_id;
+      end if;
+    end if;
 
     insert into public.conversation_members(conversation_id,user_id)
     values(v_conversation_id,new.requester_id),(v_conversation_id,new.addressee_id)
@@ -151,19 +176,20 @@ begin
   if p_other_user_id is null or p_other_user_id=v_user_id then raise exception using errcode='22023',message='invalid_conversation_target'; end if;
   if not private.is_active_adult(v_user_id) then raise exception using errcode='42501',message='active_adult_account_required'; end if;
 
-  select c.id into v_conversation_id
-  from public.conversations c
-  where c.direct_member_low_id=least(v_user_id,p_other_user_id)
-    and c.direct_member_high_id=greatest(v_user_id,p_other_user_id)
-    and private.is_conversation_member(c.id,v_user_id)
+  select d.conversation_id into v_conversation_id
+  from private.direct_conversation_pairs d
+  where d.member_low_id=least(v_user_id,p_other_user_id)
+    and d.member_high_id=greatest(v_user_id,p_other_user_id)
+    and private.is_conversation_member(d.conversation_id,v_user_id)
   limit 1;
 
   return v_conversation_id;
 end;
 $$;
 
--- Member Profile CTA: paid sender may atomically get or create one canonical direct conversation.
--- Target does not need to be a friend and does not need a paid tier to receive/read the conversation.
+-- Paid profile CTA: atomically get/create a canonical direct conversation.
+-- A technical cancelled friendship row is created only to satisfy the unchanged legacy FK;
+-- it is not accepted, is not used as entitlement, and is removed if a real friendship is accepted.
 create or replace function public.get_luxy_profile_conversation(p_profile_id uuid)
 returns uuid
 language plpgsql
@@ -176,6 +202,7 @@ declare
   v_conversation_id uuid;
   v_low uuid;
   v_high uuid;
+  v_synthetic_friendship_id uuid;
 begin
   if v_user_id is null then raise exception using errcode='28000',message='authentication_required'; end if;
   if not private.is_active_adult(v_user_id) then raise exception using errcode='42501',message='adult_onboarding_required'; end if;
@@ -198,11 +225,24 @@ begin
   v_high:=greatest(v_user_id,p_profile_id);
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_low::text||':'||v_high::text,0));
 
-  insert into public.conversations(direct_member_low_id,direct_member_high_id)
-  values(v_low,v_high)
-  on conflict(direct_member_low_id,direct_member_high_id) do update
-    set updated_at=public.conversations.updated_at
-  returning id into v_conversation_id;
+  select d.conversation_id into v_conversation_id
+  from private.direct_conversation_pairs d
+  where d.member_low_id=v_low and d.member_high_id=v_high
+  limit 1;
+
+  if v_conversation_id is null then
+    insert into public.friendships(requester_id,addressee_id,status,responded_at)
+    values(v_low,v_high,'cancelled'::public.friendship_status,now())
+    returning id into v_synthetic_friendship_id;
+
+    insert into public.conversations(friendship_id)
+    values(v_synthetic_friendship_id)
+    returning id into v_conversation_id;
+
+    insert into private.direct_conversation_pairs(
+      conversation_id,member_low_id,member_high_id,synthetic_friendship_id
+    ) values(v_conversation_id,v_low,v_high,v_synthetic_friendship_id);
+  end if;
 
   insert into public.conversation_members(conversation_id,user_id)
   values(v_conversation_id,v_user_id),(v_conversation_id,p_profile_id)
@@ -285,6 +325,7 @@ begin
   return query
   with base as (
     select c.id,c.friendship_id,f.status,
+           private.is_synthetic_direct_friendship(c.id,c.friendship_id) synthetic_relation,
            private.get_direct_conversation_other_user(c.id,v_user_id) other_id
     from public.conversations c
     left join public.friendships f on f.id=c.friendship_id
@@ -296,7 +337,9 @@ begin
     from base b
     where b.other_id is not null
   )
-  select f.id,f.friendship_id,coalesce(f.status::text,'direct'),p.id,p.username::text,
+  select f.id,f.friendship_id,
+         case when f.synthetic_relation then 'direct' else coalesce(f.status::text,'direct') end,
+         p.id,p.username::text,
          case when f.other_blocked then 'Tài khoản không khả dụng' else p.display_name end,
          case when f.other_blocked then null else area.name_vi end,
          case when f.viewer_blocked or f.other_blocked then null else p.avatar_media_id end,
@@ -357,6 +400,7 @@ begin
   return query
   with selected as (
     select c.id,c.friendship_id,c.last_message_at,c.created_at,f.status,
+           private.is_synthetic_direct_friendship(c.id,c.friendship_id) synthetic_relation,
            private.get_direct_conversation_other_user(c.id,v_user_id) other_id,
            cm.last_read_at
     from public.conversation_members cm
@@ -375,7 +419,7 @@ begin
          (not bs.blocked and p.is_creator and exists(
            select 1 from public.creator_profiles cp where cp.user_id=p.id and cp.creator_status='approved'::public.creator_status
          )),
-         coalesce(s.status::text,'direct'),
+         case when s.synthetic_relation then 'direct' else coalesce(s.status::text,'direct') end,
          (not bs.blocked and private.is_active_adult(p.id) and private.can_message_with_luxy_membership(v_user_id)),
          bs.blocked,lm.id,lm.message_type::text,
          case
@@ -428,10 +472,13 @@ declare
 begin
   if v_user_id is null then raise exception using errcode='42501',message='authentication_required'; end if;
   if not private.is_active_adult(v_user_id) then raise exception using errcode='42501',message='active_adult_account_required'; end if;
+  if p_client_message_id is null then raise exception using errcode='22023',message='client_message_id_required'; end if;
+  if not private.is_conversation_member(p_conversation_id,v_user_id) then
+    raise exception using errcode='42501',message='sender_not_conversation_member';
+  end if;
   if not private.can_message_with_luxy_membership(v_user_id) then
     raise exception using errcode='42501',message='premium_membership_required';
   end if;
-  if p_client_message_id is null then raise exception using errcode='22023',message='client_message_id_required'; end if;
 
   select * into v_existing
   from public.messages m
@@ -447,7 +494,6 @@ begin
   into v_max_characters from private.app_config cfg where cfg.key='chat_message_max_characters';
   v_max_characters:=coalesce(v_max_characters,2000);
   if v_body='' or char_length(v_body)>v_max_characters then raise exception using errcode='22023',message='invalid_message_body'; end if;
-  if not private.is_conversation_member(p_conversation_id,v_user_id) then raise exception using errcode='42501',message='sender_not_conversation_member'; end if;
 
   v_other_user_id:=private.get_direct_conversation_other_user(p_conversation_id,v_user_id);
   if v_other_user_id is null then raise exception using errcode='42501',message='conversation_not_available'; end if;
@@ -493,10 +539,10 @@ grant execute on function public.list_my_conversations(integer,integer) to authe
 grant execute on function public.send_message(uuid,text,uuid) to authenticated,service_role;
 
 comment on function public.get_luxy_profile_conversation(uuid) is
-  'LX-15 Premium/Diamond direct-conversation get-or-create. Friendship is not required.';
+  'LX-15 Premium/Diamond direct-conversation get-or-create. No accepted friendship is required; canonical participants are private.';
 comment on function public.get_direct_conversation(uuid) is
-  'LX-15 participant-pair conversation lookup independent of friendship state.';
+  'LX-15 participant-pair lookup independent of friendship state.';
 comment on function private.validate_message_insert() is
-  'LX-15 validates participant, paid text entitlement, block and active recipient without friendship prerequisite.';
+  'LX-15 validates participant, paid text entitlement, block and active recipient without accepted-friendship prerequisite.';
 comment on function public.send_message(uuid,text,uuid) is
-  'LX-15 Premium/Diamond text send with idempotency, rate limits and safety; friendship is not required.';
+  'LX-15 Premium/Diamond text send with membership-after-conversation authorization, idempotency, rate limits and safety.';
