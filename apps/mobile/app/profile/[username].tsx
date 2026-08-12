@@ -5,7 +5,7 @@ import {
   createLuxyUpgradeIntent,
   createPrivateMediaUrl,
   createSafetyReport,
-  getDirectConversation,
+  getLuxyProfileConversation,
   getLuxyMemberProfile,
   getMyLuxyMembershipSnapshot,
   getProfileInterestState,
@@ -41,6 +41,7 @@ import {
 } from 'react-native';
 import { CreatorActivityList } from '@/components/creator-activity';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
+import { LuxyPrivatePhotoAccess } from '@/components/luxy-private-photo-access';
 import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';
 import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -201,7 +202,7 @@ export default function LuxyMemberProfilePage() {
 
     setBusyAction('chat');
     try {
-      const conversationId = await getDirectConversation(client, profile.id);
+      const conversationId = await getLuxyProfileConversation(client, profile.id);
       if (!conversationId) throw new Error('conversation_not_available');
       const body = draft.trim();
       if (body) {
@@ -318,14 +319,13 @@ export default function LuxyMemberProfilePage() {
           </Pressable>
 
           {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}
-              style={styles.privateRequestButton}
-              testID="luxy-private-photo-request-placeholder"
-            >
-              <Text style={styles.privateRequestText}>Yêu cầu xem ảnh riêng tư ({profile.private_photo_count})</Text>
-            </Pressable>
+            <LuxyPrivatePhotoAccess
+              displayName={displayName}
+              onOpenPhoto={openPhoto}
+              ownerId={profile.id}
+              privatePhotoCount={profile.private_photo_count}
+              variant="button"
+            />
           ) : null}
 
           <ProfileFacts profile={profile} />
@@ -423,15 +423,13 @@ export default function LuxyMemberProfilePage() {
                   <ProfilePhotoTile key={media.media_id} media={media} name={displayName} onOpen={openPhoto} />
                 ))}
                 {profile.private_photo_count > 0 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}
-                    style={styles.privateTile}
-                  >
-                    <Text style={styles.privateEye}>◉̸</Text>
-                    <Text style={styles.privateTileTitle}>Ảnh riêng tư ({profile.private_photo_count})</Text>
-                    <Text style={styles.privateTileButton}>Yêu cầu xem</Text>
-                  </Pressable>
+                  <LuxyPrivatePhotoAccess
+                    displayName={displayName}
+                    onOpenPhoto={openPhoto}
+                    ownerId={profile.id}
+                    privatePhotoCount={profile.private_photo_count}
+                    variant="tile"
+                  />
                 ) : null}
               </View>
 
@@ -467,7 +465,7 @@ export default function LuxyMemberProfilePage() {
         profileId={profile.id}
         visible={photoOpen}
       />
-      <LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} visible={showUpgrade} />
+      <LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} reason="message" visible={showUpgrade} />
       <SafetyModal
         busyAction={busyAction}
         displayName={displayName}

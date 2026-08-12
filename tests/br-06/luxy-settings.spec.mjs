@@ -61,7 +61,7 @@ test('LX-08 Settings hub covers profile-related cases on desktop', async ({ brow
     await page.goto('/settings/private-photos');
     await expect(page.getByTestId('luxy-private-photo-settings')).toBeVisible();
     await expect(page.getByTestId('private-photo-upload')).toBeVisible();
-    await expect(page.getByText('Quà tặng không mở khóa ảnh bảo mật.', { exact: false })).toBeVisible();
+    await expect(page.getByText('Quà tặng, Fan và trạng thái kết nối không mở khóa ảnh riêng tư.', { exact: false })).toBeVisible();
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/membership');
