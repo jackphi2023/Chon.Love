@@ -38,7 +38,7 @@ const member = {
   blocked_by_viewer: false,
 };
 
-describe('Luxy LX-13 Member Profile read-model client', () => {
+describe('Luxy LX-13/LX-17 Member Profile read-model client', () => {
   it('parses the privacy-safe Member Profile response', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null, data: [member] });
     const result = await getLuxyMemberProfile({ rpc } as never, ' luxy_member ');
@@ -58,7 +58,7 @@ describe('Luxy LX-13 Member Profile read-model client', () => {
     expect(result).not.toHaveProperty('kyc');
   });
 
-  it('shows the paid certification signal only on paid male profiles in LX-13', async () => {
+  it('shows the paid membership signal independent of gender in LX-17', async () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
       data: [{ ...member, gender: 'female', membership_tier: 'diamond', membership_badge_visible: true }],
@@ -66,7 +66,7 @@ describe('Luxy LX-13 Member Profile read-model client', () => {
     await expect(getLuxyMemberProfile({ rpc } as never, 'luxy_member')).resolves.toMatchObject({
       gender: 'female',
       membership_tier: 'diamond',
-      membership_badge_visible: false,
+      membership_badge_visible: true,
     });
   });
 
