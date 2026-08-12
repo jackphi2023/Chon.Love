@@ -2154,6 +2154,10 @@ export type Database = {
           weight_kg: number
         }[]
       }
+      get_luxy_profile_conversation: {
+        Args: { p_profile_id: string }
+        Returns: string
+      }
       get_my_account_deletion_status: {
         Args: never
         Returns: {
@@ -2217,7 +2221,9 @@ export type Database = {
       get_my_luxy_membership_snapshot: {
         Args: never
         Returns: {
+          can_favorite: boolean
           can_message: boolean
+          can_request_private_photo: boolean
           expires_at: string
           status: string
           tier: Database["public"]["Enums"]["luxy_membership_tier"]
@@ -2282,6 +2288,16 @@ export type Database = {
           status: string
           submitted_at: string
           transfer_content: string
+        }[]
+      }
+      get_private_photo_access_state: {
+        Args: { p_owner_id: string }
+        Returns: {
+          can_request: boolean
+          has_access: boolean
+          private_photo_count: number
+          request_id: string
+          status: string
         }[]
       }
       get_profile_interest_state: {
@@ -2686,6 +2702,17 @@ export type Database = {
           width: number
         }[]
       }
+      list_profile_private_media: {
+        Args: { p_owner_id: string }
+        Returns: {
+          created_at: string
+          height: number
+          media_id: string
+          storage_bucket: string
+          storage_path: string
+          width: number
+        }[]
+      }
       list_public_activity_highlights: {
         Args: { p_limit?: number }
         Returns: {
@@ -2720,6 +2747,21 @@ export type Database = {
           display_name: string
           latest_activity_at: string
           public_activity_count: number
+          username: string
+        }[]
+      }
+      list_received_private_photo_requests: {
+        Args: { p_status?: string }
+        Returns: {
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          display_name: string
+          request_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string
+          status: string
           username: string
         }[]
       }
@@ -2960,6 +3002,14 @@ export type Database = {
           status: string
         }[]
       }
+      request_private_photo_access: {
+        Args: { p_owner_id: string }
+        Returns: {
+          request_id: string
+          requested_at: string
+          status: string
+        }[]
+      }
       request_withdrawal: {
         Args: {
           p_bank_account_id: string
@@ -2973,6 +3023,14 @@ export type Database = {
           requested_reward_units: number
           status: string
           withdrawal_id: string
+        }[]
+      }
+      respond_private_photo_access: {
+        Args: { p_decision: string; p_request_id: string }
+        Returns: {
+          request_id: string
+          responded_at: string
+          status: string
         }[]
       }
       respond_to_friend_request: {
@@ -3012,6 +3070,10 @@ export type Database = {
           spent_reversed_units: number
           unspent_debited_units: number
         }[]
+      }
+      revoke_private_photo_access: {
+        Args: { p_request_id: string }
+        Returns: boolean
       }
       search_luxy_profiles_v2:
         | {
