@@ -34,7 +34,8 @@ async function navigateToCreatorProfile(page) {
 
 async function openCreatorProfile(page) {
   await navigateToCreatorProfile(page);
-  await expect(page.getByText(actors.creator.displayName, { exact: true }).first()).toBeVisible();
+  await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
+  await expect(page.getByRole('header', { name: new RegExp(`^${actors.creator.displayName},`) })).toBeVisible();
 }
 
 async function setCreatorVisibility(page, label) {
@@ -135,7 +136,7 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
 
     await openCreatorProfile(viewerPage);
     await expect(viewerPage.getByRole('button', { name: 'Gửi lời mời kết bạn' })).toBeVisible();
-    await expect(viewerPage.getByRole('button', { name: 'Nhắn tin' })).toHaveCount(0);
+    await expect(viewerPage.getByRole('button', { name: 'Nhắn tin' })).toBeVisible();
     await expect(viewerPage.getByText('Hoạt động dành cho Fan', { exact: true })).toBeVisible();
 
     await testInfo.attach('br06-final-unblocked-profile', {
