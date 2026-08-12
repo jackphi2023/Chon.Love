@@ -68,6 +68,8 @@ export type PreparedImageUpload = {
 export type AlbumMediaItem = Database['public']['Functions']['list_profile_album_media']['Returns'][number];
 export type MyMediaItem = Database['public']['Functions']['list_my_media']['Returns'][number];
 
+export type ProfilePhotoVisibility = 'public' | 'private';
+
 type ModeratedMediaState = {
   moderation_status: MyMediaItem['moderation_status'];
   deleted_at: string | null;
@@ -241,6 +243,25 @@ export async function uploadProfileImage(
     p_media_id: prepared.media_id,
   });
   return assertData(data, finalizeError);
+}
+
+export async function setMyProfilePhotoVisibility(
+  client: Client,
+  mediaId: string,
+  visibility: ProfilePhotoVisibility,
+): Promise<{ media_id: string; visibility: ProfilePhotoVisibility }> {
+  const { data, error } = await client.rpc(
+    'set_my_profile_photo_visibility' as never,
+    { p_media_id: mediaId, p_visibility: visibility } as never,
+  );
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') throw new Error('profile_photo_visibility_update_failed');
+  const payload = row as { media_id?: unknown; visibility?: unknown };
+  if (typeof payload.media_id !== 'string' || (payload.visibility !== 'public' && payload.visibility !== 'private')) {
+    throw new Error('invalid_profile_photo_visibility_response');
+  }
+  return { media_id: payload.media_id, visibility: payload.visibility };
 }
 
 export function isMediaVisibleToOwner(media: ModeratedMediaState): boolean {
