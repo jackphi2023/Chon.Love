@@ -66,6 +66,7 @@ export function createPublicSupabaseClient(
 export * from './activity';
 export * from './chat';
 export * from './discovery';
+export * from './gift-log';
 export * from './gifts';
 export * from './homepage';
 export * from './interests';
