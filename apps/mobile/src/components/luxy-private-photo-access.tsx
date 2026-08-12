@@ -5,10 +5,9 @@ import {
   getPrivatePhotoAccessState,
   getReadablePrivatePhotoError,
   listProfilePrivateMedia,
-  requestPrivatePhotoAccess,
 } from '@myfan/supabase';
 import { luxyColors, luxyRadii } from '@myfan/ui';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
@@ -17,11 +16,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useState } from 'react';
 
 type Variant = 'button' | 'tile';
-
-type PrivatePhotoWithUrl = {
-  media_id: string;
-  url: string;
-};
+type PrivatePhotoWithUrl = { media_id: string; url: string };
 
 export function LuxyPrivatePhotoAccess({
   ownerId,
@@ -39,7 +34,6 @@ export function LuxyPrivatePhotoAccess({
   const client = getMobileSupabaseClient();
   const auth = useAuth();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeBusy, setUpgradeBusy] = useState(false);
 
@@ -63,9 +57,10 @@ export function LuxyPrivatePhotoAccess({
     },
   });
 
+  const isPaid = membershipQuery.data?.tier === 'premium' || membershipQuery.data?.tier === 'diamond';
   const privateMediaQuery = useQuery({
     queryKey: ['private-photo-media', auth.userId, ownerId],
-    enabled: Boolean(client && accessQuery.data?.has_access),
+    enabled: Boolean(client && isPaid && accessQuery.data?.has_access),
     staleTime: 30_000,
     queryFn: async () => {
       if (!client) return [] as PrivatePhotoWithUrl[];
@@ -80,40 +75,7 @@ export function LuxyPrivatePhotoAccess({
     },
   });
 
-  const requestMutation = useMutation({
-    mutationFn: async () => {
-      if (!client) throw new Error('supabase_not_configured');
-      return requestPrivatePhotoAccess(client, ownerId);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['private-photo-access', auth.userId, ownerId] });
-      await queryClient.invalidateQueries({ queryKey: ['private-photo-requests', auth.userId] });
-    },
-  });
-
   if (privatePhotoCount <= 0) return null;
-
-  const state = accessQuery.data;
-  const approved = state?.has_access === true;
-  const pending = state?.status === 'pending';
-  const requestLabel = pending
-    ? 'Đã gửi yêu cầu · Đang chờ duyệt'
-    : state?.status === 'declined' || state?.status === 'revoked'
-      ? 'Yêu cầu xem lại'
-      : 'Yêu cầu xem ảnh riêng tư';
-
-  async function handleRequest() {
-    if (pending || requestMutation.isPending) return;
-    if (membershipQuery.data?.can_request_private_photo !== true) {
-      setShowUpgrade(true);
-      return;
-    }
-    try {
-      await requestMutation.mutateAsync();
-    } catch (error) {
-      if (String(error).includes('premium_membership_required')) setShowUpgrade(true);
-    }
-  }
 
   async function handleUpgrade() {
     if (!client) return;
@@ -127,34 +89,38 @@ export function LuxyPrivatePhotoAccess({
     }
   }
 
-  const error = requestMutation.error ?? accessQuery.error ?? privateMediaQuery.error;
+  const error = accessQuery.error ?? privateMediaQuery.error;
+  const count = accessQuery.data?.private_photo_count ?? privatePhotoCount;
 
   if (variant === 'tile') {
     return (
       <>
-        {approved && privateMediaQuery.data?.length ? privateMediaQuery.data.map((media) => (
+        {isPaid && privateMediaQuery.data?.length ? privateMediaQuery.data.map((media) => (
           <Pressable
             accessibilityLabel={`Xem ảnh riêng tư của ${displayName}`}
             accessibilityRole="button"
             key={media.media_id}
             onPress={() => onOpenPhoto(media.url)}
             style={({ pressed }) => [styles.approvedTile, pressed && styles.pressed]}
-            testID="luxy-private-photo-approved-tile"
+            testID="luxy-private-photo-paid-tile"
           >
             <Image accessibilityLabel={`Ảnh riêng tư của ${displayName}`} resizeMode="cover" source={{ uri: media.url }} style={styles.approvedImage} />
-            <View style={styles.privateBadge}><Text style={styles.privateBadgeText}>Riêng tư</Text></View>
+            <View style={styles.privateBadge}><Text style={styles.privateBadgeText}>Ảnh riêng tư</Text></View>
           </Pressable>
         )) : (
           <Pressable
             accessibilityRole="button"
-            disabled={pending || requestMutation.isPending}
-            onPress={() => void handleRequest()}
-            style={({ pressed }) => [styles.privateTile, pressed && styles.pressed]}
-            testID="luxy-private-photo-request"
+            disabled={isPaid || membershipQuery.isLoading}
+            onPress={() => setShowUpgrade(true)}
+            style={({ pressed }) => [styles.privateTile, pressed && !isPaid && styles.pressed]}
+            testID="luxy-private-photo-locked-tile"
           >
-            {accessQuery.isLoading ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.privateEye}>◉̸</Text>}
-            <Text style={styles.privateTileTitle}>Ảnh riêng tư ({state?.private_photo_count ?? privatePhotoCount})</Text>
-            <Text style={styles.privateTileButton}>{requestMutation.isPending ? 'Đang gửi…' : requestLabel}</Text>
+            {membershipQuery.isLoading || accessQuery.isLoading ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.privateEye}>◉̸</Text>}
+            <Text style={styles.privateTileTitle}>Ảnh riêng tư ({count})</Text>
+            <Text style={styles.privateTileBody}>
+              {isPaid ? 'Đang tải ảnh dành cho thành viên trả phí…' : 'Chỉ Premium và Diamond được xem đầy đủ.'}
+            </Text>
+            {!isPaid ? <Text style={styles.privateTileButton}>Yêu cầu xem · Nâng cấp</Text> : null}
             {error ? <Text accessibilityRole="alert" style={styles.error}>{getReadablePrivatePhotoError(error)}</Text> : null}
           </Pressable>
         )}
@@ -173,13 +139,13 @@ export function LuxyPrivatePhotoAccess({
     <>
       <Pressable
         accessibilityRole="button"
-        disabled={approved || pending || requestMutation.isPending}
-        onPress={() => void handleRequest()}
-        style={({ pressed }) => [styles.privateRequestButton, pressed && styles.pressed]}
-        testID="luxy-private-photo-request-button"
+        disabled={isPaid || membershipQuery.isLoading}
+        onPress={() => setShowUpgrade(true)}
+        style={({ pressed }) => [styles.privateRequestButton, pressed && !isPaid && styles.pressed]}
+        testID="luxy-private-photo-entitlement-button"
       >
         <Text style={styles.privateRequestText}>
-          {approved ? '✓ Đã được xem ảnh riêng tư' : requestMutation.isPending ? 'Đang gửi yêu cầu…' : `${requestLabel} (${state?.private_photo_count ?? privatePhotoCount})`}
+          {isPaid ? `✓ Xem ${count} ảnh riêng tư` : `Yêu cầu xem ảnh riêng tư (${count}) · Nâng cấp`}
         </Text>
       </Pressable>
       {error ? <Text accessibilityRole="alert" style={styles.errorInline}>{getReadablePrivatePhotoError(error)}</Text> : null}
@@ -219,6 +185,7 @@ const styles = StyleSheet.create({
   },
   privateEye: { color: luxyColors.muted, fontSize: 30 },
   privateTileTitle: { color: luxyColors.text, fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  privateTileBody: { color: luxyColors.muted, fontSize: 11.5, lineHeight: 16, textAlign: 'center' },
   privateTileButton: { color: luxyColors.actionRed, fontSize: 12, fontWeight: '700', textAlign: 'center' },
   approvedTile: { backgroundColor: luxyColors.ink, borderRadius: luxyRadii.sm, minHeight: 260, overflow: 'hidden', position: 'relative', width: '31.5%' },
   approvedImage: { height: '100%', minHeight: 260, width: '100%' },
