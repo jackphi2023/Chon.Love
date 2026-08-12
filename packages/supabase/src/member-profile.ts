@@ -60,7 +60,17 @@ export async function getLuxyMemberProfile(client: Client, username: string): Pr
   const { data, error } = await client.rpc('get_luxy_member_profile', { p_username: parsedUsername });
   if (error) throw error;
   const rows = z.array(memberProfileSchema).parse(data ?? []);
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+
+  // LX-13 product rule: the paid-tier certification signal is shown on paid male
+  // member profiles. The paid state itself remains server-controlled; this layer
+  // only narrows the presentation rule and never grants an entitlement.
+  return {
+    ...row,
+    membership_badge_visible:
+      row.gender === 'male' && row.membership_tier !== 'free' && row.membership_badge_visible,
+  };
 }
 
 export const LUXY_LIFESTYLE_LABELS: Record<LuxyMemberProfile['lifestyle_tags'][number], string> = {
