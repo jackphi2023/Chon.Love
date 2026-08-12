@@ -41,7 +41,10 @@ async function openCreatorProfile(page) {
 async function setCreatorVisibility(page, label) {
   await page.goto('/activity');
   await expect(page.getByText('Ai được xem toàn bộ Hoạt động?', { exact: true })).toBeVisible();
-  await page.getByRole('radio', { name: new RegExp(label, 'i') }).click();
+  const radio = page.getByRole('radio', { name: new RegExp(label, 'i') });
+  await expect(radio).toBeVisible();
+  if ((await radio.getAttribute('aria-checked')) === 'true') return;
+  await radio.click();
   await expect(page.getByRole('alert')).toContainText(`Đã đặt quyền Hoạt động: ${label}`);
 }
 
