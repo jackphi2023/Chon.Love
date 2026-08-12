@@ -95,7 +95,7 @@ export function LuxyGiftModal({
   const balanceUnits = walletQuery.data?.heart_available_units ?? membershipQuery.data?.heart_balance_units ?? 0;
   const hasEnough = selectedGift ? balanceUnits >= selectedGift.heart_price_units : false;
   const columns = width < 430 ? 4 : width < 720 ? 5 : 6;
-  const tileWidth = `${100 / columns}%` as const;
+  const tileWidth = `${100 / columns}%` as `${number}%`;
 
   const sendMutation = useMutation({
     mutationFn: async (gift: GiftCatalogItem) => {
@@ -244,8 +244,8 @@ export function LuxyGiftModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { alignItems: 'center', backgroundColor: 'rgba(8,17,31,0.56)', flex: 1, justifyContent: 'center', padding: luxySpacing.lg },
-  dialog: { backgroundColor: luxyColors.surface, borderRadius: luxyRadii.lg, maxHeight: '88%', maxWidth: 640, overflow: 'hidden', width: '100%', ...luxyShadows.modal },
+  backdrop: { alignItems: 'center', backgroundColor: luxyColors.overlay, flex: 1, justifyContent: 'center', padding: luxySpacing.lg },
+  dialog: { backgroundColor: luxyColors.surface, borderRadius: luxyRadii.lg, maxHeight: '88%', maxWidth: 640, overflow: 'hidden', width: '100%', ...luxyShadows.card },
   dialogCompact: { maxHeight: '92%' },
   header: { alignItems: 'flex-start', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', padding: luxySpacing.xl },
   headerText: { flex: 1, minWidth: 0 },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   balanceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.md },
   balanceLabel: { color: luxyColors.muted, fontSize: 14 },
   balanceValue: { color: luxyColors.ink, fontSize: 16, fontWeight: '700' },
-  lockedBox: { backgroundColor: luxyColors.background, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, padding: luxySpacing.xl },
+  lockedBox: { backgroundColor: luxyColors.subtleSurface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, padding: luxySpacing.xl },
   lockedTitle: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
   lockedBody: { color: luxyColors.muted, fontSize: 13, lineHeight: 19, marginTop: 6 },
   upgradeButton: { alignSelf: 'flex-start', backgroundColor: luxyColors.ink, borderRadius: luxyRadii.sm, marginTop: luxySpacing.md, paddingHorizontal: luxySpacing.lg, paddingVertical: 10 },
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   tileSlot: { padding: 4 },
   giftTile: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minHeight: 108, paddingHorizontal: 4, paddingVertical: 10 },
-  giftSelected: { backgroundColor: '#FFF7F5', borderColor: luxyColors.brandCoral, borderWidth: 2 },
+  giftSelected: { backgroundColor: luxyColors.selectedAccentSurface, borderColor: luxyColors.brandCoral, borderWidth: 2 },
   giftUnaffordable: { opacity: 0.45 },
   giftIcon: { fontSize: 28, lineHeight: 34 },
   giftName: { color: luxyColors.ink, fontSize: 11, fontWeight: '600', marginTop: 5, maxWidth: '100%' },
@@ -277,11 +277,11 @@ const styles = StyleSheet.create({
   confirmationCopy: { flex: 1 },
   confirmationTitle: { color: luxyColors.ink, fontSize: 15, fontWeight: '700' },
   confirmationBody: { color: luxyColors.muted, fontSize: 12, lineHeight: 17, marginTop: 3 },
-  sendButton: { alignItems: 'center', backgroundColor: luxyColors.brandCoral, borderRadius: luxyRadii.sm, justifyContent: 'center', minHeight: 42, minWidth: 104, paddingHorizontal: luxySpacing.lg },
+  sendButton: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.sm, justifyContent: 'center', minHeight: 42, minWidth: 104, paddingHorizontal: luxySpacing.lg },
   sendDisabled: { opacity: 0.45 },
   sendText: { color: luxyColors.surface, fontSize: 14, fontWeight: '700' },
-  errorText: { color: luxyColors.brandCoral, fontSize: 12, lineHeight: 17, paddingHorizontal: luxySpacing.xl, paddingVertical: 6 },
-  retryText: { color: luxyColors.brandCoral, fontSize: 14, fontWeight: '700' },
+  errorText: { color: luxyColors.danger, fontSize: 12, lineHeight: 17, paddingHorizontal: luxySpacing.xl, paddingVertical: 6 },
+  retryText: { color: luxyColors.actionRed, fontSize: 14, fontWeight: '700' },
   disclaimer: { borderTopColor: luxyColors.border, borderTopWidth: StyleSheet.hairlineWidth, color: luxyColors.muted, fontSize: 11, lineHeight: 16, paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.md },
   pressed: { opacity: 0.72 },
 });
