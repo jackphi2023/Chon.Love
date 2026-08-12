@@ -60,7 +60,7 @@ expect(e2e.includes('throws_ok('), 'BR-04 must assert negative authorization pat
 expect(e2e.includes('conversation_not_available'), 'BR-04 must deny non-member message reads.');
 expect(e2e.includes('sender_not_conversation_member'), 'BR-04 must deny non-member message sends.');
 expect(e2e.includes('report_rate_limited'), 'BR-04 must verify duplicate report throttling.');
-expect(e2e.includes('accepted_friendship_required'), 'BR-04 must verify chat closes after blocking.');
+expect(e2e.includes('messaging_blocked'), 'BR-04 must verify block immediately closes direct messaging.');
 expect(e2e.trimEnd().endsWith('rollback;'), 'BR-04 fixtures and mutations must always roll back.');
 expect(!e2e.includes('service_role'), 'BR-04 must not use a service-role credential.');
 expect(!e2e.includes('MYFAN_E2E_BETA_PASSWORD'), 'BR-04 must not depend on the controlled Beta password.');
