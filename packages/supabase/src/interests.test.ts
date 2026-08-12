@@ -10,7 +10,7 @@ import {
 
 const targetId = '19000000-0000-4000-8000-000000000002';
 
-describe('Luxy LX-12 Interests client contract', () => {
+describe('Luxy LX-12/LX-16 Interests client contract', () => {
   it('accepts only the three Seeking-derived Interest scopes', () => {
     expect(parseLuxyInterestScope('favorites')).toBe('favorites');
     expect(parseLuxyInterestScope('viewed_me')).toBe('viewed_me');
@@ -56,7 +56,7 @@ describe('Luxy LX-12 Interests client contract', () => {
     });
   });
 
-  it('lists only privacy-safe Interest card fields and bounds pagination', async () => {
+  it('lists Seeking row fields without exposing private identity/location data', async () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
       data: [{
@@ -65,6 +65,9 @@ describe('Luxy LX-12 Interests client contract', () => {
         display_name: 'Lan',
         age: 29,
         province_name: 'Thành phố Hồ Chí Minh',
+        headline: 'Du lịch, kinh doanh và sự tử tế',
+        height_cm: 163,
+        weight_kg: 51,
         avatar_media_id: null,
         avatar_storage_bucket: null,
         avatar_storage_path: null,
@@ -84,6 +87,7 @@ describe('Luxy LX-12 Interests client contract', () => {
       p_limit: 30,
       p_offset: 10,
     });
+    expect(rows[0]).toMatchObject({ headline: 'Du lịch, kinh doanh và sự tử tế', height_cm: 163, weight_kg: 51 });
     expect(rows[0]).not.toHaveProperty('date_of_birth');
     expect(rows[0]).not.toHaveProperty('latitude');
     expect(rows[0]).not.toHaveProperty('gift_total');
