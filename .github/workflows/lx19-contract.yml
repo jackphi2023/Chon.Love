@@ -1,0 +1,109 @@
+name: LX-19 Contract
+
+on:
+  push:
+    branches: ['agent/lx-19-gifts-7d-payout']
+    paths:
+      - 'supabase/migrations/20260812214500_lx_19_gifts_7d_payout.sql'
+      - 'supabase/migrations/20260812214600_lx_19_membership_heart_entitlement_fix.sql'
+      - 'supabase/tests/lx_19_gifts_7d_payout.sql'
+      - 'packages/supabase/src/gifts.ts'
+      - 'packages/supabase/src/gifts.test.ts'
+      - 'apps/mobile/src/components/luxy-gift-modal.tsx'
+      - 'apps/mobile/app/profile/[username].tsx'
+      - 'apps/mobile/app/chat/[conversationId].tsx'
+      - 'apps/mobile/app/(tabs)/gifts.tsx'
+      - '.github/workflows/lx19-contract.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260812214500_lx_19_gifts_7d_payout.sql'
+      - 'supabase/migrations/20260812214600_lx_19_membership_heart_entitlement_fix.sql'
+      - 'supabase/tests/lx_19_gifts_7d_payout.sql'
+      - 'packages/supabase/src/gifts.ts'
+      - 'packages/supabase/src/gifts.test.ts'
+      - 'apps/mobile/src/components/luxy-gift-modal.tsx'
+      - 'apps/mobile/app/profile/[username].tsx'
+      - 'apps/mobile/app/chat/[conversationId].tsx'
+      - 'apps/mobile/app/(tabs)/gifts.tsx'
+      - '.github/workflows/lx19-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lx19-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gifts-seven-day-payout-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Gift client unit contract
+        run: pnpm exec vitest run packages/supabase/src/gifts.test.ts packages/supabase/src/membership.test.ts
+
+      - name: Typecheck mobile gift surfaces
+        run: pnpm --filter @myfan/mobile typecheck
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run LX-17 membership regression
+        run: supabase test db supabase/tests/lx_17_premium_diamond_engine.sql --local
+
+      - name: Run LX-18 billing regression
+        run: supabase test db supabase/tests/lx_18_upgrade_billing_vietqr.sql --local
+
+      - name: Run LX-19 Gifts + 7-day payout contract
+        run: supabase test db supabase/tests/lx_19_gifts_7d_payout.sql --local
+
+      - name: Lint gift accounting schemas
+        run: |
+          supabase db lint --local --schema public --schema private --level warning | tee /tmp/lx19-lint.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path('/tmp/lx19-lint.json').read_text().strip()
+          findings = json.loads(raw) if raw else []
+          errors = [
+              (item.get('function'), issue.get('message'))
+              for item in findings
+              for issue in item.get('issues', [])
+              if issue.get('level') == 'error'
+          ]
+          if errors:
+              for function, message in errors:
+                  print(f'ERROR {function}: {message}')
+              raise SystemExit(1)
+          print(f'LX-19 schema lint: zero errors; {len(findings)} warning entries retained.')
+          PY
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
