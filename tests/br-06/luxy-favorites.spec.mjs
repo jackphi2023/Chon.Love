@@ -68,7 +68,7 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
 
     // A routed profile visit is recorded once by the route adapter and appears under Viewed Me.
     await creatorPage.goto(`/profile/${actors.viewer.username}`);
-    await expect(creatorPage.getByText(actors.viewer.name, { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(creatorPage.getByRole('heading', { name: new RegExp(`^${actors.viewer.name},`) })).toBeVisible({ timeout: 20_000 });
     await creatorPage.waitForTimeout(500);
 
     await viewerPage.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
