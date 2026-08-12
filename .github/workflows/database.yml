@@ -103,7 +103,10 @@ jobs:
           test -f supabase/migrations/20260811130000_lx_07_profile_schema.sql
           test -f supabase/migrations/20260811161500_lx_09_search_backend_v2.sql
           test -f supabase/migrations/20260812094000_lx_13_member_profile_membership_presentation.sql
+          test -f supabase/migrations/20260812132900_lx_14_private_album_type.sql
+          test -f supabase/migrations/20260812132950_lx_14_private_album_constraint.sql
           test -f supabase/migrations/20260812133000_lx_14_private_photo_album.sql
+          test -f supabase/migrations/20260812133100_lx_14_restore_storage_helper_acl.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
