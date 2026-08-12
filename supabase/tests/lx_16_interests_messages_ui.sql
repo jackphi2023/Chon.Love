@@ -141,7 +141,8 @@ select is(
 reset role;
 
 update public.profile_views
-set last_viewed_at=now()-interval '181 days'
+set first_viewed_at=now()-interval '181 days',
+    last_viewed_at=now()-interval '181 days'
 where viewer_id='26000000-0000-0000-0000-000000000001'
   and viewed_id='26000000-0000-0000-0000-000000000002';
 
