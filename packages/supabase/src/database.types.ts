@@ -141,6 +141,7 @@ export type Database = {
       }
       conversation_members: {
         Row: {
+          archived_at: string | null
           conversation_id: string
           created_at: string
           is_muted: boolean
@@ -151,6 +152,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           conversation_id: string
           created_at?: string
           is_muted?: boolean
@@ -161,6 +163,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           conversation_id?: string
           created_at?: string
           is_muted?: boolean
@@ -2521,6 +2524,8 @@ export type Database = {
           avatar_storage_bucket: string
           avatar_storage_path: string
           display_name: string
+          headline: string
+          height_cm: number
           id: string
           interaction_at: string
           is_favorited: boolean
@@ -2531,6 +2536,7 @@ export type Database = {
           photo_count: number
           province_name: string
           username: string
+          weight_kg: number
         }[]
       }
       list_my_bank_accounts: {
@@ -2560,6 +2566,7 @@ export type Database = {
       list_my_conversations: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
+          age: number
           avatar_media_id: string
           avatar_storage_bucket: string
           avatar_storage_path: string
@@ -2569,7 +2576,10 @@ export type Database = {
           display_name: string
           friendship_id: string
           friendship_status: string
+          headline: string
+          is_archived: boolean
           is_creator: boolean
+          is_online: boolean
           last_message_body: string
           last_message_id: string
           last_message_sender_id: string
@@ -3413,6 +3423,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_conversation_archived: {
+        Args: { p_archived: boolean; p_conversation_id: string }
+        Returns: boolean
       }
       set_conversation_auto_delete: {
         Args: { p_conversation_id: string; p_enabled: boolean }
