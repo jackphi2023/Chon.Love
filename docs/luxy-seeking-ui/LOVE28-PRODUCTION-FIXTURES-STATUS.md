@@ -88,11 +88,11 @@ LX-09 intentionally requires a fresh consented location. A narrowly scoped cron 
 
 The hosted database was advanced from the previous BR release line to the Luxy schema/API stack required by these fixtures, through LX-20 dependencies (LX-07, LX-09, LX-12 through LX-20 as applicable). This includes the current profile, search, favorite, direct messaging, membership, billing, gifts, private-photo and verification contracts used by the front-end.
 
-Temporary privileged bootstrap Edge Functions were disabled after provisioning; their active versions now require JWT and return HTTP 410 rather than exposing seed behavior.
+Temporary privileged bootstrap Edge Functions were disabled after provisioning; their active versions now require JWT and return HTTP 410 rather than exposing seed behavior. The temporary `pg_net` extension used only for the one-time bootstrap/geocoding transport was also removed after completion, restoring the pre-bootstrap extension state.
 
 ## Security follow-up
 
-Supabase's security advisory currently reports RLS disabled on these private LX tables:
+The broad Supabase table inventory emitted a critical **RLS-disabled** advisory for these private LX tables:
 
 - `private.luxy_memberships`
 - `private.luxy_upgrade_intents`
@@ -102,7 +102,9 @@ Supabase's security advisory currently reports RLS disabled on these private LX 
 - `private.member_profile_verifications`
 - `private.member_identity_documents`
 
-This bootstrap did **not** auto-enable RLS because doing so without validating the intended private-schema grants/policies could break the existing SECURITY DEFINER/Admin flows. Treat this as a release-blocking security review item: verify schema exposure/privileges, then apply the correct RLS/ACL policy deliberately and regression-test LX-13 through LX-20.
+This bootstrap did **not** auto-enable RLS because doing so without validating the intended private-schema SECURITY DEFINER/Admin access contract could break LX-13 through LX-20. A direct privilege audit found **no `anon` or `authenticated` table grants** on these seven private tables, and the current Supabase Security Advisor does not report an exposed-table RLS error for them. Even so, keep an explicit RLS/ACL review in the release checklist so the private-schema boundary remains intentional and regression-tested rather than relying on implicit assumptions.
+
+The current Security Advisor does still report the existing project-level warning that leaked-password protection is disabled in Auth; this fixture bootstrap did not change that setting.
 
 ## Release boundary
 
