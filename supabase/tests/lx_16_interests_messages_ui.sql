@@ -1,6 +1,6 @@
 begin;
 
-select plan(18);
+select plan(20);
 
 select has_column('public','conversation_members','archived_at','LX-16 stores per-member mailbox archive state');
 select col_is_null('public','conversation_members','archived_at','Archive state is optional for active inbox conversations');
