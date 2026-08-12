@@ -1,6 +1,6 @@
 # LX-14 — Private Photo + Premium profile interaction gates
 
-Status: IMPLEMENTED ON FEATURE BRANCH — pending final CI/merge.
+Status: COMPLETED IN ROADMAP FOUNDATION — final hardening verification in progress.
 
 ## Product policy implemented
 
@@ -12,18 +12,20 @@ LX-14 keeps Private Photo access explicit and owner-controlled, and applies the 
 - FREE cannot **start messaging from the Member Profile CTA**.
 - Those three actions open the shared Luxy Premium upgrade modal inspired by the supplied Seeking reference.
 - Premium/Diamond may perform the actions subject to the existing safety/status rules.
+- Private Photo approval remains mandatory even for Premium/Diamond; paid membership only permits the request and continued viewing of an approved grant.
 - A downgraded member may always **remove** an existing Favorite.
 - Creating an upgrade intent never activates membership and never charges the member.
 
 ## Private Photo workflow
 
 1. Owner uploads media with `visibility = private` through the existing moderated media pipeline.
-2. Premium/Diamond viewer sends `request_private_photo_access(owner_id)`.
-3. Owner sees the request under Settings → Private Photos.
-4. Owner approves or declines.
-5. Approved media is returned by `list_profile_private_media(owner_id)` only while the viewer still has an active paid membership and safety checks continue to pass.
-6. Owner may revoke an approved request at any time.
-7. Block/inactive/downgrade removes effective access immediately.
+2. Private Photo classification excludes private Storage media attached to Creator Activity posts.
+3. Premium/Diamond viewer sends `request_private_photo_access(owner_id)`.
+4. Owner sees the request under Settings → Private Photos.
+5. Owner approves or declines.
+6. Approved media is returned by `list_profile_private_media(owner_id)` only while the viewer still has an active paid membership and safety checks continue to pass.
+7. Owner may revoke an approved request at any time.
+8. Block/inactive/downgrade removes effective access immediately.
 
 Private-photo grants are stored in `private.private_photo_access_requests`; authenticated clients have no direct table access.
 
@@ -37,9 +39,11 @@ Private-photo grants are stored in `private.private_photo_access_requests`; auth
 
 ## Backend contracts
 
-Migration:
+Migrations:
 
 - `supabase/migrations/20260812121500_lx_14_private_photo_premium_interactions.sql`
+- `supabase/migrations/20260812121600_lx_14_restore_storage_helper_acl.sql`
+- `supabase/migrations/20260812121700_lx_14_private_photo_media_classification.sql`
 
 RPCs:
 
@@ -68,7 +72,7 @@ Shared contextual upgrade modal supports:
 
 CTA: `Nâng cấp Premium` → membership settings/upgrade handoff.
 
-Member Profile now renders real Private Photo request state and approved private images. Settings → Private Photos includes request approve/decline/revoke management.
+Member Profile renders real Private Photo request state and approved private images. Settings → Private Photos includes request approve/decline/revoke management.
 
 ## Verification
 
@@ -78,4 +82,6 @@ Database contract:
 
 The contract verifies FREE bypass prevention, Premium request flow, owner-only approval, approval/revocation, paid re-check at view time, Favorite downgrade removal, profile-message paid gate, and absence of gift/Fan unlock paths.
 
-Production Supabase deployment is intentionally out of scope for this implementation session unless explicitly requested.
+Browser E2E now includes a dedicated approved Private Photo fixture that is deliberately separate from Creator Activity media, and verifies the Seeking-inspired `Xem ảnh riêng tư!` Premium gate on both desktop and 390px mobile web.
+
+Production Supabase deployment remains intentionally out of scope until a separate deployment/release step is requested.
