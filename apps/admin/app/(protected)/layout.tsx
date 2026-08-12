@@ -4,6 +4,7 @@ const links = [
   ['Dashboard', '/dashboard'],
   ['Users', '/users'],
   ['Xác minh ảnh', '/member-verifications'],
+  ['Gói thành viên', '/memberships'],
   ['Gifts', '/gifts'],
   ['Payments', '/payments'],
   ['Withdrawals', '/withdrawals'],
