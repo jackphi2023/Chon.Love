@@ -115,6 +115,7 @@ export default function FavoritesPage() {
               const badge = tab.key === 'favorited_me' ? (favoritedMeBadgeQuery.data ?? 0) : 0;
               return (
                 <Pressable
+                  aria-selected={active}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
                   key={tab.key}
