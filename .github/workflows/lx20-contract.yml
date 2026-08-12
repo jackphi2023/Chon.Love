@@ -5,6 +5,7 @@ on:
     branches: ['agent/lx-20-verification-private-photos']
     paths:
       - 'supabase/migrations/20260812220000_lx_20_verification_private_photos.sql'
+      - 'supabase/migrations/20260812220100_lx_20_restore_storage_helper_acl.sql'
       - 'supabase/tests/lx_20_verification_private_photos.sql'
       - 'packages/supabase/src/member-verification.ts'
       - 'packages/supabase/src/profile-media.ts'
@@ -13,6 +14,8 @@ on:
       - 'packages/supabase/src/index.ts'
       - 'apps/mobile/app/(tabs)/profile.tsx'
       - 'apps/mobile/app/(tabs)/activity.tsx'
+      - 'apps/mobile/app/profile/_layout.tsx'
+      - 'apps/mobile/app/settings/index.tsx'
       - 'apps/mobile/app/settings/private-photos.tsx'
       - 'apps/mobile/app/settings/verification.tsx'
       - 'apps/mobile/src/components/luxy-private-photo-access.tsx'
@@ -21,6 +24,7 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/20260812220000_lx_20_verification_private_photos.sql'
+      - 'supabase/migrations/20260812220100_lx_20_restore_storage_helper_acl.sql'
       - 'supabase/tests/lx_20_verification_private_photos.sql'
       - 'packages/supabase/src/member-verification.ts'
       - 'packages/supabase/src/profile-media.ts'
@@ -29,6 +33,8 @@ on:
       - 'packages/supabase/src/index.ts'
       - 'apps/mobile/app/(tabs)/profile.tsx'
       - 'apps/mobile/app/(tabs)/activity.tsx'
+      - 'apps/mobile/app/profile/_layout.tsx'
+      - 'apps/mobile/app/settings/index.tsx'
       - 'apps/mobile/app/settings/private-photos.tsx'
       - 'apps/mobile/app/settings/verification.tsx'
       - 'apps/mobile/src/components/luxy-private-photo-access.tsx'
