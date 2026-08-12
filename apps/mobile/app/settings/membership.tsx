@@ -13,21 +13,21 @@ const plans = [
     key: 'free',
     name: 'Free',
     price: '0 đ',
-    note: 'Tìm kiếm cơ bản, xem hồ sơ và các quyền miễn phí theo entitlement hiện hành.',
+    note: 'Xem hồ sơ và sử dụng Yêu thích. Không gửi tin nhắn và không gửi yêu cầu xem ảnh riêng tư.',
     current: true,
   },
   {
     key: 'premium',
     name: 'Premium',
     price: '1.000.000 đ / tháng',
-    note: 'Gói thành viên trả phí tiêu chuẩn. Quyền lợi chính xác sẽ được khóa bằng membership engine LX-17.',
+    note: 'Mở quyền nhắn tin và gửi yêu cầu xem ảnh riêng tư. Quyền xem ảnh vẫn cần chủ hồ sơ chấp thuận.',
     current: false,
   },
   {
     key: 'diamond',
     name: 'Diamond',
     price: '5.000.000 đ / tháng',
-    note: 'Gói cao nhất cho trải nghiệm ưu tiên. Không dùng gói thành viên để mở khóa ảnh riêng tư bằng quà tặng.',
+    note: 'Bao gồm toàn bộ quyền tương tác Premium và hạng thành viên Diamond cao nhất. Ảnh riêng tư vẫn do chủ hồ sơ kiểm soát.',
     current: false,
   },
 ] as const;
@@ -39,12 +39,12 @@ export default function MembershipSettingsPage() {
 
   return (
     <LuxySettingsPage
-      description="Xem cấu trúc gói Luxy.Love. Billing và entitlement chưa được kích hoạt ở LX-08 để tránh thu phí khi membership engine chưa hoàn chỉnh."
+      description="So sánh Free, Premium và Diamond. Billing và entitlement mua gói chưa được kích hoạt trước LX-17/LX-18 để tránh thu phí khi membership engine chưa hoàn chỉnh."
       testID="luxy-membership-settings"
       title="Gói dịch vụ"
     >
       <SettingsNotice title="Trạng thái hiện tại" tone="warning">
-        Tài khoản đang được hiển thị ở trạng thái Free trong UI này. Premium và Diamond là cấu hình sản phẩm mục tiêu; nút thanh toán chỉ mở sau LX-17/LX-18.
+        Tài khoản đang được hiển thị ở trạng thái Free trong UI này. Premium và Diamond đã có business entitlement cho Message/Private Photo; thanh toán thực tế chỉ mở sau LX-17/LX-18.
       </SettingsNotice>
 
       <View style={styles.planGrid}>

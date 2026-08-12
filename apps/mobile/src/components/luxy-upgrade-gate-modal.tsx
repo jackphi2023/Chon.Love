@@ -1,32 +1,92 @@
+import { createLuxyUpgradeIntent, formatLuxyMembershipPrice } from '@myfan/supabase';
 import { luxyColors, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getMobileSupabaseClient } from '@/lib/supabase';
 
 export type LuxyUpgradeGateReason = 'message' | 'favorite' | 'private_photo';
-
-const benefits = [
-  'Nhắn tin với thành viên',
-  'Gửi Interest / Yêu thích',
-  'Yêu cầu xem ảnh riêng tư',
-  'Huy hiệu Premium',
-] as const;
 
 const reasonCopy: Record<LuxyUpgradeGateReason, { icon: string; title: string; description: string }> = {
   message: {
     icon: '▱ ◇',
     title: 'Bắt đầu nhắn tin ngay!',
-    description: 'Nâng cấp Premium để gửi và nhận tin nhắn khi bạn tương tác với thành viên trên Luxy.Love.',
+    description: 'Thành viên Free vẫn có thể Yêu thích. Để gửi tin nhắn, hãy nâng cấp Premium hoặc Diamond.',
   },
   favorite: {
     icon: '♡',
-    title: 'Mở khóa Interest!',
-    description: 'Nâng cấp Premium để thể hiện sự quan tâm, lưu thành viên vào Yêu thích và tạo cơ hội tương hợp.',
+    title: 'Yêu thích thành viên',
+    description: 'Yêu thích là quyền miễn phí của mọi thành viên đã kích hoạt. Bạn không cần nâng cấp để dùng tính năng này.',
   },
   private_photo: {
     icon: '▣',
     title: 'Xem ảnh riêng tư!',
-    description: 'Nâng cấp Premium để gửi yêu cầu xem ảnh riêng tư. Chủ hồ sơ vẫn là người quyết định chấp thuận hoặc từ chối.',
+    description: 'Premium hoặc Diamond cho phép gửi yêu cầu xem ảnh riêng tư. Chủ hồ sơ vẫn là người quyết định chấp thuận hoặc từ chối.',
   },
 };
+
+const premiumBenefits = [
+  'Gửi và nhận tin nhắn với thành viên',
+  'Gửi yêu cầu xem ảnh riêng tư',
+  'Huy hiệu thành viên Premium',
+] as const;
+
+const diamondBenefits = [
+  'Bao gồm toàn bộ quyền tương tác Premium',
+  'Gửi tin nhắn và yêu cầu xem ảnh riêng tư',
+  'Huy hiệu Diamond — hạng thành viên cao nhất',
+] as const;
+
+function sourceForReason(reason: LuxyUpgradeGateReason): string {
+  if (reason === 'private_photo') return 'member_profile_private_photo';
+  if (reason === 'message') return 'member_profile_message';
+  return 'member_profile_favorite';
+}
+
+function PlanCard({
+  name,
+  price,
+  benefits,
+  accent,
+  busy,
+  onPress,
+  testID,
+}: {
+  name: string;
+  price: string;
+  benefits: readonly string[];
+  accent?: boolean;
+  busy: boolean;
+  onPress: () => void;
+  testID: string;
+}) {
+  return (
+    <View style={[styles.planCard, accent && styles.planCardAccent]} testID={`luxy-upgrade-plan-${name.toLowerCase()}`}>
+      <View style={styles.planHeadingRow}>
+        <Text style={styles.planName}>{name}</Text>
+        {accent ? <Text style={styles.highestBadge}>Hạng cao nhất</Text> : null}
+      </View>
+      <Text style={styles.planPrice}>{price}</Text>
+      <View style={styles.planBenefits}>
+        {benefits.map((benefit) => (
+          <View key={benefit} style={styles.benefitRow}>
+            <View style={styles.checkCircle}><Text accessibilityElementsHidden style={styles.check}>✓</Text></View>
+            <Text style={styles.benefitText}>{benefit}</Text>
+          </View>
+        ))}
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={onPress}
+        style={({ pressed }) => [styles.planButton, accent && styles.diamondButton, pressed && styles.pressed, busy && styles.disabled]}
+        testID={testID}
+      >
+        <Text style={styles.upgradeText}>{busy ? 'Đang mở nâng cấp…' : `Nâng cấp ${name}`}</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export function LuxyUpgradeGateModal({
   visible,
@@ -42,6 +102,29 @@ export function LuxyUpgradeGateModal({
   onUpgrade: () => void;
 }) {
   const copy = reasonCopy[reason];
+  const client = getMobileSupabaseClient();
+  const router = useRouter();
+  const [diamondBusy, setDiamondBusy] = useState(false);
+  const [diamondError, setDiamondError] = useState<string | null>(null);
+
+  async function handleDiamondUpgrade() {
+    if (!client || diamondBusy) return;
+    setDiamondBusy(true);
+    setDiamondError(null);
+    try {
+      await createLuxyUpgradeIntent(client, 'diamond', sourceForReason(reason));
+      onClose();
+      router.push({
+        pathname: '/settings/membership',
+        params: { plan: 'diamond', source: sourceForReason(reason) },
+      });
+    } catch {
+      setDiamondError('Không thể mở luồng nâng cấp Diamond lúc này. Vui lòng thử lại.');
+    } finally {
+      setDiamondBusy(false);
+    }
+  }
+
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
       <View style={styles.backdrop} testID="luxy-message-upgrade-gate">
@@ -50,34 +133,43 @@ export function LuxyUpgradeGateModal({
           <Pressable accessibilityLabel="Đóng" accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeText}>×</Text>
           </Pressable>
-          <Text accessibilityElementsHidden style={styles.icon}>{copy.icon}</Text>
-          <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
-          <Text style={styles.description}>{copy.description}</Text>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <Text accessibilityElementsHidden style={styles.icon}>{copy.icon}</Text>
+            <Text accessibilityRole="header" style={styles.title}>{copy.title}</Text>
+            <Text style={styles.description}>{copy.description}</Text>
 
-          <Text style={styles.benefitTitle}>
-            Quyền lợi của <Text style={styles.premiumAccent}>Premium</Text>
-          </Text>
-          <View style={styles.benefitGrid}>
-            {benefits.map((benefit) => (
-              <View key={benefit} style={styles.benefitRow}>
-                <View style={styles.checkCircle}><Text accessibilityElementsHidden style={styles.check}>✓</Text></View>
-                <Text style={styles.benefitText}>{benefit}</Text>
-              </View>
-            ))}
-          </View>
+            <Text style={styles.compareTitle}>Chọn hạng thành viên phù hợp</Text>
+            <Text style={styles.freeNote}>Yêu thích vẫn sử dụng miễn phí với tài khoản Free.</Text>
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={onUpgrade}
-            style={({ pressed }) => [styles.upgradeButton, pressed && styles.pressed, busy && styles.disabled]}
-            testID="luxy-message-upgrade-cta"
-          >
-            <Text style={styles.upgradeText}>{busy ? 'Đang mở nâng cấp…' : 'Nâng cấp Premium'}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={onClose} style={styles.notNowButton}>
-            <Text style={styles.notNowText}>Để sau</Text>
-          </Pressable>
+            <View style={styles.planList}>
+              <PlanCard
+                benefits={premiumBenefits}
+                busy={busy}
+                name="Premium"
+                onPress={onUpgrade}
+                price={formatLuxyMembershipPrice('premium')}
+                testID="luxy-message-upgrade-cta"
+              />
+              <PlanCard
+                accent
+                benefits={diamondBenefits}
+                busy={diamondBusy}
+                name="Diamond"
+                onPress={() => void handleDiamondUpgrade()}
+                price={formatLuxyMembershipPrice('diamond')}
+                testID="luxy-diamond-upgrade-cta"
+              />
+            </View>
+
+            {reason === 'private_photo' ? (
+              <Text style={styles.consentNote}>Lưu ý: nâng cấp không tự mở ảnh riêng tư. Bạn vẫn cần chủ hồ sơ chấp thuận yêu cầu.</Text>
+            ) : null}
+            {diamondError ? <Text accessibilityRole="alert" style={styles.error}>{diamondError}</Text> : null}
+
+            <Pressable accessibilityRole="button" onPress={onClose} style={styles.notNowButton}>
+              <Text style={styles.notNowText}>Để sau</Text>
+            </Pressable>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -96,52 +188,67 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: luxyColors.surface,
     borderRadius: 18,
-    maxWidth: 440,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    paddingTop: 38,
+    maxHeight: '92%',
+    maxWidth: 470,
     position: 'relative',
     width: '100%',
   },
+  scrollContent: { paddingBottom: 20, paddingHorizontal: 22, paddingTop: 34 },
   closeButton: {
     alignItems: 'center',
     height: 44,
     justifyContent: 'center',
     position: 'absolute',
-    right: 9,
-    top: 7,
+    right: 8,
+    top: 5,
     width: 44,
+    zIndex: 5,
   },
   closeText: { color: '#63666A', fontSize: 36, fontWeight: '300', lineHeight: 38 },
-  icon: { color: '#D8B874', fontSize: 43, lineHeight: 50, marginBottom: 2, textAlign: 'center' },
+  icon: { color: '#D8B874', fontSize: 40, lineHeight: 47, marginBottom: 1, textAlign: 'center' },
   title: {
     color: luxyColors.text,
     fontFamily: luxyTypography.families.display,
     fontSize: 25,
     fontWeight: '400',
     lineHeight: 31,
-    marginTop: 4,
+    marginTop: 3,
     textAlign: 'center',
   },
-  description: { color: luxyColors.muted, fontSize: 15, lineHeight: 22, marginTop: 9 },
-  benefitTitle: { color: luxyColors.text, fontSize: 18, fontWeight: '700', marginTop: 25 },
-  premiumAccent: { color: luxyColors.actionRed, fontWeight: '500' },
-  benefitGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 10, rowGap: 8, marginTop: 12 },
-  benefitRow: { alignItems: 'center', flexBasis: '48%', flexDirection: 'row', gap: 8, minHeight: 32 },
-  checkCircle: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: 9, borderWidth: 1.3, height: 17, justifyContent: 'center', width: 17 },
-  check: { color: luxyColors.ink, fontSize: 10, fontWeight: '800', lineHeight: 12 },
-  benefitText: { color: luxyColors.text, flex: 1, fontSize: 12.5, lineHeight: 17 },
-  upgradeButton: {
+  description: { color: luxyColors.muted, fontSize: 14.5, lineHeight: 21, marginTop: 8, textAlign: 'center' },
+  compareTitle: { color: luxyColors.text, fontSize: 17, fontWeight: '700', marginTop: 20, textAlign: 'center' },
+  freeNote: { color: luxyColors.muted, fontSize: 12, lineHeight: 17, marginTop: 5, textAlign: 'center' },
+  planList: { gap: 10, marginTop: 13 },
+  planCard: {
+    borderColor: luxyColors.border,
+    borderRadius: luxyRadii.md,
+    borderWidth: 1,
+    padding: 14,
+  },
+  planCardAccent: { borderColor: '#D8B874', borderWidth: 1.5 },
+  planHeadingRow: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  planName: { color: luxyColors.text, fontSize: 17, fontWeight: '800' },
+  highestBadge: { backgroundColor: '#F7EDD5', borderRadius: luxyRadii.pill, color: '#876A2D', fontSize: 10.5, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4 },
+  planPrice: { color: luxyColors.muted, fontSize: 12.5, fontWeight: '600', marginTop: 2 },
+  planBenefits: { gap: 6, marginTop: 9 },
+  benefitRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 7 },
+  checkCircle: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: 8, borderWidth: 1.1, height: 16, justifyContent: 'center', marginTop: 1, width: 16 },
+  check: { color: luxyColors.ink, fontSize: 9, fontWeight: '800', lineHeight: 11 },
+  benefitText: { color: luxyColors.text, flex: 1, fontSize: 12, lineHeight: 17 },
+  planButton: {
     alignItems: 'center',
     backgroundColor: luxyColors.actionRed,
     borderRadius: luxyRadii.pill,
     justifyContent: 'center',
-    marginTop: 26,
-    minHeight: 50,
-    paddingHorizontal: 24,
+    marginTop: 12,
+    minHeight: 42,
+    paddingHorizontal: 18,
   },
-  upgradeText: { color: luxyColors.surface, fontSize: 15, fontWeight: '700' },
-  notNowButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
+  diamondButton: { backgroundColor: luxyColors.ink },
+  upgradeText: { color: luxyColors.surface, fontSize: 13.5, fontWeight: '700' },
+  consentNote: { color: luxyColors.muted, fontSize: 11.5, lineHeight: 17, marginTop: 12, textAlign: 'center' },
+  error: { color: luxyColors.danger, fontSize: 11.5, lineHeight: 16, marginTop: 9, textAlign: 'center' },
+  notNowButton: { alignItems: 'center', justifyContent: 'center', minHeight: 42, marginTop: 5 },
   notNowText: { color: luxyColors.text, fontSize: 13.5, textDecorationLine: 'underline' },
   pressed: { opacity: 0.8 },
   disabled: { opacity: 0.6 },

@@ -77,6 +77,27 @@ update public.profiles set
   end
 where id::text like '4b000000-0000-0000-0000-00000000000%';
 
+-- BR-04 is a core chat transport test, not a membership-entitlement test. Give the
+-- sender an explicit Premium fixture so the test exercises the paid messaging path.
+insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,starts_at,expires_at,source)
+values(
+  '4b000000-0000-0000-0000-000000000001',
+  'premium',
+  'active',
+  true,
+  now()-interval '1 day',
+  now()+interval '30 days',
+  'br04_fixture'
+)
+on conflict(user_id) do update set
+  tier=excluded.tier,
+  status=excluded.status,
+  messaging_enabled=excluded.messaging_enabled,
+  starts_at=excluded.starts_at,
+  expires_at=excluded.expires_at,
+  source=excluded.source,
+  updated_at=now();
+
 select is(
   (select count(*)::integer from public.profiles where id::text like '4b000000-0000-0000-0000-00000000000%'),
   4,
