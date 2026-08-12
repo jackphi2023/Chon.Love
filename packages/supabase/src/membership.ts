@@ -62,6 +62,42 @@ const membershipOrderSchema = z.object({
   created_at: z.string(),
 });
 
+const membershipOrderSummarySchema = z.object({
+  order_id: z.string().uuid(),
+  order_code: z.string().regex(/^LXM[0-9A-F]{12}$/),
+  status: membershipOrderStatusSchema,
+  tier: paidMembershipTierSchema,
+  period_count: membershipPeriodSchema,
+  amount_due_vnd: z.coerce.number().int().positive(),
+  heart_credit_units: z.coerce.number().int().nonnegative(),
+  membership_expires_at: z.string().nullable(),
+  submitted_at: z.string().nullable(),
+  created_at: z.string(),
+});
+
+const membershipCheckoutSchema = z.object({
+  order_id: z.string().uuid(),
+  order_code: z.string().regex(/^LXM[0-9A-F]{12}$/),
+  status: membershipOrderStatusSchema,
+  tier: paidMembershipTierSchema,
+  period_count: membershipPeriodSchema,
+  monthly_price_vnd: z.coerce.number().int().positive(),
+  discount_bps: z.coerce.number().int().min(0).max(9_000),
+  amount_due_vnd: z.coerce.number().int().positive(),
+  heart_credit_units: z.coerce.number().int().nonnegative(),
+  heart_credit_display: z.coerce.number().int().nonnegative(),
+  bank_bin: z.string().regex(/^\d{6}$/),
+  bank_code: z.string().trim().min(2).max(12),
+  bank_name: z.string().trim().min(2).max(80),
+  account_no: z.string().trim().min(6).max(19),
+  account_name: z.string().trim().min(3).max(80),
+  transfer_content: z.string().regex(/^LUXYLXM[0-9A-F]{12}$/),
+  qr_image_url: z.string().url(),
+  submitted_at: z.string().nullable(),
+  membership_expires_at: z.string().nullable(),
+  created_at: z.string(),
+});
+
 const membershipPrivacySchema = z.object({
   hide_online: z.boolean(),
   hide_from_listing: z.boolean(),
@@ -77,6 +113,8 @@ const membershipPrivacyUpdateSchema = z.object({
 export type LuxyMembershipSnapshot = z.infer<typeof membershipSnapshotSchema>;
 export type LuxyMembershipPlanOption = z.infer<typeof membershipPlanOptionSchema>;
 export type LuxyMembershipOrder = z.infer<typeof membershipOrderSchema>;
+export type LuxyMembershipOrderSummary = z.infer<typeof membershipOrderSummarySchema>;
+export type LuxyMembershipCheckout = z.infer<typeof membershipCheckoutSchema>;
 export type LuxyMembershipPrivacy = z.infer<typeof membershipPrivacySchema>;
 
 export const LUXY_MEMBERSHIP_PLANS = {
@@ -97,6 +135,14 @@ export const LUXY_MEMBERSHIP_PLANS = {
 export const LUXY_THREE_PERIOD_DISCOUNT_BPS = 2_000;
 export const LUXY_DIAMOND_HEART_CREDIT_BPS = 8_000;
 export const LUXY_HEART_VND_RATE = 50_000;
+export const LUXY_VIETQR_IMAGE_HOST = 'img.vietqr.io';
+
+export const luxyMembershipQueryKeys = {
+  snapshot: (userId: string | null) => ['luxy-membership', userId] as const,
+  plans: ['luxy-membership-plan-options'] as const,
+  orders: (userId: string | null) => ['luxy-membership-orders', userId] as const,
+  checkout: (orderId: string | null) => ['luxy-membership-checkout', orderId] as const,
+};
 
 export async function getMyLuxyMembershipSnapshot(client: Client): Promise<LuxyMembershipSnapshot> {
   const { data, error } = await client.rpc('get_my_luxy_membership_snapshot');
@@ -131,6 +177,32 @@ export async function createLuxyMembershipOrder(
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   return membershipOrderSchema.parse(row);
+}
+
+export async function getMyLuxyMembershipCheckout(client: Client, orderId: string): Promise<LuxyMembershipCheckout> {
+  const parsedOrderId = z.string().uuid().parse(orderId);
+  const { data, error } = await client.rpc('get_my_luxy_membership_checkout', { p_order_id: parsedOrderId });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  const checkout = membershipCheckoutSchema.parse(row);
+  if (!isTrustedLuxyMembershipQrImageUrl(checkout.qr_image_url)) {
+    throw new Error('untrusted_membership_vietqr_image_url');
+  }
+  return checkout;
+}
+
+export async function listMyLuxyMembershipOrders(
+  client: Client,
+  input: { limit?: number; offset?: number } = {},
+): Promise<LuxyMembershipOrderSummary[]> {
+  const limit = z.number().int().min(1).max(50).parse(input.limit ?? 10);
+  const offset = z.number().int().nonnegative().parse(input.offset ?? 0);
+  const { data, error } = await client.rpc('list_my_luxy_membership_orders', {
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error) throw error;
+  return z.array(membershipOrderSummarySchema).parse(data ?? []);
 }
 
 export async function markLuxyMembershipOrderSubmitted(client: Client, orderId: string): Promise<LuxyMembershipOrderStatus> {
@@ -169,7 +241,7 @@ export async function updateMyLuxyMembershipPrivacy(
   return membershipPrivacyUpdateSchema.parse(row);
 }
 
-// Kept for LX-13/LX-15 callers while LX-18 replaces the visual Upgrade/Billing flow.
+// Kept for LX-13/LX-15 callers while the LX-18 Billing route owns checkout presentation.
 export async function createLuxyUpgradeIntent(
   client: Client,
   tier: Exclude<LuxyMembershipTier, 'free'>,
@@ -185,9 +257,38 @@ export async function createLuxyUpgradeIntent(
   return z.string().uuid().parse(data);
 }
 
+export function isTrustedLuxyMembershipQrImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === LUXY_VIETQR_IMAGE_HOST;
+  } catch {
+    return false;
+  }
+}
+
+export function getLuxyMembershipOrderStatusLabel(status: LuxyMembershipOrderStatus): string {
+  switch (status) {
+    case 'awaiting_payment':
+      return 'Chờ chuyển khoản';
+    case 'awaiting_confirmation':
+      return 'Chờ Admin xác nhận';
+    case 'approved':
+      return 'Đã kích hoạt';
+    case 'rejected':
+      return 'Không được xác nhận';
+    case 'cancelled':
+      return 'Đã hủy';
+  }
+}
+
 export function formatLuxyMembershipPrice(tier: Exclude<LuxyMembershipTier, 'free'>): string {
   const amount = LUXY_MEMBERSHIP_PLANS[tier].monthlyPriceVnd;
   return `${new Intl.NumberFormat('vi-VN').format(amount)} đ / tháng`;
+}
+
+export function formatLuxyMembershipAmount(amountVnd: number): string {
+  const amount = z.number().int().nonnegative().parse(amountVnd);
+  return `${new Intl.NumberFormat('vi-VN').format(amount)} đ`;
 }
 
 export function calculateLuxyMembershipAmountVnd(
