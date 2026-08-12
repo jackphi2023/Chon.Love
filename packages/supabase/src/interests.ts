@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-// LX-12 RPCs intentionally use a runtime-validated boundary instead of hand-editing
-// generated database.types.ts between Supabase type-generation checkpoints.
 type Client = SupabaseClient;
 
 export const LUXY_INTERESTS_DEFAULT_PAGE_SIZE = 24;
@@ -31,6 +29,9 @@ const interestMemberSchema = z.object({
   display_name: z.string().nullable(),
   age: z.coerce.number().int().min(18).max(120),
   province_name: z.string().nullable(),
+  headline: z.string().nullable(),
+  height_cm: z.coerce.number().int().nullable(),
+  weight_kg: z.coerce.number().int().nullable(),
   avatar_media_id: uuidSchema.nullable(),
   avatar_storage_bucket: z.string().nullable(),
   avatar_storage_path: z.string().nullable(),
