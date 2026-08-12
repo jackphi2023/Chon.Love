@@ -80,7 +80,7 @@ where p.id::text like '19000000-0000-0000-0000-00000000000%';
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,integer,integer)',
+    'public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,text,text,integer,integer)',
     'EXECUTE'
   ),
   'authenticated members can execute Search V2'
@@ -88,15 +88,15 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,integer,integer)',
+    'public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,text,text,integer,integer)',
     'EXECUTE'
   ),
   'anonymous users cannot execute Search V2'
 );
 select ok(
-  position('date_of_birth' in lower(pg_get_function_result('public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,integer,integer)'::regprocedure)))=0
-  and position('latitude' in lower(pg_get_function_result('public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,integer,integer)'::regprocedure)))=0
-  and position('longitude' in lower(pg_get_function_result('public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,integer,integer)'::regprocedure)))=0,
+  position('date_of_birth' in lower(pg_get_function_result('public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,text,text,integer,integer)'::regprocedure)))=0
+  and position('latitude' in lower(pg_get_function_result('public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,text,text,integer,integer)'::regprocedure)))=0
+  and position('longitude' in lower(pg_get_function_result('public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,text,text,integer,integer)'::regprocedure)))=0,
   'Search V2 result signature exposes no DOB or exact coordinates'
 );
 
