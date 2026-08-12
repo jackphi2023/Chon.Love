@@ -11,6 +11,7 @@ export type LuxyInterestScope = 'favorites' | 'viewed_me' | 'favorited_me';
 const uuidSchema = z.string().uuid();
 const usernameSchema = z.string().trim().min(1).max(48);
 const interestScopeSchema = z.enum(['favorites', 'viewed_me', 'favorited_me']);
+const membershipTierSchema = z.enum(['free', 'premium', 'diamond']);
 
 const favoriteStateSchema = z.object({
   is_favorited: z.boolean(),
@@ -38,6 +39,7 @@ const interestMemberSchema = z.object({
   photo_count: z.coerce.number().int().nonnegative(),
   last_active_at: z.string().nullable(),
   is_online: z.boolean(),
+  membership_tier: membershipTierSchema,
   is_favorited: z.boolean(),
   is_favorited_by: z.boolean(),
   is_match: z.boolean(),
