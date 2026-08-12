@@ -48,7 +48,9 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
       contentType: 'image/png',
     });
 
-    await page.getByTestId('luxy-member-profile-photo-tile').first().click();
+    const publicPhoto = page.getByTestId('luxy-member-profile-photo-tile').first();
+    await expect(publicPhoto.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
+    await publicPhoto.click();
     const photoModal = page.getByTestId('luxy-profile-photo-modal');
     await expect(photoModal).toBeVisible();
     await expect(photoModal.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
