@@ -43,9 +43,24 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
     const heroPhoto = page.getByTestId('luxy-member-profile-hero-photo');
     await expect(heroPhoto).toBeVisible();
     await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
+
+    // LX-14: the private-photo count stays visible as a consent gate, but the media
+    // itself remains unavailable until the owner explicitly approves the requester.
+    const privateCard = page.getByTestId('private-photo-locked-card');
+    await expect(privateCard).toBeVisible();
+    await privateCard.click();
+    const privateModal = page.getByTestId('private-photo-request-modal');
+    await expect(privateModal).toBeVisible();
+    await expect(privateModal.getByText('Yêu cầu xem ảnh riêng tư', { exact: true })).toBeVisible();
+    await expect(privateModal.getByText('Quyền riêng tư do chủ ảnh kiểm soát', { exact: true })).toBeVisible();
+    await expect(privateModal.getByText('Premium, Diamond hoặc quà tặng không tự động mở khóa ảnh riêng tư.', { exact: true })).toBeVisible();
+    await expect(privateModal.getByTestId('private-photo-request-cta')).toBeVisible();
+    await privateModal.getByRole('button', { name: 'Để sau' }).click();
+    await expect(privateModal).toHaveCount(0);
+
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx13-desktop-member-profile', {
+    await testInfo.attach('lx14-desktop-member-profile', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
@@ -101,9 +116,10 @@ test('LX-13 mobile Member Profile keeps Seeking hierarchy and gates profile mess
     await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Nhắn tin', exact: true })).toBeVisible();
     await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
+    await expect(page.getByTestId('private-photo-locked-card')).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx13-mobile-member-profile', {
+    await testInfo.attach('lx14-mobile-member-profile', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
