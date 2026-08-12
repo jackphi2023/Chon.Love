@@ -1,0 +1,98 @@
+name: LX-18 Contract
+
+on:
+  push:
+    branches: ['agent/lx-18-upgrade-billing-vietqr']
+    paths:
+      - 'supabase/migrations/20260812195000_lx_18_upgrade_billing_vietqr.sql'
+      - 'supabase/tests/lx_18_upgrade_billing_vietqr.sql'
+      - 'packages/supabase/src/membership.ts'
+      - 'packages/supabase/src/membership.test.ts'
+      - 'apps/mobile/app/settings/membership.tsx'
+      - '.github/workflows/lx18-contract.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260812195000_lx_18_upgrade_billing_vietqr.sql'
+      - 'supabase/tests/lx_18_upgrade_billing_vietqr.sql'
+      - 'packages/supabase/src/membership.ts'
+      - 'packages/supabase/src/membership.test.ts'
+      - 'apps/mobile/app/settings/membership.tsx'
+      - '.github/workflows/lx18-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lx18-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upgrade-billing-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Membership billing unit contract
+        run: pnpm exec vitest run packages/supabase/src/membership.test.ts
+
+      - name: Typecheck mobile billing surface
+        run: pnpm --filter @myfan/mobile typecheck
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run LX-17 membership regression
+        run: supabase test db supabase/tests/lx_17_premium_diamond_engine.sql --local
+
+      - name: Run LX-18 Upgrade Billing VietQR contract
+        run: supabase test db supabase/tests/lx_18_upgrade_billing_vietqr.sql --local
+
+      - name: Lint membership checkout schemas
+        run: |
+          supabase db lint --local --schema public --schema private --level warning | tee /tmp/lx18-lint.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path('/tmp/lx18-lint.json').read_text().strip()
+          findings = json.loads(raw) if raw else []
+          errors = [
+              (item.get('function'), issue.get('message'))
+              for item in findings
+              for issue in item.get('issues', [])
+              if issue.get('level') == 'error'
+          ]
+          if errors:
+              for function, message in errors:
+                  print(f'ERROR {function}: {message}')
+              raise SystemExit(1)
+          print(f'LX-18 schema lint: zero errors; {len(findings)} warning entries retained.')
+          PY
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
