@@ -60,8 +60,11 @@ test('LX-08 Settings hub covers profile-related cases on desktop', async ({ brow
 
     await page.goto('/settings/private-photos');
     await expect(page.getByTestId('luxy-private-photo-settings')).toBeVisible();
+    await expect(page.getByTestId('private-photo-pending-requests')).toBeVisible();
+    await expect(page.getByTestId('private-photo-approved-grants')).toBeVisible();
+    await expect(page.getByTestId('private-photo-library')).toBeVisible();
     await expect(page.getByTestId('private-photo-upload')).toBeVisible();
-    await expect(page.getByText('Quà tặng không mở khóa ảnh bảo mật.', { exact: false })).toBeVisible();
+    await expect(page.getByText('Premium hay Diamond không tự động mở khóa ảnh bảo mật.', { exact: false })).toBeVisible();
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/membership');
@@ -73,7 +76,7 @@ test('LX-08 Settings hub covers profile-related cases on desktop', async ({ brow
     await expect(page.getByTestId('luxy-gift-settings')).toBeVisible();
     await expect(page.getByText('Tặng quà không mở ảnh bảo mật', { exact: false })).toBeVisible();
 
-    await testInfo.attach('lx08-settings-1280', {
+    await testInfo.attach('lx14-settings-1280', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
@@ -104,6 +107,8 @@ test('LX-08 Settings remains usable on 390px mobile web', async ({ browser }, te
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/private-photos');
+    await expect(page.getByTestId('private-photo-pending-requests')).toBeVisible();
+    await expect(page.getByTestId('private-photo-approved-grants')).toBeVisible();
     const uploadButton = page.getByTestId('private-photo-upload');
     await expect(uploadButton).toBeVisible();
     const uploadBox = await uploadButton.boundingBox();
@@ -111,7 +116,7 @@ test('LX-08 Settings remains usable on 390px mobile web', async ({ browser }, te
     expect(uploadBox.height).toBeGreaterThanOrEqual(44);
     await assertNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx08-settings-390', {
+    await testInfo.attach('lx14-settings-390', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
