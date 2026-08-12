@@ -1,0 +1,45 @@
+name: Sync LX-13 generated database types (temporary)
+
+on:
+  push:
+    branches:
+      - agent/lx-13-selfie-integration
+    paths:
+      - .github/workflows/sync-lx13-generated-types-temp.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/lx-13-selfie-integration
+          fetch-depth: 0
+
+      - name: Download exact generated database types
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/lx13-types
+          mkdir -p /tmp/lx13-types
+          gh run download 31564269909 -R jackphi2023/Luxy.Love -n br-09-database-types -D /tmp/lx13-types
+          test -s /tmp/lx13-types/database.types.ts
+          cp /tmp/lx13-types/database.types.ts packages/supabase/src/database.types.ts
+
+      - name: Commit generated contract if changed
+        run: |
+          if git diff --quiet -- packages/supabase/src/database.types.ts; then
+            echo 'Generated contract already aligned.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts
+          git commit -m 'Sync combined LX-13 Supabase database types'
+          git push origin HEAD:agent/lx-13-selfie-integration
