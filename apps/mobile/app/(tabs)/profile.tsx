@@ -1,26 +1,19 @@
-import { phaseCFeatureFlags } from '@myfan/config';
 import {
   createPrivateMediaUrl,
   getMediaById,
   getMyProfile,
   isMediaHiddenByModeration,
+  isMediaVisibleToOwner,
   listMyMedia,
-  listProfileAlbumMedia,
+  setMyProfilePhotoVisibility,
   uploadProfileImage,
-  type AlbumMediaItem,
+  type MyMediaItem,
 } from '@myfan/supabase';
-import { colors, spacing } from '@myfan/ui';
+import { luxyColors, luxyRadii, luxySpacing } from '@myfan/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/screen';
 import {
   getReadableProfileMediaError,
@@ -30,12 +23,11 @@ import {
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
-type UploadVisibility = 'avatar' | 'public' | 'fan';
-type AlbumItemWithUrl = AlbumMediaItem & { url: string };
+type UploadVisibility = 'avatar' | 'public';
+type ManagedPhoto = MyMediaItem & { url: string };
 
 const profileQueryKey = (userId: string | null) => ['profile', 'me', userId] as const;
 const mediaQueryKey = (userId: string | null) => ['profile', 'media', userId] as const;
-const albumQueryKey = (userId: string | null, type: 'public' | 'fan') => ['profile', 'album', userId, type] as const;
 
 export default function Page() {
   const router = useRouter();
@@ -43,6 +35,7 @@ export default function Page() {
   const auth = useAuth();
   const client = getMobileSupabaseClient();
   const [uploading, setUploading] = useState<UploadVisibility | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -58,8 +51,26 @@ export default function Page() {
   const mediaQuery = useQuery({
     queryKey: mediaQueryKey(auth.userId),
     enabled: Boolean(client && auth.userId),
+    staleTime: 15_000,
     queryFn: async () => {
-      if (!client) throw new Error('supabase_not_configured');
+      if (!client) return [] as ManagedPhoto[];
+      const rows = await listMyMedia(client);
+      const eligible = rows.filter((item) =>
+        (item.visibility === 'public' || item.visibility === 'private') && isMediaVisibleToOwner(item),
+      );
+      return Promise.all(eligible.map(async (item) => ({
+        ...item,
+        url: await createPrivateMediaUrl(client, item),
+      })));
+    },
+  });
+
+  const rawMediaQuery = useQuery({
+    queryKey: ['profile', 'media-raw', auth.userId],
+    enabled: Boolean(client && auth.userId),
+    staleTime: 15_000,
+    queryFn: async () => {
+      if (!client) return [] as MyMediaItem[];
       return listMyMedia(client);
     },
   });
@@ -76,15 +87,16 @@ export default function Page() {
     },
   });
 
-  const publicAlbumQuery = useOwnedAlbum('public', auth.userId);
-  const fanAlbumQuery = useOwnedAlbum('fan', profileQuery.data?.is_creator ? auth.userId : null);
-
   async function refreshProfile() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: profileQueryKey(auth.userId) }),
       queryClient.invalidateQueries({ queryKey: mediaQueryKey(auth.userId) }),
+      queryClient.invalidateQueries({ queryKey: ['profile', 'media-raw', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['profile', 'album', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['profile', 'avatar-url'] }),
+      queryClient.invalidateQueries({ queryKey: ['luxy-member-profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['private-photo-media'] }),
+      queryClient.invalidateQueries({ queryKey: ['private-photo-access'] }),
     ]);
   }
 
@@ -104,14 +116,31 @@ export default function Page() {
       setMessage(
         visibility === 'avatar'
           ? 'Ảnh đại diện đã được cập nhật.'
-          : visibility === 'fan'
-            ? 'Ảnh đã được thêm vào Album Fan.'
-            : 'Ảnh đã được đăng.',
+          : 'Ảnh mới đã được thêm và mặc định hiển thị công khai. Bạn có thể Ẩn bất cứ lúc nào.',
       );
     } catch (error) {
       setErrorMessage(getReadableProfileMediaError(error));
     } finally {
       setUploading(null);
+    }
+  }
+
+  async function handleToggle(photo: ManagedPhoto) {
+    if (!client || (photo.visibility !== 'public' && photo.visibility !== 'private')) return;
+    const target = photo.visibility === 'public' ? 'private' : 'public';
+    setTogglingId(photo.id);
+    setMessage(null);
+    setErrorMessage(null);
+    try {
+      await setMyProfilePhotoVisibility(client, photo.id, target);
+      await refreshProfile();
+      setMessage(target === 'private'
+        ? 'Ảnh đã được Ẩn và chuyển vào Ảnh riêng tư. Chỉ Premium/Diamond có thể xem.'
+        : 'Ảnh đã được Hiện công khai trên hồ sơ.');
+    } catch (error) {
+      setErrorMessage(getReadableProfileMediaError(error));
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -127,29 +156,34 @@ export default function Page() {
 
   if (profileQuery.isLoading) {
     return (
-      <Screen title="Hồ sơ của tôi" description="Đang tải hồ sơ an toàn của bạn.">
-        <ActivityIndicator color={colors.primary} />
+      <Screen title="Hồ sơ của tôi" description="Đang tải hồ sơ Luxy.Love của bạn.">
+        <ActivityIndicator color={luxyColors.ink} />
       </Screen>
     );
   }
 
   const profile = profileQuery.data;
-  const hiddenMediaCount = (mediaQuery.data ?? []).filter(isMediaHiddenByModeration).length;
+  const hiddenMediaCount = (rawMediaQuery.data ?? []).filter(isMediaHiddenByModeration).length;
+  const publicCount = (mediaQuery.data ?? []).filter((item) => item.visibility === 'public').length;
+  const privateCount = (mediaQuery.data ?? []).filter((item) => item.visibility === 'private').length;
 
   return (
-    <Screen title="Hồ sơ của tôi" description="Chia sẻ thông tin và hình ảnh phù hợp với cộng đồng MyFan 18+.">
+    <Screen
+      title="Hồ sơ của tôi"
+      description="Quản lý thông tin và ảnh theo cách Seeking: ảnh mới mặc định công khai, sau đó bạn có thể chuyển từng ảnh sang Riêng tư."
+    >
       <View style={styles.profileHeader}>
         {avatarUrlQuery.data ? (
           <Image accessibilityLabel="Ảnh đại diện" source={{ uri: avatarUrlQuery.data }} style={styles.avatar} />
         ) : (
           <View accessibilityLabel="Chưa có ảnh đại diện" style={styles.avatarFallback}>
-            <Text style={styles.avatarFallbackText}>{(profile?.display_name ?? profile?.username ?? 'M').slice(0, 1).toUpperCase()}</Text>
+            <Text style={styles.avatarFallbackText}>{(profile?.display_name ?? profile?.username ?? 'L').slice(0, 1).toUpperCase()}</Text>
           </View>
         )}
         <View style={styles.identity}>
           <Text style={styles.displayName}>{profile?.display_name || 'Hoàn thiện hồ sơ'}</Text>
           <Text style={styles.username}>{profile?.username ? `@${profile.username}` : 'Chưa có username'}</Text>
-          {profile?.is_creator ? <Text style={styles.creatorBadge}>Creator</Text> : null}
+          <Text style={styles.photoSummary}>{publicCount} công khai · {privateCount} riêng tư</Text>
         </View>
       </View>
 
@@ -158,9 +192,52 @@ export default function Page() {
         <ActionButton disabled={uploading !== null} label="Chụp avatar" onPress={() => handleUpload('avatar', 'camera')} />
       </View>
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/profile/edit')} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>Chỉnh sửa hồ sơ</Text>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/profile/edit')} style={styles.darkButton}>
+        <Text style={styles.darkButtonText}>Chỉnh sửa hồ sơ</Text>
       </Pressable>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ảnh của tôi</Text>
+        <Text style={styles.bodyText}>
+          Ảnh bạn upload từ đây luôn bắt đầu ở trạng thái công khai. Chọn “Ẩn” để chuyển sang Ảnh riêng tư; chọn “Hiện công khai” để đưa ảnh trở lại hồ sơ.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={uploading !== null}
+          onPress={() => void handleUpload('public', 'library')}
+          style={styles.addPhotoButton}
+          testID="luxy-add-public-photo"
+        >
+          <Text style={styles.addPhotoText}>{uploading === 'public' ? 'Đang thêm ảnh…' : '+ Thêm ảnh công khai'}</Text>
+        </Pressable>
+
+        {mediaQuery.isLoading ? <ActivityIndicator color={luxyColors.ink} /> : null}
+        {!mediaQuery.isLoading && mediaQuery.data?.length ? (
+          <View style={styles.gallery} testID="luxy-owned-photo-management">
+            {mediaQuery.data.map((photo) => (
+              <ManagedPhotoCard
+                busy={togglingId === photo.id}
+                key={photo.id}
+                onToggle={() => void handleToggle(photo)}
+                photo={photo}
+              />
+            ))}
+          </View>
+        ) : null}
+        {!mediaQuery.isLoading && !mediaQuery.data?.length ? (
+          <Text style={styles.bodyText}>Chưa có ảnh bổ sung. Ảnh đầu tiên bạn thêm sẽ hiển thị công khai.</Text>
+        ) : null}
+      </View>
+
+      <View style={styles.privateNote}>
+        <Text style={styles.privateNoteTitle}>Ảnh riêng tư</Text>
+        <Text style={styles.privateNoteText}>
+          Premium và Diamond xem trực tiếp các ảnh bạn đánh dấu Riêng tư. Free chỉ thấy khu vực ảnh bị khóa và lời mời nâng cấp; quà tặng không mở khóa ảnh.
+        </Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/settings/private-photos')} style={styles.inlineLink}>
+          <Text style={styles.inlineLinkText}>Xem quản lý Ảnh riêng tư</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Giới thiệu</Text>
@@ -168,52 +245,21 @@ export default function Page() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sở thích</Text>
-        <View style={styles.chipRow}>
-          {(profile?.interests ?? []).length ? profile?.interests.map((interest) => (
-            <View key={interest} style={styles.chip}><Text style={styles.chipText}>{interest}</Text></View>
-          )) : <Text style={styles.bodyText}>Chưa thêm sở thích.</Text>}
-        </View>
+        <Text style={styles.sectionTitle}>Xác thực</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/settings/verification')} style={styles.settingsButton}>
+          <Text style={styles.settingsButtonText}>Selfie · CCCD · LinkedIn</Text>
+        </Pressable>
       </View>
-
-      <OwnedAlbumSection
-        actionLabel={uploading === 'public' ? 'Đang đăng…' : 'Thêm ảnh'}
-        emptyText="Chưa có ảnh công khai."
-        items={publicAlbumQuery.data ?? []}
-        loading={publicAlbumQuery.isLoading}
-        onAdd={() => handleUpload('public', 'library')}
-        title="Ảnh công khai"
-      />
-
-      {profile?.is_creator && phaseCFeatureFlags.fan_album ? (
-        <OwnedAlbumSection
-          actionLabel={uploading === 'fan' ? 'Đang đăng…' : 'Thêm ảnh'}
-          emptyText="Chưa có ảnh trong Album Fan."
-          items={fanAlbumQuery.data ?? []}
-          loading={fanAlbumQuery.isLoading}
-          onAdd={() => handleUpload('fan', 'library')}
-          title="Album Fan"
-        />
-      ) : null}
-
-      {profile?.is_creator ? (
-        <View style={styles.fanNote}>
-          <Text style={styles.fanNoteTitle}>Quy tắc Album Fan</Text>
-          <Text style={styles.fanNoteText}>
-            Ảnh hiển thị ngay cho người đủ quyền, không có nhãn duyệt. Admin có thể ẩn sau nếu vi phạm. Album Fan không cho phép nội dung người lớn hoặc đổi quà lấy gặp mặt/liên hệ riêng.
-          </Text>
-        </View>
-      ) : null}
 
       {hiddenMediaCount > 0 ? (
         <View style={styles.hiddenNotice}>
-          <Text style={styles.hiddenNoticeText}>{hiddenMediaCount} ảnh đã bị ẩn vì không còn phù hợp với Tiêu chuẩn cộng đồng.</Text>
+          <Text style={styles.hiddenNoticeText}>{hiddenMediaCount} ảnh không còn hiển thị do trạng thái kiểm duyệt.</Text>
         </View>
       ) : null}
 
-      {uploading ? <ActivityIndicator color={colors.primary} /> : null}
+      {uploading || togglingId ? <ActivityIndicator color={luxyColors.ink} /> : null}
       {message ? <Text accessibilityRole="alert" style={styles.success}>{message}</Text> : null}
-      {errorMessage || profileQuery.error || publicAlbumQuery.error || fanAlbumQuery.error ? (
+      {errorMessage || profileQuery.error || mediaQuery.error ? (
         <Text accessibilityRole="alert" style={styles.error}>{errorMessage ?? 'Không thể tải đầy đủ hồ sơ. Hãy thử lại.'}</Text>
       ) : null}
 
@@ -231,18 +277,29 @@ export default function Page() {
   );
 }
 
-function useOwnedAlbum(type: 'public' | 'fan', userId: string | null | undefined) {
-  const client = getMobileSupabaseClient();
-  return useQuery({
-    queryKey: albumQueryKey(userId ?? null, type),
-    enabled: Boolean(client && userId),
-    staleTime: 15_000,
-    queryFn: async () => {
-      if (!client || !userId) return [];
-      const rows = await listProfileAlbumMedia(client, userId, type);
-      return Promise.all(rows.map(async (row) => ({ ...row, url: await createPrivateMediaUrl(client, row) })));
-    },
-  });
+function ManagedPhotoCard({ photo, busy, onToggle }: { photo: ManagedPhoto; busy: boolean; onToggle: () => void }) {
+  const isPrivate = photo.visibility === 'private';
+  return (
+    <View style={styles.photoCard} testID={`luxy-owned-photo-${photo.id}`}>
+      <View style={styles.photoFrame}>
+        <Image accessibilityLabel={isPrivate ? 'Ảnh riêng tư' : 'Ảnh công khai'} source={{ uri: photo.url }} style={styles.photo} />
+        <View style={[styles.visibilityBadge, isPrivate && styles.privateBadge]}>
+          <Text style={styles.visibilityBadgeText}>{isPrivate ? 'Ảnh riêng tư' : 'Công khai'}</Text>
+        </View>
+      </View>
+      <Text style={styles.photoStatus}>{moderationStatusLabel(photo.moderation_status)}</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={onToggle}
+        style={[styles.visibilityButton, isPrivate && styles.visibilityButtonPublic]}
+      >
+        {busy ? <ActivityIndicator color={luxyColors.ink} size="small" /> : (
+          <Text style={styles.visibilityButtonText}>{isPrivate ? 'Hiện công khai' : 'Ẩn'}</Text>
+        )}
+      </Pressable>
+    </View>
+  );
 }
 
 function ActionButton({ disabled, label, onPress }: { disabled: boolean; label: string; onPress: () => void }) {
@@ -253,70 +310,55 @@ function ActionButton({ disabled, label, onPress }: { disabled: boolean; label: 
   );
 }
 
-function OwnedAlbumSection({
-  title,
-  actionLabel,
-  items,
-  loading,
-  emptyText,
-  onAdd,
-}: {
-  title: string;
-  actionLabel: string;
-  items: AlbumItemWithUrl[];
-  loading: boolean;
-  emptyText: string;
-  onAdd: () => void;
-}) {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeadingRow}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Pressable accessibilityRole="button" onPress={onAdd}><Text style={styles.textAction}>{actionLabel}</Text></Pressable>
-      </View>
-      {loading ? <ActivityIndicator color={colors.primary} /> : (
-        <View style={styles.gallery}>
-          {items.map((item) => <Image accessibilityLabel={`Ảnh trong ${title}`} key={item.media_id} source={{ uri: item.url }} style={styles.galleryImage} />)}
-        </View>
-      )}
-      {!loading && !items.length ? <Text style={styles.bodyText}>{emptyText}</Text> : null}
-    </View>
-  );
+function moderationStatusLabel(status: MyMediaItem['moderation_status']): string {
+  if (status === 'approved') return 'Đã duyệt';
+  if (status === 'pending_review') return 'Đang kiểm tra';
+  if (status === 'quarantined') return 'Đang xem xét';
+  if (status === 'rejected') return 'Không đạt';
+  return status;
 }
 
 const styles = StyleSheet.create({
-  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.border },
-  avatarFallback: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center' },
-  avatarFallbackText: { color: colors.primary, fontSize: 32, fontWeight: '800' },
-  identity: { flex: 1, gap: spacing.xs },
-  displayName: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  username: { color: colors.muted, fontSize: 14 },
-  creatorBadge: { alignSelf: 'flex-start', color: colors.primary, fontSize: 12, fontWeight: '800' },
-  actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-  secondaryButton: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: colors.border, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
-  secondaryButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  primaryButton: { minHeight: 48, marginTop: spacing.md, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
-  section: { marginTop: spacing.lg, gap: spacing.sm },
-  sectionHeadingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  bodyText: { color: colors.muted, fontSize: 15, lineHeight: 22 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { borderRadius: 999, backgroundColor: '#FCE7F3', paddingHorizontal: 12, paddingVertical: 7 },
-  chipText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  textAction: { color: colors.primary, fontSize: 14, fontWeight: '800' },
-  gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  galleryImage: { width: 94, height: 94, borderRadius: 12, backgroundColor: colors.border },
-  fanNote: { marginTop: spacing.lg, borderRadius: 14, borderWidth: 1, borderColor: '#F2B51D', backgroundColor: '#FFFBEB', padding: spacing.md, gap: spacing.xs },
-  fanNoteTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  fanNoteText: { color: '#92400E', fontSize: 13, lineHeight: 20 },
-  hiddenNotice: { marginTop: spacing.lg, borderRadius: 12, backgroundColor: '#FEF2F2', padding: spacing.md },
-  hiddenNoticeText: { color: colors.danger, fontSize: 13, lineHeight: 20 },
-  settingsButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: colors.danger },
-  settingsButtonText: { color: colors.danger, fontSize: 14, fontWeight: '800' },
-  success: { color: '#166534', fontSize: 14, marginTop: spacing.md },
-  error: { color: colors.danger, fontSize: 14, marginTop: spacing.md },
-  signOutButton: { minHeight: 48, marginTop: spacing.xl, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: colors.border },
-  signOutText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  profileHeader: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.md },
+  avatar: { backgroundColor: luxyColors.elevatedSubtle, borderRadius: 44, height: 88, width: 88 },
+  avatarFallback: { alignItems: 'center', backgroundColor: luxyColors.elevatedSubtle, borderRadius: 44, height: 88, justifyContent: 'center', width: 88 },
+  avatarFallbackText: { color: luxyColors.text, fontSize: 32, fontWeight: '700' },
+  identity: { flex: 1, gap: 4 },
+  displayName: { color: luxyColors.text, fontSize: 22, fontWeight: '700' },
+  username: { color: luxyColors.muted, fontSize: 14 },
+  photoSummary: { color: luxyColors.muted, fontSize: 12.5 },
+  actionRow: { flexDirection: 'row', gap: luxySpacing.sm, marginTop: luxySpacing.md },
+  secondaryButton: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: luxySpacing.sm },
+  secondaryButtonText: { color: luxyColors.text, fontSize: 14, fontWeight: '700' },
+  darkButton: { alignItems: 'center', backgroundColor: luxyColors.ink, borderRadius: luxyRadii.pill, justifyContent: 'center', marginTop: luxySpacing.md, minHeight: 48 },
+  darkButtonText: { color: luxyColors.surface, fontSize: 15, fontWeight: '700' },
+  section: { gap: luxySpacing.sm, marginTop: luxySpacing.xl },
+  sectionTitle: { color: luxyColors.text, fontSize: 18, fontWeight: '700' },
+  bodyText: { color: luxyColors.muted, fontSize: 14, lineHeight: 21 },
+  addPhotoButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 16 },
+  addPhotoText: { color: luxyColors.ink, fontSize: 13, fontWeight: '700' },
+  gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: luxySpacing.md },
+  photoCard: { gap: 7, minWidth: 145, width: '31%' },
+  photoFrame: { aspectRatio: 0.78, backgroundColor: luxyColors.elevatedSubtle, borderRadius: luxyRadii.sm, overflow: 'hidden', position: 'relative', width: '100%' },
+  photo: { height: '100%', width: '100%' },
+  visibilityBadge: { backgroundColor: 'rgba(8,23,38,0.72)', borderRadius: luxyRadii.pill, left: 7, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 7 },
+  privateBadge: { backgroundColor: 'rgba(8,23,38,0.86)' },
+  visibilityBadgeText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' },
+  photoStatus: { color: luxyColors.muted, fontSize: 11.5 },
+  visibilityButton: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 38, paddingHorizontal: 10 },
+  visibilityButtonPublic: { borderColor: luxyColors.ink },
+  visibilityButtonText: { color: luxyColors.text, fontSize: 12, fontWeight: '700' },
+  privateNote: { backgroundColor: luxyColors.subtleSurface, borderColor: luxyColors.border, borderRadius: luxyRadii.md, borderWidth: 1, gap: 6, marginTop: luxySpacing.xl, padding: luxySpacing.lg },
+  privateNoteTitle: { color: luxyColors.text, fontSize: 15, fontWeight: '700' },
+  privateNoteText: { color: luxyColors.muted, fontSize: 13, lineHeight: 19 },
+  inlineLink: { alignSelf: 'flex-start', paddingVertical: 4 },
+  inlineLinkText: { color: luxyColors.actionRed, fontSize: 12.5, fontWeight: '700' },
+  hiddenNotice: { backgroundColor: '#FEF2F2', borderRadius: luxyRadii.sm, marginTop: luxySpacing.lg, padding: luxySpacing.md },
+  hiddenNoticeText: { color: luxyColors.danger, fontSize: 13, lineHeight: 20 },
+  settingsButton: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, justifyContent: 'center', minHeight: 48 },
+  settingsButtonText: { color: luxyColors.text, fontSize: 14, fontWeight: '700' },
+  success: { color: '#166534', fontSize: 14, marginTop: luxySpacing.md },
+  error: { color: luxyColors.danger, fontSize: 14, marginTop: luxySpacing.md },
+  signOutButton: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, justifyContent: 'center', marginTop: luxySpacing.xl, minHeight: 48 },
+  signOutText: { color: luxyColors.text, fontSize: 15, fontWeight: '700' },
 });
