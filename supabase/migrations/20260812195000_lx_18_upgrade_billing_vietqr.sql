@@ -1,6 +1,23 @@
 -- LX-18 — Seeking-like Upgrade/Billing + web VietQR checkout.
 -- Membership pricing/status stays authoritative in LX-17. This migration only snapshots
 -- safe receiving-account data for a caller-owned membership order and exposes read APIs.
+-- Membership checkout has its own product gate: BR-07 intentionally keeps legacy heart-topup
+-- VietQR disabled, while the explicit LX-18 product decision enables manually reviewed membership checkout.
+
+insert into private.app_config(key,value_json,value_type,description,is_public)
+values(
+  'luxy_membership_vietqr_web_enabled',
+  'true'::jsonb,
+  'boolean',
+  'Enable web/PWA VietQR checkout for LX-17 Premium/Diamond membership orders. Activation still requires Finance Admin or Super Admin review.',
+  false
+)
+on conflict(key) do update
+set value_json=excluded.value_json,
+    value_type=excluded.value_type,
+    description=excluded.description,
+    is_public=false,
+    updated_at=now();
 
 create table private.luxy_membership_checkout_snapshots (
   order_id uuid primary key references private.luxy_membership_orders(id) on delete restrict,
@@ -72,7 +89,7 @@ begin
   where s.order_id=p_order.id;
   if found then return v_snapshot; end if;
 
-  if coalesce(private.config_boolean('vietqr_web_payments_enabled'),false) is not true then
+  if coalesce(private.config_boolean('luxy_membership_vietqr_web_enabled'),false) is not true then
     raise exception using errcode='55000',message='membership_vietqr_disabled';
   end if;
 
