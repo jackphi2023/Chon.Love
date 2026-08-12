@@ -11,12 +11,14 @@ export const CHAT_CONVERSATION_PAGE_SIZE = 30;
 export const CHAT_AUTO_DELETE_DAYS = 7;
 export const CHAT_AUTO_DELETE_MS = CHAT_AUTO_DELETE_DAYS * 24 * 60 * 60 * 1_000;
 
-const friendshipStatusSchema = z.enum(['pending', 'accepted', 'declined', 'cancelled']);
+// LX-15 keeps legacy friendship context when it exists, while `direct` represents
+// a Seeking-style conversation that does not require a friendship relationship.
+const friendshipStatusSchema = z.enum(['direct', 'pending', 'accepted', 'declined', 'cancelled']);
 const messageTypeSchema = z.enum(['text', 'gift', 'system']);
 
 const conversationSummarySchema = z.object({
   conversation_id: z.string().uuid(),
-  friendship_id: z.string().uuid(),
+  friendship_id: z.string().uuid().nullable(),
   other_user_id: z.string().uuid(),
   username: z.string().nullable(),
   display_name: z.string().nullable(),
@@ -38,7 +40,7 @@ const conversationSummarySchema = z.object({
 
 const conversationDetailSchema = z.object({
   conversation_id: z.string().uuid(),
-  friendship_id: z.string().uuid(),
+  friendship_id: z.string().uuid().nullable(),
   friendship_status: friendshipStatusSchema,
   other_user_id: z.string().uuid(),
   username: z.string().nullable(),
@@ -430,7 +432,9 @@ export async function unsubscribeFromConversation(client: Client, channel: Realt
 
 export function getReadableChatError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  if (message.includes('accepted_friendship_required')) return 'Chat chỉ mở khi hai tài khoản vẫn là bạn bè.';
+  if (message.includes('premium_membership_required')) return 'Cần Premium hoặc Diamond để gửi tin nhắn.';
+  if (message.includes('conversation_target_not_available')) return 'Thành viên này hiện không thể nhận cuộc trò chuyện mới.';
+  if (message.includes('accepted_friendship_required')) return 'Cuộc trò chuyện cũ chưa sẵn sàng. Hãy mở lại hồ sơ thành viên.';
   if (message.includes('messaging_blocked')) return 'Không thể gửi tin vì một trong hai tài khoản đã chặn người kia.';
   if (message.includes('recipient_not_available')) return 'Người nhận hiện không thể nhận tin nhắn.';
   if (message.includes('message_rate_limited')) return 'Bạn đang gửi quá nhanh. Hãy đợi một lúc rồi thử lại.';
