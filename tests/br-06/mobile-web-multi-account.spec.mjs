@@ -64,6 +64,10 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
       login(outsiderPage, actors.outsider),
     ]);
 
+    // Retries share the same local DB. Normalize Creator visibility so the first
+    // public-profile assertion is deterministic even after a prior failed attempt.
+    await setCreatorVisibility(creatorPage, 'Công khai');
+
     await openCreatorProfile(viewerPage);
     await expect(viewerPage.getByText('BR06 approved Activity image', { exact: true })).toBeVisible();
     await expect(viewerPage.getByText('Album Hoạt động', { exact: true })).toBeVisible();
@@ -101,9 +105,10 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
     await expect(fanPage.getByText('Album Hoạt động', { exact: true })).toBeVisible();
 
     await openCreatorProfile(viewerPage);
-    await viewerPage.getByRole('button', { name: 'Nhắn tin' }).click();
-    await expect(viewerPage.getByLabel('Nội dung tin nhắn')).toBeVisible();
-    await viewerPage.getByLabel('Nội dung tin nhắn').fill('BR06 browser realtime message');
+    await viewerPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
+    const chatInput = viewerPage.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true });
+    await expect(chatInput).toBeVisible();
+    await chatInput.fill('BR06 browser realtime message');
     await viewerPage.getByRole('button', { name: 'Gửi', exact: true }).click();
     await expect(viewerPage.getByText('BR06 browser realtime message', { exact: true }).last()).toBeVisible();
 
@@ -136,7 +141,7 @@ test('BR-06 mobile web multi-account social and Creator privacy lifecycle', asyn
 
     await openCreatorProfile(viewerPage);
     await expect(viewerPage.getByRole('button', { name: 'Gửi lời mời kết bạn' })).toBeVisible();
-    await expect(viewerPage.getByRole('button', { name: 'Nhắn tin' })).toBeVisible();
+    await expect(viewerPage.getByRole('button', { name: 'Nhắn tin', exact: true })).toBeVisible();
     await expect(viewerPage.getByText('Hoạt động dành cho Fan', { exact: true })).toBeVisible();
 
     await testInfo.attach('br06-final-unblocked-profile', {
