@@ -82,10 +82,10 @@ values('23000000-0000-0000-0000-000000000002','diamond','active',true,now()-inte
 
 insert into public.media_assets(
   id,owner_id,storage_bucket,storage_path,media_type,mime_type,file_size_bytes,width,height,
-  visibility,moderation_status,uploaded_at
+  visibility,moderation_status,uploaded_at,approved_at
 ) values
-('23000000-0000-4000-8000-000000000101','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000101/lx13-public.png','image','image/png',100,100,100,'public','pending_review',now()),
-('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','approved',now());
+('23000000-0000-4000-8000-000000000101','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000101/lx13-public.png','image','image/png',100,100,100,'public','approved',now(),now()),
+('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','approved',now(),now());
 
 -- Public media is visible to another member only when it belongs to an active public album.
 -- This preserves the same private.can_view_media_internal contract used by the app.
