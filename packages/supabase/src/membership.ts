@@ -9,6 +9,8 @@ const membershipTierSchema = z.enum(['free', 'premium', 'diamond']);
 const membershipSnapshotSchema = z.object({
   tier: membershipTierSchema,
   can_message: z.boolean(),
+  can_favorite: z.boolean(),
+  can_request_private_photo: z.boolean(),
   status: z.string(),
   expires_at: z.string().nullable(),
 });
