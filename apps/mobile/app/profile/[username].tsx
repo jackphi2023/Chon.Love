@@ -41,6 +41,7 @@ import {
 } from 'react-native';
 import { CreatorActivityList } from '@/components/creator-activity';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
+import { LuxyMembershipBadgeImage } from '@/components/luxy-membership-badge-image';
 import { LuxyPrivatePhotoAccess } from '@/components/luxy-private-photo-access';
 import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';
 import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
@@ -306,6 +307,9 @@ export default function LuxyMemberProfilePage() {
             ) : (
               <View style={styles.heroFallback}><Text style={styles.heroFallbackText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>
             )}
+            {profile.membership_badge_visible ? (
+              <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />
+            ) : null}
             {!profile.blocked_by_viewer ? (
               <View style={styles.heroFavorite}>
                 <LuxyFavoriteButton
