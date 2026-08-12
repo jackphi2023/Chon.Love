@@ -24,11 +24,12 @@ export const phaseCFeatureFlags = {
   creator_kyc: false,
   withdrawal: false,
   fan_album: true,
-  creator_activity: true,
-  creator_activity_links: true,
+  // LX-20 product override: Activity is deferred to keep the Luxy V1 surface aligned with Seeking.
+  creator_activity: false,
+  creator_activity_links: false,
   creator_activity_gift_lock: false,
-  creator_activity_privacy_tiers: true,
-  creator_activity_public_web: true,
+  creator_activity_privacy_tiers: false,
+  creator_activity_public_web: false,
   push_notifications: false,
   native_deep_links: false,
 } as const;
