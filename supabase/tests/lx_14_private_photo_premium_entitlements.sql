@@ -1,6 +1,6 @@
 begin;
 
-select plan(34);
+select plan(36);
 
 select has_table('private','private_photo_access_requests','Private Photo access requests are stored server-side');
 select ok(not has_table_privilege('authenticated','private.private_photo_access_requests','select'),'authenticated cannot read Private Photo request table directly');
@@ -122,29 +122,32 @@ select throws_ok(
   $$select * from public.list_profile_private_media('24000000-0000-0000-0000-000000000002')$$,
   '42501','private_photo_approval_required','Premium alone does not unlock Private Photos without owner approval'
 );
+select set_config('lx14.request_id',(select request_id::text from public.get_private_photo_access_state('24000000-0000-0000-0000-000000000002')),true);
 
--- A third party cannot approve somebody else's request.
+-- A third party can know a request identifier but still cannot approve somebody else's request.
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
 select throws_ok(
-  $$select * from public.respond_private_photo_access((select id from private.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000002'),'approved')$$,
+  $$select * from public.respond_private_photo_access(current_setting('lx14.request_id')::uuid,'approved')$$,
   '42501','private_photo_request_not_available','Only the Private Photo owner can approve a request'
 );
 
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select is((select count(*) from public.list_received_private_photo_requests('pending')),1::bigint,'Owner sees the pending request');
 select lives_ok(
-  $$select * from public.respond_private_photo_access((select id from private.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000002'),'approved')$$,
+  $$select * from public.respond_private_photo_access((select request_id from public.list_received_private_photo_requests('pending') limit 1),'approved')$$,
   'Owner can approve Private Photo request'
 );
 
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select is((select has_access from public.get_private_photo_access_state('24000000-0000-0000-0000-000000000002')),true,'Approved Premium requester gains Private Photo access');
 select is((select count(*) from public.list_profile_private_media('24000000-0000-0000-0000-000000000002')),1::bigint,'Approved Premium requester can list Private Photos');
-select ok(private.can_view_media_internal('24000000-0000-4000-8000-000000000101','24000000-0000-0000-0000-000000000001'),'central media authorization permits approved Premium requester');
 
+reset role;
+select ok(private.can_view_media_internal('24000000-0000-4000-8000-000000000101','24000000-0000-0000-0000-000000000001'),'central media authorization permits approved Premium requester');
+set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select lives_ok(
-  $$select public.revoke_private_photo_access((select id from private.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000002'))$$,
+  $$select public.revoke_private_photo_access((select request_id from public.list_received_private_photo_requests('approved') limit 1))$$,
   'Owner can revoke previously approved Private Photo access'
 );
 
@@ -161,6 +164,8 @@ select throws_ok(
   $$select * from public.list_profile_private_media('24000000-0000-0000-0000-000000000002')$$,
   '42501','premium_membership_required','Expired Premium cannot keep viewing approved Private Photos'
 );
+
+reset role;
 select ok(
   position('gift' in lower(pg_get_functiondef('private.has_approved_private_photo_access(uuid,uuid)'::regprocedure)))=0
   and position('fan' in lower(pg_get_functiondef('private.has_approved_private_photo_access(uuid,uuid)'::regprocedure)))=0,
