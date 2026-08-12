@@ -72,6 +72,7 @@ export * from './homepage';
 export * from './interests';
 export * from './mailbox';
 export * from './member-profile';
+export * from './member-verification';
 export * from './membership';
 export * from './private-photo';
 export * from './profile-media';
