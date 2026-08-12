@@ -20,6 +20,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           path = Path('apps/mobile/app/profile/[username].tsx')
           text = path.read_text()
           import_anchor = "import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';\n"
@@ -28,12 +29,19 @@ jobs:
               if import_anchor not in text:
                   raise SystemExit('profile import anchor not found')
               text = text.replace(import_anchor, import_anchor + import_line, 1)
-          hero_anchor = "          {!profile.blocked_by_viewer ? (\n            <View style={styles.heroFavorite}>"
-          badge = "          {profile.membership_badge_visible ? (\n            <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />\n          ) : null}\n          {!profile.blocked_by_viewer ? (\n            <View style={styles.heroFavorite}>"
           if '<LuxyMembershipBadgeImage tier={profile.membership_tier}' not in text:
-              if hero_anchor not in text:
-                  raise SystemExit('profile hero favorite anchor not found')
-              text = text.replace(hero_anchor, badge, 1)
+              pattern = r'(?m)^(\s*)\{!profile\.blocked_by_viewer \? \($'
+              match = re.search(pattern, text)
+              if not match:
+                  raise SystemExit('profile blocked-viewer anchor not found')
+              indent = match.group(1)
+              badge = (
+                  f"{indent}{{profile.membership_badge_visible ? (\n"
+                  f"{indent}  <LuxyMembershipBadgeImage tier={{profile.membership_tier}} width={{112}} inset={{10}} />\n"
+                  f"{indent}) : null}}\n"
+                  f"{indent}{{!profile.blocked_by_viewer ? ("
+              )
+              text = re.sub(pattern, badge, text, count=1)
           path.write_text(text)
           PY
       - name: Commit patch
