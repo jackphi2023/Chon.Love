@@ -35,7 +35,7 @@ async function navigateToCreatorProfile(page) {
 async function openCreatorProfile(page) {
   await navigateToCreatorProfile(page);
   await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
-  await expect(page.getByRole('header', { name: new RegExp(`^${actors.creator.displayName},`) })).toBeVisible();
+  await expect(page.getByRole('heading', { name: new RegExp(`^${actors.creator.displayName},`) })).toBeVisible();
 }
 
 async function setCreatorVisibility(page, label) {
