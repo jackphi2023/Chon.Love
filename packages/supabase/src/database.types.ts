@@ -1076,6 +1076,78 @@ export type Database = {
           },
         ]
       }
+      profile_favorites: {
+        Row: {
+          created_at: string
+          favorite_id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          favorite_id: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          favorite_id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_favorites_favorite_id_fkey"
+            columns: ["favorite_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_favorites_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_views: {
+        Row: {
+          first_viewed_at: string
+          last_viewed_at: string
+          view_count: number
+          viewed_id: string
+          viewer_id: string
+        }
+        Insert: {
+          first_viewed_at?: string
+          last_viewed_at?: string
+          view_count?: number
+          viewed_id: string
+          viewer_id: string
+        }
+        Update: {
+          first_viewed_at?: string
+          last_viewed_at?: string
+          view_count?: number
+          viewed_id?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_views_viewed_id_fkey"
+            columns: ["viewed_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           age_preference_max: number
@@ -1778,6 +1850,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_luxy_upgrade_intent: {
+        Args: {
+          p_source?: string
+          p_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }
+        Returns: string
+      }
       create_report: {
         Args: {
           p_description?: string
@@ -2007,6 +2086,43 @@ export type Database = {
         Args: { p_other_user_id: string }
         Returns: string
       }
+      get_luxy_member_profile: {
+        Args: { p_username: string }
+        Returns: {
+          age: number
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          bio: string
+          blocked_by_viewer: boolean
+          children_status: Database["public"]["Enums"]["children_status"]
+          display_name: string
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
+          gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string
+          height_cm: number
+          id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
+          interests: string[]
+          languages: string[]
+          last_active_at: string
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string
+          member_since: string
+          membership_badge_visible: boolean
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          occupation: string
+          private_photo_count: number
+          province_id: number
+          province_name: string
+          public_photo_count: number
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
+          username: string
+          weight_kg: number
+        }[]
+      }
       get_my_account_deletion_status: {
         Args: never
         Returns: {
@@ -2065,6 +2181,15 @@ export type Database = {
           reviewed_at: string
           status: string
           submitted_at: string
+        }[]
+      }
+      get_my_luxy_membership_snapshot: {
+        Args: never
+        Returns: {
+          can_message: boolean
+          expires_at: string
+          status: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
         }[]
       }
       get_my_onboarding_status: {
@@ -2126,6 +2251,16 @@ export type Database = {
           status: string
           submitted_at: string
           transfer_content: string
+        }[]
+      }
+      get_profile_interest_state: {
+        Args: { p_profile_id: string }
+        Returns: {
+          has_viewed_me: boolean
+          is_favorited: boolean
+          is_favorited_by: boolean
+          is_match: boolean
+          is_viewed: boolean
         }[]
       }
       get_profile_viewer: {
@@ -2308,6 +2443,26 @@ export type Database = {
           province_id: number
           province_name: string
           sort_tier: number
+          username: string
+        }[]
+      }
+      list_luxy_interests: {
+        Args: { p_limit?: number; p_offset?: number; p_scope?: string }
+        Returns: {
+          age: number
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          display_name: string
+          id: string
+          interaction_at: string
+          is_favorited: boolean
+          is_favorited_by: boolean
+          is_match: boolean
+          is_online: boolean
+          last_active_at: string
+          photo_count: number
+          province_name: string
           username: string
         }[]
       }
@@ -2685,6 +2840,11 @@ export type Database = {
         Args: { p_batch_size?: number }
         Returns: number
       }
+      record_profile_view: { Args: { p_profile_id: string }; Returns: boolean }
+      record_profile_view_by_username: {
+        Args: { p_username: string }
+        Returns: boolean
+      }
       record_runtime_observability_event: {
         Args: {
           p_duration_ms?: number
@@ -2827,6 +2987,7 @@ export type Database = {
           p_children_statuses?: Database["public"]["Enums"]["children_status"][]
           p_drinking_statuses?: Database["public"]["Enums"]["drinking_status"][]
           p_education_levels?: Database["public"]["Enums"]["education_level"][]
+          p_favorite_scope?: string
           p_genders?: Database["public"]["Enums"]["gender_identity"][]
           p_has_photo?: boolean
           p_interests?: string[]
@@ -2848,6 +3009,7 @@ export type Database = {
           p_relationship_statuses?: Database["public"]["Enums"]["relationship_status"][]
           p_smoking_statuses?: Database["public"]["Enums"]["smoking_status"][]
           p_sort?: string
+          p_view_state?: string
         }
         Returns: {
           age: number
@@ -2865,7 +3027,10 @@ export type Database = {
           height_cm: number
           id: string
           interests: string[]
+          is_favorited: boolean
+          is_favorited_by: boolean
           is_online: boolean
+          is_viewed: boolean
           languages: string[]
           last_active_at: string
           lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
@@ -3108,6 +3273,14 @@ export type Database = {
           is_enabled: boolean
         }[]
       }
+      set_profile_favorite: {
+        Args: { p_favorited: boolean; p_profile_id: string }
+        Returns: {
+          is_favorited: boolean
+          is_favorited_by: boolean
+          is_match: boolean
+        }[]
+      }
       unblock_user: { Args: { p_blocked_id: string }; Returns: boolean }
       update_my_luxy_profile: {
         Args: {
@@ -3271,6 +3444,7 @@ export type Database = {
         | "other"
         | "prefer_not_to_say"
       gift_transaction_status: "completed" | "partially_reversed" | "reversed"
+      luxy_membership_tier: "free" | "premium" | "diamond"
       media_moderation_status:
         | "pending_upload"
         | "pending_review"
@@ -3522,6 +3696,7 @@ export const Constants = {
         "prefer_not_to_say",
       ],
       gift_transaction_status: ["completed", "partially_reversed", "reversed"],
+      luxy_membership_tier: ["free", "premium", "diamond"],
       media_moderation_status: [
         "pending_upload",
         "pending_review",
