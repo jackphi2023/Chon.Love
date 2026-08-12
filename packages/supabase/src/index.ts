@@ -71,6 +71,7 @@ export * from './homepage';
 export * from './interests';
 export * from './member-profile';
 export * from './membership';
+export * from './private-photo-access';
 export * from './profile-media';
 export * from './search';
 export * from './social-safety';
