@@ -69,7 +69,7 @@ select is(
   'Billing history returns the caller-owned order'
 );
 select is(
-  (select status from public.mark_my_luxy_membership_order_submitted(current_setting('lx18.order_id')::uuid)),
+  public.mark_my_luxy_membership_order_submitted(current_setting('lx18.order_id')::uuid),
   'awaiting_confirmation'::text,
   'Member transfer confirmation moves order only to Admin review queue'
 );
