@@ -44,12 +44,12 @@ Member opens Nâng cấp
 → member selects Premium/Diamond + 1/3 periods
 → create_luxy_membership_order(..., source='upgrade_billing_web')
 → get_my_luxy_membership_checkout(order_id)
-→ server creates one idempotent receiving-account snapshot for that membership order
+→ server creates one receiving-account snapshot for that membership order
 → app displays trusted img.vietqr.io QR + exact amount + unique transfer content
 → member transfers and taps “Tôi đã chuyển khoản”
 → mark_my_luxy_membership_order_submitted(order_id)
 → status = awaiting_confirmation
-→ Admin performs exact bank reconciliation and LX-17 approval
+→ Admin performs exact-payment bank review and LX-17 approval
 → membership activates; Diamond heart credit is posted atomically by LX-17
 ```
 
@@ -58,6 +58,8 @@ The checkout view polls every 10 seconds so an Admin approval can be reflected w
 ## 4. VietQR security and accounting boundaries
 
 LX-18 reuses the existing VietQR receiving-account configuration instead of duplicating bank data or using the heart-topup order table.
+
+Membership web checkout uses its own explicit product gate, `luxy_membership_vietqr_web_enabled`. This is intentionally separate from BR-07's legacy `vietqr_web_payments_enabled`, which remains the gate for the older heart-topup flow. Therefore LX-18 does not accidentally reopen generic heart topups when membership checkout is enabled.
 
 `private.luxy_membership_checkout_snapshots` snapshots only safe receiving details and transfer content for the caller-owned membership order. Authenticated clients receive these details only through `get_my_luxy_membership_checkout(uuid)` and retain no direct `private` schema/table access.
 
@@ -86,6 +88,8 @@ The membership order amount is the LX-17 server snapshot. The client does not ca
 - pending / approved / rejected / cancelled states;
 - existing Premium/Diamond privacy controls.
 
+The authenticated shell already routes `Nâng cấp` to `/settings/membership`, so LX-18 is reachable from the primary Seeking-style navigation on desktop, tablet and phone.
+
 ## 7. Contract coverage
 
 `packages/supabase/src/membership.test.ts` covers pricing, Diamond 80% credit preview, checkout parsing, trusted VietQR host and caller billing history.
@@ -104,6 +108,10 @@ The membership order amount is the LX-17 server snapshot. The client does not ca
 - checkout snapshot idempotency;
 - cross-user checkout isolation.
 
-## 8. Known inherited build blocker
+The dedicated LX-18 workflow passes the membership unit contract, mobile TypeScript contract, clean local database reset, LX-17 regression, LX-18 pgTAP contract and database lint.
 
-At LX-18 implementation time, the repository's full Expo Web build has a pre-existing invalid raster badge asset problem under `apps/mobile/assets/luxy/*-badge.png`. Lint, TypeScript and unit checks are independent from this asset issue. LX-18 does not replace founder-provided Premium/Diamond artwork with a fake text badge just to bypass Metro.
+## 8. Build gate repair
+
+The inherited Premium/Diamond badge files on the stacked LX-17 branch were malformed raster payloads even though they used `.png` names, which caused Expo Web/Metro to fail with `unsupported file type`.
+
+LX-18 restores both assets as valid transparent PNG files derived from the founder-provided Premium and Diamond artwork. This keeps the real membership badges instead of replacing them with placeholder text. After the repair, the repository's full CI passes workspace validation, lint, TypeScript, all unit tests, admin/public web builds and Expo Web export.
