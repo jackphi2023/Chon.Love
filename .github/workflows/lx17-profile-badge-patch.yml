@@ -28,11 +28,11 @@ jobs:
               if import_anchor not in text:
                   raise SystemExit('profile import anchor not found')
               text = text.replace(import_anchor, import_anchor + import_line, 1)
-          hero_anchor = "          )}\n          {!profile.blocked_by_viewer ? (\n"
-          badge = "          )}\n          {profile.membership_badge_visible ? (\n            <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />\n          ) : null}\n          {!profile.blocked_by_viewer ? (\n"
+          hero_anchor = "          {!profile.blocked_by_viewer ? (\n            <View style={styles.heroFavorite}>"
+          badge = "          {profile.membership_badge_visible ? (\n            <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />\n          ) : null}\n          {!profile.blocked_by_viewer ? (\n            <View style={styles.heroFavorite}>"
           if '<LuxyMembershipBadgeImage tier={profile.membership_tier}' not in text:
               if hero_anchor not in text:
-                  raise SystemExit('profile hero anchor not found')
+                  raise SystemExit('profile hero favorite anchor not found')
               text = text.replace(hero_anchor, badge, 1)
           path.write_text(text)
           PY
