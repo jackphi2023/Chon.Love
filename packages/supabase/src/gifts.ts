@@ -84,10 +84,10 @@ export type GiftSendResult = LuxyGiftSendResult & {
   creator_id: string;
   /** @deprecated LX-19 recipient semantics use recipient_reward_units. */
   creator_reward_units: number;
-  /** Legacy Fan fields are intentionally neutralized by LX-19. */
+  /** Legacy Fan fields remain shape-compatible only; LX-19 never promotes Fan state from gifts. */
   fan_eligible_units: number;
   fan_threshold_units: number;
-  fan_status: 'none';
+  fan_status: 'none' | 'active';
 };
 export type LuxyGiftWallet = z.infer<typeof luxyGiftWalletSchema>;
 export type LuxyGiftHistoryDirection = z.infer<typeof luxyGiftHistoryDirectionSchema>;
