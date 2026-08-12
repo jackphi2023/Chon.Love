@@ -7,13 +7,15 @@ import {
 
 const intentId = '29000000-0000-4000-8000-000000000013';
 
-describe('Luxy LX-13 membership presentation client', () => {
-  it('parses the server-controlled membership snapshot', async () => {
+describe('Luxy LX-13/LX-14 membership presentation client', () => {
+  it('parses the server-controlled membership snapshot and profile interaction entitlements', async () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
       data: [{
         tier: 'diamond',
         can_message: true,
+        can_favorite: true,
+        can_request_private_photo: true,
         status: 'active',
         expires_at: '2026-09-12T00:00:00.000Z',
       }],
@@ -22,6 +24,8 @@ describe('Luxy LX-13 membership presentation client', () => {
     await expect(getMyLuxyMembershipSnapshot({ rpc } as never)).resolves.toEqual({
       tier: 'diamond',
       can_message: true,
+      can_favorite: true,
+      can_request_private_photo: true,
       status: 'active',
       expires_at: '2026-09-12T00:00:00.000Z',
     });
