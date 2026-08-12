@@ -40,7 +40,9 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
     await expect(page.getByText('Tôi đang tìm kiếm', { exact: true })).toBeVisible();
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
     await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
-    await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
+    const heroPhoto = page.getByTestId('luxy-member-profile-hero-photo');
+    await expect(heroPhoto).toBeVisible();
+    await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await testInfo.attach('lx13-desktop-member-profile', {
@@ -48,9 +50,9 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
       contentType: 'image/png',
     });
 
-    const publicPhoto = page.getByTestId('luxy-member-profile-photo-tile').first();
-    await expect(publicPhoto.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
-    await publicPhoto.click();
+    // The main portrait is a real profile photo and must open the same large photo viewer
+    // as gallery photos. This avoids coupling the modal contract to one fixture gallery file.
+    await heroPhoto.click();
     const photoModal = page.getByTestId('luxy-profile-photo-modal');
     await expect(photoModal).toBeVisible();
     await expect(photoModal.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
