@@ -329,8 +329,8 @@ select ok(
 select throws_ok(
   $$select public.send_message((select value from br04_state where key='conversation_one'),'Không thể gửi sau chặn','4b100000-0000-4000-8000-000000000004')$$,
   '42501',
-  'accepted_friendship_required',
-  'chat remains closed after blocking cancels the friendship'
+  'messaging_blocked',
+  'block closes direct messaging even though friendship is no longer required'
 );
 
 do $$ begin
@@ -341,8 +341,8 @@ select ok(public.unblock_user('4b000000-0000-0000-0000-000000000001'),'B unblock
 
 select is(
   public.get_direct_conversation('4b000000-0000-0000-0000-000000000001'),
-  null::uuid,
-  'unblocking does not restore the cancelled friendship or chat'
+  (select value from br04_state where key='conversation_one'),
+  'unblocking restores access to the existing direct conversation independently of cancelled friendship'
 );
 
 do $$ begin
