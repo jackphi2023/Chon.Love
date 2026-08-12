@@ -63,13 +63,11 @@ export async function getLuxyMemberProfile(client: Client, username: string): Pr
   const row = rows[0];
   if (!row) return null;
 
-  // LX-13 product rule: the paid-tier certification signal is shown on paid male
-  // member profiles. The paid state itself remains server-controlled; this layer
-  // only narrows the presentation rule and never grants an entitlement.
+  // LX-17: Premium and Diamond badges are server-controlled paid-status signals for
+  // every eligible member. Gender must never hide or grant the badge.
   return {
     ...row,
-    membership_badge_visible:
-      row.gender === 'male' && row.membership_tier !== 'free' && row.membership_badge_visible,
+    membership_badge_visible: row.membership_tier !== 'free' && row.membership_badge_visible,
   };
 }
 
