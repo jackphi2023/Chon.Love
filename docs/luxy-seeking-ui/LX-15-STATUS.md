@@ -1,6 +1,6 @@
 # LX-15 — Seeking-style Direct Messaging Entitlement
 
-Status: COMPLETED ON `agent/lx-15-messaging-entitlement`; Draft PR #33 open against `agent/luxy-seeking-ui-foundation`. Not deployed to production.
+Status: COMPLETED AND MERGED into `agent/luxy-seeking-ui-foundation` via PR #33. Not merged to `main` and not deployed to Supabase production.
 
 ## Product contract
 
@@ -48,11 +48,7 @@ Changes:
 
 ## Shared client
 
-`packages/supabase/src/chat.ts` now supports:
-
-- nullable `friendship_id`;
-- conversation context `direct` in addition to legacy friendship states;
-- paid-membership and unavailable-target readable errors.
+`packages/supabase/src/chat.ts` supports nullable `friendship_id`, conversation context `direct`, and readable paid-membership / unavailable-target errors.
 
 `packages/supabase/src/database.types.ts` was regenerated from a clean local Supabase reset after the LX-15 migrations. The generated change is limited to the intended `conversations` contract: the two canonical participant columns plus nullable legacy `friendship_id`.
 
@@ -70,35 +66,12 @@ Reconciled:
 - `supabase/tests/br_04_core_social_multi_account_e2e.sql`
 - `scripts/validate-br04.mjs`
 
-The LX-15 pgTAP contract covers:
+Before merge, the final PR head passed:
 
-- canonical participant schema and RPC ACL boundary;
-- Premium creating a conversation with a Free user with zero friendship rows;
-- idempotent get-or-create;
-- Premium send without accepted friendship;
-- Free recipient read access;
-- Free `can_send=false`;
-- Free profile-CTA/send RPC bypass rejection;
-- block enforcement;
-- backward compatibility for accepted friendships without duplicate conversations.
-
-Final code head verification before this status-only commit:
-
-- Application CI: PASS.
-- Database full regression: PASS.
-  - clean reset from repository migrations;
-  - BR-01, BR-03, BR-04, BR-05, BR-06, BR-07, BR-08, BR-09;
-  - LX-07, LX-09, LX-13, LX-14;
-  - concurrent gift and withdrawal races;
-  - schema lint;
-  - exact generated public TypeScript contract;
-  - application workspace verification.
-- LX-15 Contract: PASS.
-  - clean DB reset;
-  - LX-14 regression;
-  - LX-15 pgTAP;
-  - schema lint.
-- Browser E2E: PASS.
+- Application CI.
+- Database full regression, including clean reset, BR-01/03/04/05/06/07/08/09, LX-07/09/13/14, concurrent gift and withdrawal tests, schema lint, exact generated types, and workspace verification.
+- LX-15 Contract: clean reset, LX-14 regression, LX-15 pgTAP, schema lint.
+- Browser E2E.
 
 ## Seeking UI boundary
 
@@ -108,6 +81,6 @@ Therefore LX-15 introduces no alternate visual language and does not weaken the 
 
 ## Production boundary
 
-No Supabase production migration was applied in LX-15. Hosted Luxy.Love remains on the production release line until a separate deployment/release step is explicitly requested.
+PR #33 was squash-merged into `agent/luxy-seeking-ui-foundation` as commit `9b6d5737394795c954ca2103d078dbd064be7a3e`.
 
-PR #33 remains Draft, targets `agent/luxy-seeking-ui-foundation`, and does not target or merge `main`.
+No `main` merge and no Supabase production migration/deployment were performed.
