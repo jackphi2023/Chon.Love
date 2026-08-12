@@ -26,7 +26,8 @@ insert into auth.users(
   email_change_token_current,phone_change,phone_change_token,reauthentication_token
 ) values
 ('00000000-0000-0000-0000-000000000000','23000000-0000-0000-0000-000000000001','authenticated','authenticated','lx13-viewer@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
-('00000000-0000-0000-0000-000000000000','23000000-0000-0000-0000-000000000002','authenticated','authenticated','lx13-target@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
+('00000000-0000-0000-0000-000000000000','23000000-0000-0000-0000-000000000002','authenticated','authenticated','lx13-target@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','23000000-0000-0000-0000-000000000099','authenticated','authenticated','lx13-moderator@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
 
 update private.user_identity
 set date_of_birth = case user_id
@@ -82,10 +83,10 @@ values('23000000-0000-0000-0000-000000000002','diamond','active',true,now()-inte
 
 insert into public.media_assets(
   id,owner_id,storage_bucket,storage_path,media_type,mime_type,file_size_bytes,width,height,
-  visibility,moderation_status,uploaded_at,approved_at
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
 ) values
-('23000000-0000-4000-8000-000000000101','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000101/lx13-public.png','image','image/png',100,100,100,'public','approved',now(),now()),
-('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','approved',now(),now());
+('23000000-0000-4000-8000-000000000101','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000101/lx13-public.png','image','image/png',100,100,100,'public','approved',now(),now(),'23000000-0000-0000-0000-000000000099'),
+('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','approved',now(),now(),'23000000-0000-0000-0000-000000000099');
 
 -- Public media is visible to another member only when it belongs to an active public album.
 -- This preserves the same private.can_view_media_internal contract used by the app.
