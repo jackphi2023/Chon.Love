@@ -40,7 +40,7 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
     await expect(page.getByText('Tôi đang tìm kiếm', { exact: true })).toBeVisible();
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
     await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
-    await expect(page.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
+    await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await testInfo.attach('lx13-desktop-member-profile', {
@@ -49,19 +49,20 @@ test('LX-13 desktop Member Profile shows paid badge, photo viewer, favorite and 
     });
 
     await page.getByTestId('luxy-member-profile-photo-tile').first().click();
-    await expect(page.getByTestId('luxy-profile-photo-modal')).toBeVisible();
-    await expect(page.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true }).last()).toBeVisible();
+    const photoModal = page.getByTestId('luxy-profile-photo-modal');
+    await expect(photoModal).toBeVisible();
+    await expect(photoModal.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
 
-    const favorite = page.getByRole('button', { name: new RegExp(`^(Yêu thích|Bỏ yêu thích) ${creator.displayName}`) }).last();
+    const favorite = photoModal.getByRole('button', { name: new RegExp(`^(Yêu thích|Bỏ yêu thích) ${creator.displayName}`) });
     await expect(favorite).toBeVisible();
     const wasFavorited = (await favorite.getAttribute('aria-label'))?.startsWith('Bỏ yêu thích') ?? false;
     await favorite.click();
-    await expect(page.getByRole('button', {
+    await expect(photoModal.getByRole('button', {
       name: new RegExp(`^${wasFavorited ? 'Yêu thích' : 'Bỏ yêu thích'} ${creator.displayName}`),
-    }).last()).toBeVisible();
+    })).toBeVisible();
 
-    await page.getByLabel(`Tin nhắn cho ${creator.displayName}`).fill('Xin chào từ ảnh hồ sơ');
-    await page.getByRole('button', { name: `Nhắn tin cho ${creator.displayName}` }).click();
+    await photoModal.getByLabel(`Tin nhắn cho ${creator.displayName}`).fill('Xin chào từ ảnh hồ sơ');
+    await photoModal.getByRole('button', { name: `Nhắn tin cho ${creator.displayName}` }).click();
 
     await expect(page.getByTestId('luxy-message-upgrade-gate')).toBeVisible();
     await expect(page.getByText('Bắt đầu nhắn tin ngay!', { exact: true })).toBeVisible();
