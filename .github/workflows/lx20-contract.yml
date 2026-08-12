@@ -6,7 +6,9 @@ on:
     paths:
       - 'supabase/migrations/20260812220000_lx_20_verification_private_photos.sql'
       - 'supabase/migrations/20260812220100_lx_20_restore_storage_helper_acl.sql'
+      - 'supabase/migrations/20260812220200_lx_20_member_verification_admin_queue.sql'
       - 'supabase/tests/lx_20_verification_private_photos.sql'
+      - 'supabase/functions/member-profile-verification-admin/index.ts'
       - 'packages/supabase/src/member-verification.ts'
       - 'packages/supabase/src/profile-media.ts'
       - 'packages/supabase/src/private-photo.ts'
@@ -20,12 +22,16 @@ on:
       - 'apps/mobile/app/settings/verification.tsx'
       - 'apps/mobile/src/components/luxy-private-photo-access.tsx'
       - 'apps/mobile/src/components/luxy-shell-navigation.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/page.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/profile-verification-admin.tsx'
       - '.github/workflows/lx20-contract.yml'
   pull_request:
     paths:
       - 'supabase/migrations/20260812220000_lx_20_verification_private_photos.sql'
       - 'supabase/migrations/20260812220100_lx_20_restore_storage_helper_acl.sql'
+      - 'supabase/migrations/20260812220200_lx_20_member_verification_admin_queue.sql'
       - 'supabase/tests/lx_20_verification_private_photos.sql'
+      - 'supabase/functions/member-profile-verification-admin/index.ts'
       - 'packages/supabase/src/member-verification.ts'
       - 'packages/supabase/src/profile-media.ts'
       - 'packages/supabase/src/private-photo.ts'
@@ -39,6 +45,8 @@ on:
       - 'apps/mobile/app/settings/verification.tsx'
       - 'apps/mobile/src/components/luxy-private-photo-access.tsx'
       - 'apps/mobile/src/components/luxy-shell-navigation.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/page.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/profile-verification-admin.tsx'
       - '.github/workflows/lx20-contract.yml'
 
 permissions:
@@ -73,6 +81,9 @@ jobs:
 
       - name: Typecheck mobile LX-20 surfaces
         run: pnpm --filter @myfan/mobile typecheck
+
+      - name: Typecheck admin LX-20 surfaces
+        run: pnpm --filter @myfan/admin typecheck
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
