@@ -1,6 +1,6 @@
 begin;
 
-select plan(35);
+select plan(36);
 
 select is((select count(*) from public.gift_catalog where is_active and deleted_at is null),20::bigint,'LX-19 reuses exactly the existing 20 active gifts');
 select is((select min(display_hearts) from public.gift_catalog where is_active and deleted_at is null),1,'Existing gift catalog starts at 1 heart');
