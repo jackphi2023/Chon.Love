@@ -1,6 +1,6 @@
 begin;
 
-select plan(32);
+select plan(35);
 
 select ok(to_regclass('private.luxy_membership_orders') is not null,'LX-17 membership order ledger exists');
 select ok(to_regclass('private.luxy_membership_privacy') is not null,'LX-17 membership privacy settings exist');
@@ -90,7 +90,6 @@ select lives_ok($$select * from public.update_my_luxy_membership_privacy(true,tr
 select is((select hide_from_listing from public.get_my_luxy_membership_privacy()),true,'Diamond privacy snapshot reports hide-from-listing enabled');
 reset role;
 
--- Turn the Diamond fixture back to Free, then exercise the real manual-confirmation order flow.
 delete from private.luxy_memberships where user_id='27000000-0000-0000-0000-000000000003';
 
 set local role authenticated;
