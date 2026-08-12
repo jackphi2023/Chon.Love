@@ -87,6 +87,25 @@ insert into public.media_assets(
 ('23000000-0000-4000-8000-000000000101','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000101/lx13-public.png','image','image/png',100,100,100,'public','pending_review',now()),
 ('23000000-0000-4000-8000-000000000102','23000000-0000-0000-0000-000000000002','profile-media','23000000-0000-0000-0000-000000000002/23000000-0000-4000-8000-000000000102/lx13-private.png','image','image/png',100,100,100,'private','pending_review',now());
 
+-- Public media is visible to another member only when it belongs to an active public album.
+-- This preserves the same private.can_view_media_internal contract used by the app.
+insert into public.albums(
+  id,owner_id,name,album_type,fan_threshold_units,is_active
+) values (
+  '23000000-0000-4000-8000-000000000103',
+  '23000000-0000-0000-0000-000000000002',
+  'LX13 Public Album',
+  'public',
+  0,
+  true
+);
+insert into public.album_media(album_id,media_id,sort_order)
+values(
+  '23000000-0000-4000-8000-000000000103',
+  '23000000-0000-4000-8000-000000000101',
+  0
+);
+
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"23000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
