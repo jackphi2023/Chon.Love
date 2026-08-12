@@ -1,0 +1,52 @@
+name: LX-14 Member Profile integration (temporary)
+
+on:
+  push:
+    branches:
+      - agent/lx-14-private-photo-premium-gates
+    paths:
+      - .github/workflows/lx14-profile-patch-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/lx-14-private-photo-premium-gates
+          fetch-depth: 0
+      - name: Apply deterministic LX-14 profile patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/mobile/app/profile/[username].tsx')
+          text = path.read_text()
+
+          replacements = [
+            ("  getDirectConversation,\n", "  getLuxyProfileConversation,\n"),
+            ("import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';\n", "import { LuxyPrivatePhotoAccess } from '@/components/luxy-private-photo-access';\nimport { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';\n"),
+            ("const conversationId = await getDirectConversation(client, profile.id);", "const conversationId = await getLuxyProfileConversation(client, profile.id);"),
+            ("""          {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (\n            <Pressable\n              accessibilityRole=\"button\"\n              onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}\n              style={styles.privateRequestButton}\n              testID=\"luxy-private-photo-request-placeholder\"\n            >\n              <Text style={styles.privateRequestText}>Yêu cầu xem ảnh riêng tư ({profile.private_photo_count})</Text>\n            </Pressable>\n          ) : null}\n""", """          {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (\n            <LuxyPrivatePhotoAccess\n              displayName={displayName}\n              onOpenPhoto={openPhoto}\n              ownerId={profile.id}\n              privatePhotoCount={profile.private_photo_count}\n              variant=\"button\"\n            />\n          ) : null}\n"""),
+            ("""                {profile.private_photo_count > 0 ? (\n                  <Pressable\n                    accessibilityRole=\"button\"\n                    onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}\n                    style={styles.privateTile}\n                  >\n                    <Text style={styles.privateEye}>◉̸</Text>\n                    <Text style={styles.privateTileTitle}>Ảnh riêng tư ({profile.private_photo_count})</Text>\n                    <Text style={styles.privateTileButton}>Yêu cầu xem</Text>\n                  </Pressable>\n                ) : null}\n""", """                {profile.private_photo_count > 0 ? (\n                  <LuxyPrivatePhotoAccess\n                    displayName={displayName}\n                    onOpenPhoto={openPhoto}\n                    ownerId={profile.id}\n                    privatePhotoCount={profile.private_photo_count}\n                    variant=\"tile\"\n                  />\n                ) : null}\n"""),
+            ("<LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} visible={showUpgrade} />", "<LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} reason=\"message\" visible={showUpgrade} />"),
+          ]
+
+          for old, new in replacements:
+            count = text.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one profile replacement, found {count}: {old[:80]!r}')
+            text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+      - name: Commit profile integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'apps/mobile/app/profile/[username].tsx'
+          git commit -m 'LX-14: wire Private Photo and paid profile messaging'
+          git push origin HEAD:agent/lx-14-private-photo-premium-gates
