@@ -69,6 +69,7 @@ export * from './discovery';
 export * from './gifts';
 export * from './homepage';
 export * from './interests';
+export * from './mailbox';
 export * from './member-profile';
 export * from './membership';
 export * from './private-photo';
