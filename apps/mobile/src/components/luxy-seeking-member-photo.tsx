@@ -1,8 +1,9 @@
-import { createPrivateMediaUrl } from '@myfan/supabase';
+import { createPrivateMediaUrl, type LuxyMembershipTier } from '@myfan/supabase';
 import { luxyColors, luxyTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { getMobileSupabaseClient } from '@/lib/supabase';
+import { LuxyMembershipBadgeImage } from './luxy-membership-badge-image';
 
 export function LuxySeekingMemberPhoto({
   mediaId,
@@ -10,6 +11,7 @@ export function LuxySeekingMemberPhoto({
   storagePath,
   name,
   photoCount,
+  membershipTier,
   width = 84,
   height = 112,
 }: {
@@ -18,6 +20,7 @@ export function LuxySeekingMemberPhoto({
   storagePath: string | null;
   name: string;
   photoCount?: number | null;
+  membershipTier?: LuxyMembershipTier | null;
   width?: number;
   height?: number;
 }) {
@@ -35,6 +38,7 @@ export function LuxySeekingMemberPhoto({
   });
 
   const frameStyle = { width, height };
+  const badgeWidth = Math.max(46, Math.min(64, Math.round(width * 0.68)));
   return (
     <View style={[styles.frame, frameStyle]}>
       {imageQuery.data ? (
@@ -49,6 +53,7 @@ export function LuxySeekingMemberPhoto({
           <Text style={styles.initial}>{name.slice(0, 1).toUpperCase()}</Text>
         </View>
       )}
+      <LuxyMembershipBadgeImage tier={membershipTier} width={badgeWidth} />
       {typeof photoCount === 'number' && photoCount > 0 ? (
         <View style={styles.countBadge}>
           <Text style={styles.countText}>▣ {photoCount}</Text>
@@ -78,6 +83,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     position: 'absolute',
     right: 5,
+    zIndex: 7,
   },
   countText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700', lineHeight: 18 },
 });
