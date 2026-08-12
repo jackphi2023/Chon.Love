@@ -10,7 +10,7 @@ import {
 
 const targetId = '19000000-0000-4000-8000-000000000002';
 
-describe('Luxy LX-12/LX-16 Interests client contract', () => {
+describe('Luxy LX-12/LX-16/LX-17 Interests client contract', () => {
   it('accepts only the three Seeking-derived Interest scopes', () => {
     expect(parseLuxyInterestScope('favorites')).toBe('favorites');
     expect(parseLuxyInterestScope('viewed_me')).toBe('viewed_me');
@@ -56,7 +56,7 @@ describe('Luxy LX-12/LX-16 Interests client contract', () => {
     });
   });
 
-  it('lists Seeking row fields without exposing private identity/location data', async () => {
+  it('lists Seeking row fields and paid tier without exposing private identity/location data', async () => {
     const rpc = vi.fn().mockResolvedValue({
       error: null,
       data: [{
@@ -74,6 +74,7 @@ describe('Luxy LX-12/LX-16 Interests client contract', () => {
         photo_count: 2,
         last_active_at: '2026-08-11T15:00:00.000Z',
         is_online: true,
+        membership_tier: 'premium',
         is_favorited: true,
         is_favorited_by: false,
         is_match: false,
@@ -87,7 +88,7 @@ describe('Luxy LX-12/LX-16 Interests client contract', () => {
       p_limit: 30,
       p_offset: 10,
     });
-    expect(rows[0]).toMatchObject({ headline: 'Du lịch, kinh doanh và sự tử tế', height_cm: 163, weight_kg: 51 });
+    expect(rows[0]).toMatchObject({ headline: 'Du lịch, kinh doanh và sự tử tế', height_cm: 163, weight_kg: 51, membership_tier: 'premium' });
     expect(rows[0]).not.toHaveProperty('date_of_birth');
     expect(rows[0]).not.toHaveProperty('latitude');
     expect(rows[0]).not.toHaveProperty('gift_total');
