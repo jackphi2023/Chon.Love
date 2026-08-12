@@ -97,7 +97,7 @@ select set_config('request.jwt.claims','{"sub":"27000000-0000-0000-0000-00000000
 select set_config('lx17.order_id',(
   select order_id::text from public.create_luxy_membership_order('diamond',3,'27000000-0000-4000-8000-000000000101','membership')
 ),true);
-select is((select status from public.mark_my_luxy_membership_order_submitted(current_setting('lx17.order_id')::uuid)),'awaiting_confirmation','Member explicitly submits paid order for Admin confirmation');
+select is(public.mark_my_luxy_membership_order_submitted(current_setting('lx17.order_id')::uuid),'awaiting_confirmation','Member explicitly submits paid order for Admin confirmation');
 reset role;
 
 select throws_ok(
