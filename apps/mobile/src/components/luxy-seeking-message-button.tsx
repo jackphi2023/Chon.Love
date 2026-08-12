@@ -1,4 +1,4 @@
-import { createLuxyUpgradeIntent, getLuxyProfileConversation, getReadableLuxyMailboxError } from '@myfan/supabase';
+import { createLuxyUpgradeIntent, getReadableLuxyMailboxError, openLuxyProfileConversation } from '@myfan/supabase';
 import { luxyColors, luxyRadii } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -19,7 +19,7 @@ export function LuxySeekingMessageButton({ profileId, name }: { profileId: strin
     setBusy(true);
     setError(null);
     try {
-      const conversationId = await getLuxyProfileConversation(client, profileId);
+      const conversationId = await openLuxyProfileConversation(client, profileId);
       router.push({ pathname: '/chat/[conversationId]', params: { conversationId } });
     } catch (cause) {
       const raw = typeof cause === 'object' && cause !== null && 'message' in cause
