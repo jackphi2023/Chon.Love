@@ -79,7 +79,16 @@ const luxyGiftHistoryItemSchema = z.object({
 
 export type GiftCatalogItem = z.infer<typeof giftCatalogItemSchema>;
 export type LuxyGiftSendResult = z.infer<typeof luxyGiftSendResultSchema>;
-export type GiftSendResult = LuxyGiftSendResult;
+export type GiftSendResult = LuxyGiftSendResult & {
+  /** @deprecated LX-19 recipient semantics use recipient_id. */
+  creator_id: string;
+  /** @deprecated LX-19 recipient semantics use recipient_reward_units. */
+  creator_reward_units: number;
+  /** Legacy Fan fields are intentionally neutralized by LX-19. */
+  fan_eligible_units: number;
+  fan_threshold_units: number;
+  fan_status: 'none';
+};
 export type LuxyGiftWallet = z.infer<typeof luxyGiftWalletSchema>;
 export type LuxyGiftHistoryDirection = z.infer<typeof luxyGiftHistoryDirectionSchema>;
 export type LuxyGiftHistoryItem = z.infer<typeof luxyGiftHistoryItemSchema>;
@@ -264,17 +273,26 @@ export async function sendGiftToMember(
   return row;
 }
 
-// Backwards-compatible client alias. LX-19 semantics are member recipient, not public Creator role.
+// Backwards-compatible client alias for old Activity code. The transaction now uses Luxy member
+// recipient semantics and intentionally does not create or progress legacy Fan relationships.
 export async function sendGiftToCreator(
   client: Client,
   input: { creatorId: string; giftId: string; quantity?: number; idempotencyKey: string },
 ): Promise<GiftSendResult> {
-  return sendGiftToMember(client, {
+  const result = await sendGiftToMember(client, {
     recipientId: input.creatorId,
     giftId: input.giftId,
-    quantity: input.quantity,
     idempotencyKey: input.idempotencyKey,
+    ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
   });
+  return {
+    ...result,
+    creator_id: result.recipient_id,
+    creator_reward_units: result.recipient_reward_units,
+    fan_eligible_units: 0,
+    fan_threshold_units: 1,
+    fan_status: 'none',
+  };
 }
 
 export function getReadableGiftError(error: unknown): string {
