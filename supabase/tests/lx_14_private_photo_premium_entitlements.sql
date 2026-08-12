@@ -98,9 +98,9 @@ select lives_ok(
   $$select * from public.set_profile_favorite('24000000-0000-0000-0000-000000000002',false)$$,
   'Free/downgraded member can always remove an existing Favorite'
 );
-select is((select count(*) from public.profile_favorites where owner_id='24000000-0000-0000-0000-000000000001'),0::bigint,'Favorite removal is persisted');
-
 reset role;
+select is((select count(*) from public.profile_favorites where owner_id='24000000-0000-0000-0000-000000000001'),0::bigint,'Favorite removal is persisted without weakening direct table ACLs');
+
 insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,starts_at,expires_at,source)
 values('24000000-0000-0000-0000-000000000001','premium','active',true,now()-interval '1 day',now()+interval '30 days','lx14_test');
 
