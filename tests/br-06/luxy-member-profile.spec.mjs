@@ -27,7 +27,23 @@ async function expectNoHorizontalOverflow(page) {
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
-test('LX-14 desktop Member Profile keeps photo viewer and gates Free Favorite + Message with Premium handoff', async ({ browser }, testInfo) => {
+async function assertFreePrivatePhotoUpgradeGate(page) {
+  const requestButton = page.getByTestId('luxy-private-photo-request-button');
+  await expect(requestButton).toBeVisible();
+  await requestButton.click();
+
+  const upgradeGate = page.getByTestId('luxy-upgrade-gate-private_photo');
+  await expect(upgradeGate).toBeVisible();
+  await expect(upgradeGate.getByText('Xem ảnh riêng tư!', { exact: true })).toBeVisible();
+  await expect(upgradeGate.getByText('Yêu cầu xem ảnh riêng tư', { exact: true })).toBeVisible();
+  await expect(upgradeGate.getByText(/Chủ hồ sơ vẫn là người quyết định chấp thuận hoặc từ chối/)).toBeVisible();
+  await expect(upgradeGate.getByRole('button', { name: 'Nâng cấp Premium' })).toBeVisible();
+
+  await upgradeGate.getByRole('button', { name: 'Để sau' }).click();
+  await expect(page.getByTestId('luxy-upgrade-gate-private_photo')).toHaveCount(0);
+}
+
+test('LX-14 desktop Member Profile gates Free Private Photo, Favorite and Message with Premium handoff', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
 
@@ -43,9 +59,11 @@ test('LX-14 desktop Member Profile keeps photo viewer and gates Free Favorite + 
     const heroPhoto = page.getByTestId('luxy-member-profile-hero-photo');
     await expect(heroPhoto).toBeVisible();
     await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
+
+    await assertFreePrivatePhotoUpgradeGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx14-desktop-member-profile', {
+    await testInfo.attach('lx14-desktop-member-profile-private-photo-gate', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
@@ -72,7 +90,7 @@ test('LX-14 desktop Member Profile keeps photo viewer and gates Free Favorite + 
     await expect(page.getByText('Nhắn tin với thành viên', { exact: true })).toBeVisible();
     await expect(page.getByText('Huy hiệu Premium', { exact: true })).toBeVisible();
 
-    await testInfo.attach('lx14-desktop-upgrade-gate', {
+    await testInfo.attach('lx14-desktop-message-upgrade-gate', {
       body: await page.screenshot({ fullPage: false }),
       contentType: 'image/png',
     });
@@ -84,7 +102,7 @@ test('LX-14 desktop Member Profile keeps photo viewer and gates Free Favorite + 
   }
 });
 
-test('LX-14 mobile Member Profile keeps Seeking hierarchy and gates profile messaging for Free', async ({ browser }, testInfo) => {
+test('LX-14 mobile Member Profile keeps Seeking hierarchy and gates Private Photo + Message for Free', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -100,9 +118,11 @@ test('LX-14 mobile Member Profile keeps Seeking hierarchy and gates profile mess
     await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Nhắn tin', exact: true })).toBeVisible();
     await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
+
+    await assertFreePrivatePhotoUpgradeGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx14-mobile-member-profile', {
+    await testInfo.attach('lx14-mobile-member-profile-private-photo-gate', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
