@@ -8,14 +8,6 @@ select ok(has_function_privilege('authenticated','public.list_my_luxy_membership
 select ok(not has_schema_privilege('authenticated','private','USAGE'),'Authenticated client still has no private schema usage');
 select ok(not has_table_privilege('authenticated','private.luxy_membership_checkout_snapshots','select'),'Authenticated client cannot read checkout snapshots directly');
 
--- BR-07 intentionally leaves real-money reconciliation disabled by default.
--- LX-18 enables it only inside this rollback-isolated contract so the positive
--- web-checkout path can be exercised without weakening the production gate.
-update private.app_config
-set value_json='true'::jsonb,
-    updated_at=now()
-where key='vietqr_web_payments_enabled';
-
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,
   confirmation_token,recovery_token,email_change_token_new,email_change_token_current,phone_change,phone_change_token,reauthentication_token
@@ -91,7 +83,7 @@ reset role;
 select is(
   (select count(*) from private.luxy_membership_checkout_snapshots where order_id=current_setting('lx18.order_id')::uuid),
   1::bigint,
-  'Repeated checkout reads create exactly one immutable receiving-account snapshot'
+  'Repeated checkout reads create exactly one receiving-account snapshot'
 );
 select is(
   (select count(*) from private.luxy_memberships where user_id='28000000-0000-0000-0000-000000000001'),
