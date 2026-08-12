@@ -3,6 +3,7 @@ import Link from 'next/link';
 const links = [
   ['Dashboard', '/dashboard'],
   ['Users', '/users'],
+  ['Xác minh ảnh', '/member-verifications'],
   ['Gifts', '/gifts'],
   ['Payments', '/payments'],
   ['Withdrawals', '/withdrawals'],
@@ -14,7 +15,7 @@ export default function ProtectedLayout({ children }: Readonly<{ children: React
   return (
     <div className="shell">
       <nav aria-label="Admin navigation">
-        <strong>MyFan Admin</strong>
+        <strong>Luxy.Love Admin</strong>
         {links.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
       </nav>
       <main>{children}</main>

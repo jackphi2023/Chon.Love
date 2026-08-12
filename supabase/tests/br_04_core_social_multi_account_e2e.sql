@@ -30,6 +30,33 @@ update private.user_identity set
   account_status='active'
 where user_id::text like '4b000000-0000-0000-0000-00000000000%';
 
+-- BR-04 exercises already-active social actors. Since Luxy signup now requires a
+-- resolved member-photo verification before an incomplete profile can activate,
+-- create explicit approved fixture cases rather than bypassing the production gate.
+insert into public.moderation_cases(
+  reported_user_id,
+  source,
+  status,
+  priority,
+  rule_codes,
+  automated_score_json,
+  decision,
+  decision_notes,
+  resolved_at
+)
+select
+  p.id,
+  'automated_scan'::public.moderation_source,
+  'resolved'::public.moderation_case_status,
+  'normal'::public.moderation_priority,
+  array['member_photo_verification']::text[],
+  jsonb_build_object('fixture', 'br04', 'maxSimilarity', 99.9, 'threshold', 60),
+  'approve'::public.moderation_decision,
+  'BR-04 approved selfie verification fixture',
+  now()
+from public.profiles p
+where p.id::text like '4b000000-0000-0000-0000-00000000000%';
+
 update public.profiles set
   profile_status='active',
   discovery_enabled=true,

@@ -1527,6 +1527,22 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_member_photo_verifications: {
+        Args: { p_actor_user_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          automated_score_json: Json
+          case_id: string
+          case_status: string
+          created_at: string
+          declared_gender: string
+          display_name: string
+          max_similarity: number
+          priority: string
+          profile_status: string
+          user_id: string
+          username: string
+        }[]
+      }
       admin_list_vietqr_reconciliation_queue: {
         Args: {
           p_actor_user_id: string
@@ -1660,6 +1676,21 @@ export type Database = {
           kyc_profile_id: string
           payout_eligible: boolean
           status: string
+        }[]
+      }
+      admin_review_member_photo_verification: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_case_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          case_id: string
+          decision: string
+          profile_status: string
+          user_id: string
         }[]
       }
       admin_runtime_observability_snapshot: {
@@ -2982,70 +3013,130 @@ export type Database = {
           unspent_debited_units: number
         }[]
       }
-      search_luxy_profiles_v2: {
-        Args: {
-          p_children_statuses?: Database["public"]["Enums"]["children_status"][]
-          p_drinking_statuses?: Database["public"]["Enums"]["drinking_status"][]
-          p_education_levels?: Database["public"]["Enums"]["education_level"][]
-          p_favorite_scope?: string
-          p_genders?: Database["public"]["Enums"]["gender_identity"][]
-          p_has_photo?: boolean
-          p_interests?: string[]
-          p_languages?: string[]
-          p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
-          p_limit?: number
-          p_max_age?: number
-          p_max_distance_km?: number
-          p_max_height_cm?: number
-          p_max_weight_kg?: number
-          p_min_age?: number
-          p_min_height_cm?: number
-          p_min_weight_kg?: number
-          p_occupation_text?: string
-          p_offset?: number
-          p_online_now?: boolean
-          p_profile_text?: string
-          p_province_id?: number
-          p_relationship_statuses?: Database["public"]["Enums"]["relationship_status"][]
-          p_smoking_statuses?: Database["public"]["Enums"]["smoking_status"][]
-          p_sort?: string
-          p_view_state?: string
-        }
-        Returns: {
-          age: number
-          avatar_media_id: string
-          avatar_storage_bucket: string
-          avatar_storage_path: string
-          bio: string
-          children_status: Database["public"]["Enums"]["children_status"]
-          display_name: string
-          distance_km: number
-          drinking_status: Database["public"]["Enums"]["drinking_status"]
-          education_level: Database["public"]["Enums"]["education_level"]
-          gender: Database["public"]["Enums"]["gender_identity"]
-          headline: string
-          height_cm: number
-          id: string
-          interests: string[]
-          is_favorited: boolean
-          is_favorited_by: boolean
-          is_online: boolean
-          is_viewed: boolean
-          languages: string[]
-          last_active_at: string
-          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
-          looking_for: string
-          member_since: string
-          occupation: string
-          photo_count: number
-          province_id: number
-          province_name: string
-          relationship_status: Database["public"]["Enums"]["relationship_status"]
-          smoking_status: Database["public"]["Enums"]["smoking_status"]
-          username: string
-          weight_kg: number
-        }[]
-      }
+      search_luxy_profiles_v2:
+        | {
+            Args: {
+              p_children_statuses?: Database["public"]["Enums"]["children_status"][]
+              p_drinking_statuses?: Database["public"]["Enums"]["drinking_status"][]
+              p_education_levels?: Database["public"]["Enums"]["education_level"][]
+              p_favorite_scope?: string
+              p_genders?: Database["public"]["Enums"]["gender_identity"][]
+              p_has_photo?: boolean
+              p_interests?: string[]
+              p_languages?: string[]
+              p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              p_limit?: number
+              p_max_age?: number
+              p_max_distance_km?: number
+              p_max_height_cm?: number
+              p_max_weight_kg?: number
+              p_min_age?: number
+              p_min_height_cm?: number
+              p_min_weight_kg?: number
+              p_occupation_text?: string
+              p_offset?: number
+              p_online_now?: boolean
+              p_profile_text?: string
+              p_province_id?: number
+              p_relationship_statuses?: Database["public"]["Enums"]["relationship_status"][]
+              p_smoking_statuses?: Database["public"]["Enums"]["smoking_status"][]
+              p_sort?: string
+              p_view_state?: string
+            }
+            Returns: {
+              age: number
+              avatar_media_id: string
+              avatar_storage_bucket: string
+              avatar_storage_path: string
+              bio: string
+              children_status: Database["public"]["Enums"]["children_status"]
+              display_name: string
+              distance_km: number
+              drinking_status: Database["public"]["Enums"]["drinking_status"]
+              education_level: Database["public"]["Enums"]["education_level"]
+              gender: Database["public"]["Enums"]["gender_identity"]
+              headline: string
+              height_cm: number
+              id: string
+              interests: string[]
+              is_favorited: boolean
+              is_favorited_by: boolean
+              is_online: boolean
+              is_viewed: boolean
+              languages: string[]
+              last_active_at: string
+              lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              looking_for: string
+              member_since: string
+              occupation: string
+              photo_count: number
+              province_id: number
+              province_name: string
+              relationship_status: Database["public"]["Enums"]["relationship_status"]
+              smoking_status: Database["public"]["Enums"]["smoking_status"]
+              username: string
+              weight_kg: number
+            }[]
+          }
+        | {
+            Args: {
+              p_children_statuses: Database["public"]["Enums"]["children_status"][]
+              p_drinking_statuses: Database["public"]["Enums"]["drinking_status"][]
+              p_education_levels: Database["public"]["Enums"]["education_level"][]
+              p_genders: Database["public"]["Enums"]["gender_identity"][]
+              p_has_photo: boolean
+              p_interests: string[]
+              p_languages: string[]
+              p_lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              p_limit: number
+              p_max_age: number
+              p_max_distance_km: number
+              p_max_height_cm: number
+              p_max_weight_kg: number
+              p_min_age: number
+              p_min_height_cm: number
+              p_min_weight_kg: number
+              p_occupation_text: string
+              p_offset: number
+              p_online_now: boolean
+              p_profile_text: string
+              p_province_id: number
+              p_relationship_statuses: Database["public"]["Enums"]["relationship_status"][]
+              p_smoking_statuses: Database["public"]["Enums"]["smoking_status"][]
+              p_sort: string
+            }
+            Returns: {
+              age: number
+              avatar_media_id: string
+              avatar_storage_bucket: string
+              avatar_storage_path: string
+              bio: string
+              children_status: Database["public"]["Enums"]["children_status"]
+              display_name: string
+              distance_km: number
+              drinking_status: Database["public"]["Enums"]["drinking_status"]
+              education_level: Database["public"]["Enums"]["education_level"]
+              gender: Database["public"]["Enums"]["gender_identity"]
+              headline: string
+              height_cm: number
+              id: string
+              interests: string[]
+              is_online: boolean
+              languages: string[]
+              last_active_at: string
+              lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              looking_for: string
+              member_since: string
+              occupation: string
+              photo_count: number
+              province_id: number
+              province_name: string
+              relationship_status: Database["public"]["Enums"]["relationship_status"]
+              smoking_status: Database["public"]["Enums"]["smoking_status"]
+              username: string
+              weight_kg: number
+            }[]
+          }
       send_friend_request: {
         Args: { p_addressee_id: string; p_greeting_message?: string }
         Returns: {
