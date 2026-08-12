@@ -1,0 +1,60 @@
+name: LX-14 profile UI patch (temporary)
+
+on:
+  push:
+    branches:
+      - agent/lx-14-private-photo-album
+    paths:
+      - .github/workflows/lx14-profile-ui-patch-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/lx-14-private-photo-album
+          fetch-depth: 0
+      - name: Apply narrow LX-14 Member Profile patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('apps/mobile/app/profile/[username].tsx')
+          s = p.read_text()
+          old_import = "import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';\n"
+          new_import = old_import + "import { PrivatePhotoCard } from '@/components/private-photo-card';\n"
+          if new_import not in s:
+              if old_import not in s: raise SystemExit('favorite import anchor missing')
+              s = s.replace(old_import, new_import, 1)
+
+          old_left = """          {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (\n            <Pressable\n              accessibilityRole=\"button\"\n              onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}\n              style={styles.privateRequestButton}\n              testID=\"luxy-private-photo-request-placeholder\"\n            >\n              <Text style={styles.privateRequestText}>Yêu cầu xem ảnh riêng tư ({profile.private_photo_count})</Text>\n            </Pressable>\n          ) : null}\n"""
+          new_left = """          {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (\n            <PrivatePhotoCard\n              displayName={displayName}\n              ownerId={profile.id}\n              privatePhotoCount={profile.private_photo_count}\n              variant=\"button\"\n            />\n          ) : null}\n"""
+          if old_left in s:
+              s = s.replace(old_left, new_left, 1)
+          elif new_left not in s:
+              raise SystemExit('left private-photo placeholder anchor missing')
+
+          old_gallery = """                {profile.private_photo_count > 0 ? (\n                  <Pressable\n                    accessibilityRole=\"button\"\n                    onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}\n                    style={styles.privateTile}\n                  >\n                    <Text style={styles.privateEye}>◉̸</Text>\n                    <Text style={styles.privateTileTitle}>Ảnh riêng tư ({profile.private_photo_count})</Text>\n                    <Text style={styles.privateTileButton}>Yêu cầu xem</Text>\n                  </Pressable>\n                ) : null}\n              </View>\n\n              <ProfileStorySection profile={profile} />\n"""
+          new_gallery = """              </View>\n\n              {profile.private_photo_count > 0 ? (\n                <PrivatePhotoCard\n                  displayName={displayName}\n                  onOpenPhoto={openPhoto}\n                  ownerId={profile.id}\n                  privatePhotoCount={profile.private_photo_count}\n                  variant=\"gallery\"\n                />\n              ) : null}\n\n              <ProfileStorySection profile={profile} />\n"""
+          if old_gallery in s:
+              s = s.replace(old_gallery, new_gallery, 1)
+          elif new_gallery not in s:
+              raise SystemExit('gallery private-photo placeholder anchor missing')
+
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet -- apps/mobile/app/profile/'[username].tsx'; then
+            echo 'Profile already patched.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/mobile/app/profile/'[username].tsx'
+          git commit -m 'LX-14: wire private photo consent UI into Member Profile'
+          git push origin HEAD:agent/lx-14-private-photo-album
