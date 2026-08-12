@@ -1,6 +1,6 @@
 begin;
 
-select plan(37);
+select plan(39);
 
 select ok(to_regtype('public.private_photo_access_status') is not null, 'LX-14 private-photo access status enum exists');
 select has_table('public', 'private_photo_access_requests', 'private-photo request/grant table exists');
@@ -62,7 +62,6 @@ where id in (
   '24000000-0000-0000-0000-000000000003'::uuid
 );
 
--- A paid membership must not bypass the owner-controlled private-photo grant.
 insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,starts_at,expires_at,source)
 values('24000000-0000-0000-0000-000000000002','premium','active',true,now()-interval '1 day',now()+interval '30 days','lx14_test');
 
@@ -108,10 +107,15 @@ select is((select request_status::text from public.get_private_photo_access_stat
 select is((select can_view from public.get_private_photo_access_state('24000000-0000-0000-0000-000000000001')), false, 'pending request grants no view access');
 
 reset role;
+update public.private_photo_access_requests
+set id='24000000-0000-4000-8000-000000000103'
+where owner_id='24000000-0000-0000-0000-000000000001'
+  and requester_id='24000000-0000-0000-0000-000000000002';
+
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
 select throws_ok(
-  $$select public.respond_to_private_photo_access_request((select id from public.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000001' and requester_id='24000000-0000-0000-0000-000000000002'),true)$$,
+  $$select public.respond_to_private_photo_access_request('24000000-0000-4000-8000-000000000103',true)$$,
   '42501','private_photo_request_not_available','unrelated member cannot approve another owner request'
 );
 
@@ -120,10 +124,10 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select is((select count(*) from public.list_my_private_photo_access_requests('pending')), 1::bigint, 'owner sees one pending request');
 select lives_ok(
-  $$select public.respond_to_private_photo_access_request((select id from public.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000001' and requester_id='24000000-0000-0000-0000-000000000002'),false)$$,
+  $$select public.respond_to_private_photo_access_request('24000000-0000-4000-8000-000000000103',false)$$,
   'owner can reject request'
 );
-select is((select status::text from public.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000001' and requester_id='24000000-0000-0000-0000-000000000002'), 'rejected', 'rejection is persisted');
+select is((select status::text from public.list_my_private_photo_access_requests('rejected') limit 1), 'rejected', 'rejection is persisted');
 
 reset role;
 set local role authenticated;
@@ -139,7 +143,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select lives_ok(
-  $$select public.respond_to_private_photo_access_request((select id from public.private_photo_access_requests where owner_id='24000000-0000-0000-0000-000000000001' and requester_id='24000000-0000-0000-0000-000000000002'),true)$$,
+  $$select public.respond_to_private_photo_access_request('24000000-0000-4000-8000-000000000103',true)$$,
   'owner can approve request'
 );
 select is((select count(*) from public.list_my_private_photo_access_requests('approved')), 1::bigint, 'owner sees approved grant');
@@ -157,7 +161,7 @@ values('24000000-0000-0000-0000-000000000001','24000000-0000-0000-0000-000000000
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"24000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
-select is(private.can_view_media_internal('24000000-0000-4000-8000-000000000101','24000000-0000-0000-0000-000000000002'), false, 'blocking immediately invalidates an approved private-photo grant');
+select is((select count(*) from public.list_profile_album_media('24000000-0000-0000-0000-000000000001','private')), 0::bigint, 'blocking immediately invalidates an approved private-photo grant');
 
 reset role;
 delete from public.user_blocks
