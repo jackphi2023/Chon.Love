@@ -1076,6 +1076,54 @@ export type Database = {
           },
         ]
       }
+      private_photo_access_requests: {
+        Row: {
+          id: string
+          owner_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string | null
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["private_photo_access_status"]
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          requested_at?: string
+          requester_id: string
+          responded_at?: string | null
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["private_photo_access_status"]
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          owner_id?: string
+          requested_at?: string
+          requester_id?: string
+          responded_at?: string | null
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["private_photo_access_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_photo_access_requests_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_photo_access_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_favorites: {
         Row: {
           created_at: string
@@ -2284,6 +2332,18 @@ export type Database = {
           transfer_content: string
         }[]
       }
+      get_private_photo_access_state: {
+        Args: { p_owner_id: string }
+        Returns: {
+          can_view: boolean
+          owner_id: string
+          private_photo_count: number
+          request_id: string
+          request_status: Database["public"]["Enums"]["private_photo_access_status"]
+          requested_at: string
+          responded_at: string
+        }[]
+      }
       get_profile_interest_state: {
         Args: { p_profile_id: string }
         Returns: {
@@ -2623,6 +2683,21 @@ export type Database = {
           verified_at: string
         }[]
       }
+      list_my_private_photo_access_requests: {
+        Args: {
+          p_status?: Database["public"]["Enums"]["private_photo_access_status"]
+        }
+        Returns: {
+          display_name: string
+          request_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string
+          revoked_at: string
+          status: Database["public"]["Enums"]["private_photo_access_status"]
+          username: string
+        }[]
+      }
       list_my_social_connections: {
         Args: { p_limit?: number; p_offset?: number; p_view?: string }
         Returns: {
@@ -2960,6 +3035,25 @@ export type Database = {
           status: string
         }[]
       }
+      request_private_photo_access: {
+        Args: { p_owner_id: string }
+        Returns: {
+          id: string
+          owner_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string | null
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["private_photo_access_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "private_photo_access_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_withdrawal: {
         Args: {
           p_bank_account_id: string
@@ -2996,6 +3090,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      respond_to_private_photo_access_request: {
+        Args: { p_approve: boolean; p_request_id: string }
+        Returns: {
+          id: string
+          owner_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string | null
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["private_photo_access_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "private_photo_access_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reverse_play_purchase: {
         Args: {
           p_event_type: string
@@ -3012,6 +3125,25 @@ export type Database = {
           spent_reversed_units: number
           unspent_debited_units: number
         }[]
+      }
+      revoke_private_photo_access: {
+        Args: { p_requester_id: string }
+        Returns: {
+          id: string
+          owner_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string | null
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["private_photo_access_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "private_photo_access_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       search_luxy_profiles_v2:
         | {
@@ -3494,7 +3626,7 @@ export type Database = {
       }
     }
     Enums: {
-      album_type: "public" | "fan"
+      album_type: "public" | "fan" | "private"
       children_status: "no_children" | "has_children" | "prefer_not_to_say"
       conversation_type: "direct"
       creator_activity_content_type: "text" | "image" | "video"
@@ -3570,6 +3702,11 @@ export type Database = {
         | "automated_scan"
         | "admin_review"
         | "appeal"
+      private_photo_access_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "revoked"
       profile_lifestyle_tag:
         | "true_love"
         | "luxury_lifestyle"
@@ -3742,7 +3879,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      album_type: ["public", "fan"],
+      album_type: ["public", "fan", "private"],
       children_status: ["no_children", "has_children", "prefer_not_to_say"],
       conversation_type: ["direct"],
       creator_activity_content_type: ["text", "image", "video"],
@@ -3826,6 +3963,12 @@ export const Constants = {
         "automated_scan",
         "admin_review",
         "appeal",
+      ],
+      private_photo_access_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "revoked",
       ],
       profile_lifestyle_tag: [
         "true_love",
