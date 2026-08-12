@@ -16,7 +16,7 @@ async function login(page, expectedSearchTestId) {
 async function openCreatorProfile(page) {
   await page.goto(`/profile/${creator.username}`);
   await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
-  await expect(page.getByRole('header', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
+  await expect(page.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
 }
 
 async function expectNoHorizontalOverflow(page) {
