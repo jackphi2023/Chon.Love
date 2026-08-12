@@ -63,7 +63,7 @@ export async function setConversationArchived(
   if (data !== true) throw new Error('conversation_not_available');
 }
 
-export async function getLuxyProfileConversation(
+export async function openLuxyProfileConversation(
   client: Client,
   profileId: string,
 ): Promise<string> {
