@@ -41,6 +41,7 @@ import {
 } from 'react-native';
 import { CreatorActivityList } from '@/components/creator-activity';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
+import { PrivatePhotoCard } from '@/components/private-photo-card';
 import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';
 import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -318,14 +319,12 @@ export default function LuxyMemberProfilePage() {
           </Pressable>
 
           {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}
-              style={styles.privateRequestButton}
-              testID="luxy-private-photo-request-placeholder"
-            >
-              <Text style={styles.privateRequestText}>Yêu cầu xem ảnh riêng tư ({profile.private_photo_count})</Text>
-            </Pressable>
+            <PrivatePhotoCard
+              displayName={displayName}
+              ownerId={profile.id}
+              privatePhotoCount={profile.private_photo_count}
+              variant="button"
+            />
           ) : null}
 
           <ProfileFacts profile={profile} />
@@ -422,18 +421,17 @@ export default function LuxyMemberProfilePage() {
                 {publicMedia.map((media) => (
                   <ProfilePhotoTile key={media.media_id} media={media} name={displayName} onOpen={openPhoto} />
                 ))}
-                {profile.private_photo_count > 0 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => setMessage('Yêu cầu xem ảnh riêng tư sẽ được kích hoạt khi workflow xin quyền xem được hoàn thiện.')}
-                    style={styles.privateTile}
-                  >
-                    <Text style={styles.privateEye}>◉̸</Text>
-                    <Text style={styles.privateTileTitle}>Ảnh riêng tư ({profile.private_photo_count})</Text>
-                    <Text style={styles.privateTileButton}>Yêu cầu xem</Text>
-                  </Pressable>
-                ) : null}
               </View>
+
+              {profile.private_photo_count > 0 ? (
+                <PrivatePhotoCard
+                  displayName={displayName}
+                  onOpenPhoto={openPhoto}
+                  ownerId={profile.id}
+                  privatePhotoCount={profile.private_photo_count}
+                  variant="gallery"
+                />
+              ) : null}
 
               <ProfileStorySection profile={profile} />
 
