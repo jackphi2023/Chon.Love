@@ -1,0 +1,80 @@
+name: LX-14 final fixture patch (temporary)
+
+on:
+  push:
+    branches:
+      - agent/lx-14-final-hardening
+    paths:
+      - .github/workflows/lx14-final-fixture-patch-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/lx-14-final-hardening
+          fetch-depth: 0
+
+      - name: Add real Private Photo fixture distinct from Creator Activity
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/br06/setup-local-fixtures.mjs')
+          s = p.read_text()
+
+          s = s.replace(
+            "const publicMediaId = randomUUID();\nconst publicAlbumId = randomUUID();",
+            "const publicMediaId = randomUUID();\nconst privatePhotoMediaId = randomUUID();\nconst publicAlbumId = randomUUID();",
+            1,
+          )
+          s = s.replace(
+            "const publicMediaPath = `${creator.id}/${publicMediaId}/br06-public-profile.png`;",
+            "const publicMediaPath = `${creator.id}/${publicMediaId}/br06-public-profile.png`;\nconst privatePhotoMediaPath = `${creator.id}/${privatePhotoMediaId}/br06-private-profile.png`;",
+            1,
+          )
+          s = s.replace(
+            "await uploadFixtureImage(publicMediaPath);",
+            "await uploadFixtureImage(publicMediaPath);\nawait uploadFixtureImage(privatePhotoMediaPath);",
+            1,
+          )
+
+          old_tail = """  (\n    ${uuidLiteral(publicMediaId)},\n    ${uuidLiteral(creator.id)},\n    'profile-media',\n    ${sqlLiteral(publicMediaPath)},\n    'image',\n    'image/png',\n    ${tinyPng.length},\n    1,\n    1,\n    repeat('f', 64),\n    'public',\n    'approved',\n    now(),\n    now(),\n    ${uuidLiteral(moderator.id)}\n  );"""
+          new_tail = """  (\n    ${uuidLiteral(publicMediaId)},\n    ${uuidLiteral(creator.id)},\n    'profile-media',\n    ${sqlLiteral(publicMediaPath)},\n    'image',\n    'image/png',\n    ${tinyPng.length},\n    1,\n    1,\n    repeat('f', 64),\n    'public',\n    'approved',\n    now(),\n    now(),\n    ${uuidLiteral(moderator.id)}\n  ),\n  (\n    ${uuidLiteral(privatePhotoMediaId)},\n    ${uuidLiteral(creator.id)},\n    'profile-media',\n    ${sqlLiteral(privatePhotoMediaPath)},\n    'image',\n    'image/png',\n    ${tinyPng.length},\n    1,\n    1,\n    repeat('a', 64),\n    'private',\n    'approved',\n    now(),\n    now(),\n    ${uuidLiteral(moderator.id)}\n  );"""
+          if old_tail not in s:
+            raise SystemExit('media insert anchor missing')
+          s = s.replace(old_tail, new_tail, 1)
+
+          s = s.replace(
+            "  publicMediaId,\n  publicAlbumId,",
+            "  publicMediaId,\n  privatePhotoMediaId,\n  publicAlbumId,",
+            1,
+          )
+
+          required = [
+            'const privatePhotoMediaId = randomUUID();',
+            'br06-private-profile.png',
+            "'private',\n    'approved'",
+            'privatePhotoMediaId,',
+          ]
+          for token in required:
+            if token not in s:
+              raise SystemExit(f'missing patched token: {token}')
+          p.write_text(s)
+          PY
+
+      - name: Commit fixture patch
+        run: |
+          if git diff --quiet -- scripts/br06/setup-local-fixtures.mjs; then
+            echo 'Fixture already patched.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/br06/setup-local-fixtures.mjs
+          git commit -m 'LX-14: add isolated Private Photo browser fixture'
+          git push origin HEAD:agent/lx-14-final-hardening
