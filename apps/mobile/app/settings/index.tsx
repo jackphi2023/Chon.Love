@@ -28,8 +28,8 @@ export default function SettingsPage() {
       testID="luxy-settings-page"
       title="Cài đặt"
     >
-      <SettingsNotice title="Quyền riêng tư là mặc định">
-        Ảnh bảo mật, ảnh xác thực và giấy tờ danh tính không được dùng làm ảnh công khai. Luxy.Love chỉ mở từng luồng theo đúng quyền và mục đích của người dùng.
+      <SettingsNotice title="Quyền riêng tư do bạn kiểm soát">
+        Ảnh hồ sơ mới mặc định công khai. Bạn có thể chọn Ẩn từng ảnh để chuyển sang Ảnh riêng tư; giấy tờ xác thực không bao giờ trở thành ảnh hồ sơ.
       </SettingsNotice>
 
       <SettingsSection
@@ -44,12 +44,12 @@ export default function SettingsPage() {
           title="Chỉnh sửa hồ sơ"
         />
         <SettingsLinkRow
-          description="Chọn và quản lý ảnh chỉ thuộc vùng riêng tư của bạn; không tự động công khai hoặc mở khóa bằng quà tặng."
+          description="Các ảnh bạn đã chọn Ẩn. Premium/Diamond được xem; Free chỉ thấy khu vực ảnh bị khóa và yêu cầu nâng cấp."
           onPress={() => router.push('/settings/private-photos')}
           status="Riêng tư"
           symbol="▣"
           testID="settings-private-photos"
-          title="Ảnh bảo mật"
+          title="Ảnh riêng tư"
         />
       </SettingsSection>
 
@@ -59,24 +59,23 @@ export default function SettingsPage() {
         title="Xác thực"
       >
         <SettingsLinkRow
-          description="Tự chụp selfie bằng camera desktop/mobile, chuẩn bị ảnh CCCD mặt trước/mặt sau và theo dõi trạng thái xác minh."
+          description="Selfie live, CCCD mặt trước/mặt sau và LinkedIn. Chỉ trạng thái badge được công khai."
           onPress={() => router.push('/settings/verification')}
-          status="Chưa xác minh"
           symbol="✓"
           testID="settings-verification"
-          title="Xác thực danh tính"
+          title="Xác thực hồ sơ"
         />
       </SettingsSection>
 
       <SettingsSection
-        description="Xem gói hiện tại và các quyền lợi dự kiến của Premium / Diamond."
+        description="Xem gói hiện tại và các quyền lợi của Premium / Diamond."
         testID="settings-membership-section"
         title="Gói dịch vụ"
       >
         <SettingsLinkRow
-          description="Free, Premium và Diamond; billing/entitlement chỉ kích hoạt khi membership engine hoàn tất."
+          description="Free, Premium và Diamond; quyền xem ảnh riêng tư được kiểm tra trực tiếp từ trạng thái gói trên server."
           onPress={() => router.push('/settings/membership')}
-          status="Free"
+          status="Xem gói"
           symbol="◇"
           testID="settings-membership"
           title="Gói thành viên"
@@ -89,7 +88,7 @@ export default function SettingsPage() {
         title="Quà tặng & số dư"
       >
         <SettingsLinkRow
-          description="Trung tâm quà tặng, lịch sử giao dịch và các cài đặt sẽ được lưu khi LX-19 mở gift preferences."
+          description="Xem lịch sử và nguyên tắc quà tặng. Quà không mở khóa ảnh riêng tư hoặc quan hệ."
           onPress={() => router.push('/settings/gifts')}
           symbol="♡"
           testID="settings-gifts"
@@ -117,7 +116,7 @@ export default function SettingsPage() {
       </SettingsSection>
 
       <Text style={styles.footnote}>
-        Luxy.Love không coi quà tặng là điều kiện để mở ảnh riêng tư, nhắn tin hoặc gặp mặt. Xác thực tài chính không phải một phần của hồ sơ xác minh.
+        Activity chưa được mở trong Luxy V1 để giữ trải nghiệm bám sát Seeking. Quà tặng không phải điều kiện để mở ảnh riêng tư, nhắn tin hoặc gặp mặt.
       </Text>
     </LuxySettingsPage>
   );
