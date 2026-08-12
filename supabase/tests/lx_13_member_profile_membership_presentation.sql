@@ -1,6 +1,6 @@
 begin;
 
-select plan(22);
+select plan(23);
 
 select ok(to_regtype('public.luxy_membership_tier') is not null, 'Luxy membership tier enum exists');
 select has_table('private', 'luxy_memberships', 'server-controlled membership snapshot table exists');
