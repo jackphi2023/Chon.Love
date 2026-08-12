@@ -1,0 +1,49 @@
+name: LX-17 Profile Badge Patch
+
+on:
+  push:
+    branches: ['agent/lx-17-premium-diamond-engine']
+    paths: ['.github/workflows/lx17-profile-badge-patch.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  patch-profile-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/lx-17-premium-diamond-engine
+          fetch-depth: 0
+      - name: Patch Member Profile avatar badge
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('apps/mobile/app/profile/[username].tsx')
+          text = path.read_text()
+          import_anchor = "import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';\n"
+          import_line = "import { LuxyMembershipBadgeImage } from '@/components/luxy-membership-badge-image';\n"
+          if import_line not in text:
+              if import_anchor not in text:
+                  raise SystemExit('profile import anchor not found')
+              text = text.replace(import_anchor, import_anchor + import_line, 1)
+          hero_anchor = "          )}\n          {!profile.blocked_by_viewer ? (\n"
+          badge = "          )}\n          {profile.membership_badge_visible ? (\n            <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />\n          ) : null}\n          {!profile.blocked_by_viewer ? (\n"
+          if '<LuxyMembershipBadgeImage tier={profile.membership_tier}' not in text:
+              if hero_anchor not in text:
+                  raise SystemExit('profile hero anchor not found')
+              text = text.replace(hero_anchor, badge, 1)
+          path.write_text(text)
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet -- 'apps/mobile/app/profile/[username].tsx'; then
+            echo 'Profile badge patch already applied.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'apps/mobile/app/profile/[username].tsx'
+          git commit -m 'feat(lx-17): overlay supplied badge on Member Profile avatar'
+          git push origin HEAD:agent/lx-17-premium-diamond-engine
