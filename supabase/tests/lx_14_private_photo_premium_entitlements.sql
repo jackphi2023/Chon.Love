@@ -20,7 +20,8 @@ insert into auth.users(
 ) values
 ('00000000-0000-0000-0000-000000000000','24000000-0000-0000-0000-000000000001','authenticated','authenticated','lx14-viewer@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
 ('00000000-0000-0000-0000-000000000000','24000000-0000-0000-0000-000000000002','authenticated','authenticated','lx14-owner@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
-('00000000-0000-0000-0000-000000000000','24000000-0000-0000-0000-000000000003','authenticated','authenticated','lx14-other@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
+('00000000-0000-0000-0000-000000000000','24000000-0000-0000-0000-000000000003','authenticated','authenticated','lx14-other@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','24000000-0000-0000-0000-000000000099','authenticated','authenticated','lx14-moderator@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
 
 update private.user_identity
 set date_of_birth=(current_date-interval '30 years')::date,
@@ -58,13 +59,13 @@ where id in (
 
 insert into public.media_assets(
   id,owner_id,storage_bucket,storage_path,media_type,mime_type,file_size_bytes,width,height,
-  visibility,moderation_status,uploaded_at,approved_at
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
 ) values(
   '24000000-0000-4000-8000-000000000101',
   '24000000-0000-0000-0000-000000000002',
   'profile-media',
   '24000000-0000-0000-0000-000000000002/24000000-0000-4000-8000-000000000101/lx14-private.png',
-  'image','image/png',100,100,100,'private','approved',now(),now()
+  'image','image/png',100,100,100,'private','approved',now(),now(),'24000000-0000-0000-0000-000000000099'
 );
 
 set local role authenticated;
