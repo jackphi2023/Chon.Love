@@ -103,6 +103,7 @@ jobs:
           test -f supabase/migrations/20260811130000_lx_07_profile_schema.sql
           test -f supabase/migrations/20260811161500_lx_09_search_backend_v2.sql
           test -f supabase/migrations/20260812094000_lx_13_member_profile_membership_presentation.sql
+          test -f supabase/migrations/20260812133000_lx_14_private_photo_album.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -119,6 +120,7 @@ jobs:
           test -f supabase/tests/lx_07_profile_schema.sql
           test -f supabase/tests/lx_09_search_backend_v2.sql
           test -f supabase/tests/lx_13_member_profile_membership_presentation.sql
+          test -f supabase/tests/lx_14_private_photo_album.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -164,6 +166,9 @@ jobs:
 
       - name: Run LX-13 Member Profile membership presentation contract
         run: supabase test db supabase/tests/lx_13_member_profile_membership_presentation.sql --local
+
+      - name: Run LX-14 Private Photo Album access contract
+        run: supabase test db supabase/tests/lx_14_private_photo_album.sql --local
 
       - name: Run concurrent gift test
         run: bash supabase/tests/09_concurrency.sh
