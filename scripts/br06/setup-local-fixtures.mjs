@@ -74,11 +74,13 @@ if (!creator || !viewer || !fan || !outsider || !moderator) {
 const activityMediaId = randomUUID();
 const avatarMediaId = randomUUID();
 const publicMediaId = randomUUID();
+const privatePhotoMediaId = randomUUID();
 const publicAlbumId = randomUUID();
 const postId = randomUUID();
 const activityMediaPath = `${creator.id}/${activityMediaId}/br06-activity.png`;
 const avatarMediaPath = `${creator.id}/${avatarMediaId}/br06-avatar.png`;
 const publicMediaPath = `${creator.id}/${publicMediaId}/br06-public-profile.png`;
+const privatePhotoMediaPath = `${creator.id}/${privatePhotoMediaId}/br06-private-profile.png`;
 const tinyPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2n6sAAAAASUVORK5CYII=',
   'base64',
@@ -98,6 +100,7 @@ async function uploadFixtureImage(path) {
 await uploadFixtureImage(activityMediaPath);
 await uploadFixtureImage(avatarMediaPath);
 await uploadFixtureImage(publicMediaPath);
+await uploadFixtureImage(privatePhotoMediaPath);
 
 const sqlLiteral = (value) => `'${String(value).replaceAll("'", "''")}'`;
 const uuidLiteral = (value) => `${sqlLiteral(value)}::uuid`;
@@ -266,6 +269,23 @@ insert into public.media_assets(
     now(),
     now(),
     ${uuidLiteral(moderator.id)}
+  ),
+  (
+    ${uuidLiteral(privatePhotoMediaId)},
+    ${uuidLiteral(creator.id)},
+    'profile-media',
+    ${sqlLiteral(privatePhotoMediaPath)},
+    'image',
+    'image/png',
+    ${tinyPng.length},
+    1,
+    1,
+    repeat('a', 64),
+    'private',
+    'approved',
+    now(),
+    now(),
+    ${uuidLiteral(moderator.id)}
   );
 
 update public.profiles
@@ -339,6 +359,7 @@ await writeFile('/tmp/br06-fixture-manifest.json', JSON.stringify({
   activityMediaId,
   avatarMediaId,
   publicMediaId,
+  privatePhotoMediaId,
   publicAlbumId,
   postId,
 }, null, 2), 'utf8');
