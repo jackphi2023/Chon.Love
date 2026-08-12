@@ -58,6 +58,18 @@ describe('Luxy LX-13 Member Profile read-model client', () => {
     expect(result).not.toHaveProperty('kyc');
   });
 
+  it('shows the paid certification signal only on paid male profiles in LX-13', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      error: null,
+      data: [{ ...member, gender: 'female', membership_tier: 'diamond', membership_badge_visible: true }],
+    });
+    await expect(getLuxyMemberProfile({ rpc } as never, 'luxy_member')).resolves.toMatchObject({
+      gender: 'female',
+      membership_tier: 'diamond',
+      membership_badge_visible: false,
+    });
+  });
+
   it('returns null for a hidden or unavailable profile', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null, data: [] });
     await expect(getLuxyMemberProfile({ rpc } as never, 'hidden_member')).resolves.toBeNull();
