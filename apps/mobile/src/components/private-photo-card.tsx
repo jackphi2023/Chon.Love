@@ -61,7 +61,10 @@ export function PrivatePhotoCard({
       return Promise.all(
         media.map(async (item) => ({
           id: item.media_id,
-          url: await createPrivateMediaUrl(client, item.storage_bucket, item.storage_path, 120),
+          url: await createPrivateMediaUrl(client, {
+            storage_bucket: item.storage_bucket,
+            storage_path: item.storage_path,
+          }, 120),
         })),
       );
     },
