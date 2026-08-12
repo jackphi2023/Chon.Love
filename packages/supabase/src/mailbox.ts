@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Database } from './database.types';
 
 // LX-16 mailbox is a presentation/read-model layer over the LX-15 direct messaging contract.
-// The server remains authoritative for who may create/send/read conversations.
+// LX-17 adds paid-tier presentation metadata only; the server remains authoritative for entitlements.
 type Client = SupabaseClient<Database>;
 
 export const LUXY_MAILBOX_PAGE_SIZE = 30;
@@ -22,6 +22,7 @@ const mailboxConversationSchema = z.object({
   avatar_storage_path: z.string().nullable(),
   is_creator: z.boolean(),
   is_online: z.boolean(),
+  membership_tier: z.enum(['free', 'premium', 'diamond']),
   friendship_status: z.enum(['direct', 'pending', 'accepted', 'declined', 'cancelled']),
   can_send: z.boolean(),
   blocked: z.boolean(),
