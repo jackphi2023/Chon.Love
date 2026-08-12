@@ -28,7 +28,6 @@ const primaryItems = [
 
 const accountItems = [
   { label: 'Hồ sơ', href: '/(tabs)/profile' as const },
-  { label: 'Hoạt động', href: '/(tabs)/activity' as const },
   { label: 'Quà', href: '/(tabs)/gifts' as const },
   { label: 'Số dư', href: '/(tabs)/balance' as const },
   { label: 'Cài đặt', href: '/settings' as const },
@@ -47,7 +46,7 @@ function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
 
 function isAccountRoute(pathname: string): boolean {
   if (pathname.startsWith('/settings/membership')) return false;
-  return ['/profile', '/activity', '/gifts', '/balance', '/settings'].some((route) => pathname.startsWith(route));
+  return ['/profile', '/gifts', '/balance', '/settings'].some((route) => pathname.startsWith(route));
 }
 
 export function LuxyShellNavigation() {
