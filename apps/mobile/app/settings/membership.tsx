@@ -231,8 +231,8 @@ export default function MembershipBillingPage() {
 
           {tab === 'one_time' ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.sectionTitle}>Sản phẩm mua một lần chưa mở trong LX-18</Text>
-              <Text style={styles.muted}>Tab được giữ theo cấu trúc Billing của Seeking. Quà tặng và giao dịch một lần thuộc LX-19; Luxy không tạo sản phẩm giả chỉ để lấp giao diện.</Text>
+              <Text style={styles.sectionTitle}>Sản phẩm mua một lần chưa khả dụng</Text>
+              <Text style={styles.muted}>Các giao dịch mua một lần hiện chưa được mở. Luxy.Love không tạo sản phẩm giả chỉ để lấp giao diện.</Text>
               <Pressable onPress={() => setTab('membership')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Xem gói thành viên</Text></Pressable>
             </View>
           ) : (
@@ -253,7 +253,7 @@ export default function MembershipBillingPage() {
                 <Pressable disabled={!selectedOption || busy !== null || Platform.OS !== 'web'} onPress={() => void startCheckout()} style={[styles.primaryButton, (!selectedOption || busy !== null || Platform.OS !== 'web') && styles.disabled]} testID="membership-checkout-cta">
                   {busy === 'create' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryButtonText}>Tiếp tục thanh toán</Text>}
                 </Pressable>
-                {Platform.OS !== 'web' ? <Text style={styles.note}>VietQR chỉ mở trên web/PWA. Android Google Play Billing thuộc LX-21.</Text> : null}
+                {Platform.OS !== 'web' ? <Text style={styles.note}>VietQR chỉ mở trên web. Thanh toán Google Play chưa được hỗ trợ trong phiên bản này.</Text> : null}
                 <Text style={styles.note}>Thanh toán không tự kích hoạt. Admin phải đối soát đúng giao dịch và số tiền.</Text>
               </View>
 

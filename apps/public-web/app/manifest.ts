@@ -4,8 +4,8 @@ export const dynamic = 'force-static';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'MyFan — Social Creator 18+',
-    short_name: 'MyFan',
+    name: 'Luxy.Love — Kết nối chọn lọc 18+',
+    short_name: 'Luxy.Love',
     description: 'Cộng đồng của nhà sáng tạo và người hâm mộ.',
     start_url: '/',
     display: 'standalone',

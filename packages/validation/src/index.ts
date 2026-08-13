@@ -229,7 +229,7 @@ export function isAtLeastAge(dateOfBirth: string, minimumAge = 18, now = new Dat
 
 export const adultDateOfBirthSchema = dateOfBirthSchema.refine(
   (value) => isAtLeastAge(value),
-  'Bạn phải đủ 18 tuổi để sử dụng MyFan.',
+  'Bạn phải đủ 18 tuổi để sử dụng Luxy.Love.',
 );
 
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);

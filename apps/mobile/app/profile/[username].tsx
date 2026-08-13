@@ -39,7 +39,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { CreatorActivityList } from '@/components/creator-activity';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
 import { LuxyMembershipBadgeImage } from '@/components/luxy-membership-badge-image';
 import { LuxyPrivatePhotoAccess } from '@/components/luxy-private-photo-access';
@@ -440,15 +439,6 @@ export default function LuxyMemberProfilePage() {
 
               <ProfileStorySection profile={profile} />
 
-              {social.is_creator ? (
-                <View style={styles.activitySection}>
-                  <View style={styles.sectionHeadingRow}>
-                    <Text style={styles.sectionTitle}>Hoạt động & Album ảnh</Text>
-                    {social.activity_can_view ? <Text style={styles.sectionCount}>{social.activity_post_count} bài</Text> : null}
-                  </View>
-                  <CreatorActivityList compact username={social.username} />
-                </View>
-              ) : null}
             </>
           )}
 
@@ -584,7 +574,7 @@ function SafetyModal(props: {
 }
 
 function LoadingScreen() { return <View style={styles.centeredPage}><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.mutedText}>Đang tải hồ sơ…</Text></View>; }
-function formatLastActive(value: string | null): string { if (!value) return 'Hoạt động gần đây'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'Hoạt động gần đây'; const diff = Date.now() - date.getTime(); if (diff < 15 * 60_000) return 'Đang online'; if (diff < 3_600_000) return `Hoạt động ${Math.max(1, Math.floor(diff / 60_000))} phút trước`; if (diff < 86_400_000) return `Hoạt động ${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`; return `Hoạt động ${Math.max(1, Math.floor(diff / 86_400_000))} ngày trước`; }
+function formatLastActive(value: string | null): string { if (!value) return 'Truy cập gần đây'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'Truy cập gần đây'; const diff = Date.now() - date.getTime(); if (diff < 15 * 60_000) return 'Đang online'; if (diff < 3_600_000) return `Truy cập ${Math.max(1, Math.floor(diff / 60_000))} phút trước`; if (diff < 86_400_000) return `Truy cập ${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`; return `Truy cập ${Math.max(1, Math.floor(diff / 86_400_000))} ngày trước`; }
 function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Luxy.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
 function interestedInSentence(profile: LuxyMemberProfile): string { return `Đang tìm ${interestedInLabel(profile.interested_in).toLowerCase()} cho một kết nối chất lượng`; }
 function interestedInLabel(value: LuxyMemberProfile['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }

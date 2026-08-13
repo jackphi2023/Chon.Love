@@ -76,7 +76,7 @@ export function ActivityModerationClient() {
   return (
     <div className="adminModerationShell">
       <header className="adminModerationHeader">
-        <div><p className="adminEyebrow">CREATOR ACTIVITY</p><h1>Kiểm duyệt Hoạt động</h1><p>Text, link, ảnh xem trước và original được xem qua quyền moderator. Quyền Công khai, Bạn bè hoặc Fan được áp dụng cho toàn bộ feed sau khi duyệt.</p></div>
+        <div><p className="adminEyebrow">LEGACY CONTENT</p><h1>Kiểm duyệt nội dung legacy</h1><p>Luồng nội dung lịch sử được giữ để vận hành dữ liệu cũ. Text, link và ảnh chỉ được xem qua quyền moderator.</p></div>
         <div className="adminActions"><button className="adminSecondary" onClick={reload} type="button">Tải lại</button><Link className="adminSecondary" href="/vietqr-reconciliation">Đối soát VietQR</Link><Link className="adminSecondary" href="/">Tài khoản</Link></div>
       </header>
       {state.status === 'loading' && state.items.length === 0 ? <div className="adminState">Đang tải hàng đợi…</div> : null}
@@ -90,7 +90,7 @@ export function ActivityModerationClient() {
             <dl className="adminMetaGrid">
               <div><dt>Dạng</dt><dd>{item.content_type}</dd></div>
               <div><dt>Album</dt><dd>{item.content_type === 'image' ? 'Tự động sau duyệt' : 'Không áp dụng'}</dd></div>
-              <div><dt>Quyền xem</dt><dd>Cài đặt chung Creator</dd></div>
+              <div><dt>Quyền xem</dt><dd>Cấu hình nội dung legacy</dd></div>
               <div><dt>Báo cáo</dt><dd>{item.report_count}</dd></div>
             </dl>
             {item.external_url ? <a className="adminExternalLink" href={item.external_url} rel="noreferrer" target="_blank">{item.external_provider}: {item.external_url}</a> : null}

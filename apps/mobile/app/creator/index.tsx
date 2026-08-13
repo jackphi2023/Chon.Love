@@ -2,8 +2,8 @@ import { Placeholder, Screen } from '@/components/screen';
 
 export default function Page() {
   return (
-    <Screen title="Creator" description="Foundation cho Creator Terms, KYC, tài khoản ngân hàng, thu nhập và rút tiền thủ công.">
-      <Placeholder text="Placeholder Phiên 4 — nghiệp vụ và UI chi tiết sẽ theo screen inventory V2." />
+    <Screen title="Tính năng chưa khả dụng" description="Các công cụ nhận thưởng và rút tiền hiện chưa được mở trên Luxy.Love.">
+      <Placeholder text="Không có luồng tài chính thay thế được mở trong phiên bản hiện tại." />
     </Screen>
   );
 }

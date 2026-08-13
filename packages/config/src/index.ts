@@ -1,4 +1,4 @@
-export const PRODUCT_NAME = 'MyFan';
+export const PRODUCT_NAME = 'Luxy.Love';
 export const MINIMUM_USER_AGE = 18;
 
 export const ENVIRONMENT_NAMES = ['development', 'staging', 'production'] as const;
@@ -24,7 +24,7 @@ export const phaseCFeatureFlags = {
   creator_kyc: false,
   withdrawal: false,
   fan_album: true,
-  // LX-20 product override: Activity is deferred to keep the Luxy V1 surface aligned with Seeking.
+  // Web V1 product override: Activity is deferred to keep the Luxy V1 surface aligned with Seeking.
   creator_activity: false,
   creator_activity_links: false,
   creator_activity_gift_lock: false,

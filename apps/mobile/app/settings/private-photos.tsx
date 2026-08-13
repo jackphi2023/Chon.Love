@@ -70,7 +70,7 @@ export default function PrivatePhotosSettingsPage() {
       title="Ảnh riêng tư"
     >
       <SettingsNotice title="Ảnh mới luôn công khai trước">
-        Theo luồng Luxy V1, ảnh hồ sơ mới được upload ở trạng thái Công khai. Vào “Hồ sơ của tôi” và chọn “Ẩn” trên từng ảnh để đưa ảnh vào đây. Quà tặng, Fan hoặc kết nối không mở khóa ảnh.
+        Theo luồng Luxy V1, ảnh hồ sơ mới được upload ở trạng thái Công khai. Vào “Hồ sơ của tôi” và chọn “Ẩn” trên từng ảnh để đưa ảnh vào đây. Quà tặng hoặc các loại kết nối không mở khóa ảnh.
       </SettingsNotice>
 
       <SettingsSection

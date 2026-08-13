@@ -138,7 +138,7 @@ export default function AccountDeletionPage() {
           <View style={styles.warningCard}>
             <Text style={styles.warningTitle}>Điều gì sẽ xảy ra?</Text>
             <Text style={styles.listText}>• Hồ sơ bị ẩn khỏi Khám phá ngay khi gửi yêu cầu.</Text>
-            <Text style={styles.listText}>• Nearby, lời mời kết bạn, chat và Album Fan bị tắt.</Text>
+            <Text style={styles.listText}>• Khám phá, tương tác, chat và quyền xem nội dung riêng tư bị tắt.</Text>
             <Text style={styles.listText}>• Dữ liệu được xử lý sau thời gian chờ theo cấu hình hệ thống.</Text>
             <Text style={styles.listText}>• Một số hồ sơ giao dịch hoặc kiểm toán có thể phải giữ theo nghĩa vụ pháp lý.</Text>
           </View>
@@ -149,7 +149,7 @@ export default function AccountDeletionPage() {
             maxLength={500}
             multiline
             onChangeText={setReason}
-            placeholder="Bạn có thể chia sẻ lý do để MyFan cải thiện"
+            placeholder="Bạn có thể chia sẻ lý do để Luxy.Love cải thiện"
             style={styles.textArea}
             value={reason}
           />

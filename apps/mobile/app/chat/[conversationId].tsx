@@ -403,7 +403,7 @@ export default function ChatDetailPage() {
       setReportMessage(null);
       setReportReason('spam');
       setReportDescription('');
-      setSuccessMessage('Báo cáo tin nhắn đã được gửi tới đội ngũ an toàn MyFan.');
+      setSuccessMessage('Báo cáo tin nhắn đã được gửi tới đội ngũ an toàn Luxy.Love.');
     } catch (error) {
       setErrorMessage(getReadableSocialError(error));
     } finally {
@@ -444,7 +444,7 @@ export default function ChatDetailPage() {
     }
     confirmCrossPlatform({
       title: 'Chặn tài khoản này?',
-      message: 'Hai tài khoản sẽ không thể kết bạn, nhắn tin, tặng quà hoặc xem Album Fan của nhau.',
+      message: 'Hai tài khoản sẽ không thể tương tác, nhắn tin, tặng quà hoặc xem nội dung riêng tư của nhau.',
       confirmLabel: 'Chặn',
       destructive: true,
       onConfirm: () => void toggleBlock(),
@@ -473,7 +473,7 @@ export default function ChatDetailPage() {
     );
   }
 
-  const displayName = detail.display_name || detail.username || 'Thành viên MyFan';
+  const displayName = detail.display_name || detail.username || 'Thành viên Luxy.Love';
   const composerDisabled = !detail.can_send || safetyBusy;
   const retentionEnabled = retentionQuery.data?.auto_delete_enabled ?? false;
 
@@ -503,7 +503,7 @@ export default function ChatDetailPage() {
             <View style={styles.headerText}>
               <View style={styles.nameRow}>
                 <Text numberOfLines={1} style={styles.name}>{displayName}</Text>
-                {detail.is_creator ? <Text style={styles.creatorBadge}>Creator</Text> : null}
+                {detail.is_creator ? <Text style={styles.creatorBadge}>Đã duyệt</Text> : null}
               </View>
               <Text style={[styles.connection, realtimeStatus === 'error' && styles.errorText]}>
                 {realtimeLabel(realtimeStatus)}
@@ -569,7 +569,7 @@ export default function ChatDetailPage() {
             ) : (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>Bắt đầu cuộc trò chuyện</Text>
-                <Text style={styles.muted}>Chỉ gửi nội dung phù hợp với Tiêu chuẩn cộng đồng MyFan.</Text>
+                <Text style={styles.muted}>Chỉ gửi nội dung phù hợp với Tiêu chuẩn cộng đồng Luxy.Love.</Text>
               </View>
             )
           }

@@ -1,254 +1,116 @@
 import type { Metadata } from 'next';
 import './home.css';
-import { HomepagePublicContent } from './homepage-content';
 
 export const metadata: Metadata = {
-  title: 'MyFan — Cộng đồng của nhà sáng tạo và người hâm mộ',
-  description:
-    'MyFan là mạng xã hội Social Creator 18+, nơi người dùng khám phá Creator, kết nối cộng đồng và ủng hộ bằng quà tặng số trong môi trường có kiểm duyệt.',
+  title: 'Luxy.Love — Kết nối chọn lọc cho người trưởng thành',
+  description: 'Khám phá hồ sơ phù hợp, kết nối riêng tư và sử dụng các lớp xác thực, an toàn của Luxy.Love.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'MyFan — Cộng đồng của nhà sáng tạo và người hâm mộ',
-    description:
-      'Khám phá Creator, chia sẻ Hoạt động và ủng hộ cộng đồng bằng quà tặng số an toàn trên MyFan.',
+    title: 'Luxy.Love — Kết nối chọn lọc cho người trưởng thành',
+    description: 'Hồ sơ xác thực, tìm kiếm chọn lọc, nhắn tin và ảnh riêng tư trong một trải nghiệm dành cho người từ đủ 18 tuổi.',
     locale: 'vi_VN',
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'MyFan — Social Creator 18+',
-    description: 'Cộng đồng của nhà sáng tạo và người hâm mộ.',
+    title: 'Luxy.Love — Kết nối chọn lọc · 18+',
+    description: 'Khám phá và kết nối với những người phù hợp theo cách riêng tư hơn.',
   },
 };
 
 const structuredData = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'MyFan',
-  description:
-    'Mạng xã hội Social Creator dành cho người dùng từ đủ 18 tuổi, có kiểm duyệt nội dung và công cụ an toàn cộng đồng.',
+  name: 'Luxy.Love',
+  description: 'Nền tảng kết nối dành cho người từ đủ 18 tuổi với hồ sơ xác thực và công cụ an toàn.',
   inLanguage: 'vi-VN',
-  audience: {
-    '@type': 'PeopleAudience',
-    requiredMinAge: 18,
-  },
+  audience: { '@type': 'PeopleAudience', requiredMinAge: 18 },
 };
 
 export default function Page() {
   return (
     <main className="homePage">
-      <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        type="application/ld+json"
-      />
+      <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} type="application/ld+json" />
 
       <section className="homeHero" aria-labelledby="home-title">
         <div className="homeHeroGlow homeHeroGlowOne" aria-hidden="true" />
         <div className="homeHeroGlow homeHeroGlowTwo" aria-hidden="true" />
         <div className="homeHeroCopy">
-          <span className="homePill">♥ SOCIAL CREATOR · CHỈ DÀNH CHO NGƯỜI TỪ 18 TUỔI</span>
-          <h1 id="home-title">
-            Cộng đồng của
-            <br />
-            <span>nhà sáng tạo</span>
-            <br />
-            và người hâm mộ
-          </h1>
+          <span className="homePill">♥ KẾT NỐI CHỌN LỌC · CHỈ DÀNH CHO NGƯỜI TỪ 18 TUỔI</span>
+          <h1 id="home-title">Gặp đúng người,<br /><span>theo cách riêng tư hơn</span></h1>
           <p>
-            Khám phá Creator, theo dõi Hoạt động, kết nối với cộng đồng và gửi quà tặng số
-            trong một không gian riêng tư, an toàn và có kiểm duyệt.
+            Luxy.Love kết hợp tìm kiếm hồ sơ, xác thực thành viên, nhắn tin trực tiếp và ảnh riêng tư
+            trong một trải nghiệm tập trung vào sự rõ ràng, tôn trọng và an toàn.
           </p>
           <div className="homeHeroActions">
-            <a className="homePrimaryButton" href="/?intent=signup">
-              Tham gia MyFan
-            </a>
-            <a className="homeGhostButton" href="#creators">
-              Khám phá Creator
-            </a>
+            <a className="homePrimaryButton" href="/?intent=signup">Tham gia Luxy.Love</a>
+            <a className="homeGhostButton" href="/?intent=login">Đăng nhập</a>
           </div>
-          <p className="homeHeroNote">
-            Quà tặng không mua quyền gặp mặt, thông tin liên hệ riêng, quan hệ cá nhân hoặc
-            nội dung người lớn.
-          </p>
+          <p className="homeHeroNote">Tính năng trả phí chỉ mở quyền sử dụng sản phẩm; không mua quyền gặp mặt, tình cảm hay thông tin liên hệ riêng.</p>
         </div>
 
-        <div className="homePhone" aria-label="Minh họa giao diện Hoạt động MyFan">
-          <div className="homePhoneTop">
-            <span className="homePhoneBrand">MyFan</span>
-            <span className="homePhoneAge">18+</span>
-          </div>
+        <div className="homePhone" aria-label="Minh họa giao diện hồ sơ Luxy.Love">
+          <div className="homePhoneTop"><span className="homePhoneBrand">Luxy.Love</span><span className="homePhoneAge">18+</span></div>
           <article className="homePhonePost">
             <header>
-              <span className="homePhoneAvatar">M</span>
-              <div>
-                <strong>Creator đã duyệt</strong>
-                <small>@creator · vừa đăng</small>
-              </div>
+              <span className="homePhoneAvatar">L</span>
+              <div><strong>Thành viên đã xác thực</strong><small>Hồ Chí Minh · đang online</small></div>
               <span className="homePhoneCheck">✓</span>
             </header>
-            <p>Chia sẻ khoảnh khắc mới với cộng đồng MyFan.</p>
-            <div className="homePhoneMedia">
-              <span>Hoạt động có ảnh đã kiểm duyệt</span>
-            </div>
-            <footer>
-              <span>♡ Kết nối</span>
-              <span>↗ Chia sẻ</span>
-            </footer>
+            <p>Một hồ sơ rõ ràng, chọn lọc và tôn trọng quyền riêng tư.</p>
+            <div className="homePhoneMedia"><span>Ảnh hồ sơ đã qua luồng kiểm duyệt</span></div>
+            <footer><span>♡ Yêu thích</span><span>✉ Nhắn tin</span></footer>
           </article>
-          <div className="homePhoneGifts">
-            <span>🌹 5 ❤️</span>
-            <span>🧸 7 ❤️</span>
-            <span>👑 20 ❤️</span>
-          </div>
+          <div className="homePhoneGifts"><span>Premium</span><span>Diamond</span><span>Ảnh riêng tư</span></div>
         </div>
       </section>
 
-      <section className="homeTrustBar" aria-label="Nguyên tắc chính của MyFan">
-        <div>
-          <strong>18+</strong>
-          <span>Chỉ dành cho người trưởng thành</span>
-        </div>
-        <div>
-          <strong>70%</strong>
-          <span>Phần thưởng dành cho Creator theo nghiệp vụ</span>
-        </div>
-        <div>
-          <strong>✓</strong>
-          <span>Nội dung và tài khoản có quy trình kiểm duyệt</span>
-        </div>
+      <section className="homeTrustBar" aria-label="Nguyên tắc chính của Luxy.Love">
+        <div><strong>18+</strong><span>Chỉ dành cho người trưởng thành</span></div>
+        <div><strong>✓</strong><span>Luồng xác thực hồ sơ và hình ảnh</span></div>
+        <div><strong>🔒</strong><span>Quyền riêng tư được kiểm tra tại server</span></div>
       </section>
 
       <section className="homeSection homeIntro" id="about" aria-labelledby="about-title">
         <div className="homeSectionHeading">
-          <div>
-            <p className="homeEyebrow">MYFAN LÀ GÌ?</p>
-            <h2 id="about-title">Một nơi để Creator xây dựng cộng đồng lâu dài</h2>
-          </div>
-          <p>
-            MyFan kết hợp hồ sơ Creator, Hoạt động, Album, kết bạn, chat sau khi kết bạn và
-            quà tặng số trên cùng một nền tảng dành cho người trưởng thành.
-          </p>
+          <div><p className="homeEyebrow">LUXY.LOVE LÀ GÌ?</p><h2 id="about-title">Một không gian kết nối dành cho người trưởng thành</h2></div>
+          <p>Từ tìm kiếm đến trò chuyện và ảnh riêng tư, mỗi bề mặt đều được thiết kế để giảm nhiễu và tăng quyền kiểm soát cho thành viên.</p>
         </div>
         <div className="homeFeatureGrid">
-          <article>
-            <span className="homeFeatureIcon">✦</span>
-            <h3>Khám phá phù hợp</h3>
-            <p>
-              Tìm Creator theo tỉnh/thành và khoảng cách gần đúng, không công khai tọa độ
-              chính xác.
-            </p>
-          </article>
-          <article>
-            <span className="homeFeatureIcon">◎</span>
-            <h3>Kết nối có kiểm soát</h3>
-            <p>
-              Người dùng chỉ chat sau khi hai bên trở thành bạn bè; chặn và báo cáo luôn dễ
-              tiếp cận.
-            </p>
-          </article>
-          <article>
-            <span className="homeFeatureIcon">♥</span>
-            <h3>Ủng hộ bằng quà số</h3>
-            <p>
-              Danh mục 20 quà hiển thị bằng ❤️, với giao dịch và quyền Fan được xác minh tại
-              server.
-            </p>
-          </article>
+          <article><span className="homeFeatureIcon">✦</span><h3>Khám phá phù hợp</h3><p>Tìm thành viên theo tiêu chí hồ sơ và khu vực mà không công khai tọa độ chính xác.</p></article>
+          <article><span className="homeFeatureIcon">◎</span><h3>Nhắn tin rõ ràng</h3><p>Premium và Diamond có thể bắt đầu cuộc trò chuyện trực tiếp; chặn và báo cáo luôn được ưu tiên.</p></article>
+          <article><span className="homeFeatureIcon">♥</span><h3>Ảnh riêng tư</h3><p>Ảnh riêng tư chỉ mở theo entitlement hợp lệ; kết nối hay thao tác khác không tự tạo quyền xem.</p></article>
         </div>
       </section>
 
       <section className="homeSection homeBenefits" aria-labelledby="benefits-title">
         <div className="homeSectionHeading homeSectionHeadingLight">
-          <div>
-            <p className="homeEyebrow homeEyebrowLight">CÙNG PHÁT TRIỂN</p>
-            <h2 id="benefits-title">Giá trị cho Creator và người hâm mộ</h2>
-          </div>
-          <p>
-            Quyền lợi cộng đồng không bao gồm đổi quà lấy gặp mặt, tình cảm, dịch vụ hoặc nội
-            dung tình dục.
-          </p>
+          <div><p className="homeEyebrow homeEyebrowLight">QUYỀN LỢI RÕ RÀNG</p><h2 id="benefits-title">Free, Premium và Diamond được phân lớp minh bạch</h2></div>
+          <p>Nâng cấp chỉ mở các quyền sản phẩm được công bố; an toàn, chặn và các giới hạn nền tảng vẫn có ưu tiên cao hơn.</p>
         </div>
         <div className="homeAudienceGrid">
-          <article>
-            <span className="homeAudienceLabel">DÀNH CHO CREATOR</span>
-            <h3>Xây dựng cộng đồng theo cách của bạn</h3>
-            <ul>
-              <li>Đăng Hoạt động dạng chữ, một ảnh hoặc liên kết video hợp lệ.</li>
-              <li>Chọn quyền xem Công khai, Bạn bè hoặc Chỉ Fan.</li>
-              <li>Nhận 70% phần thưởng Creator theo quy định và thời gian giữ.</li>
-              <li>Rút tiền sau KYC, kiểm tra rủi ro và phê duyệt thủ công.</li>
-            </ul>
-          </article>
-          <article>
-            <span className="homeAudienceLabel">DÀNH CHO NGƯỜI HÂM MỘ</span>
-            <h3>Khám phá, kết nối và ủng hộ an toàn</h3>
-            <ul>
-              <li>Theo dõi Hoạt động công khai của Creator đã duyệt.</li>
-              <li>Kết bạn trước khi trò chuyện riêng.</li>
-              <li>Tặng quà số và tích lũy tiến độ Fan minh bạch.</li>
-              <li>Chủ động kiểm soát vị trí, chặn, báo cáo và xóa tài khoản.</li>
-            </ul>
-          </article>
+          <article><span className="homeAudienceLabel">FREE</span><h3>Khám phá và thể hiện sự quan tâm</h3><ul><li>Tìm kiếm hồ sơ phù hợp.</li><li>Yêu thích hồ sơ.</li><li>Nhận và đọc hội thoại được gửi tới bạn.</li><li>Sử dụng chặn, báo cáo và các công cụ an toàn.</li></ul></article>
+          <article><span className="homeAudienceLabel">PREMIUM / DIAMOND</span><h3>Mở rộng khả năng kết nối</h3><ul><li>Bắt đầu và gửi tin nhắn trực tiếp.</li><li>Xem ảnh riêng tư đủ điều kiện.</li><li>Hiển thị trạng thái gói theo dữ liệu server.</li><li>Không có đường tắt vượt qua block hoặc kiểm duyệt.</li></ul></article>
         </div>
       </section>
-
-      <HomepagePublicContent />
 
       <section className="homeSection homeSafety" id="safety" aria-labelledby="safety-title">
         <div className="homeSafetyCopy">
           <p className="homeEyebrow">RIÊNG TƯ VÀ AN TOÀN</p>
           <h2 id="safety-title">An toàn được xây vào từng luồng sử dụng</h2>
-          <p>
-            MyFan tách dữ liệu hồ sơ công khai khỏi ngày sinh, tọa độ chính xác, KYC, ngân
-            hàng và dữ liệu kiểm duyệt nội bộ. Quyền xem nội dung được kiểm tra tại server,
-            không dựa vào trạng thái giao diện.
-          </p>
-          <a className="homeTextLink" href="/community-standards">
-            Đọc Tiêu chuẩn cộng đồng ›
-          </a>
+          <p>Luxy.Love tách dữ liệu hồ sơ công khai khỏi ngày sinh đầy đủ, tọa độ chính xác, dữ liệu xác minh và dữ liệu kiểm duyệt nội bộ. Quyền truy cập được kiểm tra phía server.</p>
+          <a className="homeTextLink" href="/community-standards">Đọc Tiêu chuẩn cộng đồng ›</a>
         </div>
         <ol className="homeSafetySteps">
-          <li>
-            <span>01</span>
-            <div>
-              <strong>Xác nhận đủ 18 tuổi</strong>
-              <p>Ngày sinh được kiểm tra trước khi người dùng hoàn tất onboarding.</p>
-            </div>
-          </li>
-          <li>
-            <span>02</span>
-            <div>
-              <strong>Kiểm duyệt nội dung</strong>
-              <p>Creator, Hoạt động và ảnh phải đạt điều kiện phù hợp trước khi công khai.</p>
-            </div>
-          </li>
-          <li>
-            <span>03</span>
-            <div>
-              <strong>Quyền riêng tư theo quan hệ</strong>
-              <p>Creator có thể giới hạn toàn bộ Hoạt động cho Công khai, Bạn bè hoặc Fan.</p>
-            </div>
-          </li>
+          <li><span>01</span><div><strong>Xác nhận đủ 18 tuổi</strong><p>Người dùng phải đáp ứng điều kiện độ tuổi trước khi hoàn tất onboarding.</p></div></li>
+          <li><span>02</span><div><strong>Xác thực hồ sơ</strong><p>Ảnh selfie và ảnh hồ sơ đi qua luồng xác minh trước khi tài khoản được kích hoạt tự động.</p></div></li>
+          <li><span>03</span><div><strong>Quyền riêng tư có kiểm soát</strong><p>Ảnh riêng tư và nhắn tin được mở theo entitlement; chặn luôn được ưu tiên.</p></div></li>
         </ol>
       </section>
 
       <section className="homeFinalCta" id="join" aria-labelledby="join-title">
-        <div>
-          <p className="homeEyebrow homeEyebrowLight">BẮT ĐẦU VỚI MYFAN</p>
-          <h2 id="join-title">Tham gia cộng đồng Social Creator 18+</h2>
-          <p>
-            Tạo hồ sơ, khám phá Creator và xây dựng các kết nối có ý nghĩa trong một môi
-            trường có kiểm duyệt.
-          </p>
-        </div>
-        <div className="homeFinalActions">
-          <a className="homeWhiteButton" href="/?intent=signup">
-            Tham gia ngay
-          </a>
-          <a className="homeOutlineLightButton" href="/?intent=login">
-            Đăng nhập
-          </a>
-        </div>
+        <div><p className="homeEyebrow homeEyebrowLight">BẮT ĐẦU VỚI LUXY.LOVE</p><h2 id="join-title">Kết nối có chọn lọc, từ đủ 18 tuổi</h2><p>Tạo hồ sơ, xác thực danh tính hình ảnh và khám phá những người phù hợp trong một môi trường có kiểm soát.</p></div>
+        <div className="homeFinalActions"><a className="homeWhiteButton" href="/?intent=signup">Tham gia ngay</a><a className="homeOutlineLightButton" href="/?intent=login">Đăng nhập</a></div>
       </section>
     </main>
   );

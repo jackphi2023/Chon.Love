@@ -87,6 +87,6 @@ export async function uploadActivityImage(client: Client, image: PreparedActivit
 export function getReadableActivityMediaError(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('too_large') || message.includes('file_size')) return 'Ảnh phải nhỏ hơn 5 MB sau khi tối ưu.';
-  if (message.includes('unsupported') || message.includes('mime')) return 'MyFan chỉ nhận ảnh JPEG, PNG hoặc WebP.';
+  if (message.includes('unsupported') || message.includes('mime')) return 'Luxy.Love chỉ nhận ảnh JPEG, PNG hoặc WebP.';
   return 'Không thể chuẩn bị ảnh. Hãy chọn một ảnh khác và thử lại.';
 }

@@ -78,7 +78,7 @@ export default function LuxyGiftsAndIncomePage() {
                 <Status label="Đủ điều kiện rút" ok={wallet.withdrawal_ready} />
               </View>
               {!wallet.kyc_approved || !wallet.verified_bank_available ? (
-                <Text style={styles.note}>Luồng xác thực người dùng sẽ tiếp tục được hoàn thiện trong LX-20. LX-19 không tạo đường tắt KYC/ngân hàng.</Text>
+                <Text style={styles.note}>Luồng quà tặng không tạo đường tắt cho xác thực, KYC hoặc tài khoản ngân hàng.</Text>
               ) : null}
             </View>
           </>

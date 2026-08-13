@@ -236,7 +236,7 @@ export default function FriendsPage() {
 }
 
 function ConversationRow({ item, onOpen }: { item: ConversationSummary; onOpen: () => void }) {
-  const name = item.display_name || item.username || 'Thành viên MyFan';
+  const name = item.display_name || item.username || 'Thành viên Luxy.Love';
   const time = formatConversationTime(item.last_message_sent_at);
   return (
     <Pressable accessibilityRole="button" onPress={onOpen} style={styles.card}>
@@ -251,7 +251,7 @@ function ConversationRow({ item, onOpen }: { item: ConversationSummary; onOpen: 
           <View style={styles.conversationTitleRow}>
             <View style={styles.nameRow}>
               <Text numberOfLines={1} style={styles.name}>{name}</Text>
-              {item.is_creator ? <Text style={styles.creatorBadge}>Creator</Text> : null}
+              {item.is_creator ? <Text style={styles.creatorBadge}>Đã duyệt</Text> : null}
             </View>
             {time ? <Text style={styles.time}>{time}</Text> : null}
           </View>
@@ -290,7 +290,7 @@ function ConnectionRow({
   onChat: () => void;
 }) {
   const router = useRouter();
-  const name = item.display_name || item.username || 'Thành viên MyFan';
+  const name = item.display_name || item.username || 'Thành viên Luxy.Love';
   return (
     <View style={styles.card}>
       <Pressable
@@ -308,7 +308,7 @@ function ConnectionRow({
         <View style={styles.cardBody}>
           <View style={styles.nameRow}>
             <Text numberOfLines={1} style={styles.name}>{name}</Text>
-            {item.is_creator ? <Text style={styles.creatorBadge}>Creator</Text> : null}
+            {item.is_creator ? <Text style={styles.creatorBadge}>Đã duyệt</Text> : null}
           </View>
           {item.username ? <Text style={styles.username}>@{item.username}</Text> : null}
           {item.province_name ? <Text style={styles.muted}>{item.province_name}</Text> : null}
@@ -342,7 +342,7 @@ function ConnectionRow({
 }
 
 function BlockedRow({ item, busy, onUnblock }: { item: BlockedProfile; busy: boolean; onUnblock: () => void }) {
-  const name = item.display_name || item.username || 'Tài khoản MyFan';
+  const name = item.display_name || item.username || 'Tài khoản Luxy.Love';
   return (
     <View style={styles.card}>
       <View style={styles.identityRow}>

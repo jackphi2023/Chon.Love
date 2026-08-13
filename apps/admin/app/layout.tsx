@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MyFan Admin',
-  description: 'MyFan moderation and operations administration.',
+  title: 'Luxy.Love Admin',
+  description: 'Luxy.Love moderation and operations administration.',
   robots: { index: false, follow: false },
 };
 

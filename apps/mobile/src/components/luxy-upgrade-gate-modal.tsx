@@ -163,7 +163,7 @@ export function LuxyUpgradeGateModal({
             </View>
 
             {reason === 'private_photo' ? (
-              <Text style={styles.consentNote}>Gift, Fan, friendship và legacy approval request không mở khóa ảnh riêng tư. Block vẫn có ưu tiên cao hơn trạng thái gói.</Text>
+              <Text style={styles.consentNote}>Quà tặng, các loại kết nối và yêu cầu duyệt cũ không mở khóa ảnh riêng tư. Block vẫn có ưu tiên cao hơn trạng thái gói.</Text>
             ) : null}
             {diamondError ? <Text accessibilityRole="alert" style={styles.error}>{diamondError}</Text> : null}
 

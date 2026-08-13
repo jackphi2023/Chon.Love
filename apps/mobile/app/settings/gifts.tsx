@@ -47,7 +47,7 @@ export default function GiftSettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        description="Các preference này cần persistence + policy ở LX-19; release V1 vẫn giữ luồng quà tặng tắt cho người dùng thật."
+        description="Tùy chọn quà tặng hiện chưa khả dụng; luồng gửi quà vẫn được giữ ở trạng thái tắt cho người dùng thật."
         title="Tùy chọn nhận quà"
       >
         <View style={styles.pendingPreferences}>
@@ -61,7 +61,7 @@ export default function GiftSettingsPage() {
         <Text style={styles.policyTitle}>Ranh giới profile</Text>
         <Text style={styles.policyText}>• Favorites/yêu thích không phải quà tặng.</Text>
         <Text style={styles.policyText}>• Premium/Diamond tự động được xem ảnh riêng tư đủ điều kiện; legacy approval request không cấp quyền.</Text>
-        <Text style={styles.policyText}>• Gift, Fan và friendship không được dùng để suy luận quyền truy cập profile.</Text>
+        <Text style={styles.policyText}>• Quà tặng và các loại kết nối không được dùng để suy luận quyền truy cập hồ sơ.</Text>
       </View>
 
       <View style={styles.backRow}>

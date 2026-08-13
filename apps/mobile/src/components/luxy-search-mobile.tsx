@@ -427,8 +427,8 @@ export function LuxySearchMobile() {
               <MobileFilterSection title="Tùy chọn">
                 <CheckRow checked={draft.hasPhoto} label="Có ảnh" onPress={() => setDraft((current) => ({ ...current, hasPhoto: !current.hasPhoto }))} />
                 <CheckRow checked={draft.onlineNow} label="Đang online" onPress={() => setDraft((current) => ({ ...current, onlineNow: !current.onlineNow }))} />
-                <DisabledCheckRow label="Đã xác thực ảnh" suffix="LX-20" />
-                <DisabledCheckRow label="Đã xác thực CCCD" suffix="LX-20" />
+                <DisabledCheckRow label="Đã xác thực ảnh" suffix="Sắp mở" />
+                <DisabledCheckRow label="Đã xác thực CCCD" suffix="Sắp mở" />
               </MobileFilterSection>
 
               <MobileFilterSection title="Lịch sử xem">

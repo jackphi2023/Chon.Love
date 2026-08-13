@@ -213,8 +213,8 @@ export function LuxySearchDesktop() {
           <FilterSection title="Tùy chọn">
             <CheckRow checked={draft.hasPhoto} label="Có ảnh" onPress={() => setDraft((current) => ({ ...current, hasPhoto: !current.hasPhoto }))} />
             <CheckRow checked={draft.onlineNow} label="Đang online" onPress={() => setDraft((current) => ({ ...current, onlineNow: !current.onlineNow }))} />
-            <DisabledCheckRow label="Đã xác thực ảnh" suffix="LX-20" />
-            <DisabledCheckRow label="Đã xác thực CCCD" suffix="LX-20" />
+            <DisabledCheckRow label="Đã xác thực ảnh" suffix="Sắp mở" />
+            <DisabledCheckRow label="Đã xác thực CCCD" suffix="Sắp mở" />
           </FilterSection>
 
           <FilterSection title="Lịch sử xem"><View style={styles.chipRow}><FilterChip active={draft.viewState === null} label="Tất cả" onPress={() => setDraft((current) => ({ ...current, viewState: null }))} /><FilterChip active={draft.viewState === 'unviewed'} label="Chưa xem" onPress={() => setDraft((current) => ({ ...current, viewState: 'unviewed' }))} /><FilterChip active={draft.viewState === 'viewed'} label="Đã xem" onPress={() => setDraft((current) => ({ ...current, viewState: 'viewed' }))} /></View></FilterSection>
@@ -259,7 +259,7 @@ export function LuxySearchDesktop() {
 }
 
 function SearchActions({ apply, reset }: { apply: () => void; reset: () => void }) {
-  return <><Pressable accessibilityRole="button" onPress={apply} style={styles.viewResultsButton}><Text style={styles.viewResultsText}>Xem kết quả</Text></Pressable><View style={styles.actionRow}><Pressable accessibilityHint="Lưu tìm kiếm chưa thuộc LX-12" accessibilityRole="button" disabled style={[styles.secondaryAction, styles.disabledAction]}><Text style={styles.secondaryActionText}>Lưu tìm kiếm</Text></Pressable><Pressable accessibilityRole="button" onPress={reset} style={styles.resetAction}><Text style={styles.resetActionText}>Đặt lại</Text></Pressable></View></>;
+  return <><Pressable accessibilityRole="button" onPress={apply} style={styles.viewResultsButton}><Text style={styles.viewResultsText}>Xem kết quả</Text></Pressable><View style={styles.actionRow}><Pressable accessibilityHint="Lưu tìm kiếm chưa khả dụng trong phiên bản này" accessibilityRole="button" disabled style={[styles.secondaryAction, styles.disabledAction]}><Text style={styles.secondaryActionText}>Lưu tìm kiếm</Text></Pressable><Pressable accessibilityRole="button" onPress={reset} style={styles.resetAction}><Text style={styles.resetActionText}>Đặt lại</Text></Pressable></View></>;
 }
 function State({ children }: { children: React.ReactNode }) { return <View style={styles.centerState}>{children}</View>; }
 function FilterSection({ title, children, last = false }: { title: string; children: React.ReactNode; last?: boolean }) { return <View style={[styles.filterSection, last && styles.filterSectionLast]}><View style={styles.filterHeadingRow}><Text style={styles.filterHeading}>{title}</Text><Text style={styles.sectionChevron}>⌃</Text></View><View style={styles.filterBody}>{children}</View></View>; }

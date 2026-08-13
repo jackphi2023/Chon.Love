@@ -5,12 +5,12 @@ import './site-shell.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'MyFan — Cộng đồng Creator và người hâm mộ',
-    template: '%s · MyFan',
+    default: 'Luxy.Love — Kết nối chọn lọc cho người trưởng thành',
+    template: '%s · Luxy.Love',
   },
-  description: 'MyFan là mạng xã hội Social Creator dành cho người dùng từ 18 tuổi trở lên.',
-  applicationName: 'MyFan',
-  creator: 'MyFan',
+  description: 'Luxy.Love là nền tảng kết nối dành cho người từ đủ 18 tuổi, với hồ sơ xác thực, quyền riêng tư và công cụ an toàn.',
+  applicationName: 'Luxy.Love',
+  creator: 'Luxy.Love',
   robots: { index: true, follow: true },
   icons: { icon: '/icon.svg' },
 };
@@ -28,38 +28,30 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <a className="skipLink" href="#main-content">Bỏ qua đến nội dung chính</a>
         <header className="publicHeader">
-          <Link className="publicBrand" href="/" aria-label="MyFan trang chủ">
+          <Link className="publicBrand" href="/" aria-label="Luxy.Love trang chủ">
             <span aria-hidden="true">♥</span>
-            <strong>MyFan</strong>
+            <strong>Luxy.Love</strong>
           </Link>
 
           <nav className="publicDesktopNav" aria-label="Điều hướng chính">
             <Link href="/">Trang chủ</Link>
-            <Link href="/qua-tang">Quà tặng</Link>
             <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
+            <Link href="/terms">Điều khoản</Link>
           </nav>
 
           <div className="publicHeaderActions">
-            <Link className="publicLogin" href="/?intent=login">
-              Đăng nhập
-            </Link>
-            <Link className="publicJoin" href="/?intent=signup">
-              Tham gia
-            </Link>
+            <Link className="publicLogin" href="/?intent=login">Đăng nhập</Link>
+            <Link className="publicJoin" href="/?intent=signup">Tham gia</Link>
           </div>
 
           <details className="publicMobileMenu">
-            <summary aria-label="Mở menu điều hướng">
-              <span aria-hidden="true">☰</span>
-            </summary>
+            <summary aria-label="Mở menu điều hướng"><span aria-hidden="true">☰</span></summary>
             <nav aria-label="Điều hướng mobile">
               <Link href="/">Trang chủ</Link>
-              <Link href="/qua-tang">Quà tặng</Link>
               <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
+              <Link href="/terms">Điều khoản</Link>
               <Link href="/?intent=login">Đăng nhập</Link>
-              <Link className="publicMobileJoin" href="/?intent=signup">
-                Tham gia MyFan
-              </Link>
+              <Link className="publicMobileJoin" href="/?intent=signup">Tham gia Luxy.Love</Link>
             </nav>
           </details>
         </header>
@@ -68,17 +60,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
         <footer className="publicFooter">
           <div>
-            <Link className="publicFooterBrand" href="/">
-              MyFan
-            </Link>
-            <span>Social Creator · 18+</span>
+            <Link className="publicFooterBrand" href="/">Luxy.Love</Link>
+            <span>Kết nối chọn lọc · 18+</span>
           </div>
           <nav aria-label="Chính sách">
             <Link href="/terms">Điều khoản</Link>
             <span aria-hidden="true">–</span>
             <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
           </nav>
-          <small>© 2026 MyFan</small>
+          <small>© 2026 Luxy.Love</small>
         </footer>
       </body>
     </html>
