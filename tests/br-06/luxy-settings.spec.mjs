@@ -35,13 +35,13 @@ async function assertSettingsHub(page) {
   await expect(page.getByTestId('settings-membership-section')).toBeVisible();
   await expect(page.getByTestId('settings-gifts-section')).toBeVisible();
   await expect(page.getByTestId('settings-account-section')).toBeVisible();
-  await expect(page.getByText('Ảnh bảo mật', { exact: true })).toBeVisible();
-  await expect(page.getByText('Xác thực danh tính', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ảnh riêng tư', { exact: true })).toBeVisible();
+  await expect(page.getByText('Xác thực hồ sơ', { exact: true })).toBeVisible();
   await expect(page.getByText('Gói thành viên', { exact: true })).toBeVisible();
   await expect(page.getByText('Cài đặt quà tặng', { exact: true })).toBeVisible();
 }
 
-test('LX-08 Settings hub covers profile-related cases on desktop', async ({ browser }, testInfo) => {
+test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
@@ -71,9 +71,9 @@ test('LX-08 Settings hub covers profile-related cases on desktop', async ({ brow
 
     await page.goto('/settings/gifts');
     await expect(page.getByTestId('luxy-gift-settings')).toBeVisible();
-    await expect(page.getByText('Tặng quà không mở ảnh bảo mật', { exact: false })).toBeVisible();
+    await expect(page.getByText('Tặng quà không mở ảnh riêng tư', { exact: false })).toBeVisible();
 
-    await testInfo.attach('lx08-settings-1280', {
+    await testInfo.attach('web-r01-settings-1280', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
@@ -82,7 +82,7 @@ test('LX-08 Settings hub covers profile-related cases on desktop', async ({ brow
   }
 });
 
-test('LX-08 Settings remains usable on 390px mobile web', async ({ browser }, testInfo) => {
+test('WEB-R01 Settings remains usable on 390px mobile web', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
@@ -111,7 +111,7 @@ test('LX-08 Settings remains usable on 390px mobile web', async ({ browser }, te
     expect(uploadBox.height).toBeGreaterThanOrEqual(44);
     await assertNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx08-settings-390', {
+    await testInfo.attach('web-r01-settings-390', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
