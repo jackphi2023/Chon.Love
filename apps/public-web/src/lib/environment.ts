@@ -8,17 +8,32 @@ export type PublicWebEnvironmentStatus = {
   siteUrl: string | null;
 };
 
-export function getPublicSiteUrl(): string | null {
-  const value = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!value) return null;
+function normalizeWebUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim().replace(/\/$/u, '');
+  if (!trimmed) return null;
+  if (trimmed.startsWith('/')) return trimmed;
   try {
-    const url = new URL(value);
+    const url = new URL(trimmed);
     const localDevelopment = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     if (url.protocol !== 'https:' && !localDevelopment) return null;
-    return url.origin;
+    return `${url.origin}${url.pathname === '/' ? '' : url.pathname.replace(/\/$/u, '')}`;
   } catch {
     return null;
   }
+}
+
+export function getPublicSiteUrl(): string | null {
+  const value = normalizeWebUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  if (!value || value.startsWith('/')) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+export function getPublicAppUrl(): string {
+  return normalizeWebUrl(process.env.NEXT_PUBLIC_APP_URL) ?? '/app';
 }
 
 export function getPublicWebEnvironmentStatus(): PublicWebEnvironmentStatus {
