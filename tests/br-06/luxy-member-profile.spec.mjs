@@ -31,26 +31,29 @@ async function assertPaidPlanComparison(upgradeGate) {
   await expect(upgradeGate.getByTestId('luxy-upgrade-plan-premium')).toBeVisible();
   await expect(upgradeGate.getByTestId('luxy-upgrade-plan-diamond')).toBeVisible();
   await expect(upgradeGate.getByText('Gửi và nhận tin nhắn với thành viên', { exact: true })).toBeVisible();
-  await expect(upgradeGate.getByText('Gửi yêu cầu xem ảnh riêng tư', { exact: true })).toBeVisible();
+  await expect(upgradeGate.getByText('Xem đầy đủ ảnh riêng tư', { exact: true })).toBeVisible();
   await expect(upgradeGate.getByText('Huy hiệu thành viên Premium', { exact: true })).toBeVisible();
   await expect(upgradeGate.getByText('Bao gồm toàn bộ quyền tương tác Premium', { exact: true })).toBeVisible();
+  await expect(upgradeGate.getByText('Tự động xem đầy đủ ảnh riêng tư', { exact: true })).toBeVisible();
   await expect(upgradeGate.getByText('Huy hiệu Diamond — hạng thành viên cao nhất', { exact: true })).toBeVisible();
   await expect(upgradeGate.getByRole('button', { name: 'Nâng cấp Premium' })).toBeVisible();
   await expect(upgradeGate.getByRole('button', { name: 'Nâng cấp Diamond' })).toBeVisible();
   await expect(upgradeGate.getByText('Yêu thích vẫn sử dụng miễn phí với tài khoản Free.', { exact: true })).toBeVisible();
 }
 
-async function assertFreePrivatePhotoUpgradeGate(page) {
-  const requestButton = page.getByTestId('luxy-private-photo-request-button');
-  await expect(requestButton).toBeVisible();
-  await requestButton.click();
+async function assertFreePrivatePhotoMembershipGate(page) {
+  const entitlementButton = page.getByTestId('luxy-private-photo-entitlement-button');
+  await expect(entitlementButton).toBeVisible();
+  await expect(entitlementButton).toContainText('Xem ảnh riêng tư');
+  await entitlementButton.click();
 
   const upgradeGate = page.getByTestId('luxy-upgrade-gate-private_photo');
   await expect(upgradeGate).toBeVisible();
   await expect(upgradeGate.getByText('Xem ảnh riêng tư!', { exact: true })).toBeVisible();
-  await expect(upgradeGate.getByText(/Premium hoặc Diamond cho phép gửi yêu cầu xem ảnh riêng tư/)).toBeVisible();
-  await expect(upgradeGate.getByText(/Chủ hồ sơ vẫn là người quyết định chấp thuận hoặc từ chối/)).toBeVisible();
-  await expect(upgradeGate.getByText(/nâng cấp không tự mở ảnh riêng tư/)).toBeVisible();
+  await expect(upgradeGate.getByText(/Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư/)).toBeVisible();
+  await expect(upgradeGate.getByText(/trạng thái gói trên server/)).toBeVisible();
+  await expect(upgradeGate.getByText(/chấp thuận|từ chối/i)).toHaveCount(0);
+  await expect(upgradeGate.getByText(/legacy approval request không mở khóa ảnh riêng tư/)).toBeVisible();
   await assertPaidPlanComparison(upgradeGate);
 
   await upgradeGate.getByRole('button', { name: 'Để sau' }).click();
@@ -77,7 +80,7 @@ async function assertFreeFavoriteWorks(photoModal, page) {
   }
 }
 
-test('LX-14 desktop lets Free Favorite while gating Private Photo and Message behind Premium or Diamond', async ({ browser }, testInfo) => {
+test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message behind Premium or Diamond', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
 
@@ -90,14 +93,15 @@ test('LX-14 desktop lets Free Favorite while gating Private Photo and Message be
     await expect(page.getByText('Tôi đang tìm kiếm', { exact: true })).toBeVisible();
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
     await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
+    await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
     const heroPhoto = page.getByTestId('luxy-member-profile-hero-photo');
     await expect(heroPhoto).toBeVisible();
     await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
 
-    await assertFreePrivatePhotoUpgradeGate(page);
+    await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx14-desktop-member-profile-private-photo-gate', {
+    await testInfo.attach('lx20-desktop-member-profile-private-photo-gate', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
@@ -118,7 +122,7 @@ test('LX-14 desktop lets Free Favorite while gating Private Photo and Message be
     await expect(messageGate.getByText(/Để gửi tin nhắn, hãy nâng cấp Premium hoặc Diamond/)).toBeVisible();
     await assertPaidPlanComparison(messageGate);
 
-    await testInfo.attach('lx14-desktop-message-upgrade-gate', {
+    await testInfo.attach('lx20-desktop-message-upgrade-gate', {
       body: await page.screenshot({ fullPage: false }),
       contentType: 'image/png',
     });
@@ -131,7 +135,7 @@ test('LX-14 desktop lets Free Favorite while gating Private Photo and Message be
   }
 });
 
-test('LX-14 mobile keeps Free Favorite and compares Premium Diamond for locked profile actions', async ({ browser }, testInfo) => {
+test('LX-20 mobile keeps Free Favorite and membership-entitled Private Photos on 390px web', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -147,11 +151,12 @@ test('LX-14 mobile keeps Free Favorite and compares Premium Diamond for locked p
     await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Nhắn tin', exact: true })).toBeVisible();
     await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
+    await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
 
-    await assertFreePrivatePhotoUpgradeGate(page);
+    await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx14-mobile-member-profile-private-photo-gate', {
+    await testInfo.attach('lx20-mobile-member-profile-private-photo-gate', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
