@@ -30,15 +30,15 @@ expect(
 expect(
   packageJson.scripts?.validate?.includes('validate:creator-e2e') &&
     packageJson.scripts?.validate?.includes('validate:browser-e2e'),
-  'The aggregate validate command must preserve BR-05 and include BR-06 validation.',
+  'The aggregate validate command must preserve historical BR-05 validation and include the Web V1 browser source guard.',
 );
 expect(
   applicationCi.includes('pnpm validate:browser-e2e'),
-  'Application CI must execute the BR-06 browser source guard.',
+  'Application CI must execute the browser source guard.',
 );
 expect(
   databaseCi.includes('scripts/validate-br06.mjs') && databaseCi.includes('docs/br-06/**'),
-  'Database CI path filters must include BR-06 validation and documentation.',
+  'Database CI path filters must include browser validation and documentation.',
 );
 expect(
   databaseCi.includes('20260731172253_br_06_storage_policy_helper_execution.sql') &&
@@ -85,7 +85,7 @@ expect(
 expect(
   browserCi.includes('BR-06 browser actor count mismatch') &&
     ['creator', 'viewer', 'fan', 'outsider'].every((actor) => browserCi.includes(`br06.${actor}@example.test`)),
-  'Browser CI must separately verify the four browser actors.',
+  'Browser CI fixture verification must preserve the four historical browser-capable actors.',
 );
 expect(
   browserCi.includes('br06.moderator@example.test') && browserCi.includes('local moderator fixture missing'),
@@ -94,29 +94,29 @@ expect(
 
 expect(
   fixtureSetup.includes("['127.0.0.1', 'localhost'].includes(parsedUrl.hostname)"),
-  'BR-06 fixture setup must fail closed for non-local Supabase hosts.',
+  'Browser fixture setup must fail closed for non-local Supabase hosts.',
 );
 expect(
   fixtureSetup.includes('/auth/v1/admin/users') && fixtureSetup.includes('/storage/v1/object/profile-media/'),
-  'BR-06 fixture setup must provision local Auth and Storage fixtures server-side.',
+  'Browser fixture setup must provision local Auth and Storage fixtures server-side.',
 );
 expect(
-  fixtureSetup.includes('BR-06 local browser E2E fixture') && fixtureSetup.includes('BR06 approved Activity image'),
-  'BR-06 fixture setup must prepare profile and Creator Activity browser data.',
+  fixtureSetup.includes('BR-06 local browser E2E fixture'),
+  'Browser fixture setup must retain deterministic local profile data.',
 );
 expect(
   fixtureSetup.includes('br06.moderator@example.test') &&
     fixtureSetup.includes('private.user_roles') &&
     fixtureSetup.includes('approved_by'),
-  'BR-06 fixture setup must use a valid local moderator as the media approval actor.',
+  'Browser fixture setup must use a valid local moderator as the media approval actor.',
 );
 expect(
   !fixtureSetup.includes('MYFAN_E2E_BETA_PASSWORD'),
-  'BR-06 fixture setup must not depend on the controlled Beta password.',
+  'Browser fixture setup must not depend on the controlled Beta password.',
 );
 expect(
   !fixtureSetup.includes('password,\n  mediaId'),
-  'BR-06 fixture manifest must remain credential-free.',
+  'Browser fixture manifest must remain credential-free.',
 );
 
 expect(
@@ -144,7 +144,7 @@ for (const unitCase of [
   'http://192.168.1.20:54321',
   'rejects unsafe browser credential',
 ]) {
-  expect(environmentUnitTest.includes(unitCase), `BR-06 environment unit tests must cover: ${unitCase}.`);
+  expect(environmentUnitTest.includes(unitCase), `Environment unit tests must cover: ${unitCase}.`);
 }
 
 expect(
@@ -158,22 +158,22 @@ expect(
 );
 expect(
   !authHome.includes('useEffect'),
-  'The BR-06 Auth screen must keep post-login navigation single-source and effect-free.',
+  'The browser Auth screen must keep post-login navigation single-source and effect-free.',
 );
 
 expect(
   storageHelperMigration.includes(
     'grant execute on function private.can_view_media_internal(uuid, uuid) to anon, authenticated;',
   ),
-  'BR-06 must restore only the Storage RLS helper execution capability required by client roles.',
+  'Storage RLS must restore only the helper execution capability required by client roles.',
 );
 expect(
   !storageHelperMigration.includes('grant usage on schema private') &&
     !storageHelperMigration.includes('grant select on') &&
     !storageHelperMigration.includes('grant all'),
-  'BR-06 Storage migration must not reopen private schema or table access.',
+  'Storage migration must not reopen private schema or table access.',
 );
-expect(storageHelperAclTest.includes('select plan(5);'), 'BR-06 Storage ACL contract must contain five assertions.');
+expect(storageHelperAclTest.includes('select plan(5);'), 'Storage ACL contract must contain five assertions.');
 for (const aclAssertion of [
   "has_function_privilege('anon', 'private.can_view_media_internal(uuid,uuid)', 'EXECUTE')",
   "has_function_privilege('authenticated', 'private.can_view_media_internal(uuid,uuid)', 'EXECUTE')",
@@ -181,38 +181,44 @@ for (const aclAssertion of [
   "not has_schema_privilege('authenticated', 'private', 'USAGE')",
   "table_schema = 'private'",
 ]) {
-  expect(storageHelperAclTest.includes(aclAssertion), `BR-06 Storage ACL contract must assert ${aclAssertion}.`);
+  expect(storageHelperAclTest.includes(aclAssertion), `Storage ACL contract must assert ${aclAssertion}.`);
 }
 
-expect(playwrightConfig.includes("testDir: './tests/br-06'"), 'Playwright must be scoped to the BR-06 test directory.');
+expect(playwrightConfig.includes("testDir: './tests/br-06'"), 'Playwright must remain scoped to the browser test directory.');
 expect(playwrightConfig.includes('width: 390') === false, 'Viewport belongs in isolated browser contexts, not global config.');
-expect(playwrightConfig.includes('workers: 1'), 'BR-06 must run deterministically with one Playwright worker.');
-expect(playwrightConfig.includes("trace: 'retain-on-failure'"), 'BR-06 must retain traces on failure.');
-expect(playwrightConfig.includes('expo start --web --port 8081'), 'BR-06 must start the Expo Web application under test.');
+expect(playwrightConfig.includes('workers: 1'), 'Browser E2E must run deterministically with one Playwright worker.');
+expect(playwrightConfig.includes("trace: 'retain-on-failure'"), 'Browser E2E must retain traces on failure.');
+expect(playwrightConfig.includes('expo start --web --port 8081'), 'Browser E2E must start the Expo Web application under test.');
 
-for (const actor of ['creator', 'viewer', 'fan', 'outsider']) {
-  expect(browserE2e.includes(`br06.${actor}@example.test`), `BR-06 must include the ${actor} browser actor.`);
+for (const actor of ['creator', 'viewer', 'outsider']) {
+  expect(browserE2e.includes(`br06.${actor}@example.test`), `Web V1 multi-account E2E must include the ${actor} actor.`);
 }
 expect(!browserE2e.includes('br06.moderator@example.test'), 'The local moderator must not receive a browser context.');
 
 for (const flow of [
   'Đăng nhập bằng email',
-  'Gửi lời mời kết bạn',
-  'Chấp nhận',
-  'Bạn bè',
-  'Chỉ Fan',
-  'Album Hoạt động',
+  '/activity',
   'Nội dung tin nhắn',
-  'Báo cáo tin nhắn',
-  'Chặn',
-  'Bỏ chặn',
-  'Không tìm thấy hồ sơ',
+  'luxy-upgrade-gate-message',
+  'luxy-upgrade-gate-private_photo',
+  'Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư',
+  'luxy-upgrade-gate-favorite',
 ]) {
-  expect(browserE2e.includes(flow), `BR-06 browser lifecycle must exercise ${flow}.`);
+  expect(browserE2e.includes(flow), `Web V1 browser lifecycle must exercise ${flow}.`);
 }
 
-expect(browserE2e.includes('width: 390') && browserE2e.includes('height: 844'), 'BR-06 must use a mobile browser viewport.');
-expect(browserE2e.includes("testInfo.attach('br06-final-unblocked-profile'"), 'BR-06 must attach final browser evidence.');
+for (const removedContract of [
+  'setCreatorVisibility',
+  'Album Hoạt động',
+  'Hoạt động dành cho Fan',
+  'Hoạt động dành cho Bạn bè',
+  'Gửi lời mời kết bạn',
+]) {
+  expect(!browserE2e.includes(removedContract), `Web V1 browser lifecycle must not restore legacy Activity/friendship contract: ${removedContract}.`);
+}
+
+expect(browserE2e.includes('width: 390') && browserE2e.includes('height: 844'), 'Web V1 E2E must exercise the required 390px mobile browser viewport.');
+expect(browserE2e.includes("testInfo.attach('web-r01-mobile-direct-message'"), 'Web V1 E2E must attach final direct-message browser evidence.');
 
 for (const forbidden of [
   'myfan1@gmail.com',
@@ -223,12 +229,12 @@ for (const forbidden of [
   'record_verified_play_purchase(',
   'create_vietqr_heart_order(',
 ]) {
-  expect(!browserE2e.includes(forbidden), `BR-06 browser E2E must not contain ${forbidden}.`);
+  expect(!browserE2e.includes(forbidden), `Browser E2E must not contain ${forbidden}.`);
 }
 
 expect(releaseManifest.financialFeaturesEnabled === false, 'Financial feature flags must remain disabled.');
-expect(releaseManifest.mergeAllowed === false, 'BR-06 must not authorize merge automatically.');
-expect(releaseManifest.productionDeployAllowed === false, 'BR-06 must not authorize production deployment.');
+expect(releaseManifest.mergeAllowed === false, 'Browser source validation must not authorize merge automatically.');
+expect(releaseManifest.productionDeployAllowed === false, 'Browser source validation must not authorize production deployment.');
 
 for (const path of [
   'docs/br-06/README.md',
@@ -239,15 +245,15 @@ for (const path of [
   try {
     readText(path);
   } catch {
-    errors.push(`Missing required BR-06 document: ${path}`);
+    errors.push(`Missing required historical BR-06 document: ${path}`);
   }
 }
 
 if (errors.length > 0) {
-  console.error('BR-06 browser E2E validation failed:');
+  console.error('Web V1 browser E2E source validation failed:');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
 
-console.warn('BR-06 mobile web multi-account browser E2E source validation passed.');
-console.warn('Coverage: least-privilege Storage signed URLs, single-source auth routing, local-only transport opt-in, five local fixture accounts, four mobile browser actors, friendship, chat, Creator privacy, Activity album, reporting, block/unblock, and evidence artifacts.');
+console.warn('Web V1 mobile multi-account browser E2E source validation passed.');
+console.warn('Coverage: least-privilege Storage, single-source auth routing, local-only transport, direct messaging, Free Favorite, paid Private Photos/message gates, no-Activity redirects, and evidence artifacts.');
