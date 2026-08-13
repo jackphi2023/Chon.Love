@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Luxy.Love Dev",
+    "name": "Chon.Love",
     "slug": "myfan-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -12,15 +12,15 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Luxy.Love cần truy cập ảnh bạn chủ động chọn để cập nhật hồ sơ, ảnh bảo mật và các luồng xác thực.",
-          "cameraPermission": "Luxy.Love chỉ dùng camera khi bạn chủ động chụp ảnh cho hồ sơ hoặc xác thực.",
+          "photosPermission": "Chon.Love cần truy cập ảnh bạn chủ động chọn để cập nhật hồ sơ, ảnh bảo mật và các luồng xác thực.",
+          "cameraPermission": "Chon.Love chỉ dùng camera khi bạn chủ động chụp ảnh cho hồ sơ hoặc xác thực.",
           "microphonePermission": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Luxy.Love dùng vị trí khi bạn chọn tìm người xung quanh để sắp xếp hồ sơ và hiển thị khoảng cách làm tròn. Luxy.Love không hiển thị tọa độ chính xác."
+          "locationWhenInUsePermission": "Chon.Love dùng vị trí khi bạn chọn tìm người xung quanh để sắp xếp hồ sơ và hiển thị khoảng cách làm tròn. Chon.Love không hiển thị tọa độ chính xác."
         }
       ]
     ],
