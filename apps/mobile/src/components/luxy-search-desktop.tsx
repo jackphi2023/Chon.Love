@@ -68,7 +68,7 @@ const CHILDREN_OPTIONS: Array<{ value: ChildrenStatus; label: string }> = [
 ];
 const DISTANCE_OPTIONS = [5, 25, 50, 100, 500] as const;
 const SORT_OPTIONS: Array<{ value: LuxySearchSort; label: string }> = [
-  { value: 'distance', label: 'Gần nhất' }, { value: 'recent', label: 'Hoạt động gần đây' }, { value: 'newest', label: 'Mới tham gia' },
+  { value: 'distance', label: 'Gần nhất' }, { value: 'recent', label: 'Truy cập gần đây' }, { value: 'newest', label: 'Mới tham gia' },
 ];
 
 type DraftFilters = {
