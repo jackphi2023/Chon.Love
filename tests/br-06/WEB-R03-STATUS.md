@@ -10,6 +10,7 @@ Release branch branding contract for Luxy Web V1:
 - Search uses neutral `Truy cập gần đây` wording instead of legacy Activity terminology.
 - Member Profile no longer imports or renders the legacy Creator Activity component.
 - User-visible Premium/Diamond, verification, private-photo and payment copy no longer references internal LX phase numbers.
+- Legacy BR-06 tests were reconciled with the final branding contract: they now expect `Sắp mở`, `Truy cập gần đây`, and the neutral private-photo entitlement copy instead of requiring removed LX/Activity/legacy-approval labels.
 - Legacy technical identifiers remain unchanged where renaming would break compatibility or migration history: `@myfan/*` workspace packages, environment variable names, app scheme/package identifiers, RPC/database fields, migration names, VietQR transfer prefix, and internal legacy Activity/Creator/Fan APIs retained for historical data compatibility.
 - `scripts/validate-web-r03-branding.mjs` is the permanent source guard and conforms to repository lint rules.
 - `tests/br-06/web-r03-branding.spec.mjs` is the permanent browser regression guard.
