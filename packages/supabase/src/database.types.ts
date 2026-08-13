@@ -1429,6 +1429,23 @@ export type Database = {
         Args: { p_album_id: string; p_media_id: string; p_sort_order?: number }
         Returns: boolean
       }
+      admin_approve_luxy_membership_order: {
+        Args: {
+          p_actor_user_id: string
+          p_bank_transaction_ref: string
+          p_order_id: string
+          p_paid_amount_vnd: number
+          p_verification_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          heart_balance_after_units: number
+          heart_credit_units: number
+          membership_expires_at: string
+          order_id: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
       admin_create_account_hold: {
         Args: {
           p_actor_user_id: string
@@ -1480,6 +1497,23 @@ export type Database = {
           paid_balance_units: number
           status: string
           withdrawal_id: string
+        }[]
+      }
+      admin_get_member_profile_verification_detail: {
+        Args: { p_actor_user_id: string; p_user_id: string }
+        Returns: {
+          display_name: string
+          identity_back_bucket: string
+          identity_back_path: string
+          identity_front_bucket: string
+          identity_front_path: string
+          identity_status: string
+          identity_submitted_at: string
+          linkedin_profile_url: string
+          linkedin_status: string
+          linkedin_submitted_at: string
+          user_id: string
+          username: string
         }[]
       }
       admin_import_vietqr_bank_transaction: {
@@ -1550,6 +1584,29 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_luxy_membership_orders: {
+        Args: {
+          p_actor_user_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: {
+          amount_due_vnd: number
+          created_at: string
+          display_name: string
+          heart_credit_units: number
+          order_code: string
+          order_id: string
+          period_count: number
+          status: string
+          submitted_at: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          total_count: number
+          user_id: string
+          username: string
+        }[]
+      }
       admin_list_member_photo_verifications: {
         Args: { p_actor_user_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -1562,6 +1619,20 @@ export type Database = {
           max_similarity: number
           priority: string
           profile_status: string
+          user_id: string
+          username: string
+        }[]
+      }
+      admin_list_member_profile_verifications: {
+        Args: { p_actor_user_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          display_name: string
+          identity_status: string
+          identity_submitted_at: string
+          linkedin_profile_url: string
+          linkedin_status: string
+          linkedin_submitted_at: string
+          updated_at: string
           user_id: string
           username: string
         }[]
@@ -1657,6 +1728,15 @@ export type Database = {
           status: string
         }[]
       }
+      admin_reject_luxy_membership_order: {
+        Args: {
+          p_actor_user_id: string
+          p_order_id: string
+          p_reason_code: string
+          p_request_id: string
+        }
+        Returns: boolean
+      }
       admin_release_account_hold: {
         Args: {
           p_actor_user_id: string
@@ -1715,6 +1795,17 @@ export type Database = {
           profile_status: string
           user_id: string
         }[]
+      }
+      admin_review_member_profile_verification: {
+        Args: {
+          p_actor_user_id: string
+          p_decision: string
+          p_kind: string
+          p_reason_code: string
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: string
       }
       admin_runtime_observability_snapshot: {
         Args: { p_actor_user_id: string; p_window_minutes?: number }
@@ -1817,6 +1908,10 @@ export type Database = {
         Args: { p_friendship_id: string }
         Returns: boolean
       }
+      cancel_my_luxy_membership_order: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       cancel_my_vietqr_heart_order: {
         Args: { p_order_id: string }
         Returns: string
@@ -1903,6 +1998,26 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_luxy_membership_order: {
+        Args: {
+          p_period_count: number
+          p_request_id: string
+          p_source?: string
+          p_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }
+        Returns: {
+          amount_due_vnd: number
+          created_at: string
+          discount_bps: number
+          heart_credit_units: number
+          monthly_price_vnd: number
+          order_code: string
+          order_id: string
+          period_count: number
+          status: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
       }
       create_luxy_upgrade_intent: {
         Args: {
@@ -2017,6 +2132,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      finalize_member_identity_document: {
+        Args: { p_document_id: string }
+        Returns: boolean
       }
       find_nearby_profiles: {
         Args: { p_cursor?: string; p_limit?: number; p_radius_meters?: number }
@@ -2177,6 +2296,26 @@ export type Database = {
           weight_kg: number
         }[]
       }
+      get_luxy_member_verification_badges: {
+        Args: { p_user_id: string }
+        Returns: {
+          identity_verified: boolean
+          linkedin_verified: boolean
+          selfie_verified: boolean
+        }[]
+      }
+      get_luxy_membership_plan_options: {
+        Args: never
+        Returns: {
+          amount_due_vnd: number
+          discount_bps: number
+          heart_credit_display: number
+          heart_credit_units: number
+          monthly_price_vnd: number
+          period_count: number
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
       get_luxy_profile_conversation: {
         Args: { p_profile_id: string }
         Returns: string
@@ -2241,15 +2380,86 @@ export type Database = {
           submitted_at: string
         }[]
       }
+      get_my_luxy_gift_wallet: {
+        Args: never
+        Returns: {
+          can_gift: boolean
+          heart_available_units: number
+          kyc_approved: boolean
+          minimum_withdrawal_units: number
+          platform_share_bps: number
+          recipient_share_bps: number
+          reward_available_units: number
+          reward_frozen: boolean
+          reward_held_units: number
+          reward_hold_days: number
+          reward_paid_units: number
+          reward_pending_units: number
+          reward_reversed_units: number
+          verified_bank_available: boolean
+          withdrawal_ready: boolean
+        }[]
+      }
+      get_my_luxy_membership_checkout: {
+        Args: { p_order_id: string }
+        Returns: {
+          account_name: string
+          account_no: string
+          amount_due_vnd: number
+          bank_bin: string
+          bank_code: string
+          bank_name: string
+          created_at: string
+          discount_bps: number
+          heart_credit_display: number
+          heart_credit_units: number
+          membership_expires_at: string
+          monthly_price_vnd: number
+          order_code: string
+          order_id: string
+          period_count: number
+          qr_image_url: string
+          status: string
+          submitted_at: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          transfer_content: string
+        }[]
+      }
+      get_my_luxy_membership_privacy: {
+        Args: never
+        Returns: {
+          can_hide_from_listing: boolean
+          can_hide_online: boolean
+          hide_from_listing: boolean
+          hide_online: boolean
+        }[]
+      }
       get_my_luxy_membership_snapshot: {
         Args: never
         Returns: {
           can_favorite: boolean
+          can_full_search: boolean
+          can_hide_from_listing: boolean
+          can_hide_online: boolean
           can_message: boolean
           can_request_private_photo: boolean
+          can_unlimited_likes: boolean
+          can_use_hearts: boolean
           expires_at: string
+          heart_balance_units: number
           status: string
           tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          visibility_priority: number
+        }[]
+      }
+      get_my_member_verification_status: {
+        Args: never
+        Returns: {
+          identity_status: string
+          linkedin_profile_url: string
+          linkedin_status: string
+          selfie_similarity: number
+          selfie_status: string
         }[]
       }
       get_my_onboarding_status: {
@@ -2533,6 +2743,7 @@ export type Database = {
           is_match: boolean
           is_online: boolean
           last_active_at: string
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
           photo_count: number
           province_name: string
           username: string
@@ -2585,6 +2796,7 @@ export type Database = {
           last_message_sender_id: string
           last_message_sent_at: string
           last_message_type: string
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
           other_user_id: string
           province_name: string
           unread_count: number
@@ -2627,6 +2839,41 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      list_my_luxy_gifts: {
+        Args: { p_direction?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          direction: string
+          gift_icon_emoji: string
+          gift_name_vi: string
+          gift_slug: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          other_display_name: string
+          other_user_id: string
+          other_username: string
+          quantity: number
+          recipient_reward_units: number
+          reward_available_at: string
+          status: string
+        }[]
+      }
+      list_my_luxy_membership_orders: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          amount_due_vnd: number
+          created_at: string
+          heart_credit_units: number
+          membership_expires_at: string
+          order_code: string
+          order_id: string
+          period_count: number
+          status: string
+          submitted_at: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
       list_my_media: {
         Args: { p_cursor?: string; p_limit?: number }
         Returns: {
@@ -2667,6 +2914,33 @@ export type Database = {
           refunded_at: string
           revoked_at: string
           verified_at: string
+        }[]
+      }
+      list_my_received_gift_log: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          completed_at: string
+          gift_icon_emoji: string
+          gift_id: string
+          gift_name_en: string
+          gift_name_vi: string
+          gift_slug: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          net_heart_units: number
+          platform_gross_units: number
+          quantity: number
+          received_at: string
+          recipient_reward_units: number
+          reversed_at: string
+          reversed_heart_units: number
+          reward_available_at: string
+          sender_display_name: string
+          sender_id: string
+          sender_username: string
+          status: string
+          unit_heart_units: number
         }[]
       }
       list_my_social_connections: {
@@ -2810,6 +3084,10 @@ export type Database = {
         Args: { p_conversation_id: string; p_message_id?: string }
         Returns: boolean
       }
+      mark_my_luxy_membership_order_submitted: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       mark_my_vietqr_transfer_submitted: {
         Args: { p_order_id: string }
         Returns: string
@@ -2935,6 +3213,19 @@ export type Database = {
         Returns: {
           media_id: string
           moderation_status: Database["public"]["Enums"]["media_moderation_status"]
+          storage_bucket: string
+          storage_path: string
+        }[]
+      }
+      prepare_member_identity_document: {
+        Args: {
+          p_extension?: string
+          p_file_size_bytes: number
+          p_mime_type: string
+          p_side: string
+        }
+        Returns: {
+          document_id: string
           storage_bucket: string
           storage_path: string
         }[]
@@ -3288,6 +3579,30 @@ export type Database = {
           sender_balance_units: number
         }[]
       }
+      send_luxy_gift: {
+        Args: {
+          p_client_message_id?: string
+          p_conversation_id?: string
+          p_gift_id: string
+          p_idempotency_key: string
+          p_quantity: number
+          p_recipient_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          gift_id: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          platform_gross_units: number
+          quantity: number
+          recipient_id: string
+          recipient_reward_units: number
+          reward_available_at: string
+          sender_balance_units: number
+          sender_id: string
+        }[]
+      }
       send_message: {
         Args: {
           p_body: string
@@ -3460,6 +3775,13 @@ export type Database = {
           is_enabled: boolean
         }[]
       }
+      set_my_profile_photo_visibility: {
+        Args: { p_media_id: string; p_visibility: string }
+        Returns: {
+          media_id: string
+          visibility: string
+        }[]
+      }
       set_profile_favorite: {
         Args: { p_favorited: boolean; p_profile_id: string }
         Returns: {
@@ -3468,7 +3790,19 @@ export type Database = {
           is_match: boolean
         }[]
       }
+      submit_my_linkedin_verification: {
+        Args: { p_profile_url: string }
+        Returns: string
+      }
+      submit_my_member_identity_verification: { Args: never; Returns: string }
       unblock_user: { Args: { p_blocked_id: string }; Returns: boolean }
+      update_my_luxy_membership_privacy: {
+        Args: { p_hide_from_listing: boolean; p_hide_online: boolean }
+        Returns: {
+          hide_from_listing: boolean
+          hide_online: boolean
+        }[]
+      }
       update_my_luxy_profile: {
         Args: {
           p_age_preference_max?: number
