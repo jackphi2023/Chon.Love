@@ -2,12 +2,14 @@ name: LX-19 Contract
 
 on:
   push:
-    branches: ['agent/lx-19-gifts-7d-payout']
+    branches: ['agent/lx-19-gifts-7d-payout', 'release/**']
     paths:
       - 'supabase/migrations/20260812214500_lx_19_gifts_7d_payout.sql'
       - 'supabase/migrations/20260812214600_lx_19_membership_heart_entitlement_fix.sql'
       - 'supabase/migrations/20260812214700_lx_19_received_gift_log.sql'
       - 'supabase/migrations/20260812214800_lx_19_withdrawal_lint_fix.sql'
+      - 'supabase/migrations/20260813104500_web_r01_financial_surface_fail_closed.sql'
+      - 'supabase/migrations/20260813104600_web_r01_restore_free_favorite_entitlement.sql'
       - 'supabase/tests/lx_19_gifts_7d_payout.sql'
       - 'packages/supabase/src/gift-log.ts'
       - 'packages/supabase/src/gifts.ts'
@@ -26,6 +28,8 @@ on:
       - 'supabase/migrations/20260812214600_lx_19_membership_heart_entitlement_fix.sql'
       - 'supabase/migrations/20260812214700_lx_19_received_gift_log.sql'
       - 'supabase/migrations/20260812214800_lx_19_withdrawal_lint_fix.sql'
+      - 'supabase/migrations/20260813104500_web_r01_financial_surface_fail_closed.sql'
+      - 'supabase/migrations/20260813104600_web_r01_restore_free_favorite_entitlement.sql'
       - 'supabase/tests/lx_19_gifts_7d_payout.sql'
       - 'packages/supabase/src/gift-log.ts'
       - 'packages/supabase/src/gifts.ts'
