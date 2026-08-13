@@ -2,7 +2,7 @@ name: LX-15 Contract
 
 on:
   push:
-    branches: ['agent/lx-15-*']
+    branches: ['agent/lx-15-*', 'release/**']
     paths:
       - 'supabase/**'
       - 'packages/supabase/**'
