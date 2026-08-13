@@ -1,0 +1,59 @@
+name: WEB-R01 Sync Database Types
+
+on:
+  push:
+    branches: ['release/luxy-web-v1']
+    paths:
+      - '.github/workflows/web-r01-sync-database-types.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: web-r01-sync-database-types
+  cancel-in-progress: false
+
+jobs:
+  sync-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release/luxy-web-v1
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Generate exact public database contract
+        run: supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts
+
+      - name: Commit generated contract if changed
+        id: commit
+        shell: bash
+        run: |
+          if git diff --quiet -- packages/supabase/src/database.types.ts; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'Generated public contract is already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts
+          git commit -m 'chore(web-r01): sync generated Supabase types'
+          git push origin HEAD:release/luxy-web-v1
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
