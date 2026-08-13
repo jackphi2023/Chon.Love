@@ -61,7 +61,7 @@ const conversationDetailSchema = z.object({
 
 const conversationRetentionSchema = z.object({
   conversation_id: z.string().uuid(),
-  auto_delete_enabled: z.boolean(),
+  auto_delete_enabled: z.boolean().nullable().transform((value) => value ?? false),
   auto_delete_after_days: z.literal(CHAT_AUTO_DELETE_DAYS).nullable(),
   updated_at: z.string().nullable(),
 });

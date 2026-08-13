@@ -5,6 +5,15 @@ const creator = { username: 'br06_creator', displayName: 'BR06 Creator' };
 const premiumActor = { email: 'br06.viewer@example.test' };
 const freeActor = { email: 'br06.outsider@example.test' };
 
+const profileVisualFixture = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="420" viewBox="0 0 320 420">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ece5df"/><stop offset="1" stop-color="#bfc7cd"/></linearGradient></defs>
+  <rect width="320" height="420" fill="url(#g)"/>
+  <circle cx="160" cy="135" r="66" fill="#7a858f"/>
+  <rect x="55" y="195" width="210" height="205" rx="100" fill="#626e79"/>
+  <path d="M270 28l22 22-22 22-22-22z" fill="none" stroke="#b58937" stroke-width="4"/>
+  <text x="18" y="28" font-family="Arial" font-size="14" fill="#444">Luxy QA</text>
+</svg>`;
+
 const vietQrVisualFixture = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
   <rect width="320" height="320" fill="white"/>
   <g fill="#081726">
@@ -132,6 +141,15 @@ for (const viewport of viewports) {
       await freePage.route('https://img.vietqr.io/**', async (route) => {
         await route.fulfill({ status: 200, contentType: 'image/svg+xml', body: vietQrVisualFixture });
       });
+      for (const target of [page, freePage]) {
+        await target.route('**/storage/v1/object/sign/profile-media/**', async (route) => {
+          if (route.request().method() !== 'GET') {
+            await route.continue();
+            return;
+          }
+          await route.fulfill({ status: 200, contentType: 'image/svg+xml', body: profileVisualFixture });
+        });
+      }
       await Promise.all([login(page, premiumActor), login(freePage, freeActor)]);
 
       await openSearch(page);
@@ -176,6 +194,10 @@ for (const viewport of viewports) {
       await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
       await page.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
       await expect(page.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true })).toBeVisible({ timeout: 20_000 });
+      const retentionSwitch = page.getByRole('switch', { name: 'Tự động xóa tin nhắn sau 7 ngày cho cả hai người' });
+      await expect(retentionSwitch).toBeVisible({ timeout: 20_000 });
+      await expect(retentionSwitch).toBeEnabled({ timeout: 20_000 });
+      await expect(page.getByText('Không thể tải cài đặt tự động xóa', { exact: false })).toHaveCount(0);
       await capture(page, testInfo, viewport, 'chat');
 
       await page.goto('/profile/edit');
