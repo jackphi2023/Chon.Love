@@ -1,5 +1,5 @@
 [build]
-  command = "corepack enable && NEXT_PUBLIC_SITE_URL=\"$URL\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"$EXPO_PUBLIC_SUPABASE_ANON_KEY\" pnpm --filter @myfan/public-web build"
+  command = "corepack enable && pnpm build:netlify:chon"
   publish = "apps/public-web/.next"
 
 [build.environment]
@@ -26,6 +26,11 @@
   NEXT_PUBLIC_MYFAN_ENV = "development"
   NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
+[[redirects]]
+  from = "/app/*"
+  to = "/app/index.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -33,3 +38,8 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), geolocation=(), microphone=()"
+
+[[headers]]
+  for = "/app/*"
+  [headers.values]
+    Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"
