@@ -15,7 +15,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run",
-    "build": "pnpm build:web && pnpm build:mobile:web",
+    "build": "pnpm --filter @myfan/admin build && pnpm build:netlify:chon",
     "build:web": "pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build",
     "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
     "build:netlify:chon": "node scripts/build-chon-netlify.mjs",
