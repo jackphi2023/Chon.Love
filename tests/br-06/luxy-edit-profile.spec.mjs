@@ -96,7 +96,7 @@ test('LX-08 edit profile stacks cleanly on tablet and phone without bottom-tab r
     await noHorizontalOverflow(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' }).getByText('Luxy', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' }).getByText('Chon', { exact: true })).toBeVisible();
     photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     formBox = await page.getByTestId('lx08-profile-form').boundingBox();
     expect(photoBox).not.toBeNull();
