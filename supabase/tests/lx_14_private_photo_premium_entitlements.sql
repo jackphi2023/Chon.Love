@@ -3,7 +3,7 @@ begin;
 -- Historical filename is retained because the LX-15 workflow invokes it as a
 -- regression suite. Assertions below intentionally follow the final LX-20 product
 -- contract, which supersedes LX-14 owner-approval semantics.
-select plan(25);
+select plan(26);
 
 select has_table('private','private_photo_access_requests','legacy Private Photo request storage remains for backward compatibility');
 select ok(not has_table_privilege('authenticated','private.private_photo_access_requests','select'),'authenticated cannot read legacy Private Photo request storage directly');
