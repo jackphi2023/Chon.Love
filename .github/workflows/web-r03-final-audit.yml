@@ -1,0 +1,29 @@
+name: WEB-R03 Final Audit
+
+on:
+  push:
+    branches:
+      - release/luxy-web-v1
+    paths:
+      - .github/workflows/web-r03-final-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Permanent branding guard
+        run: node scripts/validate-web-r03-branding.mjs
+      - name: Broad legacy term inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== Broad runtime-source inventory; expected internal compatibility matches may remain ==='
+          grep -RInE \
+            --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --include='*.json' \
+            '(MyFan|Creator|Fan|Activity|Hoạt động|LX-[0-9]{2})' \
+            apps/mobile apps/public-web apps/admin packages \
+            | grep -Ev '(\.test\.|\.spec\.|database\.types\.ts)' || true
