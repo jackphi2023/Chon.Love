@@ -2,7 +2,7 @@ name: LX-18 Contract
 
 on:
   push:
-    branches: ['agent/lx-18-upgrade-billing-vietqr']
+    branches: ['agent/lx-18-upgrade-billing-vietqr', 'release/**']
     paths:
       - 'supabase/migrations/20260812195000_lx_18_upgrade_billing_vietqr.sql'
       - 'supabase/tests/lx_18_upgrade_billing_vietqr.sql'
