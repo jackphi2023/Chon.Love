@@ -6,6 +6,7 @@ import './site-shell.css';
 import './marketing.css';
 
 const siteUrl = getPublicSiteUrl();
+const productionIndexable = !process.env.CONTEXT || process.env.CONTEXT === 'production';
 
 export const metadata: Metadata = {
   metadataBase: siteUrl ? new URL(siteUrl) : undefined,
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   description: 'Luxy.Love là nền tảng kết nối dành cho người từ đủ 18 tuổi, với hồ sơ xác thực, quyền riêng tư và công cụ an toàn.',
   applicationName: 'Luxy.Love',
   creator: 'Luxy.Love',
-  robots: { index: true, follow: true },
+  robots: productionIndexable ? { index: true, follow: true } : { index: false, follow: false, noarchive: true },
   icons: { icon: '/icon.svg' },
   openGraph: { siteName: 'Luxy.Love', locale: 'vi_VN', type: 'website' },
 };
