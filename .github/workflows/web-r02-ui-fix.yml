@@ -20,70 +20,59 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           profile_path = Path('apps/mobile/app/profile/[username].tsx')
           profile = profile_path.read_text()
-          old = '''          <Pressable
-            accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
-            accessibilityRole="button"
-            disabled={!avatarQuery.data}
-            onPress={() => openPhoto(avatarQuery.data ?? null)}
-            style={({ pressed }) => [styles.heroPhotoFrame, pressed && styles.pressed]}
-            testID="luxy-member-profile-hero-photo"
-          >
-            {avatarQuery.data ? (
-              <Image accessibilityLabel={`Ảnh đại diện của ${displayName}`} resizeMode="cover" source={{ uri: avatarQuery.data }} style={styles.heroPhoto} />
-            ) : (
-              <View style={styles.heroFallback}><Text style={styles.heroFallbackText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>
-            )}
-            {profile.membership_badge_visible ? (
-              <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />
-            ) : null}
-            {!profile.blocked_by_viewer ? (
-              <View style={styles.heroFavorite}>
-                <LuxyFavoriteButton
-                  initialFavorited={favoriteState?.is_favorited ?? false}
-                  initialFavoritedBy={favoriteState?.is_favorited_by ?? false}
-                  name={displayName}
-                  profileId={profile.id}
-                />
-              </View>
-            ) : null}
-          </Pressable>'''
-          new = '''          <View style={styles.heroPhotoFrame} testID="luxy-member-profile-hero-photo">
-            <Pressable
-              accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
-              accessibilityRole="button"
-              disabled={!avatarQuery.data}
-              onPress={() => openPhoto(avatarQuery.data ?? null)}
-              style={({ pressed }) => [styles.heroPhotoPressTarget, pressed && styles.pressed]}
-            >
-              {avatarQuery.data ? (
-                <Image accessibilityLabel={`Ảnh đại diện của ${displayName}`} resizeMode="cover" source={{ uri: avatarQuery.data }} style={styles.heroPhoto} />
-              ) : (
-                <View style={styles.heroFallback}><Text style={styles.heroFallbackText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>
-              )}
-            </Pressable>
-            {profile.membership_badge_visible ? (
-              <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />
-            ) : null}
-            {!profile.blocked_by_viewer ? (
-              <View style={styles.heroFavorite}>
-                <LuxyFavoriteButton
-                  initialFavorited={favoriteState?.is_favorited ?? false}
-                  initialFavoritedBy={favoriteState?.is_favorited_by ?? false}
-                  name={displayName}
-                  profileId={profile.id}
-                />
-              </View>
-            ) : null}
-          </View>'''
-          if old not in profile:
-              raise SystemExit('member profile hero block not found')
-          profile = profile.replace(old, new, 1)
-          style_old = "  heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhoto:"
-          style_new = "  heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhotoPressTarget: { height: '100%', width: '100%' }, heroPhoto:"
+          pattern = re.compile(
+              r'<Pressable\s+'
+              r'accessibilityLabel=\{`Xem ảnh đại diện của \$\{displayName\}`\}\s+'
+              r'accessibilityRole="button"\s+'
+              r'disabled=\{!avatarQuery\.data\}\s+'
+              r'onPress=\{\(\) => openPhoto\(avatarQuery\.data \?\? null\)\}\s+'
+              r'style=\{\(\{ pressed \}\) => \[styles\.heroPhotoFrame, pressed && styles\.pressed\]\}\s+'
+              r'testID="luxy-member-profile-hero-photo"\s*>'
+              r'.*?'
+              r'</Pressable>',
+              re.DOTALL,
+          )
+          new_lines = [
+              '<View style={styles.heroPhotoFrame} testID="luxy-member-profile-hero-photo">',
+              '  <Pressable',
+              '    accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}',
+              '    accessibilityRole="button"',
+              '    disabled={!avatarQuery.data}',
+              '    onPress={() => openPhoto(avatarQuery.data ?? null)}',
+              '    style={({ pressed }) => [styles.heroPhotoPressTarget, pressed && styles.pressed]}',
+              '  >',
+              '    {avatarQuery.data ? (',
+              '      <Image accessibilityLabel={`Ảnh đại diện của ${displayName}`} resizeMode="cover" source={{ uri: avatarQuery.data }} style={styles.heroPhoto} />',
+              '    ) : (',
+              '      <View style={styles.heroFallback}><Text style={styles.heroFallbackText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>',
+              '    )}',
+              '  </Pressable>',
+              '  {profile.membership_badge_visible ? (',
+              '    <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />',
+              '  ) : null}',
+              '  {!profile.blocked_by_viewer ? (',
+              '    <View style={styles.heroFavorite}>',
+              '      <LuxyFavoriteButton',
+              '        initialFavorited={favoriteState?.is_favorited ?? false}',
+              '        initialFavoritedBy={favoriteState?.is_favorited_by ?? false}',
+              '        name={displayName}',
+              '        profileId={profile.id}',
+              '      />',
+              '    </View>',
+              '  ) : null}',
+              '</View>',
+          ]
+          replacement = '\n'.join(('          ' + line) if line else line for line in new_lines)
+          profile, count = pattern.subn(replacement, profile, count=1)
+          if count != 1:
+              raise SystemExit(f'member profile hero match count: {count}')
+          style_old = "heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhoto:"
+          style_new = "heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhotoPressTarget: { height: '100%', width: '100%' }, heroPhoto:"
           if style_old not in profile:
               raise SystemExit('member profile hero style not found')
           profile_path.write_text(profile.replace(style_old, style_new, 1))
