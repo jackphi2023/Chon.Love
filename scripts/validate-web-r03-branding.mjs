@@ -27,6 +27,11 @@ const noMyFanOrPhase = [
   'apps/admin/app/admin-login.tsx',
 ];
 
+const searchSurfaces = [
+  'apps/mobile/src/components/luxy-search-mobile.tsx',
+  'apps/mobile/src/components/luxy-search-desktop.tsx',
+];
+
 const publicReachable = [
   'apps/public-web/app/layout.tsx',
   'apps/public-web/app/page.tsx',
@@ -44,12 +49,16 @@ for (const path of noMyFanOrPhase) {
   if (/LX-[0-9]{2}/.test(text)) failures.push(`${path}: internal LX phase label remains user-facing`);
   if (/Album Fan/.test(text)) failures.push(`${path}: legacy Album Fan copy remains`);
 }
+for (const path of searchSurfaces) {
+  const text = readFileSync(path, 'utf8');
+  if (/Hoạt động gần đây/.test(text)) failures.push(`${path}: legacy Activity-style recent label remains`);
+}
 for (const path of publicReachable) {
   const text = readFileSync(path, 'utf8');
   for (const [label, pattern] of [
     ['MyFan', /MyFan/],
     ['Creator', /Creator/],
-    ['Fan', /Fan/],
+    ['Fan', /\bFan\b/],
     ['Hoạt động', /Hoạt động/],
     ['Social Creator', /Social Creator/],
   ]) {
@@ -61,4 +70,4 @@ if (failures.length) {
   console.error('WEB-R03 branding validation failed:\n' + failures.map((x) => `- ${x}`).join('\n'));
   process.exit(1);
 }
-console.log('WEB-R03 branding validation passed: reachable Web V1 surfaces use Luxy.Love copy and no LX phase labels.');
+console.log('WEB-R03 branding validation passed: reachable Web V1 surfaces use Luxy.Love copy, neutral recent-access wording, and no LX phase labels.');
