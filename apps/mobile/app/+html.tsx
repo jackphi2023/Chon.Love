@@ -17,10 +17,10 @@ export default function RootHtml({ children }: RootHtmlProps) {
         />
         <meta
           name="description"
-          content="Luxy.Love là nền tảng hẹn hò dành cho người trưởng thành có định hướng, ưu tiên kết nối chất lượng, quyền riêng tư và trải nghiệm an toàn."
+          content="Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm."
         />
         <meta name="theme-color" content="#081726" />
-        <title>Luxy.Love — Hẹn hò cho người thật và thành đạt</title>
+        <title>Chon.Love | Chọn đúng người, Yêu đúng Gu</title>
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>
