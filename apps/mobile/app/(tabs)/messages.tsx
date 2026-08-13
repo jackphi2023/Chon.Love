@@ -125,6 +125,7 @@ export default function MessagesPage() {
               const badge = item.key === 'inbox' ? inboxUnread : 0;
               return (
                 <Pressable
+                  accessibilityLabel={item.label}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
                   key={item.key}
