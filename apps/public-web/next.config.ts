@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/u, '');
+const validAppUrl = Boolean(appUrl && (appUrl.startsWith('/') || /^https:\/\//u.test(appUrl)));
 if (process.env.CONTEXT === 'production') {
-  if (!appUrl || !/^https:\/\//u.test(appUrl)) throw new Error('NEXT_PUBLIC_APP_URL is required and must use HTTPS for the production public-web deploy.');
+  if (!validAppUrl) throw new Error('NEXT_PUBLIC_APP_URL is required and must be an HTTPS URL or a root-relative path for the production public-web deploy.');
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required for production public member profiles.');
 }
 
