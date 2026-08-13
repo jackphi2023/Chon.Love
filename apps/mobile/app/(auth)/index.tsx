@@ -367,7 +367,7 @@ function AccountForm({
       </View>
 
       <Pressable
-        accessibilityLabel="Tiếp tục với Google"
+        accessibilityLabel="Tiếp tục với Gmail"
         accessibilityRole="button"
         accessibilityState={{ disabled: googleDisabled, busy: submitMode === 'google' }}
         disabled={googleDisabled}
@@ -375,7 +375,7 @@ function AccountForm({
         style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, googleDisabled && styles.disabled]}
       >
         <View style={styles.googleMark}><Text style={styles.googleMarkText}>G</Text></View>
-        {submitMode === 'google' ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>}
+        {submitMode === 'google' ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.googleButtonText}>Tiếp tục với Gmail</Text>}
       </Pressable>
 
       {!login ? (
