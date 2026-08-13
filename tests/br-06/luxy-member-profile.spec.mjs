@@ -128,8 +128,8 @@ test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message 
     });
 
     await messageGate.getByTestId('luxy-diamond-upgrade-cta').click();
-    await expect(page.getByTestId('luxy-membership-settings')).toBeVisible();
     await expect(page).toHaveURL(/\/settings\/membership.*plan=diamond/);
+    await expect(page.getByTestId('luxy-upgrade-billing')).toBeVisible();
   } finally {
     await context.close();
   }
@@ -166,8 +166,8 @@ test('LX-20 mobile keeps Free Favorite and membership-entitled Private Photos on
     await expect(messageGate).toBeVisible();
     await assertPaidPlanComparison(messageGate);
     await messageGate.getByTestId('luxy-message-upgrade-cta').click();
-    await expect(page.getByTestId('luxy-membership-settings')).toBeVisible();
     await expect(page).toHaveURL(/\/settings\/membership.*plan=premium/);
+    await expect(page.getByTestId('luxy-upgrade-billing')).toBeVisible();
   } finally {
     await context.close();
   }
