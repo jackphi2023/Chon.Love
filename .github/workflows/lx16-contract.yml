@@ -2,7 +2,7 @@ name: LX-16 Contract
 
 on:
   push:
-    branches: ['agent/lx-16-interests-messages-seeking']
+    branches: ['agent/lx-16-interests-messages-seeking', 'release/**']
     paths:
       - 'supabase/migrations/20260812170000_lx_16_interests_messages_ui_contract.sql'
       - 'supabase/tests/lx_15_direct_messaging_entitlement.sql'
