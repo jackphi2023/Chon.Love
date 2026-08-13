@@ -1,0 +1,36 @@
+name: WEB-R03 Branding Audit
+
+on:
+  push:
+    branches:
+      - release/luxy-web-v1
+    paths:
+      - .github/workflows/web-r03-brand-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit runtime branding strings
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== USER-FACING / LEGACY BRAND TERMS ==='
+          rg -n -S \
+            -g '!**/*.test.*' \
+            -g '!**/*.spec.*' \
+            -g '!**/database.types.ts' \
+            '(MyFan|Creator|Fan|Activity|Hoạt động|LX-[0-9]{2})' \
+            apps/mobile apps/public-web apps/admin packages || true
+          echo
+          echo '=== INTERNAL MYFAN IDENTIFIERS / COPY ==='
+          rg -n -i \
+            -g '!**/*.test.*' \
+            -g '!**/*.spec.*' \
+            -g '!**/database.types.ts' \
+            'myfan' \
+            apps/mobile apps/public-web apps/admin packages || true
