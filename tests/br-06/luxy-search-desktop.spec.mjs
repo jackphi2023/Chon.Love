@@ -40,7 +40,7 @@ test('LX-10/12 desktop Search keeps Seeking rail and activates Favorite/view fil
     await expect(rail.getByRole('button', { name: 'Đặt lại', exact: true }).first()).toBeVisible();
     await expect(rail.getByText('Đã xác thực ảnh', { exact: true })).toBeVisible();
     await expect(rail.getByText('Đã xác thực CCCD', { exact: true })).toBeVisible();
-    await expect(rail.getByText('LX-20', { exact: true }).first()).toBeVisible();
+    await expect(rail.getByText('Sắp mở', { exact: true }).first()).toBeVisible();
     await expect(rail.getByText('LX-12', { exact: true })).toHaveCount(0);
     await expect(rail.getByText('Chưa xem', { exact: true })).toBeVisible();
     await expect(rail.getByText('Đã xem', { exact: true })).toBeVisible();
@@ -49,9 +49,9 @@ test('LX-10/12 desktop Search keeps Seeking rail and activates Favorite/view fil
 
     const sortLabel = results.getByText('Gần nhất', { exact: true });
     await sortLabel.click();
-    const recentSort = results.getByText('Hoạt động gần đây', { exact: true });
+    const recentSort = results.getByText('Truy cập gần đây', { exact: true });
     await recentSort.click();
-    await expect(results.getByText('Hoạt động gần đây', { exact: true })).toBeVisible();
+    await expect(results.getByText('Truy cập gần đây', { exact: true })).toBeVisible();
 
     const cards = page.getByTestId('luxy-search-member-card');
     await expect.poll(async () => cards.count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(3);

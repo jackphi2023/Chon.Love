@@ -66,7 +66,7 @@ test('LX-11/12 phone Search keeps two-column grid and activates relationship fil
     await expect(filterSheet.getByText('Khoảng cách', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Tùy chọn', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Đã xác thực ảnh', { exact: true })).toBeVisible();
-    await expect(filterSheet.getByText('LX-20', { exact: true }).first()).toBeVisible();
+    await expect(filterSheet.getByText('Sắp mở', { exact: true }).first()).toBeVisible();
     await expect(filterSheet.getByText('Lịch sử xem', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Chưa xem', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Đã xem', { exact: true })).toBeVisible();
@@ -88,7 +88,7 @@ test('LX-11/12 phone Search keeps two-column grid and activates relationship fil
     const recent = page.getByTestId('luxy-search-mobile-sort-recent');
     await recent.click();
     await expect(sortSheet).toHaveCount(0);
-    await expect(sortButton).toHaveAttribute('aria-label', 'Sắp xếp: Hoạt động gần đây');
+    await expect(sortButton).toHaveAttribute('aria-label', 'Sắp xếp: Truy cập gần đây');
 
     await noHorizontalOverflow(page);
     await testInfo.attach('lx12-search-mobile-390', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });

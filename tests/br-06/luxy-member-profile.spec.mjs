@@ -53,7 +53,7 @@ async function assertFreePrivatePhotoMembershipGate(page) {
   await expect(upgradeGate.getByText(/Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư/)).toBeVisible();
   await expect(upgradeGate.getByText(/trạng thái gói trên server/)).toBeVisible();
   await expect(upgradeGate.getByText(/chấp thuận|từ chối/i)).toHaveCount(0);
-  await expect(upgradeGate.getByText(/legacy approval request không mở khóa ảnh riêng tư/)).toBeVisible();
+  await expect(upgradeGate.getByText(/yêu cầu duyệt cũ không mở khóa ảnh riêng tư/)).toBeVisible();
   await assertPaidPlanComparison(upgradeGate);
 
   await upgradeGate.getByRole('button', { name: 'Để sau' }).click();
