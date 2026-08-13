@@ -120,7 +120,7 @@ export function LuxyPrivatePhotoAccess({
             <Text style={styles.privateTileBody}>
               {isPaid ? 'Đang tải ảnh dành cho thành viên trả phí…' : 'Chỉ Premium và Diamond được xem đầy đủ.'}
             </Text>
-            {!isPaid ? <Text style={styles.privateTileButton}>Yêu cầu xem · Nâng cấp</Text> : null}
+            {!isPaid ? <Text style={styles.privateTileButton}>Xem ảnh riêng tư · Nâng cấp</Text> : null}
             {error ? <Text accessibilityRole="alert" style={styles.error}>{getReadablePrivatePhotoError(error)}</Text> : null}
           </Pressable>
         )}
@@ -145,7 +145,7 @@ export function LuxyPrivatePhotoAccess({
         testID="luxy-private-photo-entitlement-button"
       >
         <Text style={styles.privateRequestText}>
-          {isPaid ? `✓ Xem ${count} ảnh riêng tư` : `Yêu cầu xem ảnh riêng tư (${count}) · Nâng cấp`}
+          {isPaid ? `✓ Xem ${count} ảnh riêng tư` : `Xem ảnh riêng tư (${count}) · Nâng cấp`}
         </Text>
       </Pressable>
       {error ? <Text accessibilityRole="alert" style={styles.errorInline}>{getReadablePrivatePhotoError(error)}</Text> : null}
