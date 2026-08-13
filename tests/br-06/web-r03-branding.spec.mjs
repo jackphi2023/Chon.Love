@@ -17,6 +17,7 @@ async function expectCleanBranding(page, screen) {
   await expect(body, `${screen}: MyFan must not be visible`).not.toContainText('MyFan');
   await expect(body, `${screen}: internal LX labels must not be visible`).not.toContainText(/LX-[0-9]{2}/);
   await expect(body, `${screen}: Album Fan must not be visible`).not.toContainText('Album Fan');
+  await expect(body, `${screen}: deferred Activity branding must not be visible`).not.toContainText('Hoạt động');
 }
 
 test('WEB-R03 public/auth surfaces use Luxy.Love branding', async ({ page }) => {
