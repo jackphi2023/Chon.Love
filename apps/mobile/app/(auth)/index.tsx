@@ -84,7 +84,7 @@ export default function AuthHome() {
         return;
       }
       if (result.requiresEmailConfirmation) {
-        setSuccessMessage('Tài khoản đã được tạo. Hãy kiểm tra email để xác nhận, sau đó đăng nhập để tiếp tục xác minh 18+.');
+        setSuccessMessage('Tài khoản đã được tạo. Hãy kiểm tra email để xác nhận, sau đó đăng nhập để tiếp tục hoàn tất hồ sơ.');
       }
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
@@ -379,7 +379,7 @@ function AccountForm({
       </Pressable>
 
       {!login ? (
-        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý tiếp tục tới bước xác minh 18+ và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Chon.Love.</Text>
+        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý hoàn tất thông tin tài khoản và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Chon.Love.</Text>
       ) : null}
     </View>
   );
