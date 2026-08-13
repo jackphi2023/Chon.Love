@@ -48,6 +48,15 @@ async function assertVerificationControls(page) {
   await expect(page.getByTestId('verification-identity-submit')).toBeDisabled();
 }
 
+async function assertPrivatePhotoSettings(page) {
+  await expect(page.getByTestId('luxy-private-photo-settings')).toBeVisible();
+  await expect(page.getByTestId('private-photo-library')).toBeVisible();
+  await expect(page.getByText(/ảnh hồ sơ mới được upload ở trạng thái Công khai/i)).toBeVisible();
+  await expect(page.getByText(/Premium: xem ảnh riêng tư/i)).toBeVisible();
+  await expect(page.getByText(/Diamond: xem ảnh riêng tư/i)).toBeVisible();
+  await expect(page.getByText(/Free: chỉ thấy số lượng\/khu vực ảnh bị khóa/i)).toBeVisible();
+}
+
 test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
@@ -63,9 +72,7 @@ test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ 
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/private-photos');
-    await expect(page.getByTestId('luxy-private-photo-settings')).toBeVisible();
-    await expect(page.getByTestId('private-photo-upload')).toBeVisible();
-    await expect(page.getByText('Quà tặng, Fan và trạng thái kết nối không mở khóa ảnh riêng tư.', { exact: false })).toBeVisible();
+    await assertPrivatePhotoSettings(page);
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/membership');
@@ -108,11 +115,7 @@ test('WEB-R01 Settings remains usable on 390px mobile web', async ({ browser }, 
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/private-photos');
-    const uploadButton = page.getByTestId('private-photo-upload');
-    await expect(uploadButton).toBeVisible();
-    const uploadBox = await uploadButton.boundingBox();
-    expect(uploadBox).not.toBeNull();
-    expect(uploadBox.height).toBeGreaterThanOrEqual(44);
+    await assertPrivatePhotoSettings(page);
     await assertNoHorizontalOverflow(page);
 
     await testInfo.attach('web-r01-settings-390', {
