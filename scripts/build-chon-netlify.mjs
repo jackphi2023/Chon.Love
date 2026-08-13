@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -42,11 +42,15 @@ run(['--filter', '@myfan/mobile', 'build:web'], {
 });
 
 const mobileDist = resolve(root, 'apps/mobile/dist');
+const mobileIndex = resolve(mobileDist, 'index.html');
 const embeddedApp = resolve(root, 'apps/public-web/public/app');
-if (!existsSync(mobileDist)) throw new Error('Authenticated app build did not produce apps/mobile/dist.');
+if (!existsSync(mobileIndex)) throw new Error('Authenticated app build did not produce apps/mobile/dist/index.html.');
+const mobileHtml = readFileSync(mobileIndex, 'utf8');
+if (!mobileHtml.includes(`${appBasePath}/`)) throw new Error('Authenticated Expo build is missing the /app base path required by the combined Chon.Love deployment.');
 rmSync(embeddedApp, { recursive: true, force: true });
 mkdirSync(embeddedApp, { recursive: true });
 cpSync(mobileDist, embeddedApp, { recursive: true });
+if (!existsSync(resolve(embeddedApp, 'index.html'))) throw new Error('Embedded authenticated app index.html was not copied into the public site.');
 
 run(['--filter', '@myfan/public-web', 'build'], {
   ...sharedEnvironment,
