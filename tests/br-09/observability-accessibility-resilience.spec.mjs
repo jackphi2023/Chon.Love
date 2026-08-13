@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const viewerEmail = 'br06.viewer@example.test';
+const chonWebTitle = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
 
 async function openMobileLogin(browser) {
   const context = await browser.newContext({
@@ -13,13 +14,20 @@ async function openMobileLogin(browser) {
     reducedMotion: 'reduce',
   });
   const page = await context.newPage();
-  await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Tham gia MyFan' })).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập MyFan' }).first().click();
-  await expect(page.getByText('Đăng nhập Beta', { exact: true })).toBeVisible();
-  await expect(page).toHaveTitle('MyFan — Mạng xã hội Creator 18+');
+  await page.goto('/auth?mode=login');
+  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
+  await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
+  await expect(page).toHaveTitle(chonWebTitle);
   await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   return { context, page };
+}
+
+async function tabUntilFocused(page, locator, maxTabs = 8) {
+  for (let index = 0; index < maxTabs; index += 1) {
+    await page.keyboard.press('Tab');
+    if (await locator.evaluate((element) => element === document.activeElement)) return;
+  }
+  await expect(locator).toBeFocused();
 }
 
 test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ browser }, testInfo) => {
@@ -44,8 +52,7 @@ test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ bro
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
 
-    await page.keyboard.press('Tab');
-    await expect(emailInput).toBeFocused();
+    await tabUntilFocused(page, emailInput);
     await page.keyboard.press('Tab');
     await expect(passwordInput).toBeFocused();
 

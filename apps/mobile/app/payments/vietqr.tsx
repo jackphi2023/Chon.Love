@@ -275,7 +275,7 @@ export default function VietqrCheckoutPage() {
             {order.status === 'paid' ? (
               <View style={styles.successCard}>
                 <Text style={styles.successTitle}>Thanh toán đã được xác nhận</Text>
-                <Text style={styles.successText}>Số ❤️ đã được cộng vào số dư và có thể dùng theo quy định MyFan.</Text>
+                <Text style={styles.successText}>Số ❤️ đã được cộng vào số dư và có thể dùng theo quy định Luxy.Love.</Text>
               </View>
             ) : null}
 

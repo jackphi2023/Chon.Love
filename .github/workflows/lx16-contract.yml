@@ -1,0 +1,81 @@
+name: LX-16 Contract
+
+on:
+  push:
+    branches: ['agent/lx-16-interests-messages-seeking', 'release/**']
+    paths:
+      - 'supabase/migrations/20260812170000_lx_16_interests_messages_ui_contract.sql'
+      - 'supabase/tests/lx_15_direct_messaging_entitlement.sql'
+      - 'supabase/tests/lx_16_interests_messages_ui.sql'
+      - 'packages/supabase/src/interests.ts'
+      - 'packages/supabase/src/mailbox.ts'
+      - 'packages/supabase/src/interests.test.ts'
+      - 'packages/supabase/src/mailbox.test.ts'
+      - '.github/workflows/lx16-contract.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260812170000_lx_16_interests_messages_ui_contract.sql'
+      - 'supabase/tests/lx_15_direct_messaging_entitlement.sql'
+      - 'supabase/tests/lx_16_interests_messages_ui.sql'
+      - 'packages/supabase/src/interests.ts'
+      - 'packages/supabase/src/mailbox.ts'
+      - 'packages/supabase/src/interests.test.ts'
+      - 'packages/supabase/src/mailbox.test.ts'
+      - '.github/workflows/lx16-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lx16-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interests-messages-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run LX-15 messaging regression
+        run: supabase test db supabase/tests/lx_15_direct_messaging_entitlement.sql --local
+
+      - name: Run LX-16 Interests and Messages contract
+        run: supabase test db supabase/tests/lx_16_interests_messages_ui.sql --local
+
+      - name: Lint changed schemas
+        run: |
+          supabase db lint --local --schema public --schema private --level warning | tee /tmp/lx16-lint.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path('/tmp/lx16-lint.json').read_text().strip()
+          findings = json.loads(raw) if raw else []
+          errors = [
+              (item.get('function'), issue.get('message'))
+              for item in findings
+              for issue in item.get('issues', [])
+              if issue.get('level') == 'error'
+          ]
+          if errors:
+              for function, message in errors:
+                  print(f'ERROR {function}: {message}')
+              raise SystemExit(1)
+          print(f'LX-16 schema lint: zero errors; {len(findings)} warning entries retained.')
+          PY
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true

@@ -43,10 +43,14 @@ export function AdminLogin() {
     return (
       <div className="adminCard">
         <p className="adminEyebrow">ĐÃ ĐĂNG NHẬP</p>
-        <h1>MyFan Admin</h1>
+        <h1>Chon.Love Admin</h1>
         <p>Phiên hiện tại: <strong>{signedInEmail}</strong>. Mọi RPC nhạy cảm tiếp tục xác minh role tại database; giao diện không giữ service-role key.</p>
         <div className="adminActions">
-          <Link className="adminPrimary" href="/activity-moderation">Kiểm duyệt Hoạt động</Link>
+          <Link className="adminPrimary" href="/dashboard">Dashboard</Link>
+          <Link className="adminSecondary" href="/users">Users</Link>
+          <Link className="adminSecondary" href="/moderation">Moderation</Link>
+          <Link className="adminSecondary" href="/member-verifications">Xác minh ảnh</Link>
+          <Link className="adminSecondary" href="/memberships">Gói thành viên</Link>
           <Link className="adminSecondary" href="/vietqr-reconciliation">Đối soát VietQR</Link>
           <Link className="adminSecondary" href="/kyc-withdrawal-operations">KYC và rút tiền</Link>
           <Link className="adminSecondary" href="/runtime-observability">Observability</Link>
@@ -59,8 +63,8 @@ export function AdminLogin() {
   return (
     <form className="adminCard adminLoginForm" onSubmit={signIn}>
       <p className="adminEyebrow">MODERATION · FINANCE · 18+</p>
-      <h1>MyFan Admin</h1>
-      <p id="admin-login-help">Đăng nhập bằng tài khoản được cấp role phù hợp. Đối soát VietQR và vận hành KYC/rút tiền yêu cầu finance_admin hoặc super_admin.</p>
+      <h1>Chon.Love Admin</h1>
+      <p id="admin-login-help">Đăng nhập bằng tài khoản được cấp role phù hợp. Các thao tác nhạy cảm tiếp tục được kiểm tra quyền ở backend và ghi audit.</p>
       <label htmlFor="admin-email">Email<input aria-describedby="admin-login-help" id="admin-email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
       <label htmlFor="admin-password">Mật khẩu<input aria-describedby="admin-login-help" id="admin-password" autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
       {message ? <p className="adminError" role="alert">{message}</p> : null}

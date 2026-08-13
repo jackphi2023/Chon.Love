@@ -17,9 +17,10 @@ export default function RootHtml({ children }: RootHtmlProps) {
         />
         <meta
           name="description"
-          content="MyFan là mạng xã hội Creator dành cho người dùng từ 18 tuổi, ưu tiên an toàn, quyền riêng tư và khả năng tiếp cận."
+          content="Luxy.Love là nền tảng hẹn hò dành cho người trưởng thành có định hướng, ưu tiên kết nối chất lượng, quyền riêng tư và trải nghiệm an toàn."
         />
-        <title>MyFan — Mạng xã hội Creator 18+</title>
+        <meta name="theme-color" content="#081726" />
+        <title>Luxy.Love — Hẹn hò cho người thật và thành đạt</title>
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

@@ -141,6 +141,7 @@ export type Database = {
       }
       conversation_members: {
         Row: {
+          archived_at: string | null
           conversation_id: string
           created_at: string
           is_muted: boolean
@@ -151,6 +152,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           conversation_id: string
           created_at?: string
           is_muted?: boolean
@@ -161,6 +163,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           conversation_id?: string
           created_at?: string
           is_muted?: boolean
@@ -199,7 +202,9 @@ export type Database = {
           auto_delete_messages_after_days: number | null
           conversation_type: Database["public"]["Enums"]["conversation_type"]
           created_at: string
-          friendship_id: string
+          direct_member_high_id: string
+          direct_member_low_id: string
+          friendship_id: string | null
           id: string
           last_message_at: string | null
           message_retention_updated_at: string | null
@@ -210,7 +215,9 @@ export type Database = {
           auto_delete_messages_after_days?: number | null
           conversation_type?: Database["public"]["Enums"]["conversation_type"]
           created_at?: string
-          friendship_id: string
+          direct_member_high_id: string
+          direct_member_low_id: string
+          friendship_id?: string | null
           id?: string
           last_message_at?: string | null
           message_retention_updated_at?: string | null
@@ -221,7 +228,9 @@ export type Database = {
           auto_delete_messages_after_days?: number | null
           conversation_type?: Database["public"]["Enums"]["conversation_type"]
           created_at?: string
-          friendship_id?: string
+          direct_member_high_id?: string
+          direct_member_low_id?: string
+          friendship_id?: string | null
           id?: string
           last_message_at?: string | null
           message_retention_updated_at?: string | null
@@ -229,6 +238,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_direct_member_high_fkey"
+            columns: ["direct_member_high_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_direct_member_low_fkey"
+            columns: ["direct_member_low_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_friendship_id_fkey"
             columns: ["friendship_id"]
@@ -1076,63 +1099,180 @@ export type Database = {
           },
         ]
       }
+      profile_favorites: {
+        Row: {
+          created_at: string
+          favorite_id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          favorite_id: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          favorite_id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_favorites_favorite_id_fkey"
+            columns: ["favorite_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_favorites_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_views: {
+        Row: {
+          first_viewed_at: string
+          last_viewed_at: string
+          view_count: number
+          viewed_id: string
+          viewer_id: string
+        }
+        Insert: {
+          first_viewed_at?: string
+          last_viewed_at?: string
+          view_count?: number
+          viewed_id: string
+          viewer_id: string
+        }
+        Update: {
+          first_viewed_at?: string
+          last_viewed_at?: string
+          view_count?: number
+          viewed_id?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_views_viewed_id_fkey"
+            columns: ["viewed_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          age_preference_max: number
+          age_preference_min: number
           avatar_media_id: string | null
           bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
           created_at: string
           deleted_at: string | null
           discovery_enabled: boolean
           display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
           gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
           id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
           interests: string[]
           is_creator: boolean
+          languages: string[]
           last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
           nearby_enabled: boolean
+          occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
           province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          weight_kg: number | null
         }
         Insert: {
+          age_preference_max?: number
+          age_preference_min?: number
           avatar_media_id?: string | null
           bio?: string | null
+          children_status?: Database["public"]["Enums"]["children_status"]
           created_at?: string
           deleted_at?: string | null
           discovery_enabled?: boolean
           display_name?: string | null
+          drinking_status?: Database["public"]["Enums"]["drinking_status"]
+          education_level?: Database["public"]["Enums"]["education_level"]
           gender?: Database["public"]["Enums"]["gender_identity"]
+          headline?: string | null
+          height_cm?: number | null
           id: string
+          interested_in?: Database["public"]["Enums"]["dating_interest"]
           interests?: string[]
           is_creator?: boolean
+          languages?: string[]
           last_active_at?: string | null
+          lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for?: string | null
           nearby_enabled?: boolean
+          occupation?: string | null
           profile_status?: Database["public"]["Enums"]["profile_status"]
           province_id?: number | null
+          relationship_status?: Database["public"]["Enums"]["relationship_status"]
+          smoking_status?: Database["public"]["Enums"]["smoking_status"]
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
+          weight_kg?: number | null
         }
         Update: {
+          age_preference_max?: number
+          age_preference_min?: number
           avatar_media_id?: string | null
           bio?: string | null
+          children_status?: Database["public"]["Enums"]["children_status"]
           created_at?: string
           deleted_at?: string | null
           discovery_enabled?: boolean
           display_name?: string | null
+          drinking_status?: Database["public"]["Enums"]["drinking_status"]
+          education_level?: Database["public"]["Enums"]["education_level"]
           gender?: Database["public"]["Enums"]["gender_identity"]
+          headline?: string | null
+          height_cm?: number | null
           id?: string
+          interested_in?: Database["public"]["Enums"]["dating_interest"]
           interests?: string[]
           is_creator?: boolean
+          languages?: string[]
           last_active_at?: string | null
+          lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for?: string | null
           nearby_enabled?: boolean
+          occupation?: string | null
           profile_status?: Database["public"]["Enums"]["profile_status"]
           province_id?: number | null
+          relationship_status?: Database["public"]["Enums"]["relationship_status"]
+          smoking_status?: Database["public"]["Enums"]["smoking_status"]
           updated_at?: string
           username?: string | null
           username_changed_at?: string | null
+          weight_kg?: number | null
         }
         Relationships: [
           {
@@ -1289,6 +1429,23 @@ export type Database = {
         Args: { p_album_id: string; p_media_id: string; p_sort_order?: number }
         Returns: boolean
       }
+      admin_approve_luxy_membership_order: {
+        Args: {
+          p_actor_user_id: string
+          p_bank_transaction_ref: string
+          p_order_id: string
+          p_paid_amount_vnd: number
+          p_verification_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          heart_balance_after_units: number
+          heart_credit_units: number
+          membership_expires_at: string
+          order_id: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
       admin_create_account_hold: {
         Args: {
           p_actor_user_id: string
@@ -1340,6 +1497,23 @@ export type Database = {
           paid_balance_units: number
           status: string
           withdrawal_id: string
+        }[]
+      }
+      admin_get_member_profile_verification_detail: {
+        Args: { p_actor_user_id: string; p_user_id: string }
+        Returns: {
+          display_name: string
+          identity_back_bucket: string
+          identity_back_path: string
+          identity_front_bucket: string
+          identity_front_path: string
+          identity_status: string
+          identity_submitted_at: string
+          linkedin_profile_url: string
+          linkedin_status: string
+          linkedin_submitted_at: string
+          user_id: string
+          username: string
         }[]
       }
       admin_import_vietqr_bank_transaction: {
@@ -1408,6 +1582,59 @@ export type Database = {
           submitted_at: string
           total_count: number
           user_id: string
+        }[]
+      }
+      admin_list_luxy_membership_orders: {
+        Args: {
+          p_actor_user_id: string
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+        }
+        Returns: {
+          amount_due_vnd: number
+          created_at: string
+          display_name: string
+          heart_credit_units: number
+          order_code: string
+          order_id: string
+          period_count: number
+          status: string
+          submitted_at: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          total_count: number
+          user_id: string
+          username: string
+        }[]
+      }
+      admin_list_member_photo_verifications: {
+        Args: { p_actor_user_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          automated_score_json: Json
+          case_id: string
+          case_status: string
+          created_at: string
+          declared_gender: string
+          display_name: string
+          max_similarity: number
+          priority: string
+          profile_status: string
+          user_id: string
+          username: string
+        }[]
+      }
+      admin_list_member_profile_verifications: {
+        Args: { p_actor_user_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          display_name: string
+          identity_status: string
+          identity_submitted_at: string
+          linkedin_profile_url: string
+          linkedin_status: string
+          linkedin_submitted_at: string
+          updated_at: string
+          user_id: string
+          username: string
         }[]
       }
       admin_list_vietqr_reconciliation_queue: {
@@ -1501,6 +1728,15 @@ export type Database = {
           status: string
         }[]
       }
+      admin_reject_luxy_membership_order: {
+        Args: {
+          p_actor_user_id: string
+          p_order_id: string
+          p_reason_code: string
+          p_request_id: string
+        }
+        Returns: boolean
+      }
       admin_release_account_hold: {
         Args: {
           p_actor_user_id: string
@@ -1544,6 +1780,32 @@ export type Database = {
           payout_eligible: boolean
           status: string
         }[]
+      }
+      admin_review_member_photo_verification: {
+        Args: {
+          p_action: string
+          p_actor_user_id: string
+          p_case_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          case_id: string
+          decision: string
+          profile_status: string
+          user_id: string
+        }[]
+      }
+      admin_review_member_profile_verification: {
+        Args: {
+          p_actor_user_id: string
+          p_decision: string
+          p_kind: string
+          p_reason_code: string
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: string
       }
       admin_runtime_observability_snapshot: {
         Args: { p_actor_user_id: string; p_window_minutes?: number }
@@ -1646,6 +1908,10 @@ export type Database = {
         Args: { p_friendship_id: string }
         Returns: boolean
       }
+      cancel_my_luxy_membership_order: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       cancel_my_vietqr_heart_order: {
         Args: { p_order_id: string }
         Returns: string
@@ -1732,6 +1998,33 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_luxy_membership_order: {
+        Args: {
+          p_period_count: number
+          p_request_id: string
+          p_source?: string
+          p_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }
+        Returns: {
+          amount_due_vnd: number
+          created_at: string
+          discount_bps: number
+          heart_credit_units: number
+          monthly_price_vnd: number
+          order_code: string
+          order_id: string
+          period_count: number
+          status: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
+      create_luxy_upgrade_intent: {
+        Args: {
+          p_source?: string
+          p_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }
+        Returns: string
       }
       create_report: {
         Args: {
@@ -1840,6 +2133,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finalize_member_identity_document: {
+        Args: { p_document_id: string }
+        Returns: boolean
+      }
       find_nearby_profiles: {
         Args: { p_cursor?: string; p_limit?: number; p_radius_meters?: number }
         Returns: {
@@ -1857,23 +2154,38 @@ export type Database = {
       find_province_profiles: {
         Args: { p_cursor?: string; p_limit?: number; p_province_id: number }
         Returns: {
+          age_preference_max: number
+          age_preference_min: number
           avatar_media_id: string | null
           bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
           created_at: string
           deleted_at: string | null
           discovery_enabled: boolean
           display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
           gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
           id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
           interests: string[]
           is_creator: boolean
+          languages: string[]
           last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
           nearby_enabled: boolean
+          occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
           province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          weight_kg: number | null
         }[]
         SetofOptions: {
           from: "*"
@@ -1947,6 +2259,67 @@ export type Database = {
         Args: { p_other_user_id: string }
         Returns: string
       }
+      get_luxy_member_profile: {
+        Args: { p_username: string }
+        Returns: {
+          age: number
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          bio: string
+          blocked_by_viewer: boolean
+          children_status: Database["public"]["Enums"]["children_status"]
+          display_name: string
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
+          gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string
+          height_cm: number
+          id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
+          interests: string[]
+          languages: string[]
+          last_active_at: string
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string
+          member_since: string
+          membership_badge_visible: boolean
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          occupation: string
+          private_photo_count: number
+          province_id: number
+          province_name: string
+          public_photo_count: number
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
+          username: string
+          weight_kg: number
+        }[]
+      }
+      get_luxy_member_verification_badges: {
+        Args: { p_user_id: string }
+        Returns: {
+          identity_verified: boolean
+          linkedin_verified: boolean
+          selfie_verified: boolean
+        }[]
+      }
+      get_luxy_membership_plan_options: {
+        Args: never
+        Returns: {
+          amount_due_vnd: number
+          discount_bps: number
+          heart_credit_display: number
+          heart_credit_units: number
+          monthly_price_vnd: number
+          period_count: number
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
+      get_luxy_profile_conversation: {
+        Args: { p_profile_id: string }
+        Returns: string
+      }
       get_my_account_deletion_status: {
         Args: never
         Returns: {
@@ -2005,6 +2378,88 @@ export type Database = {
           reviewed_at: string
           status: string
           submitted_at: string
+        }[]
+      }
+      get_my_luxy_gift_wallet: {
+        Args: never
+        Returns: {
+          can_gift: boolean
+          heart_available_units: number
+          kyc_approved: boolean
+          minimum_withdrawal_units: number
+          platform_share_bps: number
+          recipient_share_bps: number
+          reward_available_units: number
+          reward_frozen: boolean
+          reward_held_units: number
+          reward_hold_days: number
+          reward_paid_units: number
+          reward_pending_units: number
+          reward_reversed_units: number
+          verified_bank_available: boolean
+          withdrawal_ready: boolean
+        }[]
+      }
+      get_my_luxy_membership_checkout: {
+        Args: { p_order_id: string }
+        Returns: {
+          account_name: string
+          account_no: string
+          amount_due_vnd: number
+          bank_bin: string
+          bank_code: string
+          bank_name: string
+          created_at: string
+          discount_bps: number
+          heart_credit_display: number
+          heart_credit_units: number
+          membership_expires_at: string
+          monthly_price_vnd: number
+          order_code: string
+          order_id: string
+          period_count: number
+          qr_image_url: string
+          status: string
+          submitted_at: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          transfer_content: string
+        }[]
+      }
+      get_my_luxy_membership_privacy: {
+        Args: never
+        Returns: {
+          can_hide_from_listing: boolean
+          can_hide_online: boolean
+          hide_from_listing: boolean
+          hide_online: boolean
+        }[]
+      }
+      get_my_luxy_membership_snapshot: {
+        Args: never
+        Returns: {
+          can_favorite: boolean
+          can_full_search: boolean
+          can_hide_from_listing: boolean
+          can_hide_online: boolean
+          can_message: boolean
+          can_request_private_photo: boolean
+          can_unlimited_likes: boolean
+          can_use_hearts: boolean
+          expires_at: string
+          heart_balance_units: number
+          status: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          visibility_priority: number
+        }[]
+      }
+      get_my_member_verification_status: {
+        Args: never
+        Returns: {
+          identity_status: string
+          linkedin_profile_url: string
+          linkedin_status: string
+          selfie_similarity: number
+          selfie_status: string
         }[]
       }
       get_my_onboarding_status: {
@@ -2066,6 +2521,26 @@ export type Database = {
           status: string
           submitted_at: string
           transfer_content: string
+        }[]
+      }
+      get_private_photo_access_state: {
+        Args: { p_owner_id: string }
+        Returns: {
+          can_request: boolean
+          has_access: boolean
+          private_photo_count: number
+          request_id: string
+          status: string
+        }[]
+      }
+      get_profile_interest_state: {
+        Args: { p_profile_id: string }
+        Returns: {
+          has_viewed_me: boolean
+          is_favorited: boolean
+          is_favorited_by: boolean
+          is_match: boolean
+          is_viewed: boolean
         }[]
       }
       get_profile_viewer: {
@@ -2251,6 +2726,30 @@ export type Database = {
           username: string
         }[]
       }
+      list_luxy_interests: {
+        Args: { p_limit?: number; p_offset?: number; p_scope?: string }
+        Returns: {
+          age: number
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          display_name: string
+          headline: string
+          height_cm: number
+          id: string
+          interaction_at: string
+          is_favorited: boolean
+          is_favorited_by: boolean
+          is_match: boolean
+          is_online: boolean
+          last_active_at: string
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          photo_count: number
+          province_name: string
+          username: string
+          weight_kg: number
+        }[]
+      }
       list_my_bank_accounts: {
         Args: never
         Returns: {
@@ -2278,6 +2777,7 @@ export type Database = {
       list_my_conversations: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
+          age: number
           avatar_media_id: string
           avatar_storage_bucket: string
           avatar_storage_path: string
@@ -2287,12 +2787,16 @@ export type Database = {
           display_name: string
           friendship_id: string
           friendship_status: string
+          headline: string
+          is_archived: boolean
           is_creator: boolean
+          is_online: boolean
           last_message_body: string
           last_message_id: string
           last_message_sender_id: string
           last_message_sent_at: string
           last_message_type: string
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
           other_user_id: string
           province_name: string
           unread_count: number
@@ -2335,6 +2839,41 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      list_my_luxy_gifts: {
+        Args: { p_direction?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          direction: string
+          gift_icon_emoji: string
+          gift_name_vi: string
+          gift_slug: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          other_display_name: string
+          other_user_id: string
+          other_username: string
+          quantity: number
+          recipient_reward_units: number
+          reward_available_at: string
+          status: string
+        }[]
+      }
+      list_my_luxy_membership_orders: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          amount_due_vnd: number
+          created_at: string
+          heart_credit_units: number
+          membership_expires_at: string
+          order_code: string
+          order_id: string
+          period_count: number
+          status: string
+          submitted_at: string
+          tier: Database["public"]["Enums"]["luxy_membership_tier"]
+        }[]
+      }
       list_my_media: {
         Args: { p_cursor?: string; p_limit?: number }
         Returns: {
@@ -2375,6 +2914,33 @@ export type Database = {
           refunded_at: string
           revoked_at: string
           verified_at: string
+        }[]
+      }
+      list_my_received_gift_log: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          completed_at: string
+          gift_icon_emoji: string
+          gift_id: string
+          gift_name_en: string
+          gift_name_vi: string
+          gift_slug: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          net_heart_units: number
+          platform_gross_units: number
+          quantity: number
+          received_at: string
+          recipient_reward_units: number
+          reversed_at: string
+          reversed_heart_units: number
+          reward_available_at: string
+          sender_display_name: string
+          sender_id: string
+          sender_username: string
+          status: string
+          unit_heart_units: number
         }[]
       }
       list_my_social_connections: {
@@ -2440,6 +3006,17 @@ export type Database = {
           width: number
         }[]
       }
+      list_profile_private_media: {
+        Args: { p_owner_id: string }
+        Returns: {
+          created_at: string
+          height: number
+          media_id: string
+          storage_bucket: string
+          storage_path: string
+          width: number
+        }[]
+      }
       list_public_activity_highlights: {
         Args: { p_limit?: number }
         Returns: {
@@ -2477,6 +3054,21 @@ export type Database = {
           username: string
         }[]
       }
+      list_received_private_photo_requests: {
+        Args: { p_status?: string }
+        Returns: {
+          avatar_media_id: string
+          avatar_storage_bucket: string
+          avatar_storage_path: string
+          display_name: string
+          request_id: string
+          requested_at: string
+          requester_id: string
+          responded_at: string
+          status: string
+          username: string
+        }[]
+      }
       list_vietqr_heart_products: {
         Args: never
         Returns: {
@@ -2491,6 +3083,10 @@ export type Database = {
       mark_conversation_read: {
         Args: { p_conversation_id: string; p_message_id?: string }
         Returns: boolean
+      }
+      mark_my_luxy_membership_order_submitted: {
+        Args: { p_order_id: string }
+        Returns: string
       }
       mark_my_vietqr_transfer_submitted: {
         Args: { p_order_id: string }
@@ -2621,9 +3217,27 @@ export type Database = {
           storage_path: string
         }[]
       }
+      prepare_member_identity_document: {
+        Args: {
+          p_extension?: string
+          p_file_size_bytes: number
+          p_mime_type: string
+          p_side: string
+        }
+        Returns: {
+          document_id: string
+          storage_bucket: string
+          storage_path: string
+        }[]
+      }
       purge_expired_runtime_observability_events: {
         Args: { p_batch_size?: number }
         Returns: number
+      }
+      record_profile_view: { Args: { p_profile_id: string }; Returns: boolean }
+      record_profile_view_by_username: {
+        Args: { p_username: string }
+        Returns: boolean
       }
       record_runtime_observability_event: {
         Args: {
@@ -2709,6 +3323,14 @@ export type Database = {
           status: string
         }[]
       }
+      request_private_photo_access: {
+        Args: { p_owner_id: string }
+        Returns: {
+          request_id: string
+          requested_at: string
+          status: string
+        }[]
+      }
       request_withdrawal: {
         Args: {
           p_bank_account_id: string
@@ -2722,6 +3344,14 @@ export type Database = {
           requested_reward_units: number
           status: string
           withdrawal_id: string
+        }[]
+      }
+      respond_private_photo_access: {
+        Args: { p_decision: string; p_request_id: string }
+        Returns: {
+          request_id: string
+          responded_at: string
+          status: string
         }[]
       }
       respond_to_friend_request: {
@@ -2762,6 +3392,134 @@ export type Database = {
           unspent_debited_units: number
         }[]
       }
+      revoke_private_photo_access: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
+      search_luxy_profiles_v2:
+        | {
+            Args: {
+              p_children_statuses?: Database["public"]["Enums"]["children_status"][]
+              p_drinking_statuses?: Database["public"]["Enums"]["drinking_status"][]
+              p_education_levels?: Database["public"]["Enums"]["education_level"][]
+              p_favorite_scope?: string
+              p_genders?: Database["public"]["Enums"]["gender_identity"][]
+              p_has_photo?: boolean
+              p_interests?: string[]
+              p_languages?: string[]
+              p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              p_limit?: number
+              p_max_age?: number
+              p_max_distance_km?: number
+              p_max_height_cm?: number
+              p_max_weight_kg?: number
+              p_min_age?: number
+              p_min_height_cm?: number
+              p_min_weight_kg?: number
+              p_occupation_text?: string
+              p_offset?: number
+              p_online_now?: boolean
+              p_profile_text?: string
+              p_province_id?: number
+              p_relationship_statuses?: Database["public"]["Enums"]["relationship_status"][]
+              p_smoking_statuses?: Database["public"]["Enums"]["smoking_status"][]
+              p_sort?: string
+              p_view_state?: string
+            }
+            Returns: {
+              age: number
+              avatar_media_id: string
+              avatar_storage_bucket: string
+              avatar_storage_path: string
+              bio: string
+              children_status: Database["public"]["Enums"]["children_status"]
+              display_name: string
+              distance_km: number
+              drinking_status: Database["public"]["Enums"]["drinking_status"]
+              education_level: Database["public"]["Enums"]["education_level"]
+              gender: Database["public"]["Enums"]["gender_identity"]
+              headline: string
+              height_cm: number
+              id: string
+              interests: string[]
+              is_favorited: boolean
+              is_favorited_by: boolean
+              is_online: boolean
+              is_viewed: boolean
+              languages: string[]
+              last_active_at: string
+              lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              looking_for: string
+              member_since: string
+              occupation: string
+              photo_count: number
+              province_id: number
+              province_name: string
+              relationship_status: Database["public"]["Enums"]["relationship_status"]
+              smoking_status: Database["public"]["Enums"]["smoking_status"]
+              username: string
+              weight_kg: number
+            }[]
+          }
+        | {
+            Args: {
+              p_children_statuses: Database["public"]["Enums"]["children_status"][]
+              p_drinking_statuses: Database["public"]["Enums"]["drinking_status"][]
+              p_education_levels: Database["public"]["Enums"]["education_level"][]
+              p_genders: Database["public"]["Enums"]["gender_identity"][]
+              p_has_photo: boolean
+              p_interests: string[]
+              p_languages: string[]
+              p_lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              p_limit: number
+              p_max_age: number
+              p_max_distance_km: number
+              p_max_height_cm: number
+              p_max_weight_kg: number
+              p_min_age: number
+              p_min_height_cm: number
+              p_min_weight_kg: number
+              p_occupation_text: string
+              p_offset: number
+              p_online_now: boolean
+              p_profile_text: string
+              p_province_id: number
+              p_relationship_statuses: Database["public"]["Enums"]["relationship_status"][]
+              p_smoking_statuses: Database["public"]["Enums"]["smoking_status"][]
+              p_sort: string
+            }
+            Returns: {
+              age: number
+              avatar_media_id: string
+              avatar_storage_bucket: string
+              avatar_storage_path: string
+              bio: string
+              children_status: Database["public"]["Enums"]["children_status"]
+              display_name: string
+              distance_km: number
+              drinking_status: Database["public"]["Enums"]["drinking_status"]
+              education_level: Database["public"]["Enums"]["education_level"]
+              gender: Database["public"]["Enums"]["gender_identity"]
+              headline: string
+              height_cm: number
+              id: string
+              interests: string[]
+              is_online: boolean
+              languages: string[]
+              last_active_at: string
+              lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+              looking_for: string
+              member_since: string
+              occupation: string
+              photo_count: number
+              province_id: number
+              province_name: string
+              relationship_status: Database["public"]["Enums"]["relationship_status"]
+              smoking_status: Database["public"]["Enums"]["smoking_status"]
+              username: string
+              weight_kg: number
+            }[]
+          }
       send_friend_request: {
         Args: { p_addressee_id: string; p_greeting_message?: string }
         Returns: {
@@ -2819,6 +3577,30 @@ export type Database = {
           gift_transaction_id: string
           post_id: string
           sender_balance_units: number
+        }[]
+      }
+      send_luxy_gift: {
+        Args: {
+          p_client_message_id?: string
+          p_conversation_id?: string
+          p_gift_id: string
+          p_idempotency_key: string
+          p_quantity: number
+          p_recipient_id: string
+        }
+        Returns: {
+          already_processed: boolean
+          gift_id: string
+          gift_transaction_id: string
+          gross_heart_units: number
+          message_id: string
+          platform_gross_units: number
+          quantity: number
+          recipient_id: string
+          recipient_reward_units: number
+          reward_available_at: string
+          sender_balance_units: number
+          sender_id: string
         }[]
       }
       send_message: {
@@ -2957,6 +3739,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_conversation_archived: {
+        Args: { p_archived: boolean; p_conversation_id: string }
+        Returns: boolean
+      }
       set_conversation_auto_delete: {
         Args: { p_conversation_id: string; p_enabled: boolean }
         Returns: {
@@ -2989,7 +3775,101 @@ export type Database = {
           is_enabled: boolean
         }[]
       }
+      set_my_profile_photo_visibility: {
+        Args: { p_media_id: string; p_visibility: string }
+        Returns: {
+          media_id: string
+          visibility: string
+        }[]
+      }
+      set_profile_favorite: {
+        Args: { p_favorited: boolean; p_profile_id: string }
+        Returns: {
+          is_favorited: boolean
+          is_favorited_by: boolean
+          is_match: boolean
+        }[]
+      }
+      submit_my_linkedin_verification: {
+        Args: { p_profile_url: string }
+        Returns: string
+      }
+      submit_my_member_identity_verification: { Args: never; Returns: string }
       unblock_user: { Args: { p_blocked_id: string }; Returns: boolean }
+      update_my_luxy_membership_privacy: {
+        Args: { p_hide_from_listing: boolean; p_hide_online: boolean }
+        Returns: {
+          hide_from_listing: boolean
+          hide_online: boolean
+        }[]
+      }
+      update_my_luxy_profile: {
+        Args: {
+          p_age_preference_max?: number
+          p_age_preference_min?: number
+          p_bio?: string
+          p_children_status?: Database["public"]["Enums"]["children_status"]
+          p_discovery_enabled?: boolean
+          p_display_name: string
+          p_drinking_status?: Database["public"]["Enums"]["drinking_status"]
+          p_education_level?: Database["public"]["Enums"]["education_level"]
+          p_gender?: Database["public"]["Enums"]["gender_identity"]
+          p_headline?: string
+          p_height_cm?: number
+          p_interested_in?: Database["public"]["Enums"]["dating_interest"]
+          p_interests?: string[]
+          p_languages?: string[]
+          p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          p_looking_for?: string
+          p_nearby_enabled?: boolean
+          p_occupation?: string
+          p_province_id?: number
+          p_relationship_status?: Database["public"]["Enums"]["relationship_status"]
+          p_smoking_status?: Database["public"]["Enums"]["smoking_status"]
+          p_username: string
+          p_weight_kg?: number
+        }
+        Returns: {
+          age_preference_max: number
+          age_preference_min: number
+          avatar_media_id: string | null
+          bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
+          created_at: string
+          deleted_at: string | null
+          discovery_enabled: boolean
+          display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
+          gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
+          id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
+          interests: string[]
+          is_creator: boolean
+          languages: string[]
+          last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
+          nearby_enabled: boolean
+          occupation: string | null
+          profile_status: Database["public"]["Enums"]["profile_status"]
+          province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
+          updated_at: string
+          username: string | null
+          username_changed_at: string | null
+          weight_kg: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_my_profile: {
         Args: {
           p_bio?: string
@@ -3002,23 +3882,38 @@ export type Database = {
           p_username: string
         }
         Returns: {
+          age_preference_max: number
+          age_preference_min: number
           avatar_media_id: string | null
           bio: string | null
+          children_status: Database["public"]["Enums"]["children_status"]
           created_at: string
           deleted_at: string | null
           discovery_enabled: boolean
           display_name: string | null
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
           gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string | null
+          height_cm: number | null
           id: string
+          interested_in: Database["public"]["Enums"]["dating_interest"]
           interests: string[]
           is_creator: boolean
+          languages: string[]
           last_active_at: string | null
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string | null
           nearby_enabled: boolean
+          occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
           province_id: number | null
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
           updated_at: string
           username: string | null
           username_changed_at: string | null
+          weight_kg: number | null
         }
         SetofOptions: {
           from: "*"
@@ -3030,6 +3925,7 @@ export type Database = {
     }
     Enums: {
       album_type: "public" | "fan"
+      children_status: "no_children" | "has_children" | "prefer_not_to_say"
       conversation_type: "direct"
       creator_activity_content_type: "text" | "image" | "video"
       creator_activity_image_access_mode: "public" | "gift_locked"
@@ -3049,6 +3945,17 @@ export type Database = {
         | "rejected"
         | "suspended"
         | "closed"
+      dating_interest: "female" | "male" | "everyone"
+      drinking_status: "never" | "socially" | "regularly" | "prefer_not_to_say"
+      education_level:
+        | "high_school"
+        | "vocational"
+        | "college"
+        | "bachelors"
+        | "masters"
+        | "doctorate"
+        | "other"
+        | "prefer_not_to_say"
       fan_membership_status: "active" | "revoked"
       friendship_status: "pending" | "accepted" | "declined" | "cancelled"
       gender_identity:
@@ -3058,6 +3965,7 @@ export type Database = {
         | "other"
         | "prefer_not_to_say"
       gift_transaction_status: "completed" | "partially_reversed" | "reversed"
+      luxy_membership_tier: "free" | "premium" | "diamond"
       media_moderation_status:
         | "pending_upload"
         | "pending_review"
@@ -3092,6 +4000,24 @@ export type Database = {
         | "automated_scan"
         | "admin_review"
         | "appeal"
+      profile_lifestyle_tag:
+        | "true_love"
+        | "luxury_lifestyle"
+        | "active_lifestyle"
+        | "flexible_schedule"
+        | "emotional_connection"
+        | "refined"
+        | "fine_dining"
+        | "friendship"
+        | "long_term"
+        | "marriage_minded"
+        | "monogamous"
+        | "romantic"
+        | "ready_to_travel"
+        | "travel_companion"
+        | "vacation"
+        | "entertainment_events"
+        | "platonic"
       profile_status:
         | "incomplete"
         | "pending_review"
@@ -3099,6 +4025,13 @@ export type Database = {
         | "suspended"
         | "deactivated"
         | "deleted"
+      relationship_status:
+        | "single"
+        | "divorced"
+        | "widowed"
+        | "open"
+        | "complicated"
+        | "prefer_not_to_say"
       report_priority: "low" | "normal" | "high" | "urgent"
       report_status:
         | "submitted"
@@ -3106,6 +4039,12 @@ export type Database = {
         | "in_review"
         | "resolved"
         | "dismissed"
+      smoking_status:
+        | "never"
+        | "socially"
+        | "regularly"
+        | "trying_to_quit"
+        | "prefer_not_to_say"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3234,6 +4173,7 @@ export const Constants = {
   public: {
     Enums: {
       album_type: ["public", "fan"],
+      children_status: ["no_children", "has_children", "prefer_not_to_say"],
       conversation_type: ["direct"],
       creator_activity_content_type: ["text", "image", "video"],
       creator_activity_image_access_mode: ["public", "gift_locked"],
@@ -3255,6 +4195,18 @@ export const Constants = {
         "suspended",
         "closed",
       ],
+      dating_interest: ["female", "male", "everyone"],
+      drinking_status: ["never", "socially", "regularly", "prefer_not_to_say"],
+      education_level: [
+        "high_school",
+        "vocational",
+        "college",
+        "bachelors",
+        "masters",
+        "doctorate",
+        "other",
+        "prefer_not_to_say",
+      ],
       fan_membership_status: ["active", "revoked"],
       friendship_status: ["pending", "accepted", "declined", "cancelled"],
       gender_identity: [
@@ -3265,6 +4217,7 @@ export const Constants = {
         "prefer_not_to_say",
       ],
       gift_transaction_status: ["completed", "partially_reversed", "reversed"],
+      luxy_membership_tier: ["free", "premium", "diamond"],
       media_moderation_status: [
         "pending_upload",
         "pending_review",
@@ -3304,6 +4257,25 @@ export const Constants = {
         "admin_review",
         "appeal",
       ],
+      profile_lifestyle_tag: [
+        "true_love",
+        "luxury_lifestyle",
+        "active_lifestyle",
+        "flexible_schedule",
+        "emotional_connection",
+        "refined",
+        "fine_dining",
+        "friendship",
+        "long_term",
+        "marriage_minded",
+        "monogamous",
+        "romantic",
+        "ready_to_travel",
+        "travel_companion",
+        "vacation",
+        "entertainment_events",
+        "platonic",
+      ],
       profile_status: [
         "incomplete",
         "pending_review",
@@ -3312,6 +4284,14 @@ export const Constants = {
         "deactivated",
         "deleted",
       ],
+      relationship_status: [
+        "single",
+        "divorced",
+        "widowed",
+        "open",
+        "complicated",
+        "prefer_not_to_say",
+      ],
       report_priority: ["low", "normal", "high", "urgent"],
       report_status: [
         "submitted",
@@ -3319,6 +4299,13 @@ export const Constants = {
         "in_review",
         "resolved",
         "dismissed",
+      ],
+      smoking_status: [
+        "never",
+        "socially",
+        "regularly",
+        "trying_to_quit",
+        "prefer_not_to_say",
       ],
     },
   },

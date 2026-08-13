@@ -1,0 +1,153 @@
+name: LX-20 Contract
+
+on:
+  push:
+    branches: ['agent/lx-20-verification-private-photos', 'release/**']
+    paths:
+      - 'supabase/migrations/20260812220000_lx_20_verification_private_photos.sql'
+      - 'supabase/migrations/20260812220100_lx_20_restore_storage_helper_acl.sql'
+      - 'supabase/migrations/20260812220200_lx_20_member_verification_admin_queue.sql'
+      - 'supabase/migrations/20260812220300_lx_20_profile_photo_visibility_conflict_fix.sql'
+      - 'supabase/migrations/20260813104500_web_r01_financial_surface_fail_closed.sql'
+      - 'supabase/migrations/20260813104600_web_r01_restore_free_favorite_entitlement.sql'
+      - 'supabase/tests/lx_14_private_photo_premium_entitlements.sql'
+      - 'supabase/tests/lx_19_gifts_7d_payout.sql'
+      - 'supabase/tests/lx_20_verification_private_photos.sql'
+      - 'supabase/functions/member-profile-verification-admin/index.ts'
+      - 'packages/config/src/index.ts'
+      - 'packages/supabase/src/member-verification.ts'
+      - 'packages/supabase/src/profile-media.ts'
+      - 'packages/supabase/src/private-photo.ts'
+      - 'packages/supabase/src/social-safety.ts'
+      - 'packages/supabase/src/index.ts'
+      - 'apps/mobile/app/(tabs)/profile.tsx'
+      - 'apps/mobile/app/(tabs)/activity.tsx'
+      - 'apps/mobile/app/activity/**'
+      - 'apps/mobile/app/profile/_layout.tsx'
+      - 'apps/mobile/app/profile/[username].tsx'
+      - 'apps/mobile/app/settings/index.tsx'
+      - 'apps/mobile/app/settings/gifts.tsx'
+      - 'apps/mobile/app/settings/private-photos.tsx'
+      - 'apps/mobile/app/settings/verification.tsx'
+      - 'apps/mobile/src/components/luxy-private-photo-access.tsx'
+      - 'apps/mobile/src/components/luxy-upgrade-gate-modal.tsx'
+      - 'apps/mobile/src/components/luxy-shell-navigation.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/page.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/profile-verification-admin.tsx'
+      - '.github/workflows/lx20-contract.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260812220000_lx_20_verification_private_photos.sql'
+      - 'supabase/migrations/20260812220100_lx_20_restore_storage_helper_acl.sql'
+      - 'supabase/migrations/20260812220200_lx_20_member_verification_admin_queue.sql'
+      - 'supabase/migrations/20260812220300_lx_20_profile_photo_visibility_conflict_fix.sql'
+      - 'supabase/migrations/20260813104500_web_r01_financial_surface_fail_closed.sql'
+      - 'supabase/migrations/20260813104600_web_r01_restore_free_favorite_entitlement.sql'
+      - 'supabase/tests/lx_14_private_photo_premium_entitlements.sql'
+      - 'supabase/tests/lx_19_gifts_7d_payout.sql'
+      - 'supabase/tests/lx_20_verification_private_photos.sql'
+      - 'supabase/functions/member-profile-verification-admin/index.ts'
+      - 'packages/config/src/index.ts'
+      - 'packages/supabase/src/member-verification.ts'
+      - 'packages/supabase/src/profile-media.ts'
+      - 'packages/supabase/src/private-photo.ts'
+      - 'packages/supabase/src/social-safety.ts'
+      - 'packages/supabase/src/index.ts'
+      - 'apps/mobile/app/(tabs)/profile.tsx'
+      - 'apps/mobile/app/(tabs)/activity.tsx'
+      - 'apps/mobile/app/activity/**'
+      - 'apps/mobile/app/profile/_layout.tsx'
+      - 'apps/mobile/app/profile/[username].tsx'
+      - 'apps/mobile/app/settings/index.tsx'
+      - 'apps/mobile/app/settings/gifts.tsx'
+      - 'apps/mobile/app/settings/private-photos.tsx'
+      - 'apps/mobile/app/settings/verification.tsx'
+      - 'apps/mobile/src/components/luxy-private-photo-access.tsx'
+      - 'apps/mobile/src/components/luxy-upgrade-gate-modal.tsx'
+      - 'apps/mobile/src/components/luxy-shell-navigation.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/page.tsx'
+      - 'apps/admin/app/(protected)/member-verifications/profile-verification-admin.tsx'
+      - '.github/workflows/lx20-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lx20-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verification-private-photos-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck mobile LX-20 surfaces
+        run: pnpm --filter @myfan/mobile typecheck
+
+      - name: Typecheck admin LX-20 surfaces
+        run: pnpm --filter @myfan/admin typecheck
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      # LX-14's per-viewer approval contract is intentionally superseded by the
+      # founder's LX-20 product decision: Premium/Diamond get direct private-photo access.
+      - name: Run LX-17 membership regression
+        run: supabase test db supabase/tests/lx_17_premium_diamond_engine.sql --local
+
+      - name: Run LX-19 gift regression
+        run: supabase test db supabase/tests/lx_19_gifts_7d_payout.sql --local
+
+      - name: Run LX-20 verification + private photo contract
+        run: supabase test db supabase/tests/lx_20_verification_private_photos.sql --local
+
+      - name: Lint public/private schemas
+        run: |
+          supabase db lint --local --schema public --schema private --level warning | tee /tmp/lx20-lint.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path('/tmp/lx20-lint.json').read_text().strip()
+          findings = json.loads(raw) if raw else []
+          errors = [
+              (item.get('function'), issue.get('message'))
+              for item in findings
+              for issue in item.get('issues', [])
+              if issue.get('level') == 'error'
+          ]
+          if errors:
+              for function, message in errors:
+                  print(f'ERROR {function}: {message}')
+              raise SystemExit(1)
+          print(f'LX-20 schema lint: zero errors; {len(findings)} warning entries retained.')
+          PY
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true

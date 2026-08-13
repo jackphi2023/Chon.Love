@@ -15,6 +15,9 @@ export const provinceIdSchema = z
   .int('Tỉnh/thành không hợp lệ.')
   .positive('Bạn cần chọn tỉnh/thành.');
 export const profileBioSchema = z.string().trim().max(500, 'Giới thiệu tối đa 500 ký tự.');
+export const profileHeadlineSchema = z.string().trim().max(120, 'Tiêu đề tối đa 120 ký tự.');
+export const profileOccupationSchema = z.string().trim().max(120, 'Nghề nghiệp tối đa 120 ký tự.');
+export const profileLookingForSchema = z.string().trim().max(1000, 'Nội dung tìm kiếm tối đa 1000 ký tự.');
 
 export const genderIdentitySchema = z.enum([
   'female',
@@ -23,6 +26,87 @@ export const genderIdentitySchema = z.enum([
   'other',
   'prefer_not_to_say',
 ]);
+
+export const datingInterestSchema = z.enum(['female', 'male', 'everyone']);
+
+export const relationshipStatusSchema = z.enum([
+  'single',
+  'divorced',
+  'widowed',
+  'open',
+  'complicated',
+  'prefer_not_to_say',
+]);
+
+export const childrenStatusSchema = z.enum([
+  'no_children',
+  'has_children',
+  'prefer_not_to_say',
+]);
+
+export const smokingStatusSchema = z.enum([
+  'never',
+  'socially',
+  'regularly',
+  'trying_to_quit',
+  'prefer_not_to_say',
+]);
+
+export const drinkingStatusSchema = z.enum([
+  'never',
+  'socially',
+  'regularly',
+  'prefer_not_to_say',
+]);
+
+export const educationLevelSchema = z.enum([
+  'high_school',
+  'vocational',
+  'college',
+  'bachelors',
+  'masters',
+  'doctorate',
+  'other',
+  'prefer_not_to_say',
+]);
+
+export const profileLifestyleTagSchema = z.enum([
+  'true_love',
+  'luxury_lifestyle',
+  'active_lifestyle',
+  'flexible_schedule',
+  'emotional_connection',
+  'refined',
+  'fine_dining',
+  'friendship',
+  'long_term',
+  'marriage_minded',
+  'monogamous',
+  'romantic',
+  'ready_to_travel',
+  'travel_companion',
+  'vacation',
+  'entertainment_events',
+  'platonic',
+]);
+
+export const heightCmSchema = z
+  .number({ error: 'Chiều cao không hợp lệ.' })
+  .int('Chiều cao phải là số nguyên theo cm.')
+  .min(120, 'Chiều cao tối thiểu là 120 cm.')
+  .max(230, 'Chiều cao tối đa là 230 cm.');
+
+export const weightKgSchema = z
+  .number({ error: 'Cân nặng không hợp lệ.' })
+  .int('Cân nặng phải là số nguyên theo kg.')
+  .min(35, 'Cân nặng tối thiểu là 35 kg.')
+  .max(250, 'Cân nặng tối đa là 250 kg.');
+
+export const preferredAgeSchema = z
+  .number({ error: 'Độ tuổi không hợp lệ.' })
+  .int('Độ tuổi phải là số nguyên.')
+  .min(18, 'Độ tuổi tối thiểu là 18.')
+  .max(99, 'Độ tuổi tối đa là 99.');
 
 export function normalizeInterests(values: readonly string[]): string[] {
   const normalized: string[] = [];
@@ -43,6 +127,16 @@ export const profileInterestsSchema = z
   .max(12, 'Chọn tối đa 12 sở thích.')
   .transform(normalizeInterests);
 
+export const profileLifestyleTagsSchema = z
+  .array(profileLifestyleTagSchema)
+  .max(12, 'Chọn tối đa 12 phong cách / mục tiêu.')
+  .transform((values) => [...new Set(values)]);
+
+export const profileLanguagesSchema = z
+  .array(z.string().trim().min(2, 'Tên ngôn ngữ cần ít nhất 2 ký tự.').max(32, 'Tên ngôn ngữ tối đa 32 ký tự.'))
+  .max(8, 'Chọn tối đa 8 ngôn ngữ.')
+  .transform(normalizeInterests);
+
 export const profileEditorSchema = z.object({
   username: usernameSchema,
   displayName: z.string().trim().min(2, 'Tên hiển thị cần ít nhất 2 ký tự.').max(60),
@@ -52,6 +146,42 @@ export const profileEditorSchema = z.object({
   interests: profileInterestsSchema,
   discoveryEnabled: z.boolean(),
   nearbyEnabled: z.boolean(),
+});
+
+export const luxyProfileEditorSchema = profileEditorSchema
+  .extend({
+    headline: profileHeadlineSchema,
+    interestedIn: datingInterestSchema,
+    heightCm: heightCmSchema.nullable(),
+    weightKg: weightKgSchema.nullable(),
+    relationshipStatus: relationshipStatusSchema,
+    childrenStatus: childrenStatusSchema,
+    smokingStatus: smokingStatusSchema,
+    drinkingStatus: drinkingStatusSchema,
+    educationLevel: educationLevelSchema,
+    occupation: profileOccupationSchema,
+    lookingFor: profileLookingForSchema,
+    agePreferenceMin: preferredAgeSchema,
+    agePreferenceMax: preferredAgeSchema,
+    lifestyleTags: profileLifestyleTagsSchema,
+    languages: profileLanguagesSchema,
+  })
+  .superRefine((value, context) => {
+    if (value.agePreferenceMin > value.agePreferenceMax) {
+      context.addIssue({
+        code: 'custom',
+        path: ['agePreferenceMax'],
+        message: 'Tuổi tối đa phải lớn hơn hoặc bằng tuổi tối thiểu.',
+      });
+    }
+  });
+
+export const luxyProfileSetupSchema = z.object({
+  gender: genderIdentitySchema,
+  interestedIn: datingInterestSchema,
+  heightCm: heightCmSchema,
+  relationshipStatus: relationshipStatusSchema,
+  provinceId: provinceIdSchema,
 });
 
 export const SUPPORTED_PROFILE_IMAGE_MIME_TYPES = [
@@ -99,7 +229,7 @@ export function isAtLeastAge(dateOfBirth: string, minimumAge = 18, now = new Dat
 
 export const adultDateOfBirthSchema = dateOfBirthSchema.refine(
   (value) => isAtLeastAge(value),
-  'Bạn phải đủ 18 tuổi để sử dụng MyFan.',
+  'Bạn phải đủ 18 tuổi để sử dụng Luxy.Love.',
 );
 
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
@@ -115,4 +245,6 @@ export const minimumOnboardingSchema = z.object({
 
 export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
+export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
+export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;
 export type ProfileImageMetadata = z.infer<typeof profileImageMetadataSchema>;

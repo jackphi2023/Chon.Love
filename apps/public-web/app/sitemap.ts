@@ -1,22 +1,9 @@
 import type { MetadataRoute } from 'next';
 import { getPublicSiteUrl } from '../src/lib/environment';
-
 export const dynamic = 'force-static';
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl = getPublicSiteUrl();
-  if (!siteUrl) return [];
-
-  const lastModified = new Date('2026-07-31T00:00:00.000Z');
-  return [
-    { url: `${siteUrl}/`, lastModified, changeFrequency: 'weekly', priority: 1 },
-    { url: `${siteUrl}/qua-tang`, lastModified, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${siteUrl}/terms`, lastModified, changeFrequency: 'monthly', priority: 0.5 },
-    {
-      url: `${siteUrl}/community-standards`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-  ];
+  const siteUrl = getPublicSiteUrl(); if (!siteUrl) return [];
+  const lastModified = new Date('2026-08-13T00:00:00.000Z');
+  const routes: Array<[string, MetadataRoute.Sitemap[number]['changeFrequency'], number]> = [['/','weekly',1],['/about','monthly',0.7],['/how-it-works','monthly',0.8],['/safety','monthly',0.8],['/premium','weekly',0.8],['/diamond','weekly',0.8],['/privacy','monthly',0.5],['/terms','monthly',0.5],['/community-standards','monthly',0.6]];
+  return routes.map(([path, changeFrequency, priority]) => ({ url: `${siteUrl}${path}`, lastModified, changeFrequency, priority }));
 }

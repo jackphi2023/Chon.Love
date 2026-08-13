@@ -111,7 +111,20 @@ export type AccountDeletionStatus = z.infer<typeof deletionStatusSchema>;
 export async function getProfileViewer(client: Client, username: string): Promise<ProfileViewer | null> {
   const { data, error } = await client.rpc('get_profile_viewer' as never, { p_username: username } as never);
   if (error) throw error;
-  return z.array(profileViewerSchema).parse(data)[0] ?? null;
+  const row = z.array(profileViewerSchema).parse(data)[0];
+  if (!row) return null;
+  // LX-20 product override: Activity/Creator presentation is deferred so Luxy stays
+  // aligned with the current Seeking-derived surface. Backend tables remain intact.
+  return {
+    ...row,
+    is_creator: false,
+    creator_bio: null,
+    activity_visibility: null,
+    activity_can_view: false,
+    activity_gate_reason: 'unavailable',
+    activity_post_count: 0,
+    activity_image_count: 0,
+  };
 }
 
 export async function listMySocialConnections(

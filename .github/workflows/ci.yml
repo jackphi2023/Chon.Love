@@ -71,6 +71,9 @@ jobs:
       - name: Validate BR-10 Netlify release source
         run: pnpm validate:netlify-release
 
+      - name: Validate WEB-R03 branding source
+        run: pnpm validate:branding
+
       - name: Lint
         run: pnpm lint
 

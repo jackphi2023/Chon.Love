@@ -66,9 +66,17 @@ export function createPublicSupabaseClient(
 export * from './activity';
 export * from './chat';
 export * from './discovery';
+export * from './gift-log';
 export * from './gifts';
 export * from './homepage';
+export * from './interests';
+export * from './mailbox';
+export * from './member-profile';
+export * from './member-verification';
+export * from './membership';
+export * from './private-photo';
 export * from './profile-media';
+export * from './search';
 export * from './social-safety';
 export * from './vietqr';
 export * from './vietqr-reconciliation';

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ActivityModerationClient } from './activity-moderation-client';
 
 export const metadata: Metadata = {
-  title: 'Kiểm duyệt Hoạt động — MyFan Admin',
+  title: 'Kiểm duyệt nội dung legacy — Luxy.Love Admin',
   robots: { index: false, follow: false },
 };
 

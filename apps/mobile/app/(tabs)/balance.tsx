@@ -25,7 +25,7 @@ export default function Page() {
   return (
     <Screen
       title="Số dư ❤️"
-      description="❤️ mua để dùng trong MyFan được tách khỏi Thu nhập Creator và không thể rút thành tiền."
+      description="❤️ dùng cho tính năng quà tặng (khi được mở) được tách khỏi các khoản chi trả và không thể rút trực tiếp thành tiền."
     >
       <View style={styles.balanceCard}>
         <Text style={styles.label}>Số dư có thể dùng</Text>

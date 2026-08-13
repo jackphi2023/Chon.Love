@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CHAT_AUTO_DELETE_MS,
   createChatClientMessageId,
   filterExpiredChatMessages,
   formatConversationPreview,
+  getConversationRetention,
   getNextChatExpiryMs,
   getOlderMessageCursor,
   mergeChatMessagesNewestFirst,
+  setConversationAutoDelete,
   type ChatMessage,
   type ConversationRetention,
   type ConversationSummary,
@@ -82,6 +84,28 @@ describe('chat helpers', () => {
     const optimistic = message({ id: '77777777-7777-4777-8777-777777777777', sent_at: '2026-07-30T07:00:00.000Z' });
     const server = message({ id: '88888888-8888-4888-8888-888888888888', sent_at: '2026-07-30T07:00:01.000Z' });
     expect(mergeChatMessagesNewestFirst([optimistic, server])).toEqual([server]);
+  });
+
+  it('normalizes a disabled SQL retention flag from null to false', async () => {
+    const disabledRow = {
+      conversation_id: conversation.conversation_id,
+      auto_delete_enabled: null,
+      auto_delete_after_days: null,
+      updated_at: null,
+    };
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({ error: null, data: [disabledRow] })
+      .mockResolvedValueOnce({ error: null, data: [{ ...disabledRow, deleted_messages: 0 }] });
+
+    await expect(getConversationRetention({ rpc } as never, conversation.conversation_id)).resolves.toEqual({
+      ...disabledRow,
+      auto_delete_enabled: false,
+    });
+    await expect(setConversationAutoDelete({ rpc } as never, conversation.conversation_id, false)).resolves.toEqual({
+      ...disabledRow,
+      auto_delete_enabled: false,
+      deleted_messages: 0,
+    });
   });
 
   it('physically expires client-visible messages at seven days when enabled', () => {

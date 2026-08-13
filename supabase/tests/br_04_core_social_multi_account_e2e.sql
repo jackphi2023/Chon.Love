@@ -30,6 +30,33 @@ update private.user_identity set
   account_status='active'
 where user_id::text like '4b000000-0000-0000-0000-00000000000%';
 
+-- BR-04 exercises already-active social actors. Since Luxy signup now requires a
+-- resolved member-photo verification before an incomplete profile can activate,
+-- create explicit approved fixture cases rather than bypassing the production gate.
+insert into public.moderation_cases(
+  reported_user_id,
+  source,
+  status,
+  priority,
+  rule_codes,
+  automated_score_json,
+  decision,
+  decision_notes,
+  resolved_at
+)
+select
+  p.id,
+  'automated_scan'::public.moderation_source,
+  'resolved'::public.moderation_case_status,
+  'normal'::public.moderation_priority,
+  array['member_photo_verification']::text[],
+  jsonb_build_object('fixture', 'br04', 'maxSimilarity', 99.9, 'threshold', 60),
+  'approve'::public.moderation_decision,
+  'BR-04 approved selfie verification fixture',
+  now()
+from public.profiles p
+where p.id::text like '4b000000-0000-0000-0000-00000000000%';
+
 update public.profiles set
   profile_status='active',
   discovery_enabled=true,
@@ -49,6 +76,27 @@ update public.profiles set
     else 'BR04 Actor D'
   end
 where id::text like '4b000000-0000-0000-0000-00000000000%';
+
+-- BR-04 is a core chat transport test, not a membership-entitlement test. Give the
+-- sender an explicit Premium fixture so the test exercises the paid messaging path.
+insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,starts_at,expires_at,source)
+values(
+  '4b000000-0000-0000-0000-000000000001',
+  'premium',
+  'active',
+  true,
+  now()-interval '1 day',
+  now()+interval '30 days',
+  'br04_fixture'
+)
+on conflict(user_id) do update set
+  tier=excluded.tier,
+  status=excluded.status,
+  messaging_enabled=excluded.messaging_enabled,
+  starts_at=excluded.starts_at,
+  expires_at=excluded.expires_at,
+  source=excluded.source,
+  updated_at=now();
 
 select is(
   (select count(*)::integer from public.profiles where id::text like '4b000000-0000-0000-0000-00000000000%'),
@@ -281,8 +329,8 @@ select ok(
 select throws_ok(
   $$select public.send_message((select value from br04_state where key='conversation_one'),'Không thể gửi sau chặn','4b100000-0000-4000-8000-000000000004')$$,
   '42501',
-  'accepted_friendship_required',
-  'chat remains closed after blocking cancels the friendship'
+  'messaging_blocked',
+  'block closes direct messaging even though friendship is no longer required'
 );
 
 do $$ begin
@@ -293,8 +341,8 @@ select ok(public.unblock_user('4b000000-0000-0000-0000-000000000001'),'B unblock
 
 select is(
   public.get_direct_conversation('4b000000-0000-0000-0000-000000000001'),
-  null::uuid,
-  'unblocking does not restore the cancelled friendship or chat'
+  (select value from br04_state where key='conversation_one'),
+  'unblocking restores access to the existing direct conversation independently of cancelled friendship'
 );
 
 do $$ begin

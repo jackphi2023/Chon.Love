@@ -1,86 +1,39 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
+import { getPublicSiteUrl } from '../src/lib/environment';
 import './globals.css';
 import './site-shell.css';
+import './marketing.css';
+
+const siteUrl = getPublicSiteUrl();
+const productionIndexable = !process.env.CONTEXT || process.env.CONTEXT === 'production';
+const description = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm.';
 
 export const metadata: Metadata = {
-  title: {
-    default: 'MyFan — Cộng đồng Creator và người hâm mộ',
-    template: '%s · MyFan',
-  },
-  description: 'MyFan là mạng xã hội Social Creator dành cho người dùng từ 18 tuổi trở lên.',
-  applicationName: 'MyFan',
-  creator: 'MyFan',
-  robots: { index: true, follow: true },
+  metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+  title: { default: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', template: '%s | Chon.Love' },
+  description,
+  applicationName: 'Chon.Love',
+  creator: 'Chon.Love',
+  robots: productionIndexable ? { index: true, follow: true } : { index: false, follow: false, noarchive: true },
   icons: { icon: '/icon.svg' },
+  openGraph: { siteName: 'Chon.Love', title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description, locale: 'vi_VN', type: 'website' },
+  twitter: { card: 'summary', title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description },
 };
-
-export const viewport: Viewport = {
-  colorScheme: 'light',
-  themeColor: '#FFF9F6',
-  width: 'device-width',
-  initialScale: 1,
-};
+export const viewport: Viewport = { colorScheme: 'light', themeColor: '#FFF9F6', width: 'device-width', initialScale: 1 };
+const organizationData = { '@context': 'https://schema.org', '@type': 'Organization', name: 'Chon.Love', slogan: 'Chọn đúng người, Yêu đúng Gu', ...(siteUrl ? { url: siteUrl } : {}), description };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="vi">
-      <body>
-        <a className="skipLink" href="#main-content">Bỏ qua đến nội dung chính</a>
-        <header className="publicHeader">
-          <Link className="publicBrand" href="/" aria-label="MyFan trang chủ">
-            <span aria-hidden="true">♥</span>
-            <strong>MyFan</strong>
-          </Link>
-
-          <nav className="publicDesktopNav" aria-label="Điều hướng chính">
-            <Link href="/">Trang chủ</Link>
-            <Link href="/qua-tang">Quà tặng</Link>
-            <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
-          </nav>
-
-          <div className="publicHeaderActions">
-            <Link className="publicLogin" href="/?intent=login">
-              Đăng nhập
-            </Link>
-            <Link className="publicJoin" href="/?intent=signup">
-              Tham gia
-            </Link>
-          </div>
-
-          <details className="publicMobileMenu">
-            <summary aria-label="Mở menu điều hướng">
-              <span aria-hidden="true">☰</span>
-            </summary>
-            <nav aria-label="Điều hướng mobile">
-              <Link href="/">Trang chủ</Link>
-              <Link href="/qua-tang">Quà tặng</Link>
-              <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
-              <Link href="/?intent=login">Đăng nhập</Link>
-              <Link className="publicMobileJoin" href="/?intent=signup">
-                Tham gia MyFan
-              </Link>
-            </nav>
-          </details>
-        </header>
-
-        <div id="main-content" tabIndex={-1}>{children}</div>
-
-        <footer className="publicFooter">
-          <div>
-            <Link className="publicFooterBrand" href="/">
-              MyFan
-            </Link>
-            <span>Social Creator · 18+</span>
-          </div>
-          <nav aria-label="Chính sách">
-            <Link href="/terms">Điều khoản</Link>
-            <span aria-hidden="true">–</span>
-            <Link href="/community-standards">Tiêu chuẩn cộng đồng</Link>
-          </nav>
-          <small>© 2026 MyFan</small>
-        </footer>
-      </body>
-    </html>
-  );
+  return <html lang="vi"><body>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }} />
+    <a className="skipLink" href="#main-content">Bỏ qua đến nội dung chính</a>
+    <header className="publicHeader">
+      <Link className="publicBrand" href="/" aria-label="Chon.Love trang chủ"><span aria-hidden="true">♥</span><strong>Chon.Love</strong></Link>
+      <nav className="publicDesktopNav" aria-label="Điều hướng chính"><Link href="/how-it-works">Cách hoạt động</Link><Link href="/safety">An toàn</Link><Link href="/premium">Premium</Link><Link href="/diamond">Diamond</Link></nav>
+      <div className="publicHeaderActions"><Link className="publicLogin" href="/?intent=login">Đăng nhập</Link><Link className="publicJoin" href="/?intent=signup">Tham gia</Link></div>
+      <details className="publicMobileMenu"><summary aria-label="Mở menu điều hướng"><span aria-hidden="true">☰</span></summary><nav aria-label="Điều hướng mobile"><Link href="/about">Về Chon.Love</Link><Link href="/how-it-works">Cách hoạt động</Link><Link href="/safety">An toàn</Link><Link href="/premium">Premium</Link><Link href="/diamond">Diamond</Link><Link href="/community-standards">Tiêu chuẩn cộng đồng</Link><Link href="/?intent=login">Đăng nhập</Link><Link className="publicMobileJoin" href="/?intent=signup">Tham gia Chon.Love</Link></nav></details>
+    </header>
+    <div id="main-content" tabIndex={-1}>{children}</div>
+    <footer className="publicFooter"><div><Link className="publicFooterBrand" href="/">Chon.Love</Link><span>Chọn đúng người, Yêu đúng Gu · 18+</span></div><nav aria-label="Chính sách"><Link href="/about">Giới thiệu</Link><span aria-hidden="true">–</span><Link href="/privacy">Quyền riêng tư</Link><span aria-hidden="true">–</span><Link href="/terms">Điều khoản</Link><span aria-hidden="true">–</span><Link href="/community-standards">Tiêu chuẩn cộng đồng</Link></nav><small>© 2026 Chon.Love</small></footer>
+  </body></html>;
 }

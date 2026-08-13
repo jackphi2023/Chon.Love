@@ -4,6 +4,10 @@ import { getMobileSupabaseClient } from './supabase';
 import { resolveAuthenticatedRoute, type AuthenticatedRoute } from './auth-routing';
 
 export type AuthSignOutScope = 'local' | 'global' | 'others';
+export type EmailSignUpResult = {
+  requiresEmailConfirmation: boolean;
+  destination: AuthenticatedRoute | null;
+};
 
 const CONTROLLED_BETA_EMAIL = /^myfan(?:[1-9]|1[0-6])@gmail\.com$/iu;
 
@@ -47,6 +51,25 @@ export async function signInWithEmailPassword(email: string, password: string): 
   const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
   if (error) throw error;
   return getAuthenticatedDestination();
+}
+
+export async function signUpWithEmailPassword(email: string, password: string): Promise<EmailSignUpResult> {
+  const client = requireAuthClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !password) throw new Error('email_and_password_required');
+  if (password.length < 10) throw new Error('password_too_short');
+
+  const { data, error } = await client.auth.signUp({
+    email: normalizedEmail,
+    password,
+    options: { emailRedirectTo: getAuthCallbackUrl() },
+  });
+  if (error) throw error;
+
+  if (!data.session) {
+    return { requiresEmailConfirmation: true, destination: null };
+  }
+  return { requiresEmailConfirmation: false, destination: await getAuthenticatedDestination() };
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

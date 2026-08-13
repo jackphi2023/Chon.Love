@@ -1,3 +1,4 @@
+import '@/lib/style-sheet-compat';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
@@ -5,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { AppProviders } from '@/providers/app-providers';
 
-const WEB_TITLE = 'MyFan — Mạng xã hội Creator 18+';
+const WEB_TITLE = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
 
 function WebDocumentMetadata() {
   useEffect(() => {

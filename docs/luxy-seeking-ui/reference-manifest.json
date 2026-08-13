@@ -1,0 +1,61 @@
+{
+  "source": "User-provided Seeking.zip, audited 2026-08-11",
+  "policy": "Seeking references are the visual source of truth for Luxy.Love. Do not invent alternate styling for covered screens.",
+  "screens": [
+    {
+      "id": "homepage",
+      "screenshot": "Homepage Seeking.png",
+      "size": { "width": 1280, "height": 5803 },
+      "html": "Home Seeking.com _ You Know What You Want. Find it On Seeking.®.html",
+      "target_fidelity": 0.85
+    },
+    {
+      "id": "signup",
+      "screenshot": null,
+      "html": "Create Your Seeking Profile _ Sign Up Free Today!.htm",
+      "target_fidelity": 0.85
+    },
+    {
+      "id": "search",
+      "screenshot": "Search Seeking.png",
+      "size": { "width": 1280, "height": 5681 },
+      "html": "(1) Search - Seeking.com.html",
+      "static_html": "static_(1) Search - Seeking.com.html",
+      "target_fidelity": 0.90
+    },
+    {
+      "id": "member-profile",
+      "screenshot": "Profile Seeking.png",
+      "size": { "width": 1280, "height": 1691 },
+      "html": "(1) Member Profile - Seeking.com.html",
+      "static_html": "static_(1) Member Profile - Seeking.com.html",
+      "target_fidelity": 0.90
+    },
+    {
+      "id": "edit-profile",
+      "screenshot": "EditProfile Seeking.png",
+      "size": { "width": 1280, "height": 2943 },
+      "html": "(1) Edit Profile - Seeking.com.html",
+      "static_html": "static_(1) Edit Profile - Seeking.com.html",
+      "target_fidelity": 0.90
+    },
+    {
+      "id": "upgrade-billing",
+      "screenshot": "Upgrade Seeking.png",
+      "detail_screenshot": "Upgrade-detail Seeking.png",
+      "size": { "width": 1280, "height": 2194 },
+      "detail_size": { "width": 466, "height": 651 },
+      "html": "(1) Billing - Seeking.com.html",
+      "static_html": "static_(1) Billing - Seeking.com.html",
+      "target_fidelity": 0.90
+    }
+  ],
+  "visual_regression_viewports": [
+    { "width": 390, "height": 844 },
+    { "width": 430, "height": 932 },
+    { "width": 768, "height": 1024 },
+    { "width": 1024, "height": 768 },
+    { "width": 1280, "height": 900 },
+    { "width": 1440, "height": 1000 }
+  ]
+}
