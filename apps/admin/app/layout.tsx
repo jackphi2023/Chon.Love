@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Luxy.Love Admin',
-  description: 'Luxy.Love moderation and operations administration.',
-  robots: { index: false, follow: false },
+  title: 'Chon.Love Admin',
+  description: 'Chon.Love moderation and operations administration.',
+  robots: { index: false, follow: false, noarchive: true },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
