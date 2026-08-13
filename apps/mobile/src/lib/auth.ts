@@ -12,6 +12,14 @@ export type EmailSignUpResult = {
 const CONTROLLED_BETA_EMAIL = /^myfan(?:[1-9]|1[0-6])@gmail\.com$/iu;
 
 export function getAuthCallbackUrl(next?: string): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const configuredBase = process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim().replace(/\/$/u, '') ?? '';
+    const basePath = configuredBase && configuredBase.startsWith('/') ? configuredBase : '';
+    const callbackUrl = `${window.location.origin}${basePath}/auth/callback`;
+    if (!next) return callbackUrl;
+    const params = new URLSearchParams({ next });
+    return `${callbackUrl}?${params.toString()}`;
+  }
   return next
     ? Linking.createURL('auth/callback', { queryParams: { next } })
     : Linking.createURL('auth/callback');
