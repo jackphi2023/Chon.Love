@@ -31,6 +31,10 @@ jobs:
           spec = Path('tests/br-06/web-r03-branding.spec.mjs')
           text = spec.read_text(encoding='utf-8').replace("['/', 'luxy-search-mobile'],", "['/', 'luxy-search-desktop'],")
           spec.write_text(text, encoding='utf-8')
+
+          config = Path('packages/config/src/index.ts')
+          text = config.read_text(encoding='utf-8').replace('// LX-20 product override:', '// Web V1 product override:')
+          config.write_text(text, encoding='utf-8')
           PY
       - name: Validate branding source
         run: node scripts/validate-web-r03-branding.mjs
