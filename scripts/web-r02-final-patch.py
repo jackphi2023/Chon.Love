@@ -1,93 +1,52 @@
 from pathlib import Path
 
-upgrade_path = Path('apps/mobile/src/components/luxy-upgrade-gate-modal.tsx')
-upgrade = upgrade_path.read_text()
-upgrade = upgrade.replace(
-    "import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';",
-    "import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';",
-    1,
-)
-marker = "import { getMobileSupabaseClient } from '@/lib/supabase';"
-if marker not in upgrade:
-    raise SystemExit('upgrade import marker not found')
-upgrade = upgrade.replace(marker, "import { LuxyModalLayer } from '@/components/luxy-modal-layer';\n" + marker, 1)
-old_open = '<Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>'
-if old_open not in upgrade or '</Modal>' not in upgrade:
-    raise SystemExit('upgrade modal markers not found')
-upgrade = upgrade.replace(old_open, '<LuxyModalLayer onRequestClose={onClose} visible={visible}>', 1)
-upgrade = upgrade.replace('</Modal>', '</LuxyModalLayer>', 1)
-upgrade_path.write_text(upgrade)
-
-membership_path = Path('apps/mobile/app/settings/membership.tsx')
-membership = membership_path.read_text()
-if '  Modal,\n' not in membership:
-    raise SystemExit('membership Modal import not found')
-membership = membership.replace('  Modal,\n', '', 1)
-marker = "import { getMobileSupabaseClient } from '@/lib/supabase';"
-if marker not in membership:
-    raise SystemExit('membership import marker not found')
-membership = membership.replace(marker, "import { LuxyModalLayer } from '@/components/luxy-modal-layer';\n" + marker, 1)
-old_open = 'return <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>'
-if old_open not in membership or '</Modal>;' not in membership:
-    raise SystemExit('membership checkout modal markers not found')
-membership = membership.replace(old_open, 'return <LuxyModalLayer visible={visible} onRequestClose={onClose}>', 1)
-membership = membership.replace('</Modal>;', '</LuxyModalLayer>;', 1)
-membership_path.write_text(membership)
-
 qa_path = Path('tests/br-06/web-r02-final-ui-qa.spec.mjs')
 qa = qa_path.read_text()
-old_profile = """      await page.goto(`/profile/${creator.username}`);
-      await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
-      await expect(page.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
-      await expect(page.locator('button button'), 'Member Profile must not render nested interactive buttons').toHaveCount(0);
-      await capture(page, testInfo, viewport, 'member-profile');"""
-new_profile = """      await freePage.goto(`/profile/${creator.username}`);
-      await expect(freePage.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
-      await expect(freePage.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
-      await expect(freePage.locator('button button'), 'Member Profile must not render nested interactive buttons').toHaveCount(0);
-      await expect(freePage.getByTestId('luxy-private-photo-entitlement-button')).toContainText('Nâng cấp');
-      await capture(freePage, testInfo, viewport, 'member-profile');"""
-if old_profile not in qa:
-    raise SystemExit('R02 profile screenshot block not found')
-qa = qa.replace(old_profile, new_profile, 1)
 
-old_edit = """      await page.goto('/profile/edit');
-      await expect(page.getByTestId('lx08-edit-profile-page')).toBeVisible({ timeout: 20_000 });
-      await capture(page, testInfo, viewport, 'edit-profile');"""
-new_edit = """      await page.goto('/profile/edit');
-      await expect(page.getByTestId('lx08-edit-profile-page')).toBeVisible({ timeout: 20_000 });
-      await expect(page.getByTestId('lx08-profile-form')).toBeVisible({ timeout: 20_000 });
-      await capture(page, testInfo, viewport, 'edit-profile');"""
-if old_edit not in qa:
-    raise SystemExit('R02 edit screenshot block not found')
-qa = qa.replace(old_edit, new_edit, 1)
+anchor = "const freeActor = { email: 'br06.outsider@example.test' };\n"
+fixture = """
+const vietQrVisualFixture = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <rect width="320" height="320" fill="white"/>
+  <g fill="#081726">
+    <path d="M20 20h90v90H20zM35 35v60h60V35zM50 50h30v30H50z" fill-rule="evenodd"/>
+    <path d="M210 20h90v90h-90zM225 35v60h60V35zM240 50h30v30h-30z" fill-rule="evenodd"/>
+    <path d="M20 210h90v90H20zM35 225v60h60v-60zM50 240h30v30H50z" fill-rule="evenodd"/>
+    <path d="M135 20h20v20h-20zM165 20h20v50h-20zM135 55h20v35h-20zM135 105h50v20h-50zM200 130h20v40h-20zM230 130h20v20h-20zM270 130h30v20h-30zM125 145h50v20h-50zM145 175h20v35h-20zM180 180h20v20h-20zM215 185h35v20h-35zM270 175h30v30h-30zM120 220h25v20h-25zM160 225h45v20h-45zM215 220h20v50h-20zM250 225h50v20h-50zM125 260h65v20h-65zM250 260h20v40h-20zM280 270h20v30h-20z"/>
+  </g>
+  <text x="160" y="312" text-anchor="middle" font-family="Arial" font-size="11" fill="#545454">VietQR UI fixture</text>
+</svg>`;
+"""
+if 'const vietQrVisualFixture' not in qa:
+    if anchor not in qa:
+        raise SystemExit('R02 actor anchor not found')
+    qa = qa.replace(anchor, anchor + fixture, 1)
 
-old_gate = """      await expect(freePage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
-      await capture(freePage, testInfo, viewport, 'upgrade-gate', false);"""
-new_gate = """      const upgradeGate = freePage.getByTestId('luxy-upgrade-gate-message');
-      await expect(upgradeGate).toBeVisible();
-      expect(await upgradeGate.evaluate((node) => {
-        const rect = node.getBoundingClientRect();
-        return [0.25, 0.5, 0.75].every((ratio) => {
-          const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height * ratio);
-          return Boolean(top && node.contains(top));
-        });
-      }), 'Upgrade modal must be the top visual stacking layer').toBe(true);
-      await capture(freePage, testInfo, viewport, 'upgrade-gate', false);"""
-if old_gate not in qa:
-    raise SystemExit('R02 upgrade gate block not found')
-qa = qa.replace(old_gate, new_gate, 1)
+route_anchor = """    const page = await premiumContext.newPage();
+    const freePage = await freeContext.newPage();
 
-old_qr = """      await expect(freePage.getByLabel('Mã VietQR thanh toán gói thành viên')).toBeVisible({ timeout: 20_000 });
-      await capture(freePage, testInfo, viewport, 'vietqr-checkout', false);"""
-new_qr = """      const qrImage = freePage.getByLabel('Mã VietQR thanh toán gói thành viên');
+    try {
+      await Promise.all([login(page, premiumActor), login(freePage, freeActor)]);"""
+route_replacement = """    const page = await premiumContext.newPage();
+    const freePage = await freeContext.newPage();
+
+    try {
+      await freePage.route('https://img.vietqr.io/**', async (route) => {
+        await route.fulfill({ status: 200, contentType: 'image/svg+xml', body: vietQrVisualFixture });
+      });
+      await Promise.all([login(page, premiumActor), login(freePage, freeActor)]);"""
+if "freePage.route('https://img.vietqr.io/**'" not in qa:
+    if route_anchor not in qa:
+        raise SystemExit('R02 context anchor not found')
+    qa = qa.replace(route_anchor, route_replacement, 1)
+
+wait_anchor = """      const qrImage = freePage.getByLabel('Mã VietQR thanh toán gói thành viên');
+      await expect(qrImage).toBeVisible({ timeout: 20_000 });"""
+wait_replacement = """      const qrImage = freePage.getByLabel('Mã VietQR thanh toán gói thành viên');
       await expect(qrImage).toBeVisible({ timeout: 20_000 });
-      expect(await qrImage.evaluate((node) => {
-        const rect = node.getBoundingClientRect();
-        const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + Math.min(rect.height / 2, 80));
-        return top === node || Boolean(top && node.contains(top));
-      }), 'VietQR modal must stay above Membership page').toBe(true);
-      await capture(freePage, testInfo, viewport, 'vietqr-checkout', false);"""
-if old_qr not in qa:
-    raise SystemExit('R02 VietQR block not found')
-qa_path.write_text(qa.replace(old_qr, new_qr, 1))
+      await freePage.waitForTimeout(250);"""
+if 'await freePage.waitForTimeout(250);' not in qa:
+    if wait_anchor not in qa:
+        raise SystemExit('R02 QR wait anchor not found')
+    qa = qa.replace(wait_anchor, wait_replacement, 1)
+
+qa_path.write_text(qa)
