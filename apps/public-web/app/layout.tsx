@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   applicationName: 'Chon.Love',
   creator: 'Chon.Love',
   robots: productionIndexable ? { index: true, follow: true } : { index: false, follow: false, noarchive: true },
-  icons: { icon: '/icon.svg' },
+  icons: { icon: '/icon.png' },
   openGraph: { siteName: 'Chon.Love', title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description, locale: 'vi_VN', type: 'website' },
   twitter: { card: 'summary', title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description },
 };
