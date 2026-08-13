@@ -21,19 +21,19 @@ const reasonCopy: Record<LuxyUpgradeGateReason, { icon: string; title: string; d
   private_photo: {
     icon: '▣',
     title: 'Xem ảnh riêng tư!',
-    description: 'Premium hoặc Diamond cho phép gửi yêu cầu xem ảnh riêng tư. Chủ hồ sơ vẫn là người quyết định chấp thuận hoặc từ chối.',
+    description: 'Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư đủ điều kiện. Quyền truy cập được kiểm tra trực tiếp từ trạng thái gói trên server.',
   },
 };
 
 const premiumBenefits = [
   'Gửi và nhận tin nhắn với thành viên',
-  'Gửi yêu cầu xem ảnh riêng tư',
+  'Xem đầy đủ ảnh riêng tư',
   'Huy hiệu thành viên Premium',
 ] as const;
 
 const diamondBenefits = [
   'Bao gồm toàn bộ quyền tương tác Premium',
-  'Gửi tin nhắn và yêu cầu xem ảnh riêng tư',
+  'Tự động xem đầy đủ ảnh riêng tư',
   'Huy hiệu Diamond — hạng thành viên cao nhất',
 ] as const;
 
@@ -162,7 +162,7 @@ export function LuxyUpgradeGateModal({
             </View>
 
             {reason === 'private_photo' ? (
-              <Text style={styles.consentNote}>Lưu ý: nâng cấp không tự mở ảnh riêng tư. Bạn vẫn cần chủ hồ sơ chấp thuận yêu cầu.</Text>
+              <Text style={styles.consentNote}>Gift, Fan, friendship và legacy approval request không mở khóa ảnh riêng tư. Block vẫn có ưu tiên cao hơn trạng thái gói.</Text>
             ) : null}
             {diamondError ? <Text accessibilityRole="alert" style={styles.error}>{diamondError}</Text> : null}
 
