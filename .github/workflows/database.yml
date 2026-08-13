@@ -15,6 +15,7 @@ on:
       - 'scripts/validate-br07.mjs'
       - 'scripts/validate-br08.mjs'
       - 'scripts/validate-br09.mjs'
+      - 'scripts/filter-internal-database-types.mjs'
       - 'scripts/br06/**'
       - 'tests/br-06/**'
       - 'playwright.br06.config.mjs'
@@ -43,6 +44,7 @@ on:
       - 'scripts/validate-br07.mjs'
       - 'scripts/validate-br08.mjs'
       - 'scripts/validate-br09.mjs'
+      - 'scripts/filter-internal-database-types.mjs'
       - 'scripts/br06/**'
       - 'tests/br-06/**'
       - 'playwright.br06.config.mjs'
@@ -125,6 +127,7 @@ jobs:
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
           test -f scripts/validate-br09.mjs
+          test -f scripts/filter-internal-database-types.mjs
           test -f tests/br-06/mobile-web-multi-account.spec.mjs
           test -f tests/br-06/luxy-member-profile.spec.mjs
 
@@ -210,6 +213,9 @@ jobs:
             sleep $((attempt * 10))
           done
           exit 1
+
+      - name: Remove service-role-only Admin RPCs from client contract
+        run: node scripts/filter-internal-database-types.mjs /tmp/database.types.ts
 
       - name: Upload generated public contract
         uses: actions/upload-artifact@v4
