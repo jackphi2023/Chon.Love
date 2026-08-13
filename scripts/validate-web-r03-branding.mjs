@@ -7,13 +7,18 @@ const failures=[];
 for(const path of noMyFanOrPhase){const text=read(path);if(/MyFan/.test(text))failures.push(`${path}: legacy MyFan copy remains`);if(/LX-[0-9]{2}/.test(text))failures.push(`${path}: internal LX phase label remains user-facing`);if(/Album Fan/.test(text))failures.push(`${path}: legacy Album Fan copy remains`)}
 for(const path of searchSurfaces){if(/Hoạt động gần đây/.test(read(path)))failures.push(`${path}: legacy Activity-style recent label remains`)}
 for(const path of publicReachable){const text=read(path);for(const[label,pattern]of[['MyFan',/MyFan/],['Creator',/Creator/],['Fan',/\bFan\b/],['Hoạt động',/Hoạt động/],['Social Creator',/Social Creator/]])if(pattern.test(text))failures.push(`${path}: legacy public-web term ${label} remains`)}
-const home=read('apps/public-web/app/page.tsx');const layout=read('apps/public-web/app/layout.tsx');const manifest=read('apps/public-web/app/manifest.ts');const ui=read('packages/ui/src/index.ts');const next=read('apps/public-web/next.config.ts');const netlify=read('apps/public-web/netlify.toml');const protectedTabs=read('apps/mobile/app/(tabs)/_layout.tsx');
+const home=read('apps/public-web/app/page.tsx');const layout=read('apps/public-web/app/layout.tsx');const manifest=read('apps/public-web/app/manifest.ts');const ui=read('packages/ui/src/index.ts');const next=read('apps/public-web/next.config.ts');const netlify=read('apps/public-web/netlify.toml');const protectedTabs=read('apps/mobile/app/(tabs)/_layout.tsx');const mobileConfig=read('apps/mobile/app.json');const mobileHtml=read('apps/mobile/app/+html.tsx');const buildScript=read('scripts/build-chon-netlify.mjs');
 const exactTitle='Chon.Love | Chọn đúng người, Yêu đúng Gu';const exactDescription='Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm.';
 if(!home.includes(exactTitle)||!layout.includes(exactTitle)||!manifest.includes(exactTitle))failures.push('Chon.Love homepage/manifest title contract missing');
 if(!home.includes(exactDescription)||!layout.includes(exactDescription)||!manifest.includes(exactDescription))failures.push('Chon.Love description contract missing');
 if(!ui.includes("productName:'Chon.Love'"))failures.push('Shared authenticated brand must be Chon.Love');
+if(!mobileConfig.includes('"name": "Chon.Love"')||!mobileHtml.includes(exactTitle))failures.push('Authenticated Expo Web metadata must use Chon.Love branding');
 if(next.includes("output: 'export'"))failures.push('Public web must not use static export because shareable member profiles need dynamic metadata');
 if(!netlify.includes('apps/public-web/.next'))failures.push('Public web Netlify publish directory must use the Next.js .next output');
+if(!netlify.includes('pnpm build:netlify:chon'))failures.push('Netlify must build the combined Chon.Love public and authenticated web release');
+if(!netlify.includes('from = "/app/*"')||!netlify.includes('to = "/app/index.html"'))failures.push('Netlify must preserve SPA routing for the embedded authenticated app');
+if(!buildScript.includes("EXPO_PUBLIC_WEB_BASE_URL: appBasePath")||!buildScript.includes("NEXT_PUBLIC_APP_URL: appOrigin"))failures.push('Combined Netlify build must host authenticated Expo routes under /app');
+if(!layout.includes('href={loginUrl}')||!layout.includes('href={signupUrl}'))failures.push('Public header auth CTAs must link directly to the authenticated app');
 if(!protectedTabs.includes('<Redirect href="/"/>'))failures.push('Unauthenticated member-list access must return to the homepage');
 if(failures.length){console.error('WEB-R03/SEO branding validation failed:\n'+failures.map(x=>`- ${x}`).join('\n'));process.exit(1)}
-console.warn('WEB-R03/SEO validation passed: Chon.Love title/description, shareable profile runtime, hidden member list and legacy-copy guards are intact.');
+console.warn('WEB-R03/SEO validation passed: Chon.Love branding, embedded /app auth routing, shareable profile runtime and member-list guards are intact.');
