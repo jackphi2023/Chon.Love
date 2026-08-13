@@ -75,7 +75,7 @@ export default function ProfileSetupOnboarding() {
   if (busy || auth.isRestoring) return <View style={styles.loading}><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.muted}>Đang chuẩn bị hồ sơ…</Text></View>;
 
   return (
-    <Screen title="Tạo hồ sơ Luxy.Love" description="Điền thông tin cơ bản và upload ảnh thật. Bước tiếp theo bắt buộc chụp selfie live bằng camera.">
+    <Screen title="Tạo hồ sơ Chon.Love" description="Điền thông tin cơ bản và upload ảnh thật. Bước tiếp theo bắt buộc chụp selfie live bằng camera.">
       <Text style={styles.label}>Tên người dùng</Text>
       <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setUsername} style={styles.input} value={username} />
       <Text style={styles.label}>Tên hiển thị</Text>
@@ -83,7 +83,7 @@ export default function ProfileSetupOnboarding() {
 
       <Text style={styles.label}>Giới tính tự khai báo</Text>
       <View style={styles.row}>{GENDERS.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: gender === item.value }} key={item.value} onPress={() => setGender(item.value)} style={[styles.chip, gender === item.value && styles.active]}><Text style={[styles.chipText, gender === item.value && styles.activeText]}>{item.label}</Text></Pressable>)}</View>
-      <Text style={styles.hint}>Luxy khóa dữ liệu giới tính tự khai báo trong lần xác minh; hệ thống không suy đoán giới tính từ khuôn mặt.</Text>
+      <Text style={styles.hint}>Chon.Love khóa dữ liệu giới tính tự khai báo trong lần xác minh; hệ thống không suy đoán giới tính từ khuôn mặt.</Text>
 
       <Text style={styles.label}>Tỉnh / thành phố</Text>
       <ScrollView nestedScrollEnabled style={styles.provinces}><View style={styles.row}>{provinces.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: provinceId === item.id }} key={item.id} onPress={() => setProvinceId(item.id)} style={[styles.chip, provinceId === item.id && styles.active]}><Text style={[styles.chipText, provinceId === item.id && styles.activeText]}>{item.name}</Text></Pressable>)}</View></ScrollView>
