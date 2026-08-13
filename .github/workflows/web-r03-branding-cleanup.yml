@@ -1,0 +1,36 @@
+name: WEB-R03 Branding Cleanup
+
+on:
+  push:
+    branches:
+      - release/luxy-web-v1
+    paths:
+      - scripts/web-r03-branding-cleanup.py
+      - .github/workflows/web-r03-branding-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply WEB-R03 branding patch
+        run: python3 scripts/web-r03-branding-cleanup.py
+      - name: Validate branding source
+        run: node scripts/validate-web-r03-branding.mjs
+      - name: Validate diff
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          test -n "$(git status --short)"
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(web-r03): clean Luxy.Love user-facing branding'
+          git push origin HEAD:release/luxy-web-v1
