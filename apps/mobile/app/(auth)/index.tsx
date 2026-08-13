@@ -110,7 +110,7 @@ export default function AuthHome() {
     <SafeAreaView style={styles.safeArea} testID="luxy-auth-screen">
       <View style={[styles.header, compact && styles.headerCompact]}>
         <Pressable
-          accessibilityLabel="Luxy.Love — về trang chủ"
+          accessibilityLabel="Chon.Love — về trang chủ"
           accessibilityRole="button"
           onPress={() => router.replace('/')}
           style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
@@ -241,7 +241,7 @@ function JoinPreferences({
         <Text style={styles.primaryButtonText}>Tiếp tục</Text>
       </Pressable>
 
-      <Text style={styles.ageNote}>Chỉ dành cho người từ đủ 18 tuổi. Sau khi tạo tài khoản, Luxy.Love sẽ yêu cầu xác minh tuổi trước khi sử dụng đầy đủ.</Text>
+      <Text style={styles.ageNote}>Chỉ dành cho người từ đủ 18 tuổi. Sau khi tạo tài khoản, Chon.Love sẽ yêu cầu xác minh tuổi trước khi sử dụng đầy đủ.</Text>
     </View>
   );
 }
@@ -309,7 +309,7 @@ function AccountForm({
       ) : null}
 
       <Text accessibilityRole="header" style={styles.heading}>{login ? 'Đăng nhập' : 'Đăng ký'}</Text>
-      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Luxy.Love.' : 'Tạo thông tin đăng nhập cho tài khoản Luxy.Love của bạn.'}</Text>
+      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Chon.Love.' : 'Tạo thông tin đăng nhập cho tài khoản Chon.Love của bạn.'}</Text>
 
       <View style={styles.formFields}>
         <Text style={styles.fieldLabel}>Email</Text>
@@ -379,7 +379,7 @@ function AccountForm({
       </Pressable>
 
       {!login ? (
-        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý tiếp tục tới bước xác minh 18+ và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Luxy.Love.</Text>
+        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý tiếp tục tới bước xác minh 18+ và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Chon.Love.</Text>
       ) : null}
     </View>
   );
@@ -396,8 +396,8 @@ function AuthFooter({ compact }: { compact: boolean }) {
         <Text style={styles.footerLink}>Hẹn hò an toàn</Text>
         <Text style={styles.footerLink}>Hỗ trợ</Text>
       </View>
-      <Text style={styles.footerNotice}>Thành viên Luxy không mặc nhiên được coi là đã qua kiểm tra lý lịch. Các dấu xác thực chỉ phản ánh đúng loại xác thực đã hoàn tất.</Text>
-      <Text style={styles.footerCopyright}>© 2026 Luxy.Love. Bảo lưu mọi quyền.</Text>
+      <Text style={styles.footerNotice}>Thành viên Chon.Love không mặc nhiên được coi là đã qua kiểm tra lý lịch. Các dấu xác thực chỉ phản ánh đúng loại xác thực đã hoàn tất.</Text>
+      <Text style={styles.footerCopyright}>© 2026 Chon.Love. Bảo lưu mọi quyền.</Text>
     </View>
   );
 }
