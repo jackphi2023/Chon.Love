@@ -41,6 +41,13 @@ async function assertSettingsHub(page) {
   await expect(page.getByText('Cài đặt quà tặng', { exact: true })).toBeVisible();
 }
 
+async function assertVerificationControls(page) {
+  await expect(page.getByRole('button', { name: 'Mở chụp selfie' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Upload mặt trước CCCD' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Upload mặt sau CCCD' })).toBeVisible();
+  await expect(page.getByTestId('verification-identity-submit')).toBeDisabled();
+}
+
 test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
@@ -52,10 +59,7 @@ test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ 
 
     await page.getByTestId('settings-verification').click();
     await expect(page.getByTestId('luxy-verification-settings')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bật camera & chụp selfie' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Upload mặt trước CCCD' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Upload mặt sau CCCD' })).toBeVisible();
-    await expect(page.getByTestId('verification-submit')).toBeDisabled();
+    await assertVerificationControls(page);
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/private-photos');
@@ -65,9 +69,9 @@ test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ 
     await assertNoHorizontalOverflow(page);
 
     await page.goto('/settings/membership');
-    await expect(page.getByTestId('luxy-membership-settings')).toBeVisible();
-    await expect(page.getByText('Premium', { exact: true })).toBeVisible();
-    await expect(page.getByText('Diamond', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('luxy-upgrade-billing')).toBeVisible();
+    await expect(page.getByText('Premium', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Diamond', { exact: true }).first()).toBeVisible();
 
     await page.goto('/settings/gifts');
     await expect(page.getByTestId('luxy-gift-settings')).toBeVisible();
@@ -94,9 +98,9 @@ test('WEB-R01 Settings remains usable on 390px mobile web', async ({ browser }, 
 
     await page.getByTestId('settings-verification').click();
     await expect(page.getByTestId('luxy-verification-settings')).toBeVisible();
-    for (const name of ['Bật camera & chụp selfie', 'Upload mặt trước CCCD', 'Upload mặt sau CCCD']) {
+    await assertVerificationControls(page);
+    for (const name of ['Mở chụp selfie', 'Upload mặt trước CCCD', 'Upload mặt sau CCCD']) {
       const button = page.getByRole('button', { name });
-      await expect(button).toBeVisible();
       const box = await button.boundingBox();
       expect(box).not.toBeNull();
       expect(box.height).toBeGreaterThanOrEqual(44);
