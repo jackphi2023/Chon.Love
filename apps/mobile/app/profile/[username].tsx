@@ -294,19 +294,20 @@ export default function LuxyMemberProfilePage() {
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="luxy-member-profile-page">
       <View style={[styles.profileFrame, desktop ? styles.profileFrameDesktop : styles.profileFrameMobile]}>
         <View style={[styles.leftColumn, desktop && styles.leftColumnDesktop]}>
-          <Pressable
-            accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
-            accessibilityRole="button"
-            disabled={!avatarQuery.data}
-            onPress={() => openPhoto(avatarQuery.data ?? null)}
-            style={({ pressed }) => [styles.heroPhotoFrame, pressed && styles.pressed]}
-            testID="luxy-member-profile-hero-photo"
-          >
-            {avatarQuery.data ? (
-              <Image accessibilityLabel={`Ảnh đại diện của ${displayName}`} resizeMode="cover" source={{ uri: avatarQuery.data }} style={styles.heroPhoto} />
-            ) : (
-              <View style={styles.heroFallback}><Text style={styles.heroFallbackText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>
-            )}
+                    <View style={styles.heroPhotoFrame} testID="luxy-member-profile-hero-photo">
+            <Pressable
+              accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
+              accessibilityRole="button"
+              disabled={!avatarQuery.data}
+              onPress={() => openPhoto(avatarQuery.data ?? null)}
+              style={({ pressed }) => [styles.heroPhotoPressTarget, pressed && styles.pressed]}
+            >
+              {avatarQuery.data ? (
+                <Image accessibilityLabel={`Ảnh đại diện của ${displayName}`} resizeMode="cover" source={{ uri: avatarQuery.data }} style={styles.heroPhoto} />
+              ) : (
+                <View style={styles.heroFallback}><Text style={styles.heroFallbackText}>{displayName.slice(0, 1).toUpperCase()}</Text></View>
+              )}
+            </Pressable>
             {profile.membership_badge_visible ? (
               <LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />
             ) : null}
@@ -320,7 +321,7 @@ export default function LuxyMemberProfilePage() {
                 />
               </View>
             ) : null}
-          </Pressable>
+          </View>
 
           {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (
             <LuxyPrivatePhotoAccess
@@ -597,7 +598,7 @@ function educationLabel(value: LuxyMemberProfile['education_level']): string { r
 const styles = StyleSheet.create({
   page: { backgroundColor: luxyColors.surface, flex: 1 }, pageContent: { paddingBottom: 80 }, profileFrame: { alignSelf: 'center', maxWidth: 1440, width: '100%' }, profileFrameDesktop: { alignItems: 'flex-start', flexDirection: 'row', gap: 20, paddingHorizontal: 12, paddingTop: 24 }, profileFrameMobile: { gap: 16, paddingHorizontal: 10, paddingTop: 12 },
   leftColumn: { width: '100%' }, leftColumnDesktop: { flexBasis: 330, flexGrow: 0, flexShrink: 0, width: 330 }, rightColumn: { flex: 1, minWidth: 0 },
-  heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhoto: { height: '100%', width: '100%' }, heroFallback: { alignItems: 'center', height: '100%', justifyContent: 'center', width: '100%' }, heroFallbackText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 70 }, heroFavorite: { bottom: 10, position: 'absolute', right: 10 },
+  heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhotoPressTarget: { height: '100%', width: '100%' }, heroPhoto: { height: '100%', width: '100%' }, heroFallback: { alignItems: 'center', height: '100%', justifyContent: 'center', width: '100%' }, heroFallbackText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 70 }, heroFavorite: { bottom: 10, position: 'absolute', right: 10 },
   privateRequestButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 8, minHeight: 44, paddingHorizontal: 12 }, privateRequestText: { color: luxyColors.text, fontSize: 12, fontWeight: '600' },
   factList: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, gap: 12, paddingHorizontal: 12, paddingVertical: 18 }, factText: { color: luxyColors.text, fontSize: 12, lineHeight: 18 }, memberSinceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', gap: 8, minHeight: 52, paddingHorizontal: 12 }, factIcon: { color: luxyColors.ink, fontSize: 11 }, factLabelStrong: { color: luxyColors.text, flex: 1, fontSize: 11, fontWeight: '700' }, memberSinceValue: { color: luxyColors.muted, fontSize: 11 },
   sideBadgeBlock: { gap: 8, paddingHorizontal: 12, paddingTop: 16 }, sideLabel: { color: luxyColors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }, notesButton: { alignItems: 'center', borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 18, minHeight: 44, opacity: 0.55 }, notesButtonText: { color: luxyColors.text, fontSize: 11 },

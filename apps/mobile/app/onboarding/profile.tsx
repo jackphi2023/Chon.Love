@@ -82,18 +82,18 @@ export default function ProfileSetupOnboarding() {
       <TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} />
 
       <Text style={styles.label}>Giới tính tự khai báo</Text>
-      <View style={styles.row}>{GENDERS.map((item) => <Pressable key={item.value} onPress={() => setGender(item.value)} style={[styles.chip, gender === item.value && styles.active]}><Text style={[styles.chipText, gender === item.value && styles.activeText]}>{item.label}</Text></Pressable>)}</View>
+      <View style={styles.row}>{GENDERS.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: gender === item.value }} key={item.value} onPress={() => setGender(item.value)} style={[styles.chip, gender === item.value && styles.active]}><Text style={[styles.chipText, gender === item.value && styles.activeText]}>{item.label}</Text></Pressable>)}</View>
       <Text style={styles.hint}>Luxy khóa dữ liệu giới tính tự khai báo trong lần xác minh; hệ thống không suy đoán giới tính từ khuôn mặt.</Text>
 
       <Text style={styles.label}>Tỉnh / thành phố</Text>
-      <ScrollView nestedScrollEnabled style={styles.provinces}><View style={styles.row}>{provinces.map((item) => <Pressable key={item.id} onPress={() => setProvinceId(item.id)} style={[styles.chip, provinceId === item.id && styles.active]}><Text style={[styles.chipText, provinceId === item.id && styles.activeText]}>{item.name}</Text></Pressable>)}</View></ScrollView>
+      <ScrollView nestedScrollEnabled style={styles.provinces}><View style={styles.row}>{provinces.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: provinceId === item.id }} key={item.id} onPress={() => setProvinceId(item.id)} style={[styles.chip, provinceId === item.id && styles.active]}><Text style={[styles.chipText, provinceId === item.id && styles.activeText]}>{item.name}</Text></Pressable>)}</View></ScrollView>
 
       <Text style={styles.label}>Ảnh hồ sơ</Text>
       {photo ? <Image source={{ uri: photo.previewUri }} style={styles.photo} /> : null}
       {hasPhoto && !photo ? <Text style={styles.success}>✓ Đã có ảnh hồ sơ để đối chiếu.</Text> : null}
-      <Pressable onPress={() => void choosePhoto()} style={styles.secondary}><Text style={styles.secondaryText}>{photo || hasPhoto ? 'Chọn ảnh khác' : 'Upload ảnh hồ sơ'}</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => void choosePhoto()} style={styles.secondary}><Text style={styles.secondaryText}>{photo || hasPhoto ? 'Chọn ảnh khác' : 'Upload ảnh hồ sơ'}</Text></Pressable>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-      <Pressable onPress={() => void continueToSelfie()} style={styles.primary}><Text style={styles.primaryText}>Tiếp tục chụp selfie</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => void continueToSelfie()} style={styles.primary}><Text style={styles.primaryText}>Tiếp tục chụp selfie</Text></Pressable>
     </Screen>
   );
 }
