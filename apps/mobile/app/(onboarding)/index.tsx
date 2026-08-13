@@ -57,7 +57,7 @@ export default function OnboardingHome() {
   }
 
   if (isChecking || auth.isRestoring) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Đang kiểm tra điều kiện 18+…</Text></View>;
+    return <View style={styles.loading}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Đang kiểm tra điều kiện tài khoản…</Text></View>;
   }
 
   if (accountStatus) {
@@ -71,11 +71,11 @@ export default function OnboardingHome() {
   }
 
   return (
-    <Screen title="Xác nhận bạn từ đủ 18 tuổi" description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai.">
+    <Screen title="Xác nhận thông tin cá nhân" description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai.">
       <Text style={styles.label}>Ngày sinh</Text>
       <DateOfBirthSelector onChange={setDateOfBirth} />
-      <Text style={styles.hint}>Chạm vào từng ô và cuộn để chọn Ngày – Tháng – Năm. Luxy.Love không cho phép người dưới 18 tuổi sử dụng ứng dụng.</Text>
-      <PolicyCheck checked={confirmedAdult} label="Tôi xác nhận mình từ đủ 18 tuổi và thông tin ngày sinh là chính xác." onPress={() => setConfirmedAdult((value) => !value)} />
+      <Text style={styles.hint}>Chạm vào từng ô và cuộn để chọn Ngày – Tháng – Năm. Thông tin này giúp Chon.Love xác nhận điều kiện sử dụng và luôn được giữ riêng tư.</Text>
+      <PolicyCheck checked={confirmedAdult} label="Tôi xác nhận thông tin ngày sinh là chính xác và tôi đủ điều kiện sử dụng Chon.Love." onPress={() => setConfirmedAdult((value) => !value)} />
       <PolicyCheck checked={acceptedTerms} label="Tôi đã đọc và chấp nhận Điều khoản sử dụng hiện hành." onPress={() => setAcceptedTerms((value) => !value)} />
       <Link href="/legal/terms" style={styles.link}>Xem Điều khoản sử dụng</Link>
       <PolicyCheck checked={acceptedCommunityStandards} label="Tôi đã đọc và chấp nhận Tiêu chuẩn cộng đồng hiện hành." onPress={() => setAcceptedCommunityStandards((value) => !value)} />
