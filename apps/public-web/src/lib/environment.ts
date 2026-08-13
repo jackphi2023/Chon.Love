@@ -33,7 +33,7 @@ export function getPublicSiteUrl(): string | null {
 }
 
 export function getPublicAppUrl(): string {
-  return normalizeWebUrl(process.env.NEXT_PUBLIC_APP_URL) ?? '/app';
+  return '/app';
 }
 
 export function getPublicWebEnvironmentStatus(): PublicWebEnvironmentStatus {
