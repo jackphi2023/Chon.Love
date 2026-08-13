@@ -22,7 +22,7 @@ export default function GiftSettingsPage() {
       title="Cài đặt quà tặng"
     >
       <SettingsNotice title="Nguyên tắc bắt buộc">
-        Quà tặng là một giao dịch độc lập. Tặng quà không mở ảnh bảo mật, không tự cấp quyền nhắn tin và không tạo cam kết gặp mặt.
+        Quà tặng là một giao dịch độc lập. Tặng quà không mở ảnh riêng tư, không tự cấp quyền nhắn tin và không tạo cam kết gặp mặt.
       </SettingsNotice>
 
       <SettingsSection title="Quản lý quà & số dư" testID="gift-links-section">
@@ -47,21 +47,21 @@ export default function GiftSettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        description="Các preference này cần persistence + policy ở LX-19; LX-08 chỉ khóa rõ contract UI, không giả lưu local."
+        description="Các preference này cần persistence + policy ở LX-19; release V1 vẫn giữ luồng quà tặng tắt cho người dùng thật."
         title="Tùy chọn nhận quà"
       >
         <View style={styles.pendingPreferences}>
           <PreferencePreview title="Cho phép nhận quà" description="Sẽ có toggle server-side, áp dụng trước khi tạo giao dịch mới." />
           <PreferencePreview title="Thông báo khi nhận quà" description="Sẽ đi cùng notification preference và push/email policy." />
-          <PreferencePreview title="Ẩn hoạt động quà khỏi profile" description="Nếu được triển khai, chỉ ảnh hưởng presentation; không sửa gift ledger bất biến." />
+          <PreferencePreview title="Ẩn lịch sử quà khỏi profile" description="Nếu được triển khai, chỉ ảnh hưởng presentation; không sửa gift ledger bất biến." />
         </View>
       </SettingsSection>
 
       <View style={styles.policyCard}>
         <Text style={styles.policyTitle}>Ranh giới profile</Text>
         <Text style={styles.policyText}>• Favorites/yêu thích không phải quà tặng.</Text>
-        <Text style={styles.policyText}>• Private-photo request là request/accept/decline riêng.</Text>
-        <Text style={styles.policyText}>• Gift ledger không được dùng để suy luận quyền truy cập profile.</Text>
+        <Text style={styles.policyText}>• Premium/Diamond tự động được xem ảnh riêng tư đủ điều kiện; legacy approval request không cấp quyền.</Text>
+        <Text style={styles.policyText}>• Gift, Fan và friendship không được dùng để suy luận quyền truy cập profile.</Text>
       </View>
 
       <View style={styles.backRow}>
