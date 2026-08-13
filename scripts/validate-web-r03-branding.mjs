@@ -70,4 +70,4 @@ if (failures.length) {
   console.error('WEB-R03 branding validation failed:\n' + failures.map((x) => `- ${x}`).join('\n'));
   process.exit(1);
 }
-console.log('WEB-R03 branding validation passed: reachable Web V1 surfaces use Luxy.Love copy, neutral recent-access wording, and no LX phase labels.');
+console.warn('WEB-R03 branding validation passed: reachable Web V1 surfaces use Luxy.Love copy, neutral recent-access wording, and no LX phase labels.');
