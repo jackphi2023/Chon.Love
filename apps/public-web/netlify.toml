@@ -1,5 +1,5 @@
 [build]
-  command = "corepack enable && NEXT_PUBLIC_SITE_URL=\"$URL\" pnpm --filter @myfan/public-web build"
+  command = "corepack enable && NEXT_PUBLIC_SITE_URL=\"$URL\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"$EXPO_PUBLIC_SUPABASE_ANON_KEY\" pnpm --filter @myfan/public-web build"
   publish = "apps/public-web/.next"
 
 [build.environment]
