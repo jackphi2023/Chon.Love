@@ -18,6 +18,7 @@
     "build": "pnpm build:web && pnpm build:mobile:web",
     "build:web": "pnpm --filter @myfan/admin build && pnpm --filter @myfan/public-web build",
     "build:mobile:web": "pnpm --filter @myfan/mobile build:web",
+    "build:netlify:chon": "node scripts/build-chon-netlify.mjs",
     "validate:workspace": "node scripts/validate-workspace.mjs",
     "validate:environments": "node scripts/validate-environments.mjs",
     "validate:security": "node scripts/validate-br01.mjs",
