@@ -116,7 +116,7 @@ export default function SettingsPage() {
       </SettingsSection>
 
       <Text style={styles.footnote}>
-        Activity chưa được mở trong Luxy V1 để giữ trải nghiệm bám sát Seeking. Quà tặng không phải điều kiện để mở ảnh riêng tư, nhắn tin hoặc gặp mặt.
+        Luxy Web V1 tập trung vào Tìm kiếm, Yêu thích, Tin nhắn, Hồ sơ, Premium/Diamond và Xác thực. Quà tặng không phải điều kiện để mở ảnh riêng tư, nhắn tin hoặc gặp mặt.
       </Text>
     </LuxySettingsPage>
   );
