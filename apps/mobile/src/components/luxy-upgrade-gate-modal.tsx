@@ -2,7 +2,8 @@ import { createLuxyUpgradeIntent, formatLuxyMembershipPrice } from '@myfan/supab
 import { luxyColors, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LuxyModalLayer } from '@/components/luxy-modal-layer';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 
 export type LuxyUpgradeGateReason = 'message' | 'favorite' | 'private_photo';
@@ -126,7 +127,7 @@ export function LuxyUpgradeGateModal({
   }
 
   return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
+    <LuxyModalLayer onRequestClose={onClose} visible={visible}>
       <View style={styles.backdrop} testID="luxy-message-upgrade-gate">
         <Pressable accessibilityLabel="Đóng yêu cầu nâng cấp" accessibilityRole="button" onPress={onClose} style={styles.backdropDismiss} />
         <View accessibilityViewIsModal style={styles.card} testID={`luxy-upgrade-gate-${reason}`}>
@@ -172,7 +173,7 @@ export function LuxyUpgradeGateModal({
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </LuxyModalLayer>
   );
 }
 

@@ -137,11 +137,12 @@ for (const viewport of viewports) {
         await page.getByTestId('luxy-search-mobile-filter-apply').click();
       }
 
-      await page.goto(`/profile/${creator.username}`);
-      await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
-      await expect(page.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
-      await expect(page.locator('button button'), 'Member Profile must not render nested interactive buttons').toHaveCount(0);
-      await capture(page, testInfo, viewport, 'member-profile');
+      await freePage.goto(`/profile/${creator.username}`);
+      await expect(freePage.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
+      await expect(freePage.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
+      await expect(freePage.locator('button button'), 'Member Profile must not render nested interactive buttons').toHaveCount(0);
+      await expect(freePage.getByTestId('luxy-private-photo-entitlement-button')).toContainText('Nâng cấp');
+      await capture(freePage, testInfo, viewport, 'member-profile');
 
       await page.goto('/favorites');
       await expect(page.getByTestId('luxy-interests-page')).toBeVisible();
@@ -165,6 +166,7 @@ for (const viewport of viewports) {
 
       await page.goto('/profile/edit');
       await expect(page.getByTestId('lx08-edit-profile-page')).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('lx08-profile-form')).toBeVisible({ timeout: 20_000 });
       await capture(page, testInfo, viewport, 'edit-profile');
 
       await page.goto('/settings');
@@ -188,7 +190,15 @@ for (const viewport of viewports) {
       await freePage.goto(`/profile/${creator.username}`);
       await expect(freePage.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
       await freePage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
-      await expect(freePage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
+      const upgradeGate = freePage.getByTestId('luxy-upgrade-gate-message');
+      await expect(upgradeGate).toBeVisible();
+      expect(await upgradeGate.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        return [0.25, 0.5, 0.75].every((ratio) => {
+          const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height * ratio);
+          return Boolean(top && node.contains(top));
+        });
+      }), 'Upgrade modal must be the top visual stacking layer').toBe(true);
       await capture(freePage, testInfo, viewport, 'upgrade-gate', false);
       await freePage.getByRole('button', { name: 'Để sau' }).click();
 
@@ -197,7 +207,13 @@ for (const viewport of viewports) {
       await expect(checkoutButton).toBeVisible({ timeout: 20_000 });
       await expect(checkoutButton).toBeEnabled({ timeout: 20_000 });
       await checkoutButton.click();
-      await expect(freePage.getByLabel('Mã VietQR thanh toán gói thành viên')).toBeVisible({ timeout: 20_000 });
+      const qrImage = freePage.getByLabel('Mã VietQR thanh toán gói thành viên');
+      await expect(qrImage).toBeVisible({ timeout: 20_000 });
+      expect(await qrImage.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + Math.min(rect.height / 2, 80));
+        return top === node || Boolean(top && node.contains(top));
+      }), 'VietQR modal must stay above Membership page').toBe(true);
       await capture(freePage, testInfo, viewport, 'vietqr-checkout', false);
       const cancelButton = freePage.getByRole('button', { name: 'Hủy yêu cầu' });
       if (await cancelButton.isVisible()) await cancelButton.click();

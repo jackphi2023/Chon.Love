@@ -23,7 +23,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -34,6 +33,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LuxyModalLayer } from '@/components/luxy-modal-layer';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -324,7 +324,7 @@ function CheckoutModal({ checkout, loading, error, busy, notice, copied, onCopy,
 }) {
   const visible = loading || Boolean(checkout) || Boolean(error);
   if (!visible) return null;
-  return <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}><View style={styles.backdrop}><View style={styles.modalCard}><Pressable accessibilityLabel="Đóng" onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>{loading ? <View style={styles.loading}><ActivityIndicator color={luxyColors.ink} /><Text style={styles.muted}>Đang tạo thông tin thanh toán…</Text></View> : null}{error ? <Text style={styles.error}>{error}</Text> : null}{checkout ? <ScrollView contentContainerStyle={styles.checkoutContent}>
+  return <LuxyModalLayer visible={visible} onRequestClose={onClose}><View style={styles.backdrop}><View style={styles.modalCard}><Pressable accessibilityLabel="Đóng" onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>{loading ? <View style={styles.loading}><ActivityIndicator color={luxyColors.ink} /><Text style={styles.muted}>Đang tạo thông tin thanh toán…</Text></View> : null}{error ? <Text style={styles.error}>{error}</Text> : null}{checkout ? <ScrollView contentContainerStyle={styles.checkoutContent}>
     <Text style={[styles.eyebrow, { textAlign: 'center' }]}>{checkout.order_code}</Text><Text style={styles.checkoutTitle}>Thanh toán {PLAN_COPY[checkout.tier].title}</Text><Text style={styles.checkoutStatus}>{getLuxyMembershipOrderStatusLabel(checkout.status)}</Text>
     {checkout.status === 'awaiting_payment' ? <Image accessibilityLabel="Mã VietQR thanh toán gói thành viên" resizeMode="contain" source={{ uri: checkout.qr_image_url }} style={styles.qrImage} /> : null}
     <View style={styles.checkoutSummary}><CheckoutRow label="Gói" value={`${PLAN_COPY[checkout.tier].title} · ${checkout.period_count} kỳ`} /><CheckoutRow label="Ngân hàng" value={`${checkout.bank_name} (${checkout.bank_code})`} /><CheckoutRow label="Số tài khoản" value={checkout.account_no} copied={copied === 'account'} onCopy={() => onCopy('account', checkout.account_no)} /><CheckoutRow label="Chủ tài khoản" value={checkout.account_name} /><CheckoutRow label="Số tiền" value={formatLuxyMembershipAmount(checkout.amount_due_vnd)} copied={copied === 'amount'} onCopy={() => onCopy('amount', String(checkout.amount_due_vnd))} /><CheckoutRow label="Nội dung" value={checkout.transfer_content} copied={copied === 'content'} onCopy={() => onCopy('content', checkout.transfer_content)} />{checkout.tier === 'diamond' ? <CheckoutRow label="❤️ sau khi duyệt" value={`${checkout.heart_credit_display} ❤️`} /> : null}</View>
@@ -334,7 +334,7 @@ function CheckoutModal({ checkout, loading, error, busy, notice, copied, onCopy,
     {checkout.status === 'rejected' ? <StateBox title="Giao dịch chưa được xác nhận" text="Vui lòng liên hệ hỗ trợ nếu bạn đã chuyển khoản." /> : null}
     {checkout.status === 'cancelled' ? <StateBox title="Yêu cầu đã hủy" text="Bạn có thể tạo một yêu cầu mới." /> : null}
     {notice ? <Text style={styles.notice}>{notice}</Text> : null}<Text style={styles.footnote}>Admin là đường duy nhất kích hoạt Premium/Diamond. Nút xác nhận của thành viên không tự cấp quyền và không tự cộng ❤️.</Text>
-  </ScrollView> : null}</View></View></Modal>;
+  </ScrollView> : null}</View></View></LuxyModalLayer>;
 }
 
 function CheckoutRow({ label, value, onCopy, copied }: { label: string; value: string; onCopy?: () => void; copied?: boolean }) {
