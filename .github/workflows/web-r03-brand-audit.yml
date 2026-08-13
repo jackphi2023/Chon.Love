@@ -19,18 +19,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          command -v grep >/dev/null
           echo '=== USER-FACING / LEGACY BRAND TERMS ==='
-          rg -n -S \
-            -g '!**/*.test.*' \
-            -g '!**/*.spec.*' \
-            -g '!**/database.types.ts' \
+          grep -RInE \
+            --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --include='*.json' \
             '(MyFan|Creator|Fan|Activity|Hoạt động|LX-[0-9]{2})' \
-            apps/mobile apps/public-web apps/admin packages || true
+            apps/mobile apps/public-web apps/admin packages \
+            | grep -Ev '(\.test\.|\.spec\.|database\.types\.ts)' || true
           echo
           echo '=== INTERNAL MYFAN IDENTIFIERS / COPY ==='
-          rg -n -i \
-            -g '!**/*.test.*' \
-            -g '!**/*.spec.*' \
-            -g '!**/database.types.ts' \
+          grep -RIniE \
+            --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --include='*.json' \
             'myfan' \
-            apps/mobile apps/public-web apps/admin packages || true
+            apps/mobile apps/public-web apps/admin packages \
+            | grep -Ev '(\.test\.|\.spec\.|database\.types\.ts)' || true
