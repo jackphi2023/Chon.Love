@@ -88,7 +88,7 @@ begin
       community_rules_version = v_community_rules_version,
       community_rules_accepted_at = v_now,
       updated_at = v_now
-    where user_id = v_user_id;
+    where private.user_identity.user_id = v_user_id;
   else
     update private.user_identity
     set
@@ -100,7 +100,7 @@ begin
       community_rules_version = v_community_rules_version,
       community_rules_accepted_at = v_now,
       updated_at = v_now
-    where user_id = v_user_id;
+    where private.user_identity.user_id = v_user_id;
   end if;
 
   if not found then
