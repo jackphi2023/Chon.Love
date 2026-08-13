@@ -27,6 +27,20 @@
   NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [[redirects]]
+  from = "/"
+  to = "/app/auth?mode=login"
+  status = 302
+  force = true
+  query = {intent = "login"}
+
+[[redirects]]
+  from = "/"
+  to = "/app/auth"
+  status = 302
+  force = true
+  query = {intent = "signup"}
+
+[[redirects]]
   from = "/app/*"
   to = "/app/index.html"
   status = 200
