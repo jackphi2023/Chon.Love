@@ -2,7 +2,7 @@ name: LX-17 Contract
 
 on:
   push:
-    branches: ['agent/lx-17-premium-diamond-engine']
+    branches: ['agent/lx-17-premium-diamond-engine', 'release/**']
     paths:
       - 'supabase/migrations/20260812183000_lx_17_premium_diamond_engine.sql'
       - 'supabase/tests/lx_17_premium_diamond_engine.sql'
