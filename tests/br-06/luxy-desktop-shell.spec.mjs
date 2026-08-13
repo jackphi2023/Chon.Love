@@ -61,7 +61,7 @@ test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px bre
     await accountButton.click();
     await expect(page.getByRole('menu')).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Hồ sơ' })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Hoạt động' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Hoạt động' })).toHaveCount(0);
     await expect(page.getByRole('menuitem', { name: 'Quà' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Số dư' })).toBeVisible();
 
