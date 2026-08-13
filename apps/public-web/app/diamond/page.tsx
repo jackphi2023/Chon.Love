@@ -1,0 +1,16 @@
+import type { Metadata } from 'next';
+import { MarketingPage } from '../marketing-page';
+
+export const metadata: Metadata = {
+  title: 'Diamond',
+  description: 'Tìm hiểu gói Diamond của Luxy.Love với quyền lợi ưu tiên và tín hiệu thành viên cao cấp.',
+  alternates: { canonical: '/diamond' },
+};
+
+export default function DiamondPage() {
+  return <MarketingPage eyebrow="DIAMOND" title="Quyền lợi ưu tiên cho thành viên cao cấp" lead="Diamond mở các quyền Premium cùng lớp hiển thị ưu tiên và quyền lợi bổ sung được hệ thống công bố theo từng thời điểm." sections={[
+    { title: 'Tín hiệu thành viên Diamond', body: 'Trạng thái Diamond được lấy từ entitlement phía server và chỉ hiển thị khi gói còn hiệu lực.' },
+    { title: 'Ưu tiên khám phá', body: 'Các quyền ưu tiên hiển thị hoặc khám phá, khi được bật, phải tuân theo giới hạn an toàn và không làm lộ dữ liệu riêng tư.' },
+    { title: 'Minh bạch trước thanh toán', body: 'Giá, thời hạn và quyền lợi áp dụng được hiển thị trước khi người dùng xác nhận tạo đơn nâng cấp.' },
+  ]} cta={{ title: 'Khám phá Diamond', body: 'Đăng nhập để xem quyền lợi và mức giá đang áp dụng cho tài khoản của bạn.', label: 'Đăng nhập', href: '/?intent=login' }} />;
+}
