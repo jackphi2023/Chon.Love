@@ -62,7 +62,7 @@ export function getReadableOnboardingError(error: unknown): string {
     if (firstMessage) return firstMessage;
   }
   const message = error instanceof Error ? error.message : String(error);
-  if (/at least 18|đủ 18/iu.test(message)) return 'Bạn phải đủ 18 tuổi để sử dụng Luxy.Love.';
+  if (/at least 18|đủ 18/iu.test(message)) return 'Chon.Love chỉ dành cho người trưởng thành. Tài khoản của bạn chưa đáp ứng điều kiện sử dụng.';
   if (/date_of_birth|date of birth|invalid date/iu.test(message)) {
     return 'Ngày sinh không hợp lệ. Vui lòng chọn đầy đủ Ngày – Tháng – Năm.';
   }
