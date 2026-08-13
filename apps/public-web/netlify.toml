@@ -9,7 +9,10 @@
 [context.production.environment]
   NEXT_PUBLIC_MYFAN_ENV = "production"
   NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-  EXPO_PUBLIC_FEATURE_GOOGLE_AUTH = "true"
+  # Fail closed until Supabase Authentication > Providers > Google is enabled
+  # with a valid Google OAuth Web Client ID + Client Secret. Enabling the UI
+  # before the hosted provider is configured causes /auth/v1/authorize to 400.
+  EXPO_PUBLIC_FEATURE_GOOGLE_AUTH = "false"
 
 [context.develop.environment]
   NEXT_PUBLIC_MYFAN_ENV = "development"
