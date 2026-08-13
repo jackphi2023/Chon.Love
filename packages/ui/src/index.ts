@@ -60,7 +60,7 @@ export const luxyShadows = {
   card: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
 } as const;
 export const luxyBrand = {
-  productName: 'Chon.Love',
+  productName:'Chon.Love',
   shortName: 'Chon',
   primaryNavigation: ['Tìm kiếm', 'Yêu thích', 'Tin nhắn', 'Nâng cấp'] as const,
 } as const;

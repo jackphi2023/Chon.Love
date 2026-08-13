@@ -1,16 +1,4 @@
 import type { Metadata } from 'next';
 import { MarketingPage } from '../marketing-page';
-
-export const metadata: Metadata = {
-  title: 'Premium',
-  description: 'Khám phá quyền lợi Premium của Luxy.Love: nhắn tin trực tiếp, quyền riêng tư và trải nghiệm kết nối nâng cao.',
-  alternates: { canonical: '/premium' },
-};
-
-export default function PremiumPage() {
-  return <MarketingPage eyebrow="PREMIUM" title="Mở rộng khả năng kết nối" lead="Premium dành cho thành viên muốn chủ động hơn trong việc bắt đầu hội thoại và sử dụng các quyền sản phẩm nâng cao." sections={[
-    { title: 'Nhắn tin trực tiếp', body: 'Bắt đầu hội thoại với thành viên phù hợp khi các kiểm tra an toàn và block state cho phép.' },
-    { title: 'Quyền riêng tư nâng cao', body: 'Sử dụng các quyền Premium được công bố trong ứng dụng, bao gồm các entitlement liên quan ảnh riêng tư theo chính sách hiện hành.' },
-    { title: 'Không mua quyền đối với người khác', body: 'Premium là quyền sử dụng phần mềm. Gói không tạo nghĩa vụ phản hồi, gặp mặt, cung cấp thông tin liên hệ hay hình thành mối quan hệ.' },
-  ]} cta={{ title: 'Xem gói trong ứng dụng', body: 'Giá và thời hạn hiệu lực được hiển thị tại bước nâng cấp trước khi tạo đơn.', label: 'Đăng nhập để nâng cấp', href: '/?intent=login' }} />;
-}
+export const metadata: Metadata = { title: 'Premium', description: 'Khám phá quyền lợi Premium của Chon.Love: nhắn tin trực tiếp, quyền riêng tư và trải nghiệm kết nối nâng cao.', alternates: { canonical: '/premium' } };
+export default function PremiumPage() { return <MarketingPage eyebrow="PREMIUM" title="Mở rộng khả năng kết nối" lead="Premium dành cho thành viên muốn chủ động hơn trong việc bắt đầu hội thoại và sử dụng các quyền sản phẩm nâng cao." sections={[{ title: 'Nhắn tin trực tiếp', body: 'Bắt đầu hội thoại với thành viên phù hợp khi các kiểm tra an toàn và block state cho phép.' },{ title: 'Quyền riêng tư nâng cao', body: 'Sử dụng các quyền Premium được công bố trong ứng dụng, bao gồm các entitlement liên quan ảnh riêng tư theo chính sách hiện hành.' },{ title: 'Không mua quyền đối với người khác', body: 'Premium là quyền sử dụng phần mềm. Gói không tạo nghĩa vụ phản hồi, gặp mặt, cung cấp thông tin liên hệ hay hình thành mối quan hệ.' }]} cta={{ title: 'Xem gói trong ứng dụng', body: 'Giá và thời hạn hiệu lực được hiển thị tại bước nâng cấp trước khi tạo đơn.', label: 'Đăng nhập để nâng cấp', href: '/?intent=login' }} />; }
