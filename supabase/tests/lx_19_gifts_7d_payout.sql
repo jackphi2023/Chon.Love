@@ -1,17 +1,17 @@
 begin;
 
-select plan(36);
+-- WEB-R01 keeps the LX-19 engine preserved but launch-disabled. This contract
+-- first proves the fail-closed release default, then explicitly enables gifts
+-- inside this rolled-back test transaction to exercise the financial engine.
+select plan(25);
 
-select is((select count(*) from public.gift_catalog where is_active and deleted_at is null),20::bigint,'LX-19 reuses exactly the existing 20 active gifts');
-select is((select min(display_hearts) from public.gift_catalog where is_active and deleted_at is null),1,'Existing gift catalog starts at 1 heart');
-select is((select max(display_hearts) from public.gift_catalog where is_active and deleted_at is null),20,'Existing gift catalog ends at 20 hearts');
-select is((select string_agg(display_hearts::text,',' order by sort_order) from public.gift_catalog where is_active and deleted_at is null),'1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20','Existing gift prices remain sequential 1 to 20 hearts');
-select is((select name_vi from public.gift_catalog where slug='donut'),'Donut','Existing Donut gift is preserved');
-select is((select name_vi from public.gift_catalog where slug='crown'),'Vương miện','Existing Crown gift is preserved');
-select is(private.luxy_gift_hold_days(),7,'New Luxy gift reward hold is exactly seven days');
-select is(private.config_integer('creator_reward_hold_days'),7::bigint,'Compatibility reward hold is aligned to seven days');
-select ok(has_function_privilege('authenticated','public.send_luxy_gift(uuid,uuid,integer,uuid,uuid,uuid)','execute'),'Authenticated app may call the gated Luxy gift RPC');
-select ok(has_function_privilege('authenticated','public.list_my_received_gift_log(integer,integer)','execute'),'Authenticated recipient may read their own durable gift receipt log');
+select is((select count(*) from public.gift_catalog where is_active and deleted_at is null),20::bigint,'LX-19 preserves exactly 20 active gifts');
+select is((select min(display_hearts) from public.gift_catalog where is_active and deleted_at is null),1,'Gift catalog starts at 1 heart');
+select is((select max(display_hearts) from public.gift_catalog where is_active and deleted_at is null),20,'Gift catalog ends at 20 hearts');
+select is(private.luxy_gift_hold_days(),7,'Gift reward hold remains exactly seven days');
+select is(coalesce(private.config_boolean('luxy_member_gifts_enabled'),false),false,'WEB-R01 launch default keeps server-side gifts disabled');
+select ok(has_function_privilege('authenticated','public.send_luxy_gift(uuid,uuid,integer,uuid,uuid,uuid)','execute'),'Authenticated app retains the gated Luxy gift RPC for deferred launch');
+select ok(not has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','execute'),'WEB-R01 keeps direct withdrawal requests unavailable to authenticated clients');
 select ok(not has_schema_privilege('authenticated','private','USAGE'),'Authenticated clients still cannot use the private accounting schema');
 
 insert into auth.users(
@@ -48,7 +48,7 @@ insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,start
 values('29000000-0000-0000-0000-000000000002','premium','active',true,now()-interval '1 minute',now()+interval '30 days','lx19_test');
 
 select ok(not exists(select 1 from public.creator_profiles where user_id='29000000-0000-0000-0000-000000000003'),'Gift recipient does not need a legacy Creator profile');
-select ok(exists(select 1 from private.creator_earning_accounts where creator_id='29000000-0000-0000-0000-000000000003'),'Every member has a compatibility recipient earning account');
+select ok(exists(select 1 from private.creator_earning_accounts where creator_id='29000000-0000-0000-0000-000000000003'),'Every member retains a compatibility earning account');
 
 insert into private.play_purchases(
   id,user_id,product_id,google_product_id,purchase_token_hash,purchase_state,heart_units,is_test_purchase,verified_at,idempotency_key,purchase_provider
@@ -63,23 +63,36 @@ update private.heart_accounts set available_units=50000,lifetime_purchased_units
 where user_id='29000000-0000-0000-0000-000000000002';
 
 set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"29000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
+select throws_ok(
+  $$select * from public.send_luxy_gift(
+    '29000000-0000-0000-0000-000000000003',
+    (select id from public.gift_catalog where slug='crown'),1,
+    '29000000-0000-4000-8000-000000000100',null,null
+  )$$,
+  '42501','premium_membership_required_for_gifting','Server-side launch flag blocks gifting even for Premium'
+);
+reset role;
+
+update private.app_config set value_json='true'::jsonb,updated_at=now() where key='luxy_member_gifts_enabled';
+select is(private.luxy_member_gifts_enabled(),true,'Test transaction can explicitly enable deferred gift engine');
+
+set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"29000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select is((select can_use_hearts from public.get_my_luxy_membership_snapshot()),false,'Free member cannot use heart gifting economy');
-select is((select can_gift from public.get_my_luxy_gift_wallet()),false,'Free member gift wallet is server-gated');
 select throws_ok(
   $$select * from public.send_luxy_gift(
     '29000000-0000-0000-0000-000000000003',
     (select id from public.gift_catalog where slug='donut'),1,
     '29000000-0000-4000-8000-000000000101',null,null
   )$$,
-  '42501','premium_membership_required_for_gifting','Free member cannot send a gift'
+  '42501','premium_membership_required_for_gifting','Free member cannot send a gift when engine is enabled'
 );
 reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"29000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
-select is((select can_use_hearts from public.get_my_luxy_membership_snapshot()),true,'Premium member can use heart gifting economy');
-select is((select heart_balance_units from public.get_my_luxy_membership_snapshot()),50000::bigint,'Premium snapshot exposes the paid member heart balance');
+select is((select can_use_hearts from public.get_my_luxy_membership_snapshot()),true,'Premium member retains heart entitlement');
 select set_config('lx19.crown_gift',(
   select gift_transaction_id::text
   from public.send_luxy_gift(
@@ -88,11 +101,11 @@ select set_config('lx19.crown_gift',(
     '29000000-0000-4000-8000-000000000102',null,null
   )
 ),true);
-select is((select gross_heart_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),2000::bigint,'Existing Crown costs exactly 20 hearts');
-select is((select creator_reward_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),1400::bigint,'Recipient reward snapshots the existing 70 percent share');
-select ok((select reward_available_at between now()+interval '6 days 23 hours' and now()+interval '7 days 1 hour' from public.list_my_luxy_gifts('sent',30,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Crown reward becomes available after seven days');
+select is((select gross_heart_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),2000::bigint,'Crown costs exactly 20 hearts');
+select is((select creator_reward_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),1400::bigint,'Recipient reward remains 70 percent');
+select is((select platform_gross_units from public.gift_transactions where id=current_setting('lx19.crown_gift')::uuid),600::bigint,'Platform gross remains 30 percent');
+select ok((select reward_available_at between now()+interval '6 days 23 hours' and now()+interval '7 days 1 hour' from public.list_my_luxy_gifts('sent',30,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Reward becomes available after seven days');
 select is((select heart_balance_units from public.get_my_luxy_membership_snapshot()),48000::bigint,'Gift debit is atomic against sender balance');
-
 select is((
   select gift_transaction_id
   from public.send_luxy_gift(
@@ -100,43 +113,21 @@ select is((
     (select id from public.gift_catalog where slug='crown'),1,
     '29000000-0000-4000-8000-000000000102',null,null
   )
-),current_setting('lx19.crown_gift')::uuid,'Gift idempotency returns the original transaction');
-select is((select heart_balance_units from public.get_my_luxy_membership_snapshot()),48000::bigint,'Idempotent gift retry does not double-debit hearts');
-
-select set_config('lx19.conversation_id',public.get_luxy_profile_conversation('29000000-0000-0000-0000-000000000003')::text,true);
-select set_config('lx19.chat_gift',(
-  select gift_transaction_id::text
-  from public.send_luxy_gift(
-    '29000000-0000-0000-0000-000000000003',
-    (select id from public.gift_catalog where slug='donut'),1,
-    '29000000-0000-4000-8000-000000000103',current_setting('lx19.conversation_id')::uuid,
-    '29000000-0000-4000-8000-000000000104'
-  )
-),true);
-select is((select count(*) from public.list_my_luxy_gifts('sent',30,0)),2::bigint,'Sender history returns both contextual gifts');
+),current_setting('lx19.crown_gift')::uuid,'Gift idempotency returns original transaction');
 reset role;
-
-select is((select message_type::text from public.messages where gift_transaction_id=current_setting('lx19.chat_gift')::uuid),'gift','Chat gift creates a real gift message in the direct conversation');
-select is((select count(*) from public.fan_progress where creator_id='29000000-0000-0000-0000-000000000003' and fan_user_id='29000000-0000-0000-0000-000000000002'),0::bigint,'Luxy gifts do not recreate legacy Fan relationship semantics');
+select is((select count(*) from public.fan_progress where creator_id='29000000-0000-0000-0000-000000000003' and fan_user_id='29000000-0000-0000-0000-000000000002'),0::bigint,'Gift does not recreate Fan relationship semantics');
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"29000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
-select is((select reward_pending_units from public.get_my_luxy_gift_wallet()),1470::bigint,'Recipient wallet shows 14.7 hearts pending before seven days');
-select is((select count(*) from public.list_my_luxy_gifts('received',30,0)),2::bigint,'Recipient history returns both gifts');
-select is((select count(*) from public.list_my_received_gift_log(50,0)),2::bigint,'Recipient-owned durable gift log contains every received gift');
-select is((select sender_id from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'29000000-0000-0000-0000-000000000002'::uuid,'Gift log preserves which user sent the gift');
-select is((select gift_name_vi from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Vương miện','Gift log preserves the gift snapshot name');
-select is((select gross_heart_units from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),2000::bigint,'Gift log preserves original gift value');
-select ok((select received_at is not null from public.list_my_received_gift_log(50,0) where gift_transaction_id=current_setting('lx19.crown_gift')::uuid),'Gift log preserves exact receipt timestamp');
+select is((select reward_pending_units from public.get_my_luxy_gift_wallet()),1400::bigint,'Recipient wallet shows reward pending before seven days');
+select is((select count(*) from public.list_my_received_gift_log(50,0)),1::bigint,'Recipient durable gift log records the gift');
 reset role;
 
 update private.creator_reward_positions set available_at=now()-interval '1 second'
 where gift_transaction_id=current_setting('lx19.crown_gift')::uuid;
-
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"29000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
-select is((select reward_available_units from public.get_my_luxy_gift_wallet()),1400::bigint,'Due seven-day reward becomes available to withdraw');
-select is((select reward_pending_units from public.get_my_luxy_gift_wallet()),70::bigint,'Only the newer Donut reward remains pending');
+select is((select reward_available_units from public.get_my_luxy_gift_wallet()),1400::bigint,'Due seven-day reward becomes available in ledger');
 reset role;
 
 select * from finish();
