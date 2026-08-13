@@ -1,152 +1,224 @@
-# MyFan
+# Chon.Love — Web V1
 
-MyFan is an **18+ Social Creator network** where adults connect with communities, follow Creators and support Creators through digital gifts. It is not a compensated-dating, escort, adult-content or peer-to-peer money-transfer application.
+**Chon.Love** là nền tảng hẹn hò web-first dành cho người dùng trưởng thành tại Việt Nam, phát triển theo hướng **người thật, văn minh, an toàn và có tiêu chuẩn**, tham chiếu mô hình Search/Interests/Messages/Premium của Seeking.com nhưng được điều chỉnh cho hành vi, thanh toán, xác thực và yêu cầu riêng tư tại Việt Nam.
 
-## Phase A status
+> **Chọn Đúng Người, Yêu Đúng Gu**
 
-This branch contains the Phase A product foundation and the Session 4–5 repository/environment foundation. It intentionally does **not** include production business schema, Play Billing verification, KYC integration or payout automation.
+SEO title chuẩn:
 
-## Technology choices
+`Chon.Love | Chọn đúng người, Yêu đúng Gu`
 
-- **Mobile:** Expo SDK 57, React Native 0.86, TypeScript strict, Expo Router, TanStack Query, Zustand, React Hook Form and Zod.
-- **Admin/Public web:** Next.js 16.2 Active LTS with App Router and static export foundation.
-- **Backend foundation:** three isolated Supabase projects, with PostgreSQL migrations, Edge Functions and tests reserved under `supabase/`.
-- **Workspace:** pnpm 10 workspaces; Node.js 22.13 or newer within Node 22.
+SEO description chuẩn:
 
-## Repository structure
+`Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm.`
+
+## Source of truth
+
+- Repository: `jackphi2023/Luxy.Love`
+- Production branch: `main`
+- Supabase project: `asnydvqsduonyidjyyzq`
+- Luôn fetch lại `main` và ghi nhận exact HEAD SHA trước khi sửa code, test hoặc deploy.
+- Không bắt đầu một implementation song song khi chức năng đã tồn tại trong codebase hiện tại.
+
+Dự án kế thừa lịch sử kỹ thuật từ MyFan → Luxy.Love → Chon.Love. Các identifier nội bộ như `@myfan/*`, `myfan-*`, một số `luxy*`, schema, migration hoặc bảng legacy **có thể được giữ lại** khi đổi tên có nguy cơ gây regression. Product-facing, metadata và UI dành cho người dùng phải thống nhất là **Chon.Love**.
+
+## Product scope — Web V1
+
+Web V1 ưu tiên một sản phẩm responsive duy nhất cho:
+
+- Desktop browser.
+- Mobile Safari trên iOS.
+- Mobile Chrome trên Android.
+
+Native iOS/Android, EAS và PWA nâng cao là roadmap sau khi Web V1 ổn định.
+
+Core product:
+
+- Search/Browse members.
+- Advanced filters và location/distance.
+- Interests/Favorites.
+- Messages.
+- Member Profile và Edit Profile.
+- Premium / Diamond.
+- Verification.
+- Private photos.
+- Safety / Block / Report / Moderation.
+
+**Activity/Creator feed không thuộc Chon.Love Web V1.** Không đưa lại friend/follow/creator economy của MyFan vào navigation hoặc dating flow chỉ để tận dụng code legacy.
+
+## Product rules quan trọng
+
+### Access và onboarding
+
+- Guest không được browse danh sách thành viên.
+- Người dùng phải đủ 18 tuổi, chấp nhận Terms và Community Standards, hoàn thiện profile/media và verification theo flow hiện hành trước khi vào member experience.
+- Existing account phải tiếp tục đăng nhập được bằng email/password.
+- Không tự cập nhật hoặc giả mạo consent/policy acceptance của người dùng cũ.
+
+### Search và profile
+
+- Search ưu tiên database/search-first thay vì swipe-first.
+- Hồ sơ công khai chỉ chứa safe projection; không expose Auth UUID, DOB, email, phone, KYC, storage path, tọa độ chính xác hoặc ảnh riêng tư.
+- Public SEO profile dùng mã public riêng, không dùng UUID làm URL công khai.
+
+### Favorites, messaging và membership
+
+- Free member có thể browse/search cơ bản và Favorite theo entitlement hiện hành.
+- Messaging, advanced functionality và private-photo request/view tuân theo entitlement Free / Premium / Diamond.
+- Messaging theo dating model, không khôi phục friendship làm prerequisite nếu contract hiện tại đã bỏ dependency này.
+
+### Private photos
+
+Private photo không được unlock bằng gift/payment.
+
+Flow chuẩn:
+
+`request access → owner approve / decline → viewer được xem theo quyền backend`
+
+Owner approval và RLS/backend authorization là bắt buộc; không chỉ khóa ở UI.
+
+### Verification và safety
+
+- Selfie live camera hỗ trợ desktop/mobile browser.
+- Automatic verification failure chuyển sang review phù hợp; không tự khóa vĩnh viễn chỉ vì face match fail.
+- Block/report/moderation/account status/discovery visibility phải được enforce backend.
+- Không nới RLS, ACL hoặc SECURITY DEFINER contract để làm UI test pass.
+
+## Monorepo architecture
 
 ```text
 apps/
-  mobile/       Expo React Native app, Expo Web and Netlify config
-  admin/        Protected Admin web foundation and Netlify config
-  public-web/   Public profile/legal/deletion foundation and Netlify config
+├── public-web/   # Next.js: marketing, SEO, legal, public member profile
+├── mobile/       # Expo Router: authenticated Chon.Love product, Web V1 dưới /app
+└── admin/        # Next.js: moderation, verification, membership/payment, operations
+
 packages/
-  config/       Product defaults, environment names and feature flags
-  domain/       Integer ❤️ domain defaults and pure logic
-  validation/   Shared Zod schemas, including 18+ validation
-  supabase/     Public client factory, env validation and generated-type placeholder
-  ui/           Cross-platform design tokens
-config/environments/  Canonical dev/staging/production mapping
+├── config/
+├── domain/
+├── supabase/
+├── ui/
+└── validation/
+
 supabase/
-  migrations/
-  functions/
-  tests/
-  seed.sql
-docs/phase-a/   Product, business, screen and environment foundations
+├── migrations/
+├── functions/
+└── tests/
 ```
 
-## Prerequisites
+### Runtime routing
 
-- Node.js `>=22.13.0`.
-- Corepack enabled.
-- pnpm `10.15.x`.
-- Android Studio for local Android emulator builds.
-- macOS/Xcode for local iOS builds.
+Production Web V1 dùng cùng origin:
+
+```text
+/                 → Next.js public/SEO site
+/app/auth         → signup
+/app/auth?mode=login → login
+/app/...           → authenticated Expo Web app
+/admin/login       → Admin login khi admin được host trong cùng deployment/context phù hợp
+```
+
+Authenticated Expo Web được build dưới base path `/app` và nhúng vào combined Netlify release.
+
+## Development principles
+
+1. **Patch nhỏ, test được, backward compatible.** Không rewrite toàn bộ chỉ để đổi brand hoặc style.
+2. **Seeking.com là product/UX reference, không phải lý do để copy nội dung/branding.** Giữ information architecture và conversion logic phù hợp, Việt hóa ngôn ngữ, safety, payment và verification.
+3. **Tách presentation khỏi domain/data layer.** Business rules, entitlement, Supabase access và validation phải reusable cho native sau này.
+4. **Không hard-code secrets.** `service_role`, OAuth client secret, encryption key và credential server-side không được vào frontend hoặc Git.
+5. **Privacy by design.** Private photos/KYC/private identity/private location không được biến thành public URL vì tiện test.
+6. **Không broad rename technical legacy.** Chỉ đổi identifier khi có migration plan và test chứng minh an toàn.
+7. **UI mới phải responsive ngay từ đầu** cho desktop và mobile browser.
+
+## Local development
+
+Yêu cầu:
+
+- Node `>=20 <21`
+- pnpm `9.15.4`
+- Corepack
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.15.1 --activate
-pnpm install --frozen-lockfile
-```
-
-## Environments
-
-| Environment | Branch | Supabase ref | Cloud status |
-|---|---|---|---|
-| Development | `develop` | `qxsqrtnelbqquqgbamjo` | Paused on Free plan |
-| Staging | `release/staging` | `fciyrjtqnifapafqythy` | Paused on Free plan |
-| Production | `main` | `asnydvqsduonyidjyyzq` | Active |
-
-Use one matching template:
-
-```bash
-cp .env.development.example .env.local
-# or .env.staging.example / .env.production.example
-```
-
-Only public Supabase URL and publishable/anon key may be present in client environments. `SUPABASE_SERVICE_ROLE_KEY` is server-side only and must never be used by Expo, browser code or Netlify frontend sites.
-
-See `docs/phase-a/session-5-environments.md` for provisioning, Free-plan lifecycle and Netlify setup details.
-
-## Development
-
-```bash
-pnpm dev:mobile
-pnpm dev:admin
-pnpm dev:public
-```
-
-Run all three development processes:
-
-```bash
-pnpm dev
-```
-
-## Quality checks
-
-```bash
-pnpm validate
+pnpm install
+pnpm validate:workspace
+pnpm validate:env
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-`pnpm validate:environments` prevents shared Supabase project refs, wrong branch mappings, mixed environment templates and committed key values.
+Các validator release quan trọng hiện có:
 
-`pnpm build` creates static web builds for Admin, Public Web and Expo Web. Native Android `.aab` generation is performed later through EAS Build.
-
-## Netlify
-
-Each app contains its own `netlify.toml`. Link three Netlify projects to this monorepo and set the corresponding Package directory:
-
-```text
-apps/mobile
-apps/admin
-apps/public-web
+```bash
+pnpm validate:migration-lineage
+pnpm validate:database
+pnpm validate:lx15-regression
+pnpm validate:browser-e2e
+pnpm validate:br09
+pnpm validate:br10
+pnpm validate:web-r03-branding
 ```
 
-Use `main` for production, `release/staging` for staging and `develop` for development. Store publishable keys as contextual Netlify environment variables rather than committing them.
+Một số validator có tên lịch sử (`creator`, `luxy`, `myfan`, `LX-*`) vì chúng khóa regression kỹ thuật cũ. Không đổi tên/xóa chúng chỉ vì branding nếu chưa kiểm tra dependency CI.
 
-## Mobile route groups
+## Netlify — Chon.Love combined build
 
-```text
-(auth)        Authentication placeholders
-(onboarding)  DOB, 18+, policy acceptance and profile setup foundation
-(tabs)        Discovery, friends/chat, gifts, balances and profile
-creator       Creator, KYC, earnings and withdrawal foundation
-settings      Safety, block/report and account deletion foundation
+Build chuẩn của Web V1:
+
+```bash
+corepack enable && pnpm build:netlify:chon
 ```
 
-The current Android application ID `com.myfan.mobile.dev` is a development placeholder. Confirm the production package ID before Google Play product creation or EAS production builds.
+Cấu trúc chính:
 
-## Branch strategy
+- Package directory: `apps/public-web`
+- Publish directory: `apps/public-web/.next`
+- Expo authenticated app được build trước và đưa vào `/app`.
+- Public Web cần Next.js Runtime/OpenNext; không quay lại static homepage-only deploy.
+- Không hard-code Netlify preview hostname; auth phải hoạt động same-origin.
 
-```text
-feature/*       -> pull request and development validation
-develop         -> development integration
-release/staging -> staging
-main            -> production only after approval
-hotfix/*        -> urgent production fixes
-```
+## Environment và secrets
 
-Phase A work remains on `feature/phase-a-foundation`. Do not merge to `main` until Phase A review approves readiness.
+Public/browser variables chỉ được chứa dữ liệu an toàn cho client, ví dụ Supabase URL và publishable/anon key theo contract hiện tại.
 
-## Security rules
+Không đưa các giá trị sau vào client bundle hoặc repository:
 
-- Never commit `.env`, `.env.local`, service-role keys, database passwords, Google service accounts, Play credentials, KYC credentials, banking data or personal tokens.
-- Supabase publishable/anon keys are public client identifiers, but **RLS is mandatory** before exposing business tables.
-- Admin authorization must use trusted server-side claims such as `app_metadata`, not a user-editable profile field.
-- Purchased `heart_balance` and withdrawable `creator_earnings` remain separate.
-- Admin cannot directly edit balances; later financial changes require immutable ledger entries and audit logs.
-- Exact user coordinates must never be returned to other clients.
+- `SUPABASE_SERVICE_ROLE_KEY`
+- OAuth client secret
+- PII encryption key
+- KYC/provider private credential
+- Admin private secrets
 
-## Current limitations
+## Release gate
 
-- Development and staging Supabase projects are paused due the Free-plan active-project limit.
-- Publishable keys must still be entered in local/Netlify environment settings.
-- Netlify project records have not been created because Netlify access is not connected to this workspace.
-- Admin protected routes are structural placeholders; Auth/RBAC is not yet implemented.
-- Public legal pages are placeholders, not final legal documents.
-- Native builds, Play Billing and EAS configuration belong to later sessions.
-- The HTML prototype is reference material only and is not shipped as a WebView.
+Sau mỗi thay đổi liên quan product/runtime:
+
+1. Fetch `main` mới nhất và kiểm tra diff.
+2. Chạy lint + typecheck + unit tests.
+3. Chạy build và validator liên quan.
+4. Với thay đổi UI/auth/data flow: chạy browser E2E/smoke tương ứng.
+5. Với database: migration forward-only, generated types và RLS/security tests phải khớp.
+6. Chỉ merge về `main` khi gate liên quan xanh.
+7. Không tuyên bố production/live nếu chưa smoke-test **exact deployed SHA** trên Netlify.
+
+## Ưu tiên phát triển tiếp
+
+Thứ tự mặc định cho các phiên tiếp theo:
+
+1. Test online Netlify: `/`, `/app/auth`, `/app/auth?mode=login`.
+2. Auth/session: existing email/password và Gmail OAuth khi provider được cấu hình đầy đủ.
+3. Onboarding + policy re-accept cho user cần cập nhật consent.
+4. Search → Member Profile → Favorite → Message.
+5. Free vs Premium/Diamond entitlement.
+6. Private photo request/approve/decline.
+7. Profile edit + upload media.
+8. Live selfie camera và pending verification/Admin review.
+9. Desktop/mobile Seeking-style UI polish.
+10. Chỉ sau khi core Web V1 ổn định mới mở rộng các feature mới.
+
+## Documentation policy
+
+Các thư mục `docs/phase-*`, `docs/br-*` và `docs/luxy-seeking-ui` là **historical implementation/audit records**. Chúng có thể chứa tên MyFan/Luxy hoặc product assumptions cũ và không phải product source of truth hiện tại.
+
+**README này + code trên `main` là baseline để tiếp tục test, debug, tối ưu UI và phát triển Chon.Love Web V1.** Khi README và code mâu thuẫn, hãy kiểm tra implementation thực tế và cập nhật README trong cùng change set thay vì tiếp tục dựa vào tài liệu lịch sử.
