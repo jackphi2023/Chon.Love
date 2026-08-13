@@ -44,9 +44,9 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
     await login(page);
     const shellBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
 
-    // Compact phone: two-row shell, short brand and fixed four-item navigation.
+    // Compact phone: two-row shell, short Chon brand and fixed four-item navigation.
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
-    await expect(shellBrand.getByText('Luxy', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
@@ -69,9 +69,9 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
       contentType: 'image/png',
     });
 
-    // 430px phone: same two-row behavior, full Luxy.Love brand when there is room.
+    // 430px phone: same two-row behavior, full Chon.Love brand when there is room.
     await page.setViewportSize({ width: 430, height: 932 });
-    await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
@@ -89,7 +89,7 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
 
     // Tablet: a single restrained top row, still no desktop promo strip and no scroller.
     await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(shellBrand.getByText('Luxy', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
@@ -108,7 +108,7 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
     // LX-03 desktop boundary remains intact.
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
-    await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
   } finally {
     await context.close();
   }
