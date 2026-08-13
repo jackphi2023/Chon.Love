@@ -38,7 +38,7 @@ test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px bre
 
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
     await expect(shellBrand).toBeVisible();
-    await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
     await expect(searchNav).toBeVisible();
     await expect(favoritesNav).toBeVisible();
     await expect(messagesNav).toBeVisible();
@@ -67,11 +67,11 @@ test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px bre
 
     await page.setViewportSize({ width: 1023, height: 768 });
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
-    await expect(shellBrand.getByText('Luxy', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
 
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
-    await expect(shellBrand.getByText('Luxy.Love', { exact: true })).toBeVisible();
+    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
 
     await testInfo.attach('lx03-desktop-shell-1280', {
       body: await page.screenshot({ fullPage: true }),
