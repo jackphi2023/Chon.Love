@@ -241,7 +241,7 @@ function JoinPreferences({
         <Text style={styles.primaryButtonText}>Tiếp tục</Text>
       </Pressable>
 
-      <Text style={styles.ageNote}>Chỉ dành cho người từ đủ 18 tuổi. Sau khi tạo tài khoản, Chon.Love sẽ yêu cầu xác minh tuổi trước khi sử dụng đầy đủ.</Text>
+      <Text style={styles.ageNote}>Chon.Love dành cho người trưởng thành tìm kiếm những kết nối nghiêm túc. Sau khi tạo tài khoản, bạn sẽ hoàn tất thông tin và các bước xác minh cần thiết trước khi sử dụng đầy đủ.</Text>
     </View>
   );
 }
