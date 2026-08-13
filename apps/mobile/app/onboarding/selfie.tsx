@@ -124,7 +124,7 @@ export default function SelfieVerificationOnboarding() {
   return (
     <Screen
       title="Chụp selfie xác minh"
-      description="Bước cuối để kích hoạt tài khoản Luxy.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
+      description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
     >
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Điều kiện tự động duyệt</Text>
