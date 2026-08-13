@@ -1,6 +1,6 @@
 [build]
-  command = "corepack enable && NEXT_PUBLIC_SITE_URL=\"$URL\" pnpm --filter @myfan/public-web build && node scripts/write-public-netlify-redirects.mjs"
-  publish = "apps/public-web/out"
+  command = "corepack enable && NEXT_PUBLIC_SITE_URL=\"$URL\" pnpm --filter @myfan/public-web build"
+  publish = "apps/public-web/.next"
 
 [build.environment]
   NODE_VERSION = "22.23.1"
