@@ -24,6 +24,7 @@ export function LuxyFavoriteButton({
   const [favoritedBy, setFavoritedBy] = useState(initialFavoritedBy);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => setFavorited(initialFavorited), [initialFavorited]);
   useEffect(() => setFavoritedBy(initialFavoritedBy), [initialFavoritedBy]);
@@ -68,16 +69,19 @@ export function LuxyFavoriteButton({
       accessibilityRole="button"
       accessibilityState={{ busy, selected: favorited }}
       disabled={!client || busy}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
       onPress={() => void toggleFavorite()}
       style={({ pressed }) => [
         styles.button,
         favorited && styles.buttonFavorited,
+        hovered && styles.buttonHovered,
         pressed && styles.pressed,
         busy && styles.busy,
       ]}
       testID={`luxy-favorite-${profileId}`}
     >
-      <Text style={[styles.heart, favorited && styles.heartFavorited]}>{favorited ? '♥' : '♡'}</Text>
+      <Text style={[styles.heart, favorited && styles.heartFavorited, hovered && styles.heartHovered]}>{favorited ? '♥' : '♡'}</Text>
       {match ? <Text style={styles.matchMark}>✓</Text> : null}
     </Pressable>
   );
@@ -99,12 +103,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.94)',
     borderColor: luxyColors.surface,
   },
+  buttonHovered: {
+    backgroundColor: luxyColors.surface,
+    borderColor: luxyColors.actionRed,
+    transform: [{ scale: 1.04 }],
+  },
   heart: {
     color: luxyColors.surface,
     fontSize: 22,
     lineHeight: 25,
   },
   heartFavorited: {
+    color: luxyColors.actionRed,
+  },
+  heartHovered: {
     color: luxyColors.actionRed,
   },
   matchMark: {
@@ -121,6 +133,6 @@ const styles = StyleSheet.create({
     top: -2,
     width: 14,
   },
-  pressed: { opacity: 0.76 },
+  pressed: { opacity: 0.76, transform: [{ scale: 0.96 }] },
   busy: { opacity: 0.62 },
 });
