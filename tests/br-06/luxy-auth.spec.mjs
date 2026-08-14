@@ -11,7 +11,7 @@ async function expectNoHorizontalOverflow(page) {
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
-test('LX-06 Seeking-style join flow keeps preference hierarchy and 18+ handoff', async ({ browser }, testInfo) => {
+test('LX-06 Seeking-style join flow keeps preference hierarchy and eligibility handoff', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
