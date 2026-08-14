@@ -105,11 +105,11 @@ test('WEB-R02 onboarding/profile/selfie UI is responsive across the six release 
     await page.getByPlaceholder('email@example.com').fill(uniqueEmail);
     await page.getByPlaceholder('Tối thiểu 10 ký tự').fill(password);
     await page.getByRole('button', { name: 'Tạo tài khoản bằng email' }).click();
-    await expect(page.getByRole('heading', { name: 'Xác nhận bạn từ đủ 18 tuổi' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible({ timeout: 30_000 });
 
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await expect(page.getByRole('heading', { name: 'Xác nhận bạn từ đủ 18 tuổi' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible();
       await capture(page, testInfo, viewport, 'onboarding-18plus');
 
       await page.goto('/onboarding/profile');
@@ -123,7 +123,7 @@ test('WEB-R02 onboarding/profile/selfie UI is responsive across the six release 
       await capture(page, testInfo, viewport, 'selfie');
 
       await page.goto('/');
-      await expect(page.getByRole('heading', { name: 'Xác nhận bạn từ đủ 18 tuổi' })).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible({ timeout: 20_000 });
     }
   } finally {
     await context.close();
