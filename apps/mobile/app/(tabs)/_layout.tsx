@@ -42,7 +42,7 @@ export default function AuthenticatedLuxyLayout() {
   }, [auth.isRestoring, auth.userId]);
 
   if (auth.isRestoring) return <RouteLoading />;
-  if (!auth.userId) return <Redirect href="/" />;
+  if (!auth.userId) return <Redirect href="/"/>;
   if (destination === null) return <RouteLoading />;
   if (destination !== '/(tabs)') return <Redirect href="/(onboarding)" />;
 
