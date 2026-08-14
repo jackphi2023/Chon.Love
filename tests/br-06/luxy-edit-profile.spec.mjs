@@ -46,7 +46,7 @@ async function assertCoreEditor(page) {
   await expect(page.getByText('Xác minh', { exact: true })).toBeVisible();
 }
 
-test('LX-08 desktop edit profile follows Seeking two-column hierarchy', async ({ browser }, testInfo) => {
+test('LX-08 desktop edit profile follows Seeking two-column hierarchy inside the Chon shell', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
@@ -54,7 +54,8 @@ test('LX-08 desktop edit profile follows Seeking two-column hierarchy', async ({
     await page.goto('/profile/edit');
     await assertCoreEditor(page);
 
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
+    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
     const photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     const formBox = await page.getByTestId('lx08-profile-form').boundingBox();
     expect(photoBox).not.toBeNull();
