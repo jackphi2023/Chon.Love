@@ -113,7 +113,7 @@ test('WEB-R02 onboarding/profile/selfie UI is responsive across the six release 
       await capture(page, testInfo, viewport, 'onboarding-personal-info');
 
       await page.goto('/onboarding/profile');
-      await expect(page.getByRole('heading', { name: 'Tạo hồ sơ Luxy.Love' })).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByRole('heading', { name: 'Tạo hồ sơ Chon.Love' })).toBeVisible({ timeout: 20_000 });
       await expect(page.getByRole('button', { name: /Upload ảnh hồ sơ|Chọn ảnh khác/ })).toBeVisible();
       await capture(page, testInfo, viewport, 'onboarding-profile');
 
