@@ -20,7 +20,7 @@ test('LX-06 Seeking-style join flow keeps preference hierarchy and 18+ handoff',
     await expect(page.getByText('Đăng ký', { exact: true })).toBeVisible();
     await expect(page.getByText('Tôi là...', { exact: true })).toBeVisible();
     await expect(page.getByText('Quan tâm đến...', { exact: true })).toBeVisible();
-    await expect(page.getByText(/chỉ dành cho người từ đủ 18 tuổi/i)).toBeVisible();
+    await expect(page.getByText(/dành cho người trưởng thành/i)).toBeVisible();
 
     await page.getByRole('radio', { name: 'Nam', exact: true }).first().click();
     await page.getByRole('radio', { name: 'Nữ', exact: true }).last().click();
@@ -29,7 +29,7 @@ test('LX-06 Seeking-style join flow keeps preference hierarchy and 18+ handoff',
     await expect(page.getByText('Tạo tài khoản', { exact: true }).first()).toBeVisible();
     await expect(page.getByPlaceholder('email@example.com')).toBeVisible();
     await expect(page.getByPlaceholder('Tối thiểu 10 ký tự')).toBeVisible();
-    await expect(page.getByText(/xác minh 18\+/i)).toBeVisible();
+    await expect(page.getByText(/chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng/i)).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await testInfo.attach('lx06-signup-1280', {
