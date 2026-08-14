@@ -1,8 +1,12 @@
-import { createPrivateMediaUrl } from '@myfan/supabase';
+import { createPublicProfileMediaUrl } from '@myfan/supabase';
 import { colors } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { getMobileSupabaseClient } from '@/lib/supabase';
+import { LazyProfileImage } from './lazy-profile-image';
+
+const PUBLIC_PHOTO_STALE_TIME_MS = 55 * 60_000;
+const PUBLIC_PHOTO_GC_TIME_MS = 2 * 60 * 60_000;
 
 export function SocialAvatar({
   mediaId,
@@ -19,20 +23,20 @@ export function SocialAvatar({
 }) {
   const client = getMobileSupabaseClient();
   const urlQuery = useQuery({
-    queryKey: ['social-avatar', mediaId],
+    queryKey: ['social-avatar', mediaId, storagePath],
     enabled: Boolean(client && mediaId && storageBucket && storagePath),
-    staleTime: 45_000,
-    gcTime: 5 * 60_000,
+    staleTime: PUBLIC_PHOTO_STALE_TIME_MS,
+    gcTime: PUBLIC_PHOTO_GC_TIME_MS,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       if (!client || !storageBucket || !storagePath) return null;
-      return createPrivateMediaUrl(client, { storage_bucket: storageBucket, storage_path: storagePath });
+      return createPublicProfileMediaUrl(client, { storage_bucket: storageBucket, storage_path: storagePath });
     },
   });
 
   const style = { width: size, height: size, borderRadius: size / 2 };
   if (urlQuery.data) {
-    return <Image accessibilityLabel={`Ảnh đại diện của ${name}`} source={{ uri: urlQuery.data }} style={[styles.avatar, style]} />;
+    return <LazyProfileImage accessibilityLabel={`Ảnh đại diện của ${name}`} resizeMode="cover" source={{ uri: urlQuery.data }} style={[styles.avatar, style]} />;
   }
   return (
     <View accessibilityLabel={`Chưa có ảnh đại diện của ${name}`} style={[styles.fallback, style]}>

@@ -1,9 +1,45 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  createPrivateMediaUrl,
+  createPublicProfileMediaUrl,
   isMediaHiddenByModeration,
   isMediaVisibleToOwner,
+  PRIVATE_PROFILE_MEDIA_URL_TTL_SECONDS,
+  PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS,
   updateMyLuxyProfile,
 } from './profile-media';
+
+describe('profile photo delivery', () => {
+  it('reuses public/avatar signed URLs for an hour so browser and CDN caches can warm', async () => {
+    const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.test/photo' }, error: null });
+    const from = vi.fn().mockReturnValue({ createSignedUrl });
+    const client = { storage: { from } } as unknown as Parameters<typeof createPublicProfileMediaUrl>[0];
+
+    await expect(createPublicProfileMediaUrl(client, {
+      storage_bucket: 'profile-media',
+      storage_path: 'profiles/user/avatar.jpg',
+    })).resolves.toBe('https://example.test/photo');
+
+    expect(PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS).toBe(60 * 60);
+    expect(from).toHaveBeenCalledWith('profile-media');
+    expect(createSignedUrl).toHaveBeenCalledWith('profiles/user/avatar.jpg', 60 * 60);
+  });
+
+  it('keeps private media URLs short-lived by default', async () => {
+    const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.test/private' }, error: null });
+    const client = {
+      storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) },
+    } as unknown as Parameters<typeof createPrivateMediaUrl>[0];
+
+    await createPrivateMediaUrl(client, {
+      storage_bucket: 'profile-media',
+      storage_path: 'profiles/user/private.jpg',
+    });
+
+    expect(PRIVATE_PROFILE_MEDIA_URL_TTL_SECONDS).toBe(5 * 60);
+    expect(createSignedUrl).toHaveBeenCalledWith('profiles/user/private.jpg', 5 * 60);
+  });
+});
 
 describe('post-moderated profile media', () => {
   it('shows newly finalized media without a public review label', () => {
