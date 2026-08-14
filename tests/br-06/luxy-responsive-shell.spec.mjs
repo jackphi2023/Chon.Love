@@ -44,7 +44,7 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
     await login(page);
     const shellBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
 
-    // Compact phone: two-row shell, short Chon brand and fixed four-item navigation.
+    // Compact phone remains intentionally unchanged in the desktop-only Chon UI pass.
     await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
     await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
     await expectPrimaryTouchTargets(page);
@@ -105,10 +105,12 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
       contentType: 'image/png',
     });
 
-    // LX-03 desktop boundary remains intact.
+    // At 1024px the new desktop-only Chon shell takes over; mobile/tablet behavior above is untouched.
     await page.setViewportSize({ width: 1024, height: 768 });
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
-    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
+    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chon.Love — về Tìm kiếm' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' })).toHaveCount(0);
   } finally {
     await context.close();
   }
