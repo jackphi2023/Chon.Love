@@ -24,7 +24,7 @@ test('LX-05 public homepage follows the Seeking-derived long-form hierarchy on d
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
 
-  await expect(page).toHaveTitle(/Luxy\.Love/);
+  await expect(page).toHaveTitle(/Chon\.Love/);
   await assertPrimaryHomepageContent(page);
   await expect(page.getByText('Giới thiệu', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Cách hoạt động', { exact: true }).first()).toBeVisible();

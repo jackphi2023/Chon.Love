@@ -7,10 +7,10 @@ import {
   listMyLuxyGifts,
   type LuxyGiftHistoryDirection,
 } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxySpacing } from '@myfan/ui';
+import { luxyBreakpoints, luxyColors, luxyLayout, luxyRadii, luxySpacing } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -18,6 +18,8 @@ export default function LuxyGiftsAndIncomePage() {
   const client = getMobileSupabaseClient();
   const auth = useAuth();
   const [direction, setDirection] = useState<LuxyGiftHistoryDirection>('received');
+  const { width } = useWindowDimensions();
+  const desktop = width >= luxyBreakpoints.desktop;
 
   const walletQuery = useQuery({
     queryKey: giftCatalogQueryKeys.wallet(auth.userId),
@@ -42,11 +44,13 @@ export default function LuxyGiftsAndIncomePage() {
   const wallet = walletQuery.data;
   return (
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="luxy-gifts-income-page">
-      <View style={styles.frame}>
-        <Text accessibilityRole="header" style={styles.title}>Quà & Thu nhập</Text>
-        <Text style={styles.lead}>
-          Quà là lời cảm ơn tự nguyện giữa các thành viên. Quà không mở ảnh riêng tư, không tạo quan hệ và không bắt buộc phản hồi.
-        </Text>
+      <View style={[styles.frame, desktop && styles.frameDesktop]}>
+        <View style={styles.headingBlock}>
+          <Text accessibilityRole="header" style={[styles.title, desktop && styles.titleDesktop]}>Quà & Thu nhập</Text>
+          <Text style={styles.lead}>
+            Quà là lời cảm ơn tự nguyện giữa các thành viên. Quà không mở ảnh riêng tư, không tạo quan hệ và không bắt buộc phản hồi.
+          </Text>
+        </View>
 
         {walletQuery.isLoading ? (
           <View style={styles.loading}><ActivityIndicator /><Text style={styles.muted}>Đang tải số dư…</Text></View>
@@ -57,15 +61,18 @@ export default function LuxyGiftsAndIncomePage() {
           </View>
         ) : (
           <>
-            <View style={styles.summaryGrid}>
+            <View style={[styles.summaryGrid, desktop && styles.summaryGridDesktop]}>
               <Summary label="Số dư để tặng" value={formatHeartUnitBalance(wallet.heart_available_units)} />
               <Summary label={`Thu nhập chờ ${wallet.reward_hold_days} ngày`} value={formatHeartUnitBalance(wallet.reward_pending_units)} />
               <Summary label="Có thể rút" value={formatHeartUnitBalance(wallet.reward_available_units)} />
               <Summary label="Đang giữ cho lệnh rút" value={formatHeartUnitBalance(wallet.reward_held_units)} />
             </View>
 
-            <View style={styles.policyBlock}>
-              <Text style={styles.policyTitle}>Cơ chế thu nhập</Text>
+            <View style={[styles.policyBlock, desktop && styles.policyBlockDesktop]}>
+              <View style={styles.policyTitleRow}>
+                <View style={styles.policyMarker}><Text style={styles.policyMarkerText}>i</Text></View>
+                <Text style={styles.policyTitle}>Cơ chế thu nhập</Text>
+              </View>
               <Text style={styles.policyText}>
                 Người nhận được {(wallet.recipient_share_bps / 100).toLocaleString('vi-VN')}% giá trị quà. Khoản này ở trạng thái chờ đúng {wallet.reward_hold_days} ngày trước khi chuyển sang số dư có thể rút.
               </Text>
@@ -101,12 +108,12 @@ export default function LuxyGiftsAndIncomePage() {
         ) : (
           <View style={styles.historyList}>
             {historyQuery.data.map((item) => (
-              <View key={item.gift_transaction_id} style={styles.historyRow}>
+              <View key={item.gift_transaction_id} style={[styles.historyRow, desktop && styles.historyRowDesktop]}>
                 <View style={styles.giftIconBox}><Text style={styles.giftIcon}>{item.gift_icon_emoji ?? '🎁'}</Text></View>
                 <View style={styles.historyCopy}>
                   <Text style={styles.historyTitle}>{item.gift_name_vi}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</Text>
                   <Text numberOfLines={1} style={styles.historyMeta}>
-                    {direction === 'received' ? 'Từ' : 'Đến'} {item.other_display_name || item.other_username || 'Thành viên Luxy'} · {formatGiftLogTimestamp(item.created_at)}
+                    {direction === 'received' ? 'Từ' : 'Đến'} {item.other_display_name || item.other_username || 'Thành viên'} · {formatGiftLogTimestamp(item.created_at)}
                   </Text>
                   {direction === 'received' && item.status !== 'reversed' && item.reward_available_at ? (
                     <Text style={styles.availability}>Thu nhập {formatHeartUnitBalance(item.recipient_reward_units)} · khả dụng từ {formatGiftAvailabilityDate(item.reward_available_at)}</Text>
@@ -126,7 +133,7 @@ export default function LuxyGiftsAndIncomePage() {
 }
 
 function Summary({ label, value }: { label: string; value: string }) {
-  return <View style={styles.summary}><Text style={styles.summaryLabel}>{label}</Text><Text style={styles.summaryValue}>{value}</Text></View>;
+  return <View style={styles.summary}><View style={styles.summaryAccent} /><Text style={styles.summaryLabel}>{label}</Text><Text style={styles.summaryValue}>{value}</Text></View>;
 }
 
 function Status({ label, ok }: { label: string; ok: boolean }) {
@@ -134,7 +141,7 @@ function Status({ label, ok }: { label: string; ok: boolean }) {
 }
 
 function HistoryTab({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={onPress} style={[styles.tab, active && styles.tabActive]}><Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}><Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text></Pressable>;
 }
 
 function giftStatusLabel(status: 'completed' | 'partially_reversed' | 'reversed'): string {
@@ -144,34 +151,44 @@ function giftStatusLabel(status: 'completed' | 'partially_reversed' | 'reversed'
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: luxyColors.surface, flex: 1 },
+  page: { backgroundColor: '#FCFCFC', flex: 1 },
   pageContent: { paddingBottom: 80 },
   frame: { alignSelf: 'center', maxWidth: 980, paddingHorizontal: luxySpacing.lg, paddingTop: 32, width: '100%' },
-  title: { color: luxyColors.ink, fontSize: 30, fontWeight: '500', lineHeight: 38 },
-  lead: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, marginTop: 8, maxWidth: 720 },
+  frameDesktop: { maxWidth: luxyLayout.desktopContentMaxWidth, paddingHorizontal: 32, paddingTop: 38 },
+  headingBlock: { gap: 8 },
+  title: { color: luxyColors.ink, fontSize: 30, fontWeight: '600', lineHeight: 38 },
+  titleDesktop: { fontSize: 32, lineHeight: 40 },
+  lead: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, maxWidth: 760 },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 28 },
-  summary: { borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, flexBasis: 210, flexGrow: 1, minWidth: 190, padding: luxySpacing.lg },
+  summaryGridDesktop: { flexWrap: 'nowrap', gap: 14 },
+  summary: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.md, borderWidth: 1, flexBasis: 210, flexGrow: 1, minWidth: 190, overflow: 'hidden', padding: luxySpacing.lg, position: 'relative' },
+  summaryAccent: { backgroundColor: luxyColors.brandGold, height: 3, left: 0, position: 'absolute', right: 0, top: 0 },
   summaryLabel: { color: luxyColors.muted, fontSize: 12, lineHeight: 17 },
-  summaryValue: { color: luxyColors.ink, fontSize: 21, fontWeight: '700', marginTop: 5 },
-  policyBlock: { backgroundColor: luxyColors.subtleSurface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, marginTop: 14, padding: luxySpacing.lg },
-  policyTitle: { color: luxyColors.ink, fontSize: 16, fontWeight: '700' },
+  summaryValue: { color: luxyColors.charcoal, fontSize: 21, fontWeight: '800', marginTop: 5 },
+  policyBlock: { backgroundColor: '#F4F9FF', borderColor: '#B9D8F4', borderRadius: luxyRadii.md, borderWidth: 1, marginTop: 14, padding: luxySpacing.lg },
+  policyBlockDesktop: { padding: 22 },
+  policyTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 9 },
+  policyMarker: { alignItems: 'center', borderColor: luxyColors.brandBlue, borderRadius: luxyRadii.pill, borderWidth: 1, height: 26, justifyContent: 'center', width: 26 },
+  policyMarkerText: { color: luxyColors.brandBlue, fontSize: 12, fontWeight: '800' },
+  policyTitle: { color: luxyColors.charcoal, fontSize: 16, fontWeight: '700' },
   policyText: { color: luxyColors.muted, fontSize: 13, lineHeight: 20, marginTop: 7 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 14 },
-  statusChip: { borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.pill, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
+  statusChip: { backgroundColor: luxyColors.surface, borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.pill, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   statusChipOk: { borderColor: luxyColors.online },
   statusChipText: { color: luxyColors.muted, fontSize: 12 },
   statusChipTextOk: { color: luxyColors.ink, fontWeight: '600' },
   note: { color: luxyColors.softMuted, fontSize: 12, lineHeight: 18, marginTop: 12 },
   historyHeader: { alignItems: 'flex-end', borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 36 },
-  sectionTitle: { color: luxyColors.ink, fontSize: 20, fontWeight: '600', paddingBottom: 12 },
+  sectionTitle: { color: luxyColors.charcoal, fontSize: 20, fontWeight: '700', paddingBottom: 12 },
   tabs: { flexDirection: 'row' },
   tab: { borderBottomColor: 'transparent', borderBottomWidth: 2, paddingHorizontal: 14, paddingVertical: 12 },
   tabActive: { borderBottomColor: luxyColors.actionRed },
   tabText: { color: luxyColors.muted, fontSize: 14 },
-  tabTextActive: { color: luxyColors.ink, fontWeight: '700' },
-  historyList: { borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth },
+  tabTextActive: { color: luxyColors.actionRed, fontWeight: '700' },
+  historyList: { backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth },
   historyRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 84, paddingVertical: 12 },
-  giftIconBox: { alignItems: 'center', backgroundColor: luxyColors.subtleSurface, borderRadius: luxyRadii.sm, height: 54, justifyContent: 'center', width: 54 },
+  historyRowDesktop: { minHeight: 94, paddingHorizontal: 14, paddingVertical: 14 },
+  giftIconBox: { alignItems: 'center', backgroundColor: luxyColors.brandWarmSurface, borderRadius: luxyRadii.sm, height: 54, justifyContent: 'center', width: 54 },
   giftIcon: { fontSize: 28 },
   historyCopy: { flex: 1, minWidth: 0 },
   historyTitle: { color: luxyColors.ink, fontSize: 15, fontWeight: '600' },
@@ -183,9 +200,10 @@ const styles = StyleSheet.create({
   statusReversed: { color: luxyColors.danger },
   loading: { alignItems: 'center', gap: 8, justifyContent: 'center', minHeight: 140 },
   muted: { color: luxyColors.muted, fontSize: 13, lineHeight: 19 },
-  notice: { borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, marginTop: 20, padding: luxySpacing.lg },
+  notice: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, marginTop: 20, padding: luxySpacing.lg },
   error: { color: luxyColors.danger, fontSize: 13 },
   retry: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '700', marginTop: 8 },
-  empty: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 170, padding: 32 },
+  empty: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 170, padding: 32 },
   emptyTitle: { color: luxyColors.ink, fontSize: 16, fontWeight: '600', marginBottom: 5 },
+  pressed: { opacity: 0.72 },
 });
