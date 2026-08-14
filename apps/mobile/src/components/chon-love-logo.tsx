@@ -1,6 +1,6 @@
 import { Image, type ImageStyle, type StyleProp } from 'react-native';
 
-const chonLoveLogo = require('../../../public-web/public/chonlove-logo.webp');
+const chonLoveLogo = { uri: '/chonlove-logo.webp' } as const;
 
 export function ChonLoveLogo({
   width = 150,
