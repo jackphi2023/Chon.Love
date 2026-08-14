@@ -19,6 +19,14 @@ export type ProfileLifestyleTag = Database['public']['Enums']['profile_lifestyle
 export const VN_FEATURED_PROVINCE_COUNT = 6;
 export const VN_CANONICAL_PROVINCE_COUNT = 34;
 
+// Signed URLs for profile photos must be reused long enough for browser/CDN caches to warm.
+// Public/avatar media is displayed throughout discovery, interests and public profiles, while
+// private/fan media keeps a deliberately shorter lifetime because access can be revoked.
+export const PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS = 60 * 60;
+export const PRIVATE_PROFILE_MEDIA_URL_TTL_SECONDS = 5 * 60;
+export const PUBLIC_PROFILE_MEDIA_CACHE_CONTROL_SECONDS = 60 * 60;
+export const PRIVATE_PROFILE_MEDIA_CACHE_CONTROL_SECONDS = 5 * 60;
+
 export type ProvinceOption = {
   id: number;
   name: string;
@@ -204,13 +212,20 @@ export async function listProfileAlbumMedia(
 export async function createPrivateMediaUrl(
   client: Client,
   media: Pick<ProfileMediaRow, 'storage_bucket' | 'storage_path'> | Pick<AlbumMediaItem, 'storage_bucket' | 'storage_path'>,
-  expiresInSeconds = 45,
+  expiresInSeconds = PRIVATE_PROFILE_MEDIA_URL_TTL_SECONDS,
 ): Promise<string> {
   const { data, error } = await client.storage
     .from(media.storage_bucket)
     .createSignedUrl(media.storage_path, expiresInSeconds);
   if (error) throw error;
   return data.signedUrl;
+}
+
+export async function createPublicProfileMediaUrl(
+  client: Client,
+  media: Pick<ProfileMediaRow, 'storage_bucket' | 'storage_path'> | Pick<AlbumMediaItem, 'storage_bucket' | 'storage_path'>,
+): Promise<string> {
+  return createPrivateMediaUrl(client, media, PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS);
 }
 
 export async function uploadProfileImage(
@@ -230,11 +245,15 @@ export async function uploadProfileImage(
   const prepared = preparedRows?.[0];
   if (!prepared) throw new Error('media_upload_not_prepared');
 
+  const cacheControlSeconds = input.visibility === 'avatar' || input.visibility === 'public'
+    ? PUBLIC_PROFILE_MEDIA_CACHE_CONTROL_SECONDS
+    : PRIVATE_PROFILE_MEDIA_CACHE_CONTROL_SECONDS;
+
   const { error: uploadError } = await client.storage
     .from(prepared.storage_bucket)
     .upload(prepared.storage_path, input.bytes, {
       contentType: input.mimeType,
-      cacheControl: '60',
+      cacheControl: String(cacheControlSeconds),
       upsert: false,
     });
   if (uploadError) throw uploadError;
