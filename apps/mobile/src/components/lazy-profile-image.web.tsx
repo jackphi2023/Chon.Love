@@ -9,6 +9,13 @@ function getNetworkUri(source: ImageProps['source']): string | null {
   return typeof uri === 'string' && uri.length > 0 ? uri : null;
 }
 
+function toObjectFit(resizeMode: ImageProps['resizeMode']): CSSProperties['objectFit'] {
+  if (resizeMode === 'contain') return 'contain';
+  if (resizeMode === 'stretch') return 'fill';
+  if (resizeMode === 'center') return 'none';
+  return 'cover';
+}
+
 /**
  * Browser implementation for user photos.
  *
@@ -30,7 +37,7 @@ export function LazyProfileImage({
   const cssStyle = {
     ...(flattened as unknown as CSSProperties),
     display: 'block',
-    objectFit: resizeMode === 'stretch' ? 'fill' : resizeMode,
+    objectFit: toObjectFit(resizeMode),
   } satisfies CSSProperties;
 
   return (
