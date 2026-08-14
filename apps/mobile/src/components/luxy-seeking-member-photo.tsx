@@ -1,9 +1,13 @@
-import { createPrivateMediaUrl, type LuxyMembershipTier } from '@myfan/supabase';
+import { createPublicProfileMediaUrl, type LuxyMembershipTier } from '@myfan/supabase';
 import { luxyColors, luxyTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { getMobileSupabaseClient } from '@/lib/supabase';
+import { LazyProfileImage } from './lazy-profile-image';
 import { LuxyMembershipBadgeImage } from './luxy-membership-badge-image';
+
+const PUBLIC_PHOTO_STALE_TIME_MS = 55 * 60_000;
+const PUBLIC_PHOTO_GC_TIME_MS = 2 * 60 * 60_000;
 
 export function LuxySeekingMemberPhoto({
   mediaId,
@@ -26,14 +30,16 @@ export function LuxySeekingMemberPhoto({
 }) {
   const client = getMobileSupabaseClient();
   const imageQuery = useQuery({
-    queryKey: ['luxy-seeking-row-photo', mediaId],
+    // Include the immutable storage path so a replaced seed image invalidates an old URL
+    // immediately even when the media row keeps the same stable id.
+    queryKey: ['luxy-seeking-row-photo', mediaId, storagePath],
     enabled: Boolean(client && mediaId && storageBucket && storagePath),
-    staleTime: 45_000,
-    gcTime: 5 * 60_000,
+    staleTime: PUBLIC_PHOTO_STALE_TIME_MS,
+    gcTime: PUBLIC_PHOTO_GC_TIME_MS,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       if (!client || !storageBucket || !storagePath) return null;
-      return createPrivateMediaUrl(client, { storage_bucket: storageBucket, storage_path: storagePath });
+      return createPublicProfileMediaUrl(client, { storage_bucket: storageBucket, storage_path: storagePath });
     },
   });
 
@@ -42,7 +48,7 @@ export function LuxySeekingMemberPhoto({
   return (
     <View style={[styles.frame, frameStyle]}>
       {imageQuery.data ? (
-        <Image
+        <LazyProfileImage
           accessibilityLabel={`Ảnh hồ sơ của ${name}`}
           resizeMode="cover"
           source={{ uri: imageQuery.data }}
