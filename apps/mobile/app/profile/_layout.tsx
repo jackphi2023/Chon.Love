@@ -3,11 +3,13 @@ import {
   getLuxyMemberVerificationBadges,
   recordProfileViewByUsername,
 } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxyShadows } from '@myfan/ui';
+import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Slot, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
+import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
@@ -24,6 +26,8 @@ export default function PublicProfileRouteLayout() {
   const recordedKey = useRef<string | null>(null);
   const client = getMobileSupabaseClient();
   const [giftOpen, setGiftOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const desktop = width >= luxyBreakpoints.desktop;
 
   useEffect(() => {
     if (!auth.userId || !username) return;
@@ -71,38 +75,43 @@ export default function PublicProfileRouteLayout() {
 
   return (
     <View style={styles.root}>
-      <Slot />
-      {badgeLabels.length ? (
-        <View accessibilityLabel={`Xác thực: ${badgeLabels.join(', ')}`} style={styles.verificationBar} testID="luxy-profile-verification-badges">
-          {badgeLabels.map((label) => <Text key={label} style={styles.verificationText}>{label}</Text>)}
-        </View>
-      ) : null}
-      {canOfferGift && profile ? (
-        <Pressable
-          accessibilityLabel={`Tặng quà cho ${recipientName}`}
-          accessibilityRole="button"
-          onPress={() => setGiftOpen(true)}
-          style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
-          testID="luxy-profile-gift-button"
-        >
-          <Text style={styles.giftIcon}>🎁</Text>
-          <Text style={styles.giftText}>Tặng quà</Text>
-        </Pressable>
-      ) : null}
-      {profile ? (
-        <LuxyGiftModal
-          onClose={() => setGiftOpen(false)}
-          recipientId={profile.id}
-          recipientName={recipientName}
-          visible={giftOpen}
-        />
-      ) : null}
+      {desktop ? <LuxyDesktopNavigation /> : null}
+      <View style={styles.profileStage}>
+        <Slot />
+        {badgeLabels.length ? (
+          <View accessibilityLabel={`Xác thực: ${badgeLabels.join(', ')}`} style={styles.verificationBar} testID="luxy-profile-verification-badges">
+            {badgeLabels.map((label) => <Text key={label} style={styles.verificationText}>{label}</Text>)}
+          </View>
+        ) : null}
+        {canOfferGift && profile ? (
+          <Pressable
+            accessibilityLabel={`Tặng quà cho ${recipientName}`}
+            accessibilityRole="button"
+            onPress={() => setGiftOpen(true)}
+            style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
+            testID="luxy-profile-gift-button"
+          >
+            <Text style={styles.giftIcon}>🎁</Text>
+            <Text style={styles.giftText}>Tặng quà</Text>
+          </Pressable>
+        ) : null}
+        {profile ? (
+          <LuxyGiftModal
+            onClose={() => setGiftOpen(false)}
+            recipientId={profile.id}
+            recipientName={recipientName}
+            visible={giftOpen}
+          />
+        ) : null}
+      </View>
+      {desktop ? <LuxyDesktopFooter /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  profileStage: { flex: 1, minHeight: 0, position: 'relative' },
   verificationBar: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.96)',
