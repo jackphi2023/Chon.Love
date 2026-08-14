@@ -19,7 +19,7 @@ async function xPosition(locator) {
   return box.x;
 }
 
-test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px breakpoint', async ({ browser }, testInfo) => {
+test('LX-03 authenticated desktop shell follows Chon.Love hierarchy and 1024px breakpoint', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     deviceScaleFactor: 1,
@@ -29,21 +29,23 @@ test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px bre
   try {
     await login(page);
 
-    const shellBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
+    const desktopNavigation = page.getByTestId('chon-desktop-navigation');
+    const shellBrand = page.getByRole('button', { name: 'Chon.Love — về Tìm kiếm' });
     const searchNav = page.getByRole('button', { name: 'Tìm kiếm', exact: true });
     const favoritesNav = page.getByRole('button', { name: 'Yêu thích', exact: true });
     const messagesNav = page.getByRole('button', { name: 'Tin nhắn', exact: true });
     const upgradeNav = page.getByRole('button', { name: 'Nâng cấp', exact: true });
-    const accountButton = page.getByRole('button', { name: 'Mở menu tài khoản Luxy' });
+    const accountButton = page.getByRole('button', { name: 'Mở menu tài khoản' });
 
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
+    await expect(desktopNavigation).toBeVisible();
+    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
     await expect(shellBrand).toBeVisible();
-    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
     await expect(searchNav).toBeVisible();
     await expect(favoritesNav).toBeVisible();
     await expect(messagesNav).toBeVisible();
     await expect(upgradeNav).toBeVisible();
     await expect(accountButton).toBeVisible();
+    await expect(page.getByTestId('chon-desktop-footer')).toBeVisible();
 
     const positions = await Promise.all([
       xPosition(shellBrand),
@@ -60,18 +62,21 @@ test('LX-03 authenticated desktop shell follows Seeking hierarchy and 1024px bre
 
     await accountButton.click();
     await expect(page.getByRole('menu')).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Hồ sơ' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Hồ sơ của tôi' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Hoạt động' })).toHaveCount(0);
     await expect(page.getByRole('menuitem', { name: 'Quà' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Số dư' })).toBeVisible();
 
     await page.setViewportSize({ width: 1023, height: 768 });
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
-    await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
+    await expect(desktopNavigation).toHaveCount(0);
+    await expect(page.getByText('Premium & Diamond', { exact: true })).toHaveCount(0);
+    const compactBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
+    await expect(compactBrand.getByText('Chon', { exact: true })).toBeVisible();
 
     await page.setViewportSize({ width: 1024, height: 768 });
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
-    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
+    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chon.Love — về Tìm kiếm' })).toBeVisible();
 
     await testInfo.attach('lx03-desktop-shell-1280', {
       body: await page.screenshot({ fullPage: true }),
