@@ -23,6 +23,92 @@
   text-indent: -9999px;
   white-space: nowrap;
 }
+
+@media (min-width: 861px) {
+  .publicHeader {
+    min-height: 72px;
+    border-bottom-color: #ececec;
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 6px 22px rgba(17,24,39,.06);
+  }
+  .publicDesktopNav {
+    gap: 8px;
+  }
+  .publicDesktopNav a {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 13px;
+    border-radius: 999px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 800;
+    transition: background-color .16s ease, color .16s ease, transform .16s ease;
+  }
+  .publicDesktopNav a:hover,
+  .publicDesktopNav a:focus-visible {
+    background: #fff9ea;
+    color: #c81c1d;
+    transform: translateY(-1px);
+  }
+  .publicNavIcon {
+    width: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #b87800;
+    font-size: 18px;
+    line-height: 20px;
+  }
+  .publicLogin {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 17px;
+    border: 1px solid #c81c1d;
+    border-radius: 999px;
+    color: #c81c1d;
+    transition: background-color .16s ease, color .16s ease;
+  }
+  .publicLogin:hover,
+  .publicLogin:focus-visible {
+    background: #fff1f1;
+    color: #a81415;
+  }
+  .publicJoin {
+    background: #c81c1d;
+    box-shadow: 0 10px 22px -12px rgba(200,28,29,.62);
+    transition: background-color .16s ease, transform .16s ease, box-shadow .16s ease;
+  }
+  .publicJoin:hover,
+  .publicJoin:focus-visible {
+    background: #a81415;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px -12px rgba(200,28,29,.72);
+  }
+  .publicFooter {
+    border-top: 2px solid #f2b51d;
+    background: #111827;
+    color: #d1d5db;
+  }
+  .publicFooter>div>span,
+  .publicFooter small {
+    color: #9ca3af;
+  }
+  .publicFooter nav a {
+    color: #d1d5db;
+  }
+  .publicFooter nav a:hover,
+  .publicFooter nav a:focus-visible {
+    color: #f2b51d;
+  }
+  .publicFooter nav>span {
+    color: #6b7280;
+  }
+}
+
 @media (max-width: 430px) {
   .publicBrand {
     width: 108px;
