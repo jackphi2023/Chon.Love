@@ -204,9 +204,11 @@ export function LuxyGiftModal({
                           pressed && styles.pressed,
                         ]}
                       >
-                        <Text style={styles.giftIcon}>{gift.icon_emoji}</Text>
+                        <View style={[styles.giftIconWell, selected && styles.giftIconWellSelected]}>
+                          <Text style={styles.giftIcon}>{gift.icon_emoji}</Text>
+                        </View>
                         <Text numberOfLines={1} style={styles.giftName}>{gift.name_vi}</Text>
-                        <Text style={styles.giftPrice}>{formatGiftHeartPrice(gift)}</Text>
+                        <Text style={[styles.giftPrice, !affordable && styles.giftPriceUnaffordable]}>{formatGiftHeartPrice(gift)}</Text>
                       </Pressable>
                     </View>
                   );
@@ -266,13 +268,34 @@ const styles = StyleSheet.create({
   catalogScroll: { maxHeight: 430 },
   catalog: { padding: luxySpacing.md },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  tileSlot: { padding: 4 },
-  giftTile: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minHeight: 108, paddingHorizontal: 4, paddingVertical: 10 },
-  giftSelected: { backgroundColor: luxyColors.selectedAccentSurface, borderColor: luxyColors.brandCoral, borderWidth: 2 },
-  giftUnaffordable: { opacity: 0.45 },
-  giftIcon: { fontSize: 28, lineHeight: 34 },
-  giftName: { color: luxyColors.ink, fontSize: 11, fontWeight: '600', marginTop: 5, maxWidth: '100%' },
-  giftPrice: { color: luxyColors.muted, fontSize: 11, marginTop: 3 },
+  tileSlot: { padding: 5 },
+  giftTile: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: luxyColors.border,
+    borderRadius: luxyRadii.sm,
+    borderWidth: 1,
+    minHeight: 132,
+    paddingHorizontal: 5,
+    paddingVertical: 10,
+  },
+  giftSelected: { backgroundColor: '#FFF8F2', borderColor: luxyColors.brandCoral, borderWidth: 2 },
+  giftUnaffordable: { backgroundColor: '#FFFCF8', borderColor: '#E7DED4' },
+  giftIconWell: {
+    alignItems: 'center',
+    backgroundColor: '#FFF4E2',
+    borderColor: '#F0D4A4',
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 62,
+    justifyContent: 'center',
+    width: 62,
+  },
+  giftIconWellSelected: { backgroundColor: '#FFF0E6', borderColor: luxyColors.brandCoral },
+  giftIcon: { fontSize: 40, lineHeight: 48 },
+  giftName: { color: luxyColors.ink, fontSize: 12, fontWeight: '700', marginTop: 7, maxWidth: '100%' },
+  giftPrice: { color: luxyColors.muted, fontSize: 11.5, fontWeight: '600', marginTop: 3 },
+  giftPriceUnaffordable: { color: luxyColors.actionRed },
   confirmation: { alignItems: 'center', borderTopColor: luxyColors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: luxySpacing.md, paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.lg },
   confirmationCopy: { flex: 1 },
   confirmationTitle: { color: luxyColors.ink, fontSize: 15, fontWeight: '700' },
@@ -283,5 +306,5 @@ const styles = StyleSheet.create({
   errorText: { color: luxyColors.danger, fontSize: 12, lineHeight: 17, paddingHorizontal: luxySpacing.xl, paddingVertical: 6 },
   retryText: { color: luxyColors.actionRed, fontSize: 14, fontWeight: '700' },
   disclaimer: { borderTopColor: luxyColors.border, borderTopWidth: StyleSheet.hairlineWidth, color: luxyColors.muted, fontSize: 11, lineHeight: 16, paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.md },
-  pressed: { opacity: 0.72 },
+  pressed: { opacity: 0.86 },
 });
