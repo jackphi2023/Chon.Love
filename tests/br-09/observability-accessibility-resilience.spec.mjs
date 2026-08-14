@@ -44,7 +44,7 @@ test('BR-09 mobile login is keyboard and screen-reader accessible', async ({ bro
       passwordInput,
       page.getByRole('button', { name: 'Đăng nhập bằng email' }),
       page.getByRole('link', { name: 'Quên mật khẩu' }),
-      page.getByRole('button', { name: 'Tiếp tục với Google' }),
+      page.getByRole('button', { name: 'Tiếp tục với Gmail' }),
     ];
     for (const control of controls) {
       await expect(control).toBeVisible();
