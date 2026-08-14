@@ -8,7 +8,9 @@ import {
 import type { PreparedImageUpload } from '@myfan/supabase';
 
 const MAX_RENDER_DIMENSION = 2048;
-const JPEG_COMPRESSION = 0.82;
+// Profile photos are visual identity assets. Keep a high JPEG quality while capping the
+// longest edge at 2048 px so uploads remain practical on mobile connections.
+const JPEG_COMPRESSION = 0.92;
 
 export type ProfileImageSource = 'library' | 'camera';
 
