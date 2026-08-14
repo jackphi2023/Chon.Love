@@ -71,7 +71,7 @@ export default function OnboardingHome() {
   }
 
   return (
-    <Screen title="Xác nhận bạn từ đủ 18 tuổi" description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai.">
+    <Screen title="Xác nhận thông tin cá nhân" description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai.">
       <Text style={styles.label}>Ngày sinh</Text>
       <DateOfBirthSelector onChange={setDateOfBirth} />
       <Text style={styles.hint}>Chạm vào từng ô và cuộn để chọn Ngày – Tháng – Năm. Thông tin này giúp Chon.Love xác nhận điều kiện sử dụng và luôn được giữ riêng tư.</Text>
