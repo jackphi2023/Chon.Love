@@ -4,13 +4,11 @@ import {
   listLuxyMailbox,
 } from '@myfan/supabase';
 import {
-  luxyBrand,
   luxyColors,
   luxyLayout,
   luxyRadii,
   luxyShadows,
   luxySpacing,
-  luxyTypography,
   resolveLuxyResponsiveShellMode,
 } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +16,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
+import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -29,8 +28,8 @@ const primaryItems = [
 ] as const;
 
 const accountItems = [
-  { label: 'Hồ sơ', href: '/(tabs)/profile' as const },
-  { label: 'Quà', href: '/(tabs)/gifts' as const },
+  { label: 'Hồ sơ', icon: 'profile' as const, href: '/(tabs)/profile' as const },
+  { label: 'Quà', icon: 'gift' as const, href: '/(tabs)/gifts' as const },
   { label: 'Số dư', href: '/(tabs)/balance' as const },
   { label: 'Cài đặt', href: '/settings' as const },
 ] as const;
@@ -216,6 +215,7 @@ export function LuxyShellNavigation() {
           }}
           style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
         >
+          {'icon' in item ? <ChonBrandIcon name={item.icon} size={17} /> : <View style={styles.menuIconSpacer} />}
           <Text style={styles.menuLabel}>{item.label}</Text>
         </Pressable>
       ))}
@@ -229,7 +229,7 @@ export function LuxyShellNavigation() {
       <View style={styles.shell}>
         <View style={styles.phoneTopRow}>
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.phoneBrandButton, pressed && styles.pressed]}>
-            <Text numberOfLines={1} style={[styles.brand, styles.phoneBrand]}>{width < 430 ? luxyBrand.shortName : luxyBrand.productName}</Text>
+            <ChonLoveLogo height={38} width={width < 430 ? 102 : 118} />
           </Pressable>
           {accountControl('phone')}
           {accountMenu('phone')}
@@ -247,7 +247,7 @@ export function LuxyShellNavigation() {
         <View style={styles.navRow}>
           <View style={styles.tabletInner}>
             <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.tabletBrandButton, pressed && styles.pressed]}>
-              <Text numberOfLines={1} style={[styles.brand, styles.tabletBrand]}>{luxyBrand.shortName}</Text>
+              <ChonLoveLogo height={42} width={112} />
             </Pressable>
             <View style={styles.tabletPrimary}>{primaryItems.map((item) => primaryItem(item, 'tablet'))}</View>
             {accountControl('tablet')}
@@ -264,7 +264,7 @@ export function LuxyShellNavigation() {
       <View style={styles.navRow}>
         <View style={styles.desktopInner}>
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.desktopBrandButton, pressed && styles.pressed]}>
-            <Text numberOfLines={1} style={styles.brand}>{luxyBrand.productName}</Text>
+            <ChonLoveLogo height={50} width={150} />
           </Pressable>
           <View style={styles.desktopPrimary}>{primaryItems.map((item) => primaryItem(item, 'desktop'))}</View>
           {accountControl('desktop')}
@@ -286,11 +286,8 @@ const styles = StyleSheet.create({
   tabletInner: { flex: 1, flexDirection: 'row', minWidth: 0, position: 'relative', width: '100%' },
   brandButton: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: luxySpacing.lg },
   desktopBrandButton: { minWidth: 188, paddingHorizontal: luxySpacing.xl },
-  tabletBrandButton: { minWidth: 104, paddingHorizontal: luxySpacing.md },
-  phoneBrandButton: { alignItems: 'center', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', minWidth: 76, paddingHorizontal: luxySpacing.lg },
-  brand: { color: luxyColors.brandCoral, fontFamily: luxyTypography.families.brand, fontSize: 27, fontWeight: '400', letterSpacing: -1.4 },
-  tabletBrand: { fontSize: 23, letterSpacing: -1 },
-  phoneBrand: { fontSize: 24, letterSpacing: -1.1 },
+  tabletBrandButton: { minWidth: 112, paddingHorizontal: luxySpacing.sm },
+  phoneBrandButton: { alignItems: 'center', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', minWidth: 104, paddingHorizontal: luxySpacing.sm },
   desktopPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row' },
   tabletPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row', minWidth: 0 },
   phoneTopRow: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'space-between', position: 'relative', zIndex: 110 },
@@ -324,7 +321,8 @@ const styles = StyleSheet.create({
   phoneMenu: { maxWidth: 280, minWidth: 216, right: luxySpacing.sm, top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight - 2 },
   phoneMenuWithPromo: { top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight + luxyLayout.authenticatedPromoHeight - 2 },
   tabletMenu: { right: luxySpacing.sm },
-  menuItem: { justifyContent: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg },
+  menuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingHorizontal: luxySpacing.lg },
+  menuIconSpacer: { height: 17, width: 17 },
   menuItemPressed: { backgroundColor: luxyColors.subtleSurface },
   menuLabel: { color: luxyColors.text, fontSize: 15 },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },

@@ -35,6 +35,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { LazyProfileImage } from '@/components/lazy-profile-image';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
 import { requestDiscoveryLocation } from '@/lib/location';
@@ -411,7 +412,10 @@ export function LuxySearchMobile() {
                     </ScrollView>
                   </View>
                 ) : null}
-                <Pressable accessibilityRole="button" disabled={locationBusy} onPress={updateLocation} style={styles.locationAction}><Text style={styles.locationActionText}>{locationBusy ? 'Đang cập nhật…' : '⌖  Cập nhật vị trí của tôi'}</Text></Pressable>
+                <Pressable accessibilityRole="button" disabled={locationBusy} onPress={updateLocation} style={styles.locationAction}>
+                  <ChonBrandIcon name="location" size={17} />
+                  <Text style={styles.locationActionText}>{locationBusy ? 'Đang cập nhật…' : 'Cập nhật vị trí của tôi'}</Text>
+                </Pressable>
                 <Text style={styles.helperText}>{contextQuery.data?.has_fresh_location ? 'Vị trí đang hoạt động; chỉ hiển thị khoảng cách làm tròn.' : 'Bật vị trí để xếp thành viên gần → xa trên toàn Việt Nam.'}</Text>
                 {locationMessage ? <Text accessibilityRole="alert" style={styles.successText}>{locationMessage}</Text> : null}
                 {locationError ? <Text accessibilityRole="alert" style={styles.errorText}>{locationError}</Text> : null}
@@ -651,7 +655,7 @@ const styles = StyleSheet.create({
   provinceOptionActive: { backgroundColor: luxyColors.elevatedSubtle },
   provinceOptionText: { color: luxyColors.text, fontSize: 12 },
   selectedMark: { color: luxyColors.ink, fontSize: 12, fontWeight: '700' },
-  locationAction: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-start' },
+  locationAction: { minHeight: 44, flexDirection: 'row', gap: 7, justifyContent: 'flex-start', alignItems: 'center' },
   locationActionText: { color: luxyColors.text, fontSize: 12, fontWeight: '600' },
   helperText: { color: luxyColors.softMuted, fontSize: 11, lineHeight: 16 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
