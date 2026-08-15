@@ -8,9 +8,16 @@ async function assertNoHorizontalOverflow(page) {
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
 }
 
+async function assertLogoLoaded(page) {
+  const logo = page.locator('img[alt="Chọn.love"]').first();
+  await expect(logo).toBeVisible();
+  await expect.poll(async () => logo.evaluate((node) => node instanceof HTMLImageElement && node.complete && node.naturalWidth > 0)).toBe(true);
+}
+
 async function assertPrimaryHomepageContent(page) {
   const home = page.getByTestId('chon-love-public-homepage');
   await expect(home).toBeVisible();
+  await assertLogoLoaded(page);
   await expect(home.getByText('Chọn đúng Người, Yêu đúng Gu', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('CHIA SẼ TỪ THÀNH VIÊN:', { exact: true }).first()).toBeVisible();
