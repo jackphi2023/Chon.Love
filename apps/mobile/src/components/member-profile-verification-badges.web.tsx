@@ -80,6 +80,8 @@ export function MemberProfileVerificationBadges() {
         target = document.createElement('div');
         target.dataset.chonLoveVerificationBadges = 'true';
         target.style.width = '100%';
+        target.style.maxWidth = '100%';
+        target.style.overflow = 'visible';
         hero.insertAdjacentElement('afterend', target);
       }
 
@@ -132,7 +134,13 @@ export function MemberProfileVerificationBadges() {
             </Pressable>
             <Text numberOfLines={1} style={[styles.label, verified && styles.labelVerified]}>{verificationMeta[key].label}</Text>
             {hovered === key ? (
-              <View pointerEvents="none" style={styles.tooltip}>
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.tooltip,
+                  key === 'selfie' ? styles.tooltipFirst : key === 'linkedin' ? styles.tooltipLast : styles.tooltipMiddle,
+                ]}
+              >
                 <Text style={styles.tooltipText}>{tooltip}</Text>
               </View>
             ) : null}
@@ -151,39 +159,44 @@ const styles = StyleSheet.create({
     borderBottomColor: luxyColors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
-    paddingHorizontal: luxySpacing.sm,
-    paddingVertical: 12,
+    gap: 4,
+    justifyContent: 'space-between',
+    maxWidth: '100%',
+    paddingHorizontal: luxySpacing.xs,
+    paddingVertical: 10,
     width: '100%',
   },
-  itemWrap: { alignItems: 'center', minWidth: 72, position: 'relative' },
+  itemWrap: { alignItems: 'center', flex: 1, minWidth: 0, position: 'relative' },
   iconButton: {
     alignItems: 'center',
     borderRadius: luxyRadii.pill,
     borderWidth: 1,
-    height: 36,
+    height: 44,
     justifyContent: 'center',
-    width: 36,
+    width: 44,
   },
   iconVerified: { backgroundColor: '#0B3B67', borderColor: '#0B3B67' },
   iconUnverified: { backgroundColor: '#F3F4F6', borderColor: '#9CA3AF' },
   iconText: { fontSize: 16, fontWeight: '800', lineHeight: 18 },
   iconTextVerified: { color: luxyColors.surface },
   iconTextUnverified: { color: '#7B818B' },
-  label: { color: '#7B818B', fontSize: 9.5, marginTop: 5, textAlign: 'center' },
+  label: { color: '#7B818B', fontSize: 9.5, marginTop: 5, maxWidth: '100%', paddingHorizontal: 2, textAlign: 'center' },
   labelVerified: { color: '#0B3B67', fontWeight: '700' },
   tooltip: {
     backgroundColor: '#081726',
     borderRadius: luxyRadii.sm,
-    bottom: -42,
-    minWidth: 190,
+    minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 7,
     position: 'absolute',
+    top: 58,
+    width: 176,
     zIndex: 50,
     ...luxyShadows.navigation,
   },
+  tooltipFirst: { left: 0 },
+  tooltipMiddle: { left: -54 },
+  tooltipLast: { right: 0 },
   tooltipText: { color: luxyColors.surface, fontSize: 11, lineHeight: 15, textAlign: 'center' },
   pressed: { opacity: 0.72 },
 });
