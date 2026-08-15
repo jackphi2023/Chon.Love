@@ -52,18 +52,23 @@ async function capture(page, testInfo, viewport, screen, fullPage = true) {
   });
 }
 
+async function expectSearchSurface(page) {
+  const testId = (page.viewportSize()?.width ?? 1280) >= 1024 ? 'luxy-search-desktop' : 'luxy-search-mobile';
+  await expect(page.getByTestId(testId)).toBeVisible({ timeout: 30_000 });
+}
+
 async function login(page, actor) {
   await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
   await page.getByPlaceholder('email@example.com').fill(actor.email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-  await expect(page.getByText('Tìm kiếm', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expectSearchSurface(page);
 }
 
 async function openSearch(page) {
   await page.goto('/');
-  await expect(page.getByText('Tìm kiếm', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expectSearchSurface(page);
 }
 
 async function openProfileMessage(page, viewport, displayName) {

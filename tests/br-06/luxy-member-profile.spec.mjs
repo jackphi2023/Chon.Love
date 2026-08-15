@@ -173,9 +173,12 @@ test('mobile profile shows verification badges, gift action, anchored message CT
 
     await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
-    await expect(page.getByTestId('luxy-profile-mobile-action-dock')).toBeVisible();
-    await expect(page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` })).toBeVisible();
-    await expect(page.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` })).toBeVisible();
+    const mobileActionDock = page.getByTestId('luxy-profile-mobile-action-dock');
+    await expect(mobileActionDock).toBeVisible();
+    const giftAction = mobileActionDock.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` });
+    const messageAction = mobileActionDock.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` });
+    await expect(giftAction).toBeVisible();
+    await expect(messageAction).toBeVisible();
     await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeHidden();
     await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
     await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
@@ -184,7 +187,7 @@ test('mobile profile shows verification badges, gift action, anchored message CT
     await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` }).click();
+    await giftAction.click();
     await expect(page.getByText('Tặng quà', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Quà dành cho thành viên Cao cấp và Kim cương', { exact: true })).toBeVisible();
     await page.getByLabel('Đóng').click();
@@ -194,7 +197,7 @@ test('mobile profile shows verification badges, gift action, anchored message CT
       contentType: 'image/png',
     });
 
-    await page.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` }).click();
+    await messageAction.click();
     await expect(page).toHaveURL(/\/settings\/membership/);
     await expect(page.getByTestId('luxy-upgrade-billing')).toBeVisible();
   } finally {

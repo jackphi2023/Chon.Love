@@ -99,6 +99,16 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await privateEntitlement.click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-private_photo')).toBeVisible();
     await expect(outsiderPage.getByText(/Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư/)).toBeVisible();
+    await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
+
+    // At desktop width the Free message composer keeps the inline paid-membership gate.
+    await outsiderPage.setViewportSize({ width: 1280, height: 900 });
+    await outsiderPage.goto(`/profile/${actors.creator.username}`);
+    await expect(outsiderPage.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
+    await outsiderPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
+    await expect(outsiderPage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
+    await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
+    await outsiderPage.setViewportSize({ width: 390, height: 844 });
 
     await Promise.all([
       expectNoHorizontalOverflow(creatorPage),

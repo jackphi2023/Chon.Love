@@ -55,7 +55,7 @@ test('desktop edit profile follows Seeking two-column hierarchy inside the Chon 
     await assertCoreEditor(page);
 
     await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
-    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    await expect(page.getByTestId('chon-desktop-navigation').getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     const photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     const formBox = await page.getByTestId('lx08-profile-form').boundingBox();
     expect(photoBox).not.toBeNull();
