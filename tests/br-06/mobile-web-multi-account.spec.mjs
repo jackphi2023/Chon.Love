@@ -65,9 +65,9 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await viewerPage.goto('/activity/create');
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible();
 
-    // Premium fixture uses LX-15 direct messaging without any friendship prerequisite.
+    // Premium fixture uses the fixed mobile CTA for LX-15 direct messaging without friendship.
     await openCreatorProfile(viewerPage);
-    await viewerPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
+    await viewerPage.getByRole('button', { name: `Gửi tin nhắn cho ${actors.creator.displayName}`, exact: true }).click();
     const chatInput = viewerPage.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true });
     await expect(chatInput).toBeVisible();
     await chatInput.fill(message);
@@ -88,10 +88,12 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await favorite.click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-favorite')).toHaveCount(0);
 
-    await outsiderPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
-    await expect(outsiderPage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
-    await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
+    await expect(outsiderPage.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
+    await outsiderPage.getByRole('button', { name: `Gửi tin nhắn cho ${actors.creator.displayName}`, exact: true }).click();
+    await expect(outsiderPage).toHaveURL(/\/settings\/membership/);
+    await expect(outsiderPage.getByTestId('luxy-upgrade-billing')).toBeVisible();
 
+    await outsiderPage.goto(`/profile/${actors.creator.username}`);
     const privateEntitlement = outsiderPage.getByTestId('luxy-private-photo-entitlement-button');
     await expect(privateEntitlement).toBeVisible();
     await privateEntitlement.click();
