@@ -37,6 +37,10 @@ async function expectFreeUpgradePrompt(page) {
   await expect(promo.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
 }
 
+async function expectChonLoveBrand(shellBrand) {
+  await expect(shellBrand.getByRole('img', { name: 'Chọn.love', exact: true })).toBeVisible();
+}
+
 test('authenticated Free shell keeps connection tabs responsive at 390/430/768 and desktop at 1024', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -50,7 +54,7 @@ test('authenticated Free shell keeps connection tabs responsive at 390/430/768 a
     await login(page);
     const shellBrand = page.getByRole('button', { name: 'Chọn.love — về Kết nối' });
 
-    await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
+    await expectChonLoveBrand(shellBrand);
     await expectFreeUpgradePrompt(page);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
@@ -75,7 +79,7 @@ test('authenticated Free shell keeps connection tabs responsive at 390/430/768 a
     });
 
     await page.setViewportSize({ width: 430, height: 932 });
-    await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
+    await expectChonLoveBrand(shellBrand);
     await expectFreeUpgradePrompt(page);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
@@ -92,7 +96,7 @@ test('authenticated Free shell keeps connection tabs responsive at 390/430/768 a
     });
 
     await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
+    await expectChonLoveBrand(shellBrand);
     await expectFreeUpgradePrompt(page);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
