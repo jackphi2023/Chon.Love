@@ -39,6 +39,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
 import { LuxyMembershipBadgeImage } from '@/components/luxy-membership-badge-image';
 import { LuxyPrivatePhotoAccess } from '@/components/luxy-private-photo-access';
@@ -60,6 +61,7 @@ export default function LuxyMemberProfilePage() {
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const desktop = width >= luxyBreakpoints.desktop;
+  const profileIconSize = desktop ? 18 : 15;
 
   const [greeting, setGreeting] = useState('');
   const [profileMessageDraft, setProfileMessageDraft] = useState('');
@@ -293,7 +295,7 @@ export default function LuxyMemberProfilePage() {
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="luxy-member-profile-page">
       <View style={[styles.profileFrame, desktop ? styles.profileFrameDesktop : styles.profileFrameMobile]}>
         <View style={[styles.leftColumn, desktop && styles.leftColumnDesktop]}>
-                    <View style={styles.heroPhotoFrame} testID="luxy-member-profile-hero-photo">
+          <View style={styles.heroPhotoFrame} testID="luxy-member-profile-hero-photo">
             <Pressable
               accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
               accessibilityRole="button"
@@ -332,9 +334,9 @@ export default function LuxyMemberProfilePage() {
             />
           ) : null}
 
-          <ProfileFacts profile={profile} />
+          <ProfileFacts iconSize={profileIconSize} profile={profile} />
           <View style={styles.memberSinceRow}>
-            <Text style={styles.factIcon}>◉</Text>
+            <ChonBrandIcon name="profile" size={profileIconSize} />
             <Text style={styles.factLabelStrong}>Thành viên từ</Text>
             <Text style={styles.memberSinceValue}>{formatMemberSince(profile.member_since)}</Text>
           </View>
@@ -438,7 +440,6 @@ export default function LuxyMemberProfilePage() {
               </View>
 
               <ProfileStorySection profile={profile} />
-
             </>
           )}
 
@@ -496,15 +497,25 @@ function ProfilePhotoTile({ media, name, onOpen }: { media: AlbumMediaItem; name
   );
 }
 
-function ProfileFacts({ profile }: { profile: LuxyMemberProfile }) {
-  const facts = [
+function ProfileFacts({ profile, iconSize }: { profile: LuxyMemberProfile; iconSize: number }) {
+  const legacyFacts = [
     profile.height_cm ? `↕ ${profile.height_cm} cm` : null,
     profile.weight_kg ? `▣ ${profile.weight_kg} kg` : null,
     `♥ ${relationshipLabel(profile.relationship_status)}`,
-    `◉ ${formatLastActive(profile.last_active_at)}`,
-    `⌖ ${profile.province_name ?? 'Việt Nam'}`,
   ].filter(Boolean) as string[];
-  return <View style={styles.factList}>{facts.map((fact) => <Text key={fact} style={styles.factText}>{fact}</Text>)}</View>;
+  return (
+    <View style={styles.factList}>
+      {legacyFacts.map((fact) => <Text key={fact} style={styles.factText}>{fact}</Text>)}
+      <View style={styles.factRow}>
+        <ChonBrandIcon name="recent" size={iconSize} />
+        <Text style={styles.factText}>{formatLastActive(profile.last_active_at)}</Text>
+      </View>
+      <View style={styles.factRow}>
+        <ChonBrandIcon name="location" size={iconSize} />
+        <Text style={styles.factText}>{profile.province_name ?? 'Việt Nam'}</Text>
+      </View>
+    </View>
+  );
 }
 
 function ProfileStorySection({ profile }: { profile: LuxyMemberProfile }) {
@@ -590,7 +601,7 @@ const styles = StyleSheet.create({
   leftColumn: { width: '100%' }, leftColumnDesktop: { flexBasis: 330, flexGrow: 0, flexShrink: 0, width: 330 }, rightColumn: { flex: 1, minWidth: 0 },
   heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhotoPressTarget: { height: '100%', width: '100%' }, heroPhoto: { height: '100%', width: '100%' }, heroFallback: { alignItems: 'center', height: '100%', justifyContent: 'center', width: '100%' }, heroFallbackText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 70 }, heroFavorite: { bottom: 10, position: 'absolute', right: 10 },
   privateRequestButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 8, minHeight: 44, paddingHorizontal: 12 }, privateRequestText: { color: luxyColors.text, fontSize: 12, fontWeight: '600' },
-  factList: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, gap: 12, paddingHorizontal: 12, paddingVertical: 18 }, factText: { color: luxyColors.text, fontSize: 12, lineHeight: 18 }, memberSinceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', gap: 8, minHeight: 52, paddingHorizontal: 12 }, factIcon: { color: luxyColors.ink, fontSize: 11 }, factLabelStrong: { color: luxyColors.text, flex: 1, fontSize: 11, fontWeight: '700' }, memberSinceValue: { color: luxyColors.muted, fontSize: 11 },
+  factList: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, gap: 12, paddingHorizontal: 12, paddingVertical: 18 }, factRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 20 }, factText: { color: luxyColors.text, flexShrink: 1, fontSize: 12, lineHeight: 18 }, memberSinceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', gap: 8, minHeight: 52, paddingHorizontal: 12 }, factLabelStrong: { color: luxyColors.text, flex: 1, fontSize: 11, fontWeight: '700' }, memberSinceValue: { color: luxyColors.muted, fontSize: 11 },
   sideBadgeBlock: { gap: 8, paddingHorizontal: 12, paddingTop: 16 }, sideLabel: { color: luxyColors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }, notesButton: { alignItems: 'center', borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 18, minHeight: 44, opacity: 0.55 }, notesButtonText: { color: luxyColors.text, fontSize: 11 },
   identityHeader: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', minHeight: 92, paddingBottom: 14 }, identityCopy: { flex: 1, minWidth: 0, paddingRight: 12 }, nameLine: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, displayName: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 29, fontWeight: '400', lineHeight: 35 }, locationText: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 18, lineHeight: 23 }, headline: { color: luxyColors.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
   membershipBadge: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: luxyRadii.pill, flexDirection: 'row', gap: 5, minHeight: 32, paddingHorizontal: 11 }, membershipBadgeCompact: { minHeight: 28, paddingHorizontal: 9 }, premiumBadge: { backgroundColor: '#E7F1FF', borderColor: '#5D8EC8', borderWidth: 1 }, diamondBadge: { backgroundColor: '#081726', borderColor: '#D8B874', borderWidth: 1 }, membershipBadgeCheck: { color: '#235A91', fontSize: 11, fontWeight: '800' }, membershipBadgeText: { color: '#235A91', fontSize: 10, fontWeight: '800' }, diamondBadgeText: { color: '#F1D79B' },

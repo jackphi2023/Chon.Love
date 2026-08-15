@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -159,7 +160,7 @@ export function MemberProfileMobileActions() {
             style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
             testID="luxy-profile-gift-button"
           >
-            <Text style={styles.giftButtonIcon}>♡</Text>
+            <ChonBrandIcon name="gift" size={15} />
             <Text style={styles.giftButtonText}>Tặng quà</Text>
           </Pressable>
           <Pressable
@@ -229,7 +230,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 10,
   },
-  giftButtonIcon: { color: luxyColors.actionRed, fontSize: 18, lineHeight: 20 },
   giftButtonText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '700' },
   messageButton: {
     alignItems: 'center',

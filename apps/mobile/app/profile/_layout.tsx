@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Slot, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
 import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
@@ -69,7 +70,7 @@ export default function PublicProfileRouteLayout() {
             style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
             testID="luxy-profile-desktop-gift-button"
           >
-            <Text style={styles.giftIcon}>🎁</Text>
+            <ChonBrandIcon name="gift" size={18} />
             <Text style={styles.giftText}>Tặng quà</Text>
           </Pressable>
         ) : null}
@@ -106,7 +107,6 @@ const styles = StyleSheet.create({
     zIndex: 40,
     ...luxyShadows.card,
   },
-  giftIcon: { fontSize: 18 },
   giftText: { color: luxyColors.ink, fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.72 },
 });
