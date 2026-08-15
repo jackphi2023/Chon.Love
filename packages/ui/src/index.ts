@@ -71,7 +71,7 @@ export const luxyBrand = {
   productName:'Chon.Love',
   shortName: 'Chon',
   slogan: 'Chọn Đúng Người, Yêu Đúng Gu',
-  primaryNavigation: ['Tìm kiếm', 'Yêu thích', 'Tin nhắn', 'Nâng cấp'] as const,
+  primaryNavigation: ['Kết nối', 'Yêu thích', 'Tin nhắn', 'Nâng cấp'] as const,
 } as const;
 export const colors = {
   background: luxyColors.background,
