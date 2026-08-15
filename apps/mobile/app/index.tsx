@@ -3,13 +3,7 @@ import {
   publicHomepageQueryKeys,
   type HomepageSettings,
 } from '@myfan/supabase';
-import {
-  luxyBrand,
-  luxyColors,
-  luxyRadii,
-  luxySpacing,
-  luxyTypography,
-} from '@myfan/ui';
+import { luxyColors, luxyRadii, luxyTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -141,11 +135,7 @@ export default function HomeScreen() {
   const openLogin = () => router.push('/auth?mode=login');
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.page}
-      showsVerticalScrollIndicator={false}
-      testID="chon-love-public-homepage"
-    >
+    <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false} testID="chon-love-public-homepage">
       <View style={[styles.hero, isPhone && styles.heroPhone]}>
         <HomepageYoutubeHero
           desktopUrl={settings?.hero_desktop_youtube_url}
@@ -162,12 +152,7 @@ export default function HomeScreen() {
             Chọn đúng Người, Yêu đúng Gu
           </Text>
           <View style={styles.goldRule} />
-          <Pressable
-            accessibilityLabel="Tham gia Chọn.love ngay"
-            accessibilityRole="button"
-            onPress={openJoin}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-          >
+          <Pressable accessibilityLabel="Tham gia Chọn.love ngay" accessibilityRole="button" onPress={openJoin} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
             <Text style={styles.primaryButtonText}>Tham gia ngay</Text>
           </Pressable>
         </View>
@@ -175,79 +160,36 @@ export default function HomeScreen() {
 
       <View style={[styles.positioningSection, isPhone && styles.positioningSectionPhone]}>
         <View style={[styles.sideArtwork, styles.sideArtworkLeft, isPhone && styles.sideArtworkPhone]}>
-          <Image
-            accessibilityLabel="Minh họa kết nối Chọn.love"
-            resizeMode="cover"
-            source={remoteOrFallback(settings?.section2_left_image_url, luxyPublicArtwork.values)}
-            style={styles.fillImage}
-          />
+          <Image accessibilityLabel="Minh họa kết nối Chọn.love" resizeMode="cover" source={remoteOrFallback(settings?.section2_left_image_url, luxyPublicArtwork.values)} style={styles.fillImage} />
         </View>
         <View style={[styles.positioningCopy, isPhone && styles.positioningCopyPhone]}>
           <SectionEyebrow>CHỌN.LOVE</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>
-            NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ
-          </Text>
-          <Text style={styles.centerBody}>
-            Chọn.love là nền tảng hẹn hò, kết nối người dùng thật gần bạn với một cộng đồng kết nối văn minh và thú vị.
-          </Text>
-          <Text style={styles.centerBody}>
-            Chọn.love được thiết kế nhằm thúc đẩy sự kết nối chân thực giữa các thành viên, hướng tới những mối quan hệ bền vững và tình yêu được xây dựng trên nền tảng mong muốn chung: một cuộc sống đầy khát vọng và trọn vẹn.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={openJoin}
-            style={({ pressed }) => [styles.textCta, pressed && styles.pressed]}
-          >
-            <Text style={styles.textCtaText}>Bắt đầu kết nối</Text>
-            <Text style={styles.textCtaArrow}>→</Text>
+          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ</Text>
+          <Text style={styles.centerBody}>Chọn.love là nền tảng hẹn hò, kết nối người dùng thật gần bạn với một cộng đồng kết nối văn minh và thú vị.</Text>
+          <Text style={styles.centerBody}>Chọn.love được thiết kế nhằm thúc đẩy sự kết nối chân thực giữa các thành viên, hướng tới những mối quan hệ bền vững và tình yêu được xây dựng trên nền tảng mong muốn chung: một cuộc sống đầy khát vọng và trọn vẹn.</Text>
+          <Pressable accessibilityRole="button" onPress={openJoin} style={({ pressed }) => [styles.textCta, pressed && styles.pressed]}>
+            <Text style={styles.textCtaText}>Bắt đầu kết nối</Text><Text style={styles.textCtaArrow}>→</Text>
           </Pressable>
         </View>
         <View style={[styles.sideArtwork, styles.sideArtworkRight, isPhone && styles.sideArtworkPhone]}>
-          <Image
-            accessibilityLabel="Minh họa hẹn hò Chọn.love"
-            resizeMode="cover"
-            source={remoteOrFallback(settings?.section2_right_image_url, luxyPublicArtwork.benefits)}
-            style={styles.fillImage}
-          />
+          <Image accessibilityLabel="Minh họa hẹn hò Chọn.love" resizeMode="cover" source={remoteOrFallback(settings?.section2_right_image_url, luxyPublicArtwork.benefits)} style={styles.fillImage} />
         </View>
       </View>
 
-      <ImageBackground
-        source={remoteOrFallback(settings?.section3_background_image_url, luxyPublicArtwork.testimonial)}
-        resizeMode="cover"
-        style={[styles.testimonialSection, isPhone && styles.testimonialSectionPhone]}
-      >
+      <ImageBackground source={remoteOrFallback(settings?.section3_background_image_url, luxyPublicArtwork.testimonial)} resizeMode="cover" style={[styles.testimonialSection, isPhone && styles.testimonialSectionPhone]}>
         <View style={styles.testimonialShade} />
         <View style={styles.testimonialInner}>
           <SectionEyebrow light>THÀNH VIÊN NÓI GÌ</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.testimonialHeading, isPhone && styles.sectionHeadingPhone]}>
-            CHIA SẼ TỪ THÀNH VIÊN:
-          </Text>
+          <Text accessibilityRole="header" style={[styles.testimonialHeading, isPhone && styles.sectionHeadingPhone]}>CHIA SẼ TỪ THÀNH VIÊN:</Text>
           {isDesktop ? (
-            <View style={styles.testimonialGrid}>
-              {testimonials.map((item) => <TestimonialCard item={item} key={item.name} />)}
-            </View>
+            <View style={styles.testimonialGrid}>{testimonials.map((item) => <TestimonialCard item={item} key={item.name} />)}</View>
           ) : (
             <View style={styles.testimonialMobileWrap}>
               <TestimonialCard item={testimonials[testimonialIndex] ?? testimonials[0]} />
               <View style={styles.carouselControls}>
-                <Pressable
-                  accessibilityLabel="Chia sẻ trước"
-                  accessibilityRole="button"
-                  onPress={() => setTestimonialIndex((value) => (value + testimonials.length - 1) % testimonials.length)}
-                  style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}
-                >
-                  <Text style={styles.carouselArrow}>‹</Text>
-                </Pressable>
+                <Pressable accessibilityLabel="Chia sẻ trước" accessibilityRole="button" onPress={() => setTestimonialIndex((value) => (value + testimonials.length - 1) % testimonials.length)} style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}><Text style={styles.carouselArrow}>‹</Text></Pressable>
                 <Text style={styles.carouselCount}>{testimonialIndex + 1} / {testimonials.length}</Text>
-                <Pressable
-                  accessibilityLabel="Chia sẻ tiếp theo"
-                  accessibilityRole="button"
-                  onPress={() => setTestimonialIndex((value) => (value + 1) % testimonials.length)}
-                  style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}
-                >
-                  <Text style={styles.carouselArrow}>›</Text>
-                </Pressable>
+                <Pressable accessibilityLabel="Chia sẻ tiếp theo" accessibilityRole="button" onPress={() => setTestimonialIndex((value) => (value + 1) % testimonials.length)} style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}><Text style={styles.carouselArrow}>›</Text></Pressable>
               </View>
             </View>
           )}
@@ -258,26 +200,16 @@ export default function HomeScreen() {
         <View style={[styles.benefitsInner, isDesktop && styles.benefitsInnerDesktop]}>
           <View style={styles.benefitsCopy}>
             <SectionEyebrow>TRẢI NGHIỆM KHÁC BIỆT</SectionEyebrow>
-            <Text accessibilityRole="header" style={[styles.sectionHeading, styles.alignLeft, isPhone && styles.sectionHeadingPhone]}>
-              QUYỀN LỢI THÀNH VIÊN:
-            </Text>
+            <Text accessibilityRole="header" style={[styles.sectionHeading, styles.alignLeft, isPhone && styles.sectionHeadingPhone]}>QUYỀN LỢI THÀNH VIÊN:</Text>
             {benefits.map((item, index) => (
               <View key={item.title} style={styles.benefitItem}>
                 <View style={styles.benefitNumber}><Text style={styles.benefitNumberText}>{String(index + 1).padStart(2, '0')}</Text></View>
-                <View style={styles.benefitContent}>
-                  <Text style={styles.benefitTitle}>{item.title}</Text>
-                  <Text style={styles.benefitCopyText}>{item.copy}</Text>
-                </View>
+                <View style={styles.benefitContent}><Text style={styles.benefitTitle}>{item.title}</Text><Text style={styles.benefitCopyText}>{item.copy}</Text></View>
               </View>
             ))}
           </View>
           <View style={[styles.benefitsArtwork, isPhone && styles.benefitsArtworkPhone]}>
-            <Image
-              accessibilityLabel="Minh họa quyền lợi thành viên Chọn.love"
-              resizeMode="cover"
-              source={remoteOrFallback(settings?.section4_image_url, luxyPublicArtwork.benefits)}
-              style={styles.fillImage}
-            />
+            <Image accessibilityLabel="Minh họa quyền lợi thành viên Chọn.love" resizeMode="cover" source={remoteOrFallback(settings?.section4_image_url, luxyPublicArtwork.benefits)} style={styles.fillImage} />
             <View style={styles.artworkGoldFrame} />
           </View>
         </View>
@@ -287,49 +219,30 @@ export default function HomeScreen() {
         <View style={styles.missionGlow} />
         <View style={styles.missionInner}>
           <SectionEyebrow light>SỨ MỆNH</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.missionHeading, isPhone && styles.sectionHeadingPhone]}>
-            SỨ MỆNH CỦA CHÚNG TÔI
-          </Text>
-          <Text style={styles.missionBody}>
-            Sứ mệnh của chúng tôi là kiến tạo một không gian nơi tình yêu thật, thú vị và sự sang trọng hòa quyện. Chúng tôi đặt mục tiêu nâng tầm trải nghiệm — không chỉ cho các thành viên của mình mà còn cho cả cộng đồng hẹn hò nghiêm túc tại Việt Nam.
-          </Text>
-          <Text style={styles.missionBody}>
-            Chọn.love không đi theo những quy chuẩn thông thường; chúng tôi thiết lập nên những chuẩn mực hoàn toàn mới. Từ vấn đề thành viên thật, tính cộng đồng cho đến các kết nối giá trị, mọi khía cạnh trải nghiệm đều được nâng cấp để xứng tầm với đẳng cấp của người sử dụng.
-          </Text>
-          <Text style={styles.missionBody}>
-            Trải nghiệm hẹn hò sang trọng mà Chọn.love mang lại không chỉ bao hàm các yếu tố an toàn, tính cộng đồng và kết nối, mà còn đưa tất cả những giá trị đó lên một tầm cao mới.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={openJoin}
-            style={({ pressed }) => [styles.missionButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.missionButtonText}>Tham gia Chọn.love</Text>
-          </Pressable>
+          <Text accessibilityRole="header" style={[styles.missionHeading, isPhone && styles.sectionHeadingPhone]}>SỨ MỆNH CỦA CHÚNG TÔI</Text>
+          <Text style={styles.missionBody}>Sứ mệnh của chúng tôi là kiến tạo một không gian nơi tình yêu thật, thú vị và sự sang trọng hòa quyện. Chúng tôi đặt mục tiêu nâng tầm trải nghiệm — không chỉ cho các thành viên của mình mà còn cho cả cộng đồng hẹn hò nghiêm túc tại Việt Nam.</Text>
+          <Text style={styles.missionBody}>Chọn.love không đi theo những quy chuẩn thông thường; chúng tôi thiết lập nên những chuẩn mực hoàn toàn mới. Từ vấn đề thành viên thật, tính cộng đồng cho đến các kết nối giá trị, mọi khía cạnh trải nghiệm đều được nâng cấp để xứng tầm với đẳng cấp của người sử dụng.</Text>
+          <Text style={styles.missionBody}>Trải nghiệm hẹn hò sang trọng mà Chọn.love mang lại không chỉ bao hàm các yếu tố an toàn, tính cộng đồng và kết nối, mà còn đưa tất cả những giá trị đó lên một tầm cao mới.</Text>
+          <Pressable accessibilityRole="button" onPress={openJoin} style={({ pressed }) => [styles.missionButton, pressed && styles.pressed]}><Text style={styles.missionButtonText}>Tham gia Chọn.love</Text></Pressable>
         </View>
       </View>
 
       <View style={[styles.cultureSection, isPhone && styles.cultureSectionPhone]}>
         <View style={styles.cultureInner}>
           <SectionEyebrow>VĂN HOÁ</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>
-            VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE
-          </Text>
+          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE</Text>
           <View style={[styles.cultureGrid, isDesktop && styles.cultureGridDesktop]}>
             {cultureItems.map((item, index) => (
-              <View key={item} style={styles.cultureItem}>
+              <View key={item} style={[styles.cultureItem, isDesktop && styles.cultureItemDesktop]}>
                 <View style={styles.cultureIcon}><Text style={styles.cultureIconText}>♥</Text></View>
-                <View style={styles.cultureCopyWrap}>
-                  <Text style={styles.cultureIndex}>0{index + 1}</Text>
-                  <Text style={styles.cultureCopy}>{item}</Text>
-                </View>
+                <View style={styles.cultureCopyWrap}><Text style={styles.cultureIndex}>0{index + 1}</Text><Text style={styles.cultureCopy}>{item}</Text></View>
               </View>
             ))}
           </View>
         </View>
       </View>
 
-      <PublicFooter onCommunity={() => router.push('/legal/community-standards')} onTerms={() => router.push('/legal/terms')} />
+      <PublicFooter isPhone={isPhone} onCommunity={() => router.push('/legal/community-standards')} onTerms={() => router.push('/legal/terms')} />
     </ScrollView>
   );
 }
@@ -339,54 +252,33 @@ function PublicHeader({ isPhone, onJoin, onLogin }: { isPhone: boolean; onJoin: 
     <View style={[styles.header, isPhone && styles.headerPhone]}>
       <ChonLoveLogo height={isPhone ? 42 : 54} width={isPhone ? 96 : 126} />
       <View style={styles.headerActions}>
-        <Pressable accessibilityRole="button" onPress={onLogin} style={({ pressed }) => [styles.loginButton, pressed && styles.pressed]}>
-          <Text style={styles.loginText}>Đăng nhập</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={onJoin} style={({ pressed }) => [styles.registerButton, pressed && styles.pressed]}>
-          <Text style={styles.registerText}>Đăng ký</Text>
-        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onLogin} style={({ pressed }) => [styles.loginButton, pressed && styles.pressed]}><Text style={styles.loginText}>Đăng nhập</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={onJoin} style={({ pressed }) => [styles.registerButton, pressed && styles.pressed]}><Text style={styles.registerText}>Đăng ký</Text></Pressable>
       </View>
     </View>
   );
 }
 
 function SectionEyebrow({ children, light = false }: { children: string; light?: boolean }) {
-  return (
-    <View style={styles.eyebrowRow}>
-      <View style={[styles.eyebrowRule, light && styles.eyebrowRuleLight]} />
-      <Text style={[styles.eyebrowText, light && styles.eyebrowTextLight]}>{children}</Text>
-      <View style={[styles.eyebrowRule, light && styles.eyebrowRuleLight]} />
-    </View>
-  );
+  return <View style={styles.eyebrowRow}><View style={[styles.eyebrowRule, light && styles.eyebrowRuleLight]} /><Text style={[styles.eyebrowText, light && styles.eyebrowTextLight]}>{children}</Text><View style={[styles.eyebrowRule, light && styles.eyebrowRuleLight]} /></View>;
 }
 
 function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
   return (
     <View style={styles.testimonialCard}>
-      <Text style={styles.quoteMark}>“</Text>
-      <Text style={styles.testimonialQuote}>{item.quote}</Text>
-      <View style={styles.testimonialAuthorRule} />
-      <Text style={styles.testimonialAuthor}>{item.name}</Text>
-      <Text style={styles.testimonialPlace}>{item.place}</Text>
+      <Text style={styles.quoteMark}>“</Text><Text style={styles.testimonialQuote}>{item.quote}</Text><View style={styles.testimonialAuthorRule} /><Text style={styles.testimonialAuthor}>{item.name}</Text><Text style={styles.testimonialPlace}>{item.place}</Text>
     </View>
   );
 }
 
-export function PublicFooter({ onCommunity, onTerms }: { onCommunity: () => void; onTerms: () => void }) {
+export function PublicFooter({ isPhone, onCommunity, onTerms }: { isPhone: boolean; onCommunity: () => void; onTerms: () => void }) {
   return (
-    <View style={styles.footer}>
-      <View style={styles.footerBrandBlock}>
-        <ChonLoveLogo height={54} width={132} />
-        <Text style={styles.footerTagline}>Chọn đúng người, Yêu đúng Gu © 2026 Chon.Love</Text>
-      </View>
+    <View style={[styles.footer, isPhone && styles.footerPhone]}>
+      <View style={styles.footerBrandBlock}><ChonLoveLogo height={54} width={132} /><Text style={styles.footerTagline}>Chọn đúng người, Yêu đúng Gu © 2026 Chon.Love</Text></View>
       <View style={styles.footerLinks}>
-        <Pressable accessibilityRole="link" onPress={onTerms} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
-          <Text style={styles.footerLinkText}>Điều khoản</Text>
-        </Pressable>
+        <Pressable accessibilityRole="link" onPress={onTerms} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}><Text style={styles.footerLinkText}>Điều khoản</Text></Pressable>
         <View style={styles.footerDot} />
-        <Pressable accessibilityRole="link" onPress={onCommunity} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
-          <Text style={styles.footerLinkText}>Tiêu chuẩn cộng đồng</Text>
-        </Pressable>
+        <Pressable accessibilityRole="link" onPress={onCommunity} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}><Text style={styles.footerLinkText}>Tiêu chuẩn cộng đồng</Text></Pressable>
       </View>
     </View>
   );
@@ -420,7 +312,7 @@ const styles = StyleSheet.create({
   sideArtwork: { borderColor: '#F2B51D', borderRadius: 140, borderWidth: 2, height: 250, overflow: 'hidden', position: 'absolute', top: 155, width: 190 },
   sideArtworkLeft: { left: -38, transform: [{ rotate: '-5deg' }] },
   sideArtworkRight: { right: -38, transform: [{ rotate: '5deg' }] },
-  sideArtworkPhone: { borderRadius: 52, height: 92, marginBottom: 2, position: 'relative', right: undefined, left: undefined, top: undefined, transform: [], width: 132 },
+  sideArtworkPhone: { borderRadius: 52, height: 92, left: undefined, marginBottom: 2, position: 'relative', right: undefined, top: undefined, transform: [], width: 132 },
   fillImage: { height: '100%', width: '100%' },
   eyebrowRow: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 14 },
   eyebrowRule: { backgroundColor: '#F2B51D', height: 1, width: 30 },
@@ -479,13 +371,15 @@ const styles = StyleSheet.create({
   cultureGrid: { gap: 12, marginTop: 10 },
   cultureGridDesktop: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   cultureItem: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.64)', borderColor: '#E6D7D0', borderRadius: 10, borderWidth: 1, flexDirection: 'row', gap: 14, minHeight: 94, padding: 16, width: '100%' },
+  cultureItemDesktop: { width: '31.5%' },
   cultureIcon: { alignItems: 'center', backgroundColor: '#111111', borderRadius: 999, height: 44, justifyContent: 'center', width: 44 },
   cultureIconText: { color: '#F2B51D', fontSize: 19 },
   cultureCopyWrap: { flex: 1 },
   cultureIndex: { color: '#C81C1D', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
   cultureCopy: { color: '#201B19', fontFamily: luxyTypography.families.display, fontSize: 17, lineHeight: 23, marginTop: 3 },
-  footer: { alignItems: 'center', backgroundColor: '#070707', flexDirection: 'row', justifyContent: 'space-between', minHeight: 150, paddingHorizontal: 42, paddingVertical: 28 },
-  footerBrandBlock: { alignItems: 'flex-start', gap: 2, maxWidth: 430 },
+  footer: { alignItems: 'center', backgroundColor: '#070707', flexDirection: 'row', flexWrap: 'wrap', gap: 22, justifyContent: 'space-between', minHeight: 150, paddingHorizontal: 42, paddingVertical: 28 },
+  footerPhone: { alignItems: 'flex-start', flexDirection: 'column', gap: 14, paddingHorizontal: 18 },
+  footerBrandBlock: { alignItems: 'flex-start', flexGrow: 1, maxWidth: 430, minWidth: 230 },
   footerTagline: { color: '#CFC6C1', fontSize: 12, lineHeight: 18 },
   footerLinks: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   footerLinkButton: { justifyContent: 'center', minHeight: 44 },
