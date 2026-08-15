@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
-const actor = { email: 'br06.viewer@example.test' };
+const actor = { email: 'br06.outsider@example.test' };
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -19,7 +19,7 @@ async function xPosition(locator) {
   return box.x;
 }
 
-test('authenticated desktop shell follows Chon.Love connection hierarchy and 1024px breakpoint', async ({ browser }, testInfo) => {
+test('authenticated Free desktop shell follows Chon.Love connection hierarchy and 1024px breakpoint', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     deviceScaleFactor: 1,
@@ -79,7 +79,7 @@ test('authenticated desktop shell follows Chon.Love connection hierarchy and 102
     await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Chon.Love — về Kết nối' })).toBeVisible();
 
-    await testInfo.attach('connection-desktop-shell-1280', {
+    await testInfo.attach('connection-free-desktop-shell-1280', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
