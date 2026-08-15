@@ -37,13 +37,39 @@ const publicActivityHighlightSchema = z.object({
   media_height: z.coerce.number().int().positive().nullable(),
 });
 
+const nullableHttpsUrl = z.string().url().refine((value) => value.startsWith('https://')).nullable();
+const nullableYoutubeUrl = z
+  .string()
+  .url()
+  .refine((value) => {
+    try {
+      const hostname = new URL(value).hostname.toLowerCase().replace(/^www\./, '');
+      return hostname === 'youtube.com' || hostname === 'youtu.be';
+    } catch {
+      return false;
+    }
+  })
+  .nullable();
+
+export const homepageSettingsSchema = z.object({
+  hero_desktop_youtube_url: nullableYoutubeUrl,
+  hero_mobile_youtube_url: nullableYoutubeUrl,
+  section2_left_image_url: nullableHttpsUrl,
+  section2_right_image_url: nullableHttpsUrl,
+  section3_background_image_url: nullableHttpsUrl,
+  section4_image_url: nullableHttpsUrl,
+  updated_at: z.string(),
+});
+
 export type PublicFeaturedCreator = z.infer<typeof publicFeaturedCreatorSchema>;
 export type PublicActivityHighlight = z.infer<typeof publicActivityHighlightSchema>;
+export type HomepageSettings = z.infer<typeof homepageSettingsSchema>;
 
 export const publicHomepageQueryKeys = {
   all: ['public-homepage'] as const,
   creators: ['public-homepage', 'featured-creators'] as const,
   activity: ['public-homepage', 'activity-highlights'] as const,
+  settings: ['public-homepage', 'settings'] as const,
 };
 
 export function normalizePublicFeaturedCreators(value: unknown): PublicFeaturedCreator[] {
@@ -52,6 +78,11 @@ export function normalizePublicFeaturedCreators(value: unknown): PublicFeaturedC
 
 export function normalizePublicActivityHighlights(value: unknown): PublicActivityHighlight[] {
   return z.array(publicActivityHighlightSchema).parse(value);
+}
+
+export function normalizeHomepageSettings(value: unknown): HomepageSettings {
+  const row = Array.isArray(value) ? value[0] : value;
+  return homepageSettingsSchema.parse(row);
 }
 
 export function truncatePublicHomepageText(value: string, maximumLength = 180): string {
@@ -82,4 +113,41 @@ export async function listPublicActivityHighlights(
   );
   if (error) throw error;
   return normalizePublicActivityHighlights(data);
+}
+
+export async function getPublicHomepageSettings(client: Client): Promise<HomepageSettings> {
+  const { data, error } = await client.rpc('get_public_homepage_settings' as never);
+  if (error) throw error;
+  return normalizeHomepageSettings(data);
+}
+
+export async function getAdminHomepageSettings(client: Client, actorUserId: string): Promise<HomepageSettings> {
+  const { data, error } = await client.rpc(
+    'admin_get_homepage_settings' as never,
+    { p_actor_user_id: z.string().uuid().parse(actorUserId) } as never,
+  );
+  if (error) throw error;
+  return normalizeHomepageSettings(data);
+}
+
+export async function updateAdminHomepageSettings(
+  client: Client,
+  actorUserId: string,
+  input: Omit<HomepageSettings, 'updated_at'>,
+): Promise<HomepageSettings> {
+  const parsed = homepageSettingsSchema.omit({ updated_at: true }).parse(input);
+  const { data, error } = await client.rpc(
+    'admin_update_homepage_settings' as never,
+    {
+      p_actor_user_id: z.string().uuid().parse(actorUserId),
+      p_hero_desktop_youtube_url: parsed.hero_desktop_youtube_url,
+      p_hero_mobile_youtube_url: parsed.hero_mobile_youtube_url,
+      p_section2_left_image_url: parsed.section2_left_image_url,
+      p_section2_right_image_url: parsed.section2_right_image_url,
+      p_section3_background_image_url: parsed.section3_background_image_url,
+      p_section4_image_url: parsed.section4_image_url,
+    } as never,
+  );
+  if (error) throw error;
+  return normalizeHomepageSettings(data);
 }
