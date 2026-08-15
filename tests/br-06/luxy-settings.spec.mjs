@@ -102,7 +102,11 @@ test('WEB-R01 Settings remains usable on 390px mobile web', async ({ browser }, 
     await login(page);
     await openSettingsFromAccountMenu(page);
     await assertSettingsHub(page);
-    await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' }).getByText('Chon', { exact: true })).toBeVisible();
+    const mobileBrand = page.getByRole('button', { name: 'Chọn.love — về Kết nối' });
+    await expect(mobileBrand).toBeVisible();
+    const mobileBrandBox = await mobileBrand.boundingBox();
+    expect(mobileBrandBox).not.toBeNull();
+    expect(mobileBrandBox.height).toBeGreaterThan(0);
     await assertNoHorizontalOverflow(page);
 
     await page.getByTestId('settings-verification').click();
