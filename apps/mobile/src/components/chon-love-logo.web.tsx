@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react';
 import { StyleSheet, type ImageStyle, type StyleProp } from 'react-native';
 
-const logoUri = '/app/chonlove-logo.webp';
+const configuredBaseUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim().replace(/\/$/u, '') ?? '';
+const logoUri = `${configuredBaseUrl}/chonlove-logo.webp`;
 
 export function ChonLoveLogo({
   width = 150,
