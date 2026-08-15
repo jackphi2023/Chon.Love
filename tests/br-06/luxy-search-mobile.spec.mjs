@@ -38,13 +38,13 @@ async function assertTwoColumnGrid(page) {
   }, { timeout: 10_000, intervals: [100, 200, 400, 800] }).toBe(true);
 }
 
-test('LX-11/12 phone Search keeps two-column grid and activates relationship filters', async ({ browser }, testInfo) => {
+test('phone Kết nối keeps two-column grid and activates relationship filters', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
 
   try {
     await login(page);
-    await expect(page.getByRole('heading', { name: 'Tìm kiếm' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kết nối' })).toBeVisible();
     await expect(page.getByTestId('luxy-search-mobile-grid')).toBeVisible();
     await assertTwoColumnGrid(page);
     await expect(page.getByRole('button', { name: /^Yêu thích BR06 / }).first()).toBeVisible();
@@ -61,7 +61,7 @@ test('LX-11/12 phone Search keeps two-column grid and activates relationship fil
     await filterButton.click();
     const filterSheet = page.getByTestId('luxy-search-mobile-filter-sheet');
     await expect(filterSheet).toBeVisible();
-    await expect(filterSheet.getByText('Bộ lọc tìm kiếm', { exact: true })).toBeVisible();
+    await expect(filterSheet.getByText('Bộ lọc kết nối', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Khu vực', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Khoảng cách', { exact: true })).toBeVisible();
     await expect(filterSheet.getByText('Tùy chọn', { exact: true })).toBeVisible();
@@ -91,7 +91,7 @@ test('LX-11/12 phone Search keeps two-column grid and activates relationship fil
     await expect(sortButton).toHaveAttribute('aria-label', 'Sắp xếp: Truy cập gần đây');
 
     await noHorizontalOverflow(page);
-    await testInfo.attach('lx12-search-mobile-390', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+    await testInfo.attach('connection-search-mobile-390', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
 
     await page.setViewportSize({ width: 430, height: 932 });
     await assertTwoColumnGrid(page);
