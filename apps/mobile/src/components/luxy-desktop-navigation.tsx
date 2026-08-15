@@ -10,14 +10,15 @@ import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const primaryItems = [
-  { key: 'search', label: 'Kết nối', symbol: '↔', href: '/(tabs)' as const },
-  { key: 'favorites', label: 'Yêu thích', symbol: '♥', href: '/(tabs)/favorites' as const },
-  { key: 'messages', label: 'Tin nhắn', symbol: '✉', href: '/(tabs)/messages' as const },
+  { key: 'search', label: 'Kết nối', icon: 'connect' as const, href: '/(tabs)' as const },
+  { key: 'favorites', label: 'Yêu thích', icon: 'favorite' as const, href: '/(tabs)/favorites' as const },
+  { key: 'messages', label: 'Tin nhắn', icon: 'message' as const, href: '/(tabs)/messages' as const },
   { key: 'upgrade', label: 'Nâng cấp', symbol: '✦', href: '/settings/membership' as const },
 ] as const;
 
@@ -164,7 +165,11 @@ export function LuxyDesktopNavigation() {
                   ]}
                 >
                   <View style={styles.iconWrap}>
-                    <Text accessibilityElementsHidden style={[styles.navIcon, item.key === 'search' && styles.connectionIcon, upgrade && styles.upgradeIcon]}>{item.symbol}</Text>
+                    {'icon' in item ? (
+                      <ChonBrandIcon name={item.icon} size={18} />
+                    ) : (
+                      <Text accessibilityElementsHidden style={[styles.navIcon, styles.upgradeIcon]}>{item.symbol}</Text>
+                    )}
                     {badge > 0 ? (
                       <View accessibilityElementsHidden style={styles.badge}>
                         <Text accessibilityElementsHidden style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
@@ -193,7 +198,7 @@ export function LuxyDesktopNavigation() {
                   pressed && styles.pressed,
                 ]}
               >
-                <View style={styles.accountAvatar}><Text style={styles.accountAvatarText}>●</Text></View>
+                <View style={styles.accountAvatar}><ChonUserAvatar size={34} /></View>
                 <Text style={styles.accountLabel}>Tài khoản</Text>
                 <Text accessibilityElementsHidden style={styles.chevron}>{accountOpen ? '⌃' : '⌄'}</Text>
               </Pressable>
@@ -296,7 +301,6 @@ const styles = StyleSheet.create({
   navItemHover: { backgroundColor: luxyColors.brandWarmSurface },
   iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 24, minWidth: 24, position: 'relative' },
   navIcon: { color: luxyColors.brandGoldStrong, fontSize: 20, fontWeight: '700', lineHeight: 22, textAlign: 'center' },
-  connectionIcon: { color: luxyColors.actionRed, fontSize: 21 },
   navLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600', lineHeight: 19 },
   navLabelActive: { color: luxyColors.actionRed, fontWeight: '700' },
   badge: {
@@ -340,15 +344,10 @@ const styles = StyleSheet.create({
   accountButtonHover: { backgroundColor: luxyColors.brandWarmSurface },
   accountAvatar: {
     alignItems: 'center',
-    backgroundColor: luxyColors.surface,
-    borderColor: luxyColors.brandGold,
-    borderRadius: luxyRadii.pill,
-    borderWidth: 2,
     height: 34,
     justifyContent: 'center',
     width: 34,
   },
-  accountAvatarText: { color: luxyColors.brandGoldStrong, fontSize: 12 },
   accountLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600' },
   chevron: { color: luxyColors.muted, fontSize: 13 },
   accountMenu: {
