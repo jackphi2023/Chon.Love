@@ -66,7 +66,7 @@ export function HomepageYoutubeHero({
           allow="autoplay; encrypted-media; picture-in-picture"
           loading="eager"
           src={embedUrl}
-          style={styles.player}
+          style={isPhone ? styles.playerPhone : styles.playerDesktop}
           tabIndex={-1}
           title="Chọn.love hero video"
         />
@@ -75,11 +75,22 @@ export function HomepageYoutubeHero({
   );
 }
 
+const playerBase: CSSProperties = {
+  border: 0,
+  left: '50%',
+  pointerEvents: 'none',
+  position: 'absolute',
+  top: '50%',
+  transform: 'translate(-50%, -50%)',
+};
+
 const styles: Record<string, CSSProperties> = {
   frame: {
     backgroundColor: '#090909',
+    contain: 'paint',
     height: '100%',
     inset: 0,
+    maxWidth: '100vw',
     overflow: 'hidden',
     position: 'absolute',
     width: '100%',
@@ -91,16 +102,19 @@ const styles: Record<string, CSSProperties> = {
     position: 'absolute',
     width: '100%',
   },
-  player: {
-    border: 0,
+  playerDesktop: {
+    ...playerBase,
     height: '56.25vw',
-    left: '50%',
     minHeight: '100%',
-    minWidth: '177.78vh',
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
     width: '100vw',
+  },
+  playerPhone: {
+    ...playerBase,
+    height: '100%',
+    maxHeight: '100%',
+    maxWidth: '100%',
+    minHeight: 0,
+    minWidth: 0,
+    width: '100%',
   },
 };
