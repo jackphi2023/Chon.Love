@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
-const actor = { email: 'br06.viewer@example.test' };
+const actor = { email: 'br06.outsider@example.test' };
 
 async function login(page) {
   await page.goto('/auth?mode=login');
