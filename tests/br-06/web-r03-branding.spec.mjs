@@ -43,4 +43,4 @@ test('WEB-R03 authenticated core surfaces expose no legacy brand or phase labels
     await expect(page.getByTestId(marker)).toBeVisible({ timeout: 30_000 });
     await expectCleanBranding(page, path);
   }
-}
+});
