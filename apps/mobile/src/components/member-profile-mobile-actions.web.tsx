@@ -26,6 +26,17 @@ const fixedBottomStyle = {
   right: 0,
 } as unknown as ViewStyle;
 
+const safeAreaPromptStyle = {
+  boxSizing: 'border-box',
+  height: `calc(${luxyLayout.authenticatedPromoHeight}px + env(safe-area-inset-top))`,
+  paddingTop: 'env(safe-area-inset-top)',
+} as unknown as ViewStyle;
+
+const safeAreaDockStyle = {
+  boxSizing: 'border-box',
+  paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+} as unknown as ViewStyle;
+
 function getProfileUsername(pathname: string): string | null {
   const match = pathname.match(/^\/profile\/([^/?#]+)$/u);
   if (!match?.[1]) return null;
@@ -90,8 +101,8 @@ export function MemberProfileMobileActions() {
         [data-testid="luxy-member-profile-message-composer"] { display: none !important; }
         [data-testid="luxy-member-profile-page"] {
           box-sizing: border-box !important;
-          padding-bottom: ${actionsVisible ? 146 : 0}px !important;
-          padding-top: ${isFreeMembership ? luxyLayout.authenticatedPromoHeight : 0}px !important;
+          padding-bottom: ${actionsVisible ? 'calc(84px + env(safe-area-inset-bottom))' : '0px'} !important;
+          padding-top: ${isFreeMembership ? `calc(${luxyLayout.authenticatedPromoHeight}px + env(safe-area-inset-top))` : '0px'} !important;
         }
       }
     `;
@@ -129,7 +140,7 @@ export function MemberProfileMobileActions() {
           accessibilityLabel="Nâng cấp ngay để gửi tin nhắn"
           accessibilityRole="button"
           onPress={openMembership}
-          style={({ pressed }) => [styles.upgradePrompt, fixedTopStyle, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.upgradePrompt, fixedTopStyle, safeAreaPromptStyle, pressed && styles.pressed]}
           testID="luxy-profile-free-upgrade-promo"
         >
           <Text style={styles.upgradePromptText}>
@@ -138,28 +149,30 @@ export function MemberProfileMobileActions() {
         </Pressable>
       ) : null}
 
-      <View style={[styles.actionDock, fixedBottomStyle]} testID="luxy-profile-mobile-action-dock">
+      <View style={[styles.actionDock, fixedBottomStyle, safeAreaDockStyle]} testID="luxy-profile-mobile-action-dock">
         {actionError ? <Text accessibilityRole="alert" style={styles.actionError}>{actionError}</Text> : null}
-        <Pressable
-          accessibilityLabel={`Tặng quà cho ${displayName}`}
-          accessibilityRole="button"
-          onPress={() => setGiftOpen(true)}
-          style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
-          testID="luxy-profile-gift-button"
-        >
-          <Text style={styles.giftButtonIcon}>♡</Text>
-          <Text style={styles.giftButtonText}>Tặng quà</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel={`Gửi tin nhắn cho ${displayName}`}
-          accessibilityRole="button"
-          disabled={messageBusy}
-          onPress={() => void openConversation()}
-          style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
-          testID="luxy-profile-fixed-message-button"
-        >
-          <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
-        </Pressable>
+        <View style={styles.actionRow}>
+          <Pressable
+            accessibilityLabel={`Tặng quà cho ${displayName}`}
+            accessibilityRole="button"
+            onPress={() => setGiftOpen(true)}
+            style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
+            testID="luxy-profile-gift-button"
+          >
+            <Text style={styles.giftButtonIcon}>♡</Text>
+            <Text style={styles.giftButtonText}>Tặng quà</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel={`Gửi tin nhắn cho ${displayName}`}
+            accessibilityRole="button"
+            disabled={messageBusy}
+            onPress={() => void openConversation()}
+            style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
+            testID="luxy-profile-fixed-message-button"
+          >
+            <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <LuxyGiftModal
@@ -178,6 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#090909',
     height: luxyLayout.authenticatedPromoHeight,
     justifyContent: 'center',
+    minHeight: luxyLayout.authenticatedPromoHeight,
     paddingHorizontal: luxySpacing.lg,
     zIndex: 980,
   },
@@ -187,25 +201,33 @@ const styles = StyleSheet.create({
     backgroundColor: luxyColors.surface,
     borderTopColor: luxyColors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 8,
     paddingBottom: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingTop: 9,
     zIndex: 970,
     ...luxyShadows.navigation,
   },
+  actionRow: {
+    alignItems: 'stretch',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    maxWidth: 620,
+    width: '100%',
+  },
   giftButton: {
     alignItems: 'center',
-    alignSelf: 'center',
     backgroundColor: luxyColors.surface,
     borderColor: luxyColors.actionRed,
-    borderRadius: luxyRadii.pill,
+    borderRadius: luxyRadii.sm,
     borderWidth: 1,
+    flex: 0.42,
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
     justifyContent: 'center',
-    minHeight: 42,
-    paddingHorizontal: 24,
+    minHeight: 50,
+    minWidth: 0,
+    paddingHorizontal: 10,
   },
   giftButtonIcon: { color: luxyColors.actionRed, fontSize: 18, lineHeight: 20 },
   giftButtonText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '700' },
@@ -213,12 +235,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: luxyColors.actionRed,
     borderRadius: luxyRadii.sm,
+    flex: 0.58,
     justifyContent: 'center',
     minHeight: 50,
-    width: '100%',
+    minWidth: 0,
+    paddingHorizontal: 10,
   },
-  messageButtonText: { color: luxyColors.surface, fontSize: 15, fontWeight: '800' },
-  actionError: { color: luxyColors.danger, fontSize: 11, textAlign: 'center' },
+  messageButtonText: { color: luxyColors.surface, fontSize: 14, fontWeight: '800' },
+  actionError: { color: luxyColors.danger, fontSize: 11, marginBottom: 7, textAlign: 'center' },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.76 },
 });
