@@ -80,6 +80,26 @@ async function assertFreeFavoriteWorks(photoModal, page) {
   }
 }
 
+async function assertVerificationBadges(page) {
+  const badges = page.getByTestId('luxy-member-verification-badges');
+  await expect(badges).toBeVisible();
+
+  const checks = [
+    /^(Đã|Chưa) xác thực ảnh chụp cá nhân$/,
+    /^(Đã|Chưa) xác thực CCCD$/,
+    /^(Đã|Chưa) xác thực LinkedIn$/,
+  ];
+
+  for (const matcher of checks) {
+    const icon = badges.getByRole('button', { name: matcher });
+    await expect(icon).toBeVisible();
+    const tooltip = await icon.getAttribute('aria-label');
+    expect(tooltip).toMatch(matcher);
+    await icon.hover();
+    await expect(page.getByText(tooltip, { exact: true })).toBeVisible();
+  }
+}
+
 test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message behind Premium or Diamond', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
@@ -97,6 +117,7 @@ test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message 
     const heroPhoto = page.getByTestId('luxy-member-profile-hero-photo');
     await expect(heroPhoto).toBeVisible();
     await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
+    await assertVerificationBadges(page);
 
     await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
@@ -135,7 +156,7 @@ test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message 
   }
 });
 
-test('LX-20 mobile keeps Free Favorite and membership-entitled Private Photos on 390px web', async ({ browser }, testInfo) => {
+test('mobile profile shows verification badges, gift action, anchored message CTA and Free upgrade prompt on 390px web', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -149,24 +170,30 @@ test('LX-20 mobile keeps Free Favorite and membership-entitled Private Photos on
     await openCreatorProfile(page);
 
     await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Nhắn tin', exact: true })).toBeVisible();
+    await expect(page.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
+    await expect(page.getByTestId('luxy-profile-mobile-action-dock')).toBeVisible();
+    await expect(page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` })).toBeVisible();
+    await expect(page.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` })).toBeVisible();
+    await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeHidden();
     await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
     await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
+    await assertVerificationBadges(page);
 
     await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx20-mobile-member-profile-private-photo-gate', {
+    await page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` }).click();
+    await expect(page.getByText('Tặng quà', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Quà dành cho thành viên Cao cấp và Kim cương', { exact: true })).toBeVisible();
+    await page.getByLabel('Đóng').click();
+
+    await testInfo.attach('mobile-profile-verification-actions', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
 
-    await page.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
-    const messageGate = page.getByTestId('luxy-upgrade-gate-message');
-    await expect(messageGate).toBeVisible();
-    await assertPaidPlanComparison(messageGate);
-    await messageGate.getByTestId('luxy-message-upgrade-cta').click();
-    await expect(page).toHaveURL(/\/settings\/membership.*plan=premium/);
+    await page.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` }).click();
+    await expect(page).toHaveURL(/\/settings\/membership/);
     await expect(page.getByTestId('luxy-upgrade-billing')).toBeVisible();
   } finally {
     await context.close();
