@@ -44,6 +44,15 @@
   force = true
   query = {intent = "signup"}
 
+# The rebuilt Expo homepage is the only homepage source of truth. This catch-all
+# root redirect prevents the retired Next.js homepage from resurfacing if the
+# combined public-web Netlify site is selected for production.
+[[redirects]]
+  from = "/"
+  to = "/app/"
+  status = 302
+  force = true
+
 [[redirects]]
   from = "/app/*"
   to = "/app/index.html"
