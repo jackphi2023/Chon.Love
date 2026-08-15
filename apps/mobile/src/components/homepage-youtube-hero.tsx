@@ -5,8 +5,8 @@ export function HomepageYoutubeHero({
   fallbackSource,
   style,
 }: {
-  desktopUrl?: string | null;
-  mobileUrl?: string | null;
+  desktopUrl?: string | null | undefined;
+  mobileUrl?: string | null | undefined;
   isPhone?: boolean;
   fallbackSource: ImageSourcePropType;
   style?: StyleProp<ViewStyle>;
