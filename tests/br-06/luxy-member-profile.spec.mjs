@@ -190,7 +190,7 @@ test('mobile profile shows verification badges, gift action, anchored message CT
     await giftAction.click();
     await expect(page.getByText('Tặng quà', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Quà dành cho thành viên Cao cấp và Kim cương', { exact: true })).toBeVisible();
-    await page.getByLabel('Đóng').click();
+    await page.getByLabel('Đóng', { exact: true }).click();
 
     await testInfo.attach('mobile-profile-verification-actions', {
       body: await page.screenshot({ fullPage: true }),
