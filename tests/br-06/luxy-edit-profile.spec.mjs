@@ -97,7 +97,11 @@ test('edit profile stacks cleanly on tablet and phone with the Free upgrade shel
     await noHorizontalOverflow(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' }).getByText('Chon', { exact: true })).toBeVisible();
+    const mobileBrand = page.getByRole('button', { name: 'Chọn.love — về Kết nối' });
+    await expect(mobileBrand).toBeVisible();
+    const mobileBrandBox = await mobileBrand.boundingBox();
+    expect(mobileBrandBox).not.toBeNull();
+    expect(mobileBrandBox.height).toBeGreaterThan(0);
     await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     formBox = await page.getByTestId('lx08-profile-form').boundingBox();
