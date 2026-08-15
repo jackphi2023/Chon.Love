@@ -171,6 +171,7 @@ export function MemberProfileMobileActions() {
             style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
             testID="luxy-profile-fixed-message-button"
           >
+            <ChonBrandIcon name="message" size={16} />
             <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
           </Pressable>
         </View>
@@ -236,6 +237,8 @@ const styles = StyleSheet.create({
     backgroundColor: luxyColors.actionRed,
     borderRadius: luxyRadii.sm,
     flex: 0.58,
+    flexDirection: 'row',
+    gap: 7,
     justifyContent: 'center',
     minHeight: 50,
     minWidth: 0,
