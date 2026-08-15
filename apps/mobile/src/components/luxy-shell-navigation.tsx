@@ -17,14 +17,15 @@ import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const primaryItems = [
-  { key: 'search', label: 'Kết nối', href: '/(tabs)' as const },
-  { key: 'favorites', label: 'Yêu thích', symbol: '♥', href: '/(tabs)/favorites' as const },
-  { key: 'messages', label: 'Tin nhắn', symbol: '▤', href: '/(tabs)/messages' as const },
-  { key: 'upgrade', label: 'Nâng cấp', symbol: '↑', href: '/settings/membership' as const },
+  { key: 'search', label: 'Kết nối', icon: 'connect' as const, href: '/(tabs)' as const },
+  { key: 'favorites', label: 'Yêu thích', icon: 'favorite' as const, href: '/(tabs)/favorites' as const },
+  { key: 'messages', label: 'Tin nhắn', icon: 'message' as const, href: '/(tabs)/messages' as const },
+  { key: 'upgrade', label: 'Nâng cấp', href: '/settings/membership' as const },
 ] as const;
 
 const accountItems = [
@@ -48,16 +49,6 @@ function isPrimaryActive(key: PrimaryItem['key'], pathname: string): boolean {
 function isAccountRoute(pathname: string): boolean {
   if (pathname.startsWith('/settings/membership')) return false;
   return ['/profile', '/gifts', '/balance', '/settings'].some((route) => pathname.startsWith(route));
-}
-
-function ConnectionIcon({ compact = false }: { compact?: boolean }) {
-  return (
-    <View accessibilityElementsHidden style={[styles.connectionIcon, compact && styles.connectionIconCompact]}>
-      <View style={[styles.connectionLine, compact && styles.connectionLineCompact]} />
-      <View style={[styles.connectionNode, styles.connectionNodeLeft, compact && styles.connectionNodeCompact]} />
-      <View style={[styles.connectionNode, styles.connectionNodeRight, compact && styles.connectionNodeCompact]} />
-    </View>
-  );
 }
 
 export function LuxyShellNavigation() {
@@ -165,11 +156,7 @@ export function LuxyShellNavigation() {
         ) : (
           <View style={[styles.navStack, phone && styles.phoneNavStack]}>
             <View style={styles.symbolWrap}>
-              {item.key === 'search' ? (
-                <ConnectionIcon compact={phone} />
-              ) : (
-                <Text accessibilityElementsHidden style={[styles.navSymbol, phone && styles.phoneSymbol]}>{item.symbol}</Text>
-              )}
+              {'icon' in item ? <ChonBrandIcon name={item.icon} size={phone ? 15 : 18} /> : null}
               {badge > 0 ? (
                 <View accessibilityElementsHidden style={styles.navBadge}>
                   <Text accessibilityElementsHidden style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text>
@@ -201,7 +188,7 @@ export function LuxyShellNavigation() {
         ]}
       >
         <View style={[styles.avatar, phone && styles.phoneAvatar]}>
-          <Text style={[styles.avatarText, phone && styles.phoneAvatarText]}>C</Text>
+          <ChonUserAvatar size={phone ? 36 : 42} />
         </View>
         {variant === 'desktop' ? <Text style={styles.accountLabel}>Tài khoản</Text> : null}
         <Text accessibilityElementsHidden style={styles.chevron}>{accountOpen ? '⌃' : '⌄'}</Text>
@@ -316,20 +303,10 @@ const styles = StyleSheet.create({
   navStack: { alignItems: 'center', gap: 1, justifyContent: 'center' },
   phoneNavStack: { gap: 0 },
   symbolWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 21, minWidth: 24, position: 'relative' },
-  navSymbol: { color: luxyColors.ink, fontSize: 20, fontWeight: '700', lineHeight: 21 },
-  connectionIcon: { height: 21, position: 'relative', width: 28 },
-  connectionIconCompact: { height: 18, width: 24 },
-  connectionLine: { backgroundColor: luxyColors.ink, height: 2, left: 7, position: 'absolute', top: 10, transform: [{ rotate: '-16deg' }], width: 14 },
-  connectionLineCompact: { left: 6, top: 8, width: 12 },
-  connectionNode: { backgroundColor: luxyColors.surface, borderColor: luxyColors.ink, borderRadius: 6, borderWidth: 2, height: 10, position: 'absolute', top: 5, width: 10 },
-  connectionNodeCompact: { borderRadius: 5, height: 9, top: 4, width: 9 },
-  connectionNodeLeft: { left: 1 },
-  connectionNodeRight: { right: 1 },
   navBadge: { alignItems: 'center', backgroundColor: luxyColors.brandCoral, borderRadius: 5, justifyContent: 'center', minHeight: 15, minWidth: 15, paddingHorizontal: 3, position: 'absolute', right: -8, top: -3 },
   navBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
   navText: { color: luxyColors.text, fontSize: 14, fontWeight: '400', lineHeight: 18 },
   phoneNavText: { fontSize: 10.5, lineHeight: 13 },
-  phoneSymbol: { fontSize: 17, lineHeight: 18 },
   navTextActive: { fontWeight: '700' },
   upgrade: { alignSelf: 'center', backgroundColor: luxyColors.actionRed, borderBottomWidth: 0, borderRadius: luxyRadii.pill, marginHorizontal: luxySpacing.sm, minHeight: 36, minWidth: 100, paddingHorizontal: luxySpacing.lg },
   tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.sm },
@@ -339,10 +316,8 @@ const styles = StyleSheet.create({
   tabletAccountButton: { minWidth: 64, paddingHorizontal: luxySpacing.sm },
   phoneAccountButton: { height: luxyLayout.authenticatedPhoneTopHeight, minWidth: 60, paddingHorizontal: luxySpacing.md },
   accountActive: { backgroundColor: luxyColors.subtleSurface },
-  avatar: { alignItems: 'center', backgroundColor: luxyColors.elevatedSubtle, borderColor: luxyColors.border, borderRadius: luxyRadii.pill, borderWidth: 1, height: 42, justifyContent: 'center', width: 42 },
+  avatar: { alignItems: 'center', height: 42, justifyContent: 'center', width: 42 },
   phoneAvatar: { height: 36, width: 36 },
-  avatarText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 20 },
-  phoneAvatarText: { fontSize: 17 },
   accountLabel: { color: luxyColors.text, fontSize: 16, fontWeight: '500', maxWidth: 110 },
   chevron: { color: luxyColors.text, fontSize: 15 },
   accountMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 224, paddingVertical: luxySpacing.sm, position: 'absolute', right: luxySpacing.md, top: luxyLayout.authenticatedNavHeight - 2, zIndex: 140, ...luxyShadows.navigation },
