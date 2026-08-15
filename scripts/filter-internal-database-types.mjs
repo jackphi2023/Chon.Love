@@ -28,7 +28,9 @@ let source = readFileSync(file, 'utf8');
 
 function removeGeneratedBlocks(names, kind) {
   for (const name of names) {
-    const marker = `      ${name}: {\n`;
+    // Supabase emits both multiline blocks and compact one-line blocks such as
+    // `is_super_admin: { Args: never; Returns: boolean }`; match both forms.
+    const marker = `      ${name}: {`;
     const start = source.indexOf(marker);
     if (start < 0) {
       console.error(`Expected server-only ${kind} missing from generated types: ${name}`);
