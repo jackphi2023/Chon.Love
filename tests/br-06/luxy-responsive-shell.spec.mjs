@@ -27,7 +27,7 @@ async function expectPrimaryTouchTargets(page) {
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
     expect(box).not.toBeNull();
-    expect(box.height).toBeGreaterThanOrEqual(42);
+    expect(box.height).toBeGreaterThanOrEqual(44);
   }
 }
 
