@@ -1,96 +1,117 @@
 import {
+  getPublicHomepageSettings,
+  publicHomepageQueryKeys,
+  type HomepageSettings,
+} from '@myfan/supabase';
+import {
   luxyBrand,
   luxyColors,
-  luxyLayout,
   luxyRadii,
   luxySpacing,
   luxyTypography,
 } from '@myfan/ui';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
   ImageBackground,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
+  type ImageSourcePropType,
 } from 'react-native';
+import { ChonLoveLogo } from '@/components/chon-love-logo';
+import { HomepageYoutubeHero } from '@/components/homepage-youtube-hero';
+import { luxyPublicArtwork } from '@/components/luxy-public-artwork';
 import { getAuthenticatedDestination } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
-import { luxyPublicArtwork } from '@/components/luxy-public-artwork';
 
 const testimonials = [
   {
     quote:
-      'Luxy giúp tôi bỏ qua cảm giác lướt vô tận. Tôi gặp những người có mục tiêu rõ ràng, biết mình muốn gì và thực sự dành thời gian cho một cuộc trò chuyện chất lượng.',
-    name: 'Minh Anh',
-    place: 'TP. Hồ Chí Minh',
+      'Chọn.love thực sự mang lại cho tôi một trải nghiệm hẹn hò khác biệt và thật hơn so với tất cả web, app hay mạng xã hội khác vốn rất nhiều tài khoản ảo. Tôi cũng không muốn lãng phí thời gian vào việc cứ mãi lướt màn hình cả ngày mà chẳng thể kết nối được với ai. Tôi đã gặp gỡ rất nhiều người phụ nữ tuyệt vời ở Chọn.love và thực sự chất lượng ở đây vượt trội hơn hẳn so với những nơi khác. Nếu bạn muốn gặp gỡ những người phụ nữ xinh đẹp, có mục tiêu sống rõ ràng và biết cách trò chuyện cuốn hút, hãy tạm biệt các ứng dụng thông thường và tham gia Chọn.love ngay.',
+    name: 'Steven Nguyễn',
+    place: 'Tp HCM',
   },
   {
     quote:
-      'Điều tôi đánh giá cao là chất lượng kết nối. Khi cả hai cùng nghiêm túc với cuộc sống của mình, cuộc hẹn trở nên tự nhiên và có nhiều điều để chia sẻ hơn.',
-    name: 'Quang',
-    place: 'Hà Nội',
+      'Chọn.love đã thay đổi cuộc đời tôi theo những cách mà tôi chưa từng nghĩ là có thể. Thông qua nền tảng này, tôi học được cách ưu tiên bản thân và những nhu cầu của mình, giúp tôi tiếp cận việc hẹn hò với một mục đích và định hướng rõ ràng hơn. Nhờ đó, tôi đã kết nối được với những người đàn ông đẳng cấp, những người không chỉ truyền cảm hứng mà còn tích cực ủng hộ các mục tiêu và hoài bão của tôi.',
+    name: 'Thanh Hiền',
+    place: 'Tp HCM',
   },
   {
     quote:
-      'Tôi muốn một nơi tôn trọng tiêu chuẩn cá nhân, sự riêng tư và thời gian. Luxy cho tôi cảm giác đó ngay từ cách hồ sơ và trải nghiệm được thiết kế.',
-    name: 'Linh',
-    place: 'Đà Nẵng',
+      'Nếu không có Chọn.love, tôi sẽ chẳng bao giờ được đặt chân đến một nửa số địa điểm tuyệt vời mà tôi đã cùng người ấy ghé thăm. Chúng tôi kết nối với nhau nhờ niềm đam mê khám phá các nền văn hóa mới và tình yêu dành cho những chuyến phiêu lưu; ngay trong buổi hẹn đầu tiên, cả hai đã cùng bay đến gặp nhau. Tôi cũng muốn nói thêm rằng, cuộc sống sẽ tuyệt vời hơn biết bao khi bạn được bay cùng người đàn ông trong mộng của mình.',
+    name: 'Hải Yến',
+    place: 'Tp HCM',
   },
 ] as const;
 
-const values = [
+const benefits = [
   {
-    key: 'worth',
-    title: 'Giá trị',
-    copy: 'Một mối quan hệ tốt bắt đầu từ việc hai người nhìn thấy giá trị thật của nhau, không chỉ ấn tượng bề ngoài.',
+    title: 'Kết nối chất lượng',
+    copy: 'Không cần phải lướt tìm vô định hay sợ gặp người “ảo”. Hãy kết nối với những thành viên thật và xứng đáng với thời gian của bạn—những người sẵn sàng gặp gỡ với cùng sự rõ ràng, nỗ lực và năng lượng mà bạn mang đến.',
   },
   {
-    key: 'connection',
-    title: 'Kết nối',
-    copy: 'Luxy hướng tới những cuộc trò chuyện và mối quan hệ có chiều sâu, thay vì tối đa hóa số lần lướt.',
+    title: 'Hẹn hò có định hướng rõ ràng',
+    copy: 'Bạn có tầm nhìn rõ ràng về cuộc sống mà mình đang xây dựng và đang tìm kiếm một người mang lại vẻ đẹp, sự hứng khởi cũng như chiều sâu cho hành trình đó. Bạn bị thu hút bởi sự tự tin, tham vọng và phong thái ấn tượng. Với những tiêu chuẩn cao như thế, chỉ có một nơi được thiết kế để đáp ứng chúng: Chọn.love.',
   },
   {
-    key: 'authenticity',
-    title: 'Chân thật',
-    copy: 'Thời gian là tài sản quý. Chúng tôi ưu tiên hồ sơ rõ ràng, xác thực phù hợp và hành vi minh bạch.',
+    title: 'Khẳng định Đẳng cấp',
+    copy: 'Thành viên có thể nâng cấp các nhận diện Cao cấp, Kim cương để khẳng định khả năng tài chính và hình ảnh đẳng cấp của cá nhân. Thành viên cũng có thể tặng nhiều phần quà giá trị cho người bạn yêu thích để tạo thiện cảm với đối phương, giúp xây dựng nền tảng cảm xúc hẹn hò ban đầu.',
   },
   {
-    key: 'luxury',
-    title: 'Chất lượng sống',
-    copy: 'Sự sang trọng không chỉ là tài sản; đó là quyền lựa chọn trải nghiệm, thời gian và những người phù hợp để đồng hành.',
+    title: 'Gặp gỡ người thực sự thấu hiểu',
+    copy: 'Các thành viên của Chọn.love hội tụ đầy đủ các yếu tố: thông minh, cầu tiến và nghiêm túc trong các mối quan hệ. Tại đây, việc tìm thấy một người có cùng tư duy và sẵn sàng mở rộng thế giới của bạn không phải là điều xa vời; đó là tiêu chuẩn cơ bản.',
   },
   {
-    key: 'safety',
-    title: 'An toàn',
-    copy: 'Quyền riêng tư, báo cáo, chặn và các lớp xác thực được đặt ở trung tâm của trải nghiệm Luxy.',
+    title: 'Nâng tầm cuộc sống của bạn',
+    copy: 'Một mối quan hệ đúng nghĩa sẽ nâng tầm mọi khía cạnh trong cuộc sống. Khi tìm được người mang lại giá trị, thấu hiểu tầm nhìn và cùng bạn xây dựng cuộc sống hằng mơ ước, mọi thứ sẽ trở nên sống động và trọn vẹn hơn.',
   },
 ] as const;
 
-type ValueKey = (typeof values)[number]['key'];
+const cultureItems = [
+  'Hẹn hò xác thực thành viên.',
+  'Hướng tới những mối quan hệ thực sự.',
+  'Tôn trọng lẫn nhau.',
+  'Tận hưởng sự chú ý và nổi bật.',
+  'Không giao dịch tài chính để đổi lấy sự đồng hành.',
+] as const;
+
+function remoteOrFallback(value: string | null | undefined, fallback: ImageSourcePropType): ImageSourcePropType {
+  return value ? { uri: value } : fallback;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
+  const client = getMobileSupabaseClient();
   const { width } = useWindowDimensions();
   const { userId, isRestoring } = useAuth();
-  const [testimonialIndex, setTestimonialIndex] = useState(2);
-  const [selectedValue, setSelectedValue] = useState<ValueKey>('worth');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
   const isPhone = width < 768;
-  const isWide = width >= 900;
-  const isCompactPhone = width < 430;
+  const isDesktop = width >= 1024;
+
+  const settingsQuery = useQuery({
+    queryKey: publicHomepageQueryKeys.settings,
+    enabled: Boolean(client),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      if (!client) throw new Error('supabase_unavailable');
+      return getPublicHomepageSettings(client);
+    },
+  });
 
   useEffect(() => {
     if (isRestoring || !userId) return;
-
     let active = true;
     void getAuthenticatedDestination()
       .then((destination) => {
@@ -100,7 +121,6 @@ export default function HomeScreen() {
         logger.error('Unable to resolve authenticated destination', error);
         if (active) router.replace('/(onboarding)');
       });
-
     return () => {
       active = false;
     };
@@ -109,484 +129,367 @@ export default function HomeScreen() {
   if (isRestoring || userId) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingBrand}>{luxyBrand.productName}</Text>
+        <ChonLoveLogo height={62} width={158} />
         <ActivityIndicator color={luxyColors.actionRed} size="large" />
         <Text style={styles.loadingCopy}>Đang kiểm tra phiên đăng nhập…</Text>
       </View>
     );
   }
 
-  const openJoin = () => {
-    setMobileMenuOpen(false);
-    router.push('/auth');
-  };
-
-  const openLogin = () => {
-    setMobileMenuOpen(false);
-    router.push('/auth?mode=login');
-  };
-
-  const scrollTo = (id: string) => {
-    setMobileMenuOpen(false);
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const currentTestimonial = testimonials[testimonialIndex] ?? testimonials[0];
-  const currentValue = values.find((item) => item.key === selectedValue) ?? values[0];
+  const settings: HomepageSettings | null = settingsQuery.data ?? null;
+  const openJoin = () => router.push('/auth');
+  const openLogin = () => router.push('/auth?mode=login');
 
   return (
     <ScrollView
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
-      testID="luxy-public-homepage"
+      testID="chon-love-public-homepage"
     >
-      <ImageBackground source={luxyPublicArtwork.hero} resizeMode="cover" style={[styles.hero, isPhone && styles.heroPhone]}>
-        <View style={styles.heroOverlay} />
-        <PublicHeader
-          compact={isPhone}
-          compactPhone={isCompactPhone}
-          menuOpen={mobileMenuOpen}
-          onJoin={openJoin}
-          onLogin={openLogin}
-          onMenu={() => setMobileMenuOpen((value) => !value)}
-          onNavigate={scrollTo}
+      <View style={[styles.hero, isPhone && styles.heroPhone]}>
+        <HomepageYoutubeHero
+          desktopUrl={settings?.hero_desktop_youtube_url}
+          fallbackSource={luxyPublicArtwork.hero}
+          isPhone={isPhone}
+          mobileUrl={settings?.hero_mobile_youtube_url}
+          style={StyleSheet.absoluteFill}
         />
-        {isPhone && mobileMenuOpen ? (
-          <View style={styles.mobileMenu}>
-            <MenuLink label="Giới thiệu" onPress={() => scrollTo('luxy-mindset')} />
-            <MenuLink label="Cách hoạt động" onPress={() => scrollTo('luxy-benefits')} />
-            <MenuLink label="An toàn" onPress={() => scrollTo('luxy-safety')} />
-            <MenuLink label="Giá trị Luxy" onPress={() => scrollTo('luxy-values')} />
-            <Pressable
-              accessibilityLabel="Tham gia Luxy.Love"
-              accessibilityRole="button"
-              onPress={openJoin}
-              style={({ pressed }) => [styles.menuJoinButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.menuJoinText}>Tham gia ngay</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
+        <View style={styles.heroShade} />
+        <PublicHeader isPhone={isPhone} onJoin={openJoin} onLogin={openLogin} />
         <View style={[styles.heroContent, isPhone && styles.heroContentPhone]}>
-          <Text style={[styles.heroBrand, isPhone && styles.heroBrandPhone]}>{luxyBrand.productName}</Text>
-          <Text accessibilityRole="header" style={[styles.heroTitle, isPhone && styles.heroTitlePhone]}>
-            Hẹn hò với người làm cuộc sống tốt đẹp hơn.
+          <ChonLoveLogo height={isPhone ? 104 : 150} width={isPhone ? 236 : 340} />
+          <Text accessibilityRole="header" style={[styles.heroSlogan, isPhone && styles.heroSloganPhone]}>
+            Chọn đúng Người, Yêu đúng Gu
           </Text>
-          <Text style={[styles.heroSubtitle, isPhone && styles.heroSubtitlePhone]}>
-            Dành cho người trưởng thành có định hướng, biết mình muốn gì và trân trọng những kết nối chất lượng.
-          </Text>
+          <View style={styles.goldRule} />
           <Pressable
-            accessibilityLabel="Tham gia Luxy.Love ngay"
+            accessibilityLabel="Tham gia Chọn.love ngay"
             accessibilityRole="button"
             onPress={openJoin}
-            style={({ pressed }) => [styles.primaryCta, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryCtaText}>Tham gia ngay</Text>
+            <Text style={styles.primaryButtonText}>Tham gia ngay</Text>
           </Pressable>
-        </View>
-      </ImageBackground>
-
-      <View nativeID="luxy-mindset" style={[styles.mindsetSection, isPhone && styles.sectionPhone]}>
-        <View style={styles.mindsetAccentLeft} />
-        <View style={styles.mindsetAccentRight} />
-        <Text accessibilityRole="header" style={[styles.displayHeading, isPhone && styles.displayHeadingPhone]}>
-          Tư duy Luxy
-        </Text>
-        <Text style={styles.centeredBody}>
-          Luxy.Love là không gian hẹn hò dành cho những người nghiêm túc với sự nghiệp, cuộc sống và các mối quan hệ của mình. Khi bạn có tiêu chuẩn rõ ràng trong công việc và cuộc sống, bạn cũng xứng đáng có một nơi giúp tìm người đồng điệu với những tiêu chuẩn đó.
-        </Text>
-        <Text style={styles.centeredBody}>
-          Chúng tôi thiết kế trải nghiệm để khuyến khích những kết nối chân thật, tôn trọng và có chủ đích — nơi hai người đến với nhau vì sự phù hợp, chứ không vì một giao dịch.
-        </Text>
-        <Text style={styles.mindsetSignature}>Bạn biết mình muốn gì. Hãy tìm điều đó trên Luxy.</Text>
-        <Pressable
-          accessibilityLabel="Bắt đầu với Luxy.Love"
-          accessibilityRole="button"
-          onPress={openJoin}
-          style={({ pressed }) => [styles.primaryCta, styles.sectionCta, pressed && styles.pressed]}
-        >
-          <Text style={styles.primaryCtaText}>Bắt đầu ngay</Text>
-        </Pressable>
-
-        <View nativeID="luxy-safety" style={styles.responsibleBlock}>
-          <Text style={styles.responsibleStrong}>Hẹn hò có trách nhiệm · Chỉ dành cho người từ 18 tuổi</Text>
-          <Text style={styles.responsibleText}>
-            Luxy.Love nghiêm cấm mua bán hoặc trao đổi tình cảm, cuộc hẹn, nhắn tin hay quyền truy cập riêng tư. Quà tặng luôn là tự nguyện và không tạo nghĩa vụ cho người nhận.
-          </Text>
         </View>
       </View>
 
-      <ImageBackground source={luxyPublicArtwork.testimonial} resizeMode="cover" style={[styles.testimonialSection, isPhone && styles.testimonialSectionPhone]}>
-        <View style={styles.testimonialOverlay} />
-        <Text accessibilityRole="header" style={[styles.testimonialHeading, isPhone && styles.testimonialHeadingPhone]}>Câu chuyện thành viên</Text>
-        <View style={[styles.testimonialRail, isPhone && styles.testimonialRailPhone]}>
+      <View style={[styles.positioningSection, isPhone && styles.positioningSectionPhone]}>
+        <View style={[styles.sideArtwork, styles.sideArtworkLeft, isPhone && styles.sideArtworkPhone]}>
+          <Image
+            accessibilityLabel="Minh họa kết nối Chọn.love"
+            resizeMode="cover"
+            source={remoteOrFallback(settings?.section2_left_image_url, luxyPublicArtwork.values)}
+            style={styles.fillImage}
+          />
+        </View>
+        <View style={[styles.positioningCopy, isPhone && styles.positioningCopyPhone]}>
+          <SectionEyebrow>CHỌN.LOVE</SectionEyebrow>
+          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>
+            NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ
+          </Text>
+          <Text style={styles.centerBody}>
+            Chọn.love là nền tảng hẹn hò, kết nối người dùng thật gần bạn với một cộng đồng kết nối văn minh và thú vị.
+          </Text>
+          <Text style={styles.centerBody}>
+            Chọn.love được thiết kế nhằm thúc đẩy sự kết nối chân thực giữa các thành viên, hướng tới những mối quan hệ bền vững và tình yêu được xây dựng trên nền tảng mong muốn chung: một cuộc sống đầy khát vọng và trọn vẹn.
+          </Text>
           <Pressable
-            accessibilityLabel="Câu chuyện trước"
             accessibilityRole="button"
-            onPress={() => setTestimonialIndex((value) => (value + testimonials.length - 1) % testimonials.length)}
-            style={({ pressed }) => [styles.arrowButton, isPhone && styles.arrowButtonPhone, pressed && styles.pressed]}
+            onPress={openJoin}
+            style={({ pressed }) => [styles.textCta, pressed && styles.pressed]}
           >
-            <Text style={styles.arrowText}>‹</Text>
+            <Text style={styles.textCtaText}>Bắt đầu kết nối</Text>
+            <Text style={styles.textCtaArrow}>→</Text>
           </Pressable>
-          <View style={[styles.quoteCard, isPhone && styles.quoteCardPhone]}>
-            <Text style={[styles.quoteText, isPhone && styles.quoteTextPhone]}>“{currentTestimonial.quote}”</Text>
-            <Text style={styles.quoteAuthor}>— {currentTestimonial.name}, <Text style={styles.quotePlace}>{currentTestimonial.place}</Text></Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Câu chuyện tiếp theo"
-            accessibilityRole="button"
-            onPress={() => setTestimonialIndex((value) => (value + 1) % testimonials.length)}
-            style={({ pressed }) => [styles.arrowButton, isPhone && styles.arrowButtonPhone, pressed && styles.pressed]}
-          >
-            <Text style={styles.arrowText}>›</Text>
-          </Pressable>
+        </View>
+        <View style={[styles.sideArtwork, styles.sideArtworkRight, isPhone && styles.sideArtworkPhone]}>
+          <Image
+            accessibilityLabel="Minh họa hẹn hò Chọn.love"
+            resizeMode="cover"
+            source={remoteOrFallback(settings?.section2_right_image_url, luxyPublicArtwork.benefits)}
+            style={styles.fillImage}
+          />
+        </View>
+      </View>
+
+      <ImageBackground
+        source={remoteOrFallback(settings?.section3_background_image_url, luxyPublicArtwork.testimonial)}
+        resizeMode="cover"
+        style={[styles.testimonialSection, isPhone && styles.testimonialSectionPhone]}
+      >
+        <View style={styles.testimonialShade} />
+        <View style={styles.testimonialInner}>
+          <SectionEyebrow light>THÀNH VIÊN NÓI GÌ</SectionEyebrow>
+          <Text accessibilityRole="header" style={[styles.testimonialHeading, isPhone && styles.sectionHeadingPhone]}>
+            CHIA SẼ TỪ THÀNH VIÊN:
+          </Text>
+          {isDesktop ? (
+            <View style={styles.testimonialGrid}>
+              {testimonials.map((item) => <TestimonialCard item={item} key={item.name} />)}
+            </View>
+          ) : (
+            <View style={styles.testimonialMobileWrap}>
+              <TestimonialCard item={testimonials[testimonialIndex] ?? testimonials[0]} />
+              <View style={styles.carouselControls}>
+                <Pressable
+                  accessibilityLabel="Chia sẻ trước"
+                  accessibilityRole="button"
+                  onPress={() => setTestimonialIndex((value) => (value + testimonials.length - 1) % testimonials.length)}
+                  style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.carouselArrow}>‹</Text>
+                </Pressable>
+                <Text style={styles.carouselCount}>{testimonialIndex + 1} / {testimonials.length}</Text>
+                <Pressable
+                  accessibilityLabel="Chia sẻ tiếp theo"
+                  accessibilityRole="button"
+                  onPress={() => setTestimonialIndex((value) => (value + 1) % testimonials.length)}
+                  style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.carouselArrow}>›</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
         </View>
       </ImageBackground>
 
-      <View nativeID="luxy-benefits" style={[styles.benefitsSection, isPhone && styles.sectionPhone]}>
-        <View style={[styles.benefitsInner, isWide && styles.benefitsInnerWide]}>
+      <View style={[styles.benefitsSection, isPhone && styles.benefitsSectionPhone]}>
+        <View style={[styles.benefitsInner, isDesktop && styles.benefitsInnerDesktop]}>
           <View style={styles.benefitsCopy}>
-            <Text accessibilityRole="header" style={[styles.displayHeading, styles.alignLeft, isPhone && styles.displayHeadingPhone]}>
-              Vì sao hẹn hò trên Luxy
+            <SectionEyebrow>TRẢI NGHIỆM KHÁC BIỆT</SectionEyebrow>
+            <Text accessibilityRole="header" style={[styles.sectionHeading, styles.alignLeft, isPhone && styles.sectionHeadingPhone]}>
+              QUYỀN LỢI THÀNH VIÊN:
             </Text>
-            <Benefit title="Hẹn hò có chủ đích">
-              Bạn đã có một hình dung rõ ràng về cuộc sống mình muốn xây dựng. Luxy giúp bạn tìm người có tham vọng, sự tự tin và mức độ nghiêm túc tương xứng.
-            </Benefit>
-            <Benefit title="Gặp người hiểu tiêu chuẩn của bạn">
-              Mục tiêu không phải là thật nhiều lượt ghép đôi. Mục tiêu là những người phù hợp với tư duy, nhịp sống và giá trị mà bạn theo đuổi.
-            </Benefit>
-            <Benefit title="Tạo kết nối chất lượng">
-              Bỏ qua cảm giác lướt vô tận. Tập trung vào hồ sơ đáng để bạn dành thời gian, sự chú ý và một cuộc trò chuyện thực sự.
-            </Benefit>
-            <Benefit title="Làm cuộc sống bạn đã xây tốt hơn">
-              Một mối quan hệ phù hợp nên làm cuộc sống phong phú hơn — thêm niềm vui, góc nhìn và những trải nghiệm mà cả hai cùng trân trọng.
-            </Benefit>
+            {benefits.map((item, index) => (
+              <View key={item.title} style={styles.benefitItem}>
+                <View style={styles.benefitNumber}><Text style={styles.benefitNumberText}>{String(index + 1).padStart(2, '0')}</Text></View>
+                <View style={styles.benefitContent}>
+                  <Text style={styles.benefitTitle}>{item.title}</Text>
+                  <Text style={styles.benefitCopyText}>{item.copy}</Text>
+                </View>
+              </View>
+            ))}
           </View>
-          <View style={[styles.benefitsArtFrame, isPhone && styles.benefitsArtFramePhone]}>
-            <Image source={luxyPublicArtwork.benefits} resizeMode="cover" style={styles.fillImage} />
+          <View style={[styles.benefitsArtwork, isPhone && styles.benefitsArtworkPhone]}>
+            <Image
+              accessibilityLabel="Minh họa quyền lợi thành viên Chọn.love"
+              resizeMode="cover"
+              source={remoteOrFallback(settings?.section4_image_url, luxyPublicArtwork.benefits)}
+              style={styles.fillImage}
+            />
+            <View style={styles.artworkGoldFrame} />
           </View>
-        </View>
-
-        <View style={styles.benefitsCtaBlock}>
-          <Text style={styles.benefitsPrompt}>Sẵn sàng cho kiểu hẹn hò phản ánh đúng tiêu chuẩn của bạn?</Text>
-          <Text style={[styles.ctaDisplay, isPhone && styles.ctaDisplayPhone]}>Bạn biết mình muốn gì.{`\n`}Hãy tìm điều đó trên Luxy.</Text>
-          <Pressable
-            accessibilityLabel="Tham gia Luxy.Love"
-            accessibilityRole="button"
-            onPress={openJoin}
-            style={({ pressed }) => [styles.primaryCta, styles.sectionCta, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryCtaText}>Tham gia ngay</Text>
-          </Pressable>
         </View>
       </View>
 
       <View style={[styles.missionSection, isPhone && styles.missionSectionPhone]}>
-        <Text accessibilityRole="header" style={[styles.missionHeading, isPhone && styles.displayHeadingPhone]}>Sứ mệnh của Luxy</Text>
-        <Text style={styles.missionBody}>
-          Tạo một không gian nơi tình yêu, sự thành đạt và chất lượng sống có thể gặp nhau một cách tự nhiên. Luxy đặt mục tiêu nâng tiêu chuẩn của trải nghiệm hẹn hò — không chỉ ở hình thức, mà ở cách mọi người đối xử với thời gian và giá trị của nhau.
-        </Text>
-        <Text style={styles.missionBody}>
-          Từ an toàn, quyền riêng tư, cộng đồng đến chất lượng kết nối, mỗi phần của sản phẩm được xây để phù hợp với những người có tiêu chuẩn cao cho chính mình.
-        </Text>
-        <Pressable
-          accessibilityLabel="Tham gia Luxy.Love từ phần sứ mệnh"
-          accessibilityRole="button"
-          onPress={openJoin}
-          style={({ pressed }) => [styles.primaryCta, styles.missionCta, pressed && styles.pressed]}
-        >
-          <Text style={styles.primaryCtaText}>Tham gia ngay</Text>
-        </Pressable>
-      </View>
-
-      <View nativeID="luxy-values" style={[styles.valuesSection, isPhone && styles.sectionPhone]}>
-        <Text accessibilityRole="header" style={[styles.displayHeading, isPhone && styles.displayHeadingPhone]}>Giá trị của Luxy</Text>
-        <View style={[styles.valuesInner, isWide && styles.valuesInnerWide]}>
-          <View style={[styles.valuesArtFrame, isPhone && styles.valuesArtFramePhone]}>
-            <Image source={luxyPublicArtwork.values} resizeMode="cover" style={styles.fillImage} />
-          </View>
-          <View style={styles.valuesList}>
-            {values.map((item) => {
-              const selected = item.key === selectedValue;
-              return (
-                <Pressable
-                  accessibilityLabel={`${item.title}. ${item.copy}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  key={item.key}
-                  onPress={() => setSelectedValue(item.key)}
-                  style={({ pressed }) => [styles.valueRow, selected && styles.valueRowSelected, pressed && styles.pressed]}
-                >
-                  <Text style={[styles.valueTitle, selected && styles.valueTitleSelected]}>{item.title}</Text>
-                  <Text style={styles.valueArrow}>›</Text>
-                </Pressable>
-              );
-            })}
-            <View style={styles.valueCopyBox}>
-              <Text style={styles.valueCopyTitle}>{currentValue.title}</Text>
-              <Text style={styles.valueCopy}>{currentValue.copy}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <ImageBackground source={luxyPublicArtwork.final} resizeMode="cover" style={[styles.finalSection, isPhone && styles.finalSectionPhone]}>
-        <View style={styles.finalOverlay} />
-        <View style={[styles.finalCard, isPhone && styles.finalCardPhone]}>
-          <Text style={[styles.finalTitle, isPhone && styles.finalTitlePhone]}>Bạn biết mình muốn gì.{`\n`}Hãy tìm điều đó trên Luxy.</Text>
-          <Text style={styles.finalFree}>Miễn phí tạo tài khoản</Text>
+        <View style={styles.missionGlow} />
+        <View style={styles.missionInner}>
+          <SectionEyebrow light>SỨ MỆNH</SectionEyebrow>
+          <Text accessibilityRole="header" style={[styles.missionHeading, isPhone && styles.sectionHeadingPhone]}>
+            SỨ MỆNH CỦA CHÚNG TÔI
+          </Text>
+          <Text style={styles.missionBody}>
+            Sứ mệnh của chúng tôi là kiến tạo một không gian nơi tình yêu thật, thú vị và sự sang trọng hòa quyện. Chúng tôi đặt mục tiêu nâng tầm trải nghiệm — không chỉ cho các thành viên của mình mà còn cho cả cộng đồng hẹn hò nghiêm túc tại Việt Nam.
+          </Text>
+          <Text style={styles.missionBody}>
+            Chọn.love không đi theo những quy chuẩn thông thường; chúng tôi thiết lập nên những chuẩn mực hoàn toàn mới. Từ vấn đề thành viên thật, tính cộng đồng cho đến các kết nối giá trị, mọi khía cạnh trải nghiệm đều được nâng cấp để xứng tầm với đẳng cấp của người sử dụng.
+          </Text>
+          <Text style={styles.missionBody}>
+            Trải nghiệm hẹn hò sang trọng mà Chọn.love mang lại không chỉ bao hàm các yếu tố an toàn, tính cộng đồng và kết nối, mà còn đưa tất cả những giá trị đó lên một tầm cao mới.
+          </Text>
           <Pressable
-            accessibilityLabel="Tham gia Luxy.Love miễn phí"
             accessibilityRole="button"
             onPress={openJoin}
-            style={({ pressed }) => [styles.primaryCta, styles.finalButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.missionButton, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryCtaText}>Tham gia Luxy</Text>
+            <Text style={styles.missionButtonText}>Tham gia Chọn.love</Text>
           </Pressable>
         </View>
-      </ImageBackground>
+      </View>
 
-      <View style={[styles.footer, isPhone && styles.footerPhone]}>
-        <Text style={styles.footerBrand}>{luxyBrand.productName}</Text>
-        <Text style={styles.footerLanguage}>Tiếng Việt</Text>
-        <View style={[styles.footerColumns, isWide && styles.footerColumnsWide]}>
-          <View style={styles.footerLinks}>
-            <FooterLink label="Giới thiệu" onPress={() => scrollTo('luxy-mindset')} />
-            <FooterLink label="Cách hoạt động" onPress={() => scrollTo('luxy-benefits')} />
-            <FooterLink label="An toàn" onPress={() => scrollTo('luxy-safety')} />
-            <FooterLink label="Giá trị Luxy" onPress={() => scrollTo('luxy-values')} />
-          </View>
-          <View style={styles.footerLinks}>
-            <FooterLink label="Điều khoản" onPress={() => router.push('/legal/terms')} />
-            <FooterLink label="Tiêu chuẩn cộng đồng" onPress={() => router.push('/legal/community-standards')} />
-            <FooterLink label="Đăng nhập" onPress={openLogin} />
-            <FooterLink label="Tham gia miễn phí" onPress={openJoin} />
-          </View>
-          <View style={styles.footerAbout}>
-            <Text style={styles.footerDescription}>
-              Luxy.Love là nền tảng hẹn hò dành cho người trưởng thành có định hướng, ưu tiên kết nối chất lượng, quyền riêng tư và trải nghiệm an toàn.
-            </Text>
-            <Text style={styles.footerSafety}>
-              Thành viên không mặc nhiên được coi là đã qua kiểm tra lý lịch. Các dấu xác thực chỉ phản ánh đúng loại xác thực đã hoàn tất trên hệ thống.
-            </Text>
-            <Text style={styles.footerCopyright}>© 2026 Luxy.Love. Bảo lưu mọi quyền.</Text>
+      <View style={[styles.cultureSection, isPhone && styles.cultureSectionPhone]}>
+        <View style={styles.cultureInner}>
+          <SectionEyebrow>VĂN HOÁ</SectionEyebrow>
+          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>
+            VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE
+          </Text>
+          <View style={[styles.cultureGrid, isDesktop && styles.cultureGridDesktop]}>
+            {cultureItems.map((item, index) => (
+              <View key={item} style={styles.cultureItem}>
+                <View style={styles.cultureIcon}><Text style={styles.cultureIconText}>♥</Text></View>
+                <View style={styles.cultureCopyWrap}>
+                  <Text style={styles.cultureIndex}>0{index + 1}</Text>
+                  <Text style={styles.cultureCopy}>{item}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       </View>
+
+      <PublicFooter onCommunity={() => router.push('/legal/community-standards')} onTerms={() => router.push('/legal/terms')} />
     </ScrollView>
   );
 }
 
-function PublicHeader({
-  compact,
-  compactPhone,
-  menuOpen,
-  onJoin,
-  onLogin,
-  onMenu,
-  onNavigate,
-}: {
-  compact: boolean;
-  compactPhone: boolean;
-  menuOpen: boolean;
-  onJoin: () => void;
-  onLogin: () => void;
-  onMenu: () => void;
-  onNavigate: (id: string) => void;
-}) {
-  if (compact) {
-    return (
-      <View style={styles.mobileHeader}>
-        <Text style={[styles.headerBrand, compactPhone && styles.headerBrandCompact]}>{compactPhone ? luxyBrand.shortName : luxyBrand.productName}</Text>
-        <View style={styles.mobileHeaderActions}>
-          <Pressable accessibilityRole="button" onPress={onLogin} style={({ pressed }) => [styles.mobileLogin, pressed && styles.pressed]}>
-            <Text style={styles.headerLink}>Đăng nhập</Text>
-          </Pressable>
-          <Pressable accessibilityLabel={menuOpen ? 'Đóng menu' : 'Mở menu'} accessibilityRole="button" onPress={onMenu} style={({ pressed }) => [styles.mobileMenuButton, pressed && styles.pressed]}>
-            <Text style={styles.mobileMenuButtonText}>{menuOpen ? 'Đóng' : 'Menu'}</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
+function PublicHeader({ isPhone, onJoin, onLogin }: { isPhone: boolean; onJoin: () => void; onLogin: () => void }) {
   return (
-    <View style={styles.desktopHeader}>
-      <Text style={styles.headerBrand}>{luxyBrand.productName}</Text>
-      <View style={styles.desktopNav}>
-        <HeaderLink label="Giới thiệu" onPress={() => onNavigate('luxy-mindset')} />
-        <HeaderLink label="Cách hoạt động" onPress={() => onNavigate('luxy-benefits')} />
-        <HeaderLink label="An toàn" onPress={() => onNavigate('luxy-safety')} />
-        <HeaderLink label="Giá trị Luxy" onPress={() => onNavigate('luxy-values')} />
-      </View>
-      <View style={styles.desktopActions}>
+    <View style={[styles.header, isPhone && styles.headerPhone]}>
+      <ChonLoveLogo height={isPhone ? 42 : 54} width={isPhone ? 96 : 126} />
+      <View style={styles.headerActions}>
         <Pressable accessibilityRole="button" onPress={onLogin} style={({ pressed }) => [styles.loginButton, pressed && styles.pressed]}>
-          <Text style={styles.headerLink}>Đăng nhập</Text>
+          <Text style={styles.loginText}>Đăng nhập</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onJoin} style={({ pressed }) => [styles.headerJoin, pressed && styles.pressed]}>
-          <Text style={styles.headerJoinText}>Tham gia ngay</Text>
+        <Pressable accessibilityRole="button" onPress={onJoin} style={({ pressed }) => [styles.registerButton, pressed && styles.pressed]}>
+          <Text style={styles.registerText}>Đăng ký</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-function HeaderLink({ label, onPress }: { label: string; onPress: () => void }) {
+function SectionEyebrow({ children, light = false }: { children: string; light?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.headerNavButton, pressed && styles.pressed]}>
-      <Text style={styles.headerLink}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function MenuLink({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.menuLink, pressed && styles.pressed]}>
-      <Text style={styles.menuLinkText}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function Benefit({ title, children }: { title: string; children: string }) {
-  return (
-    <View style={styles.benefitItem}>
-      <Text style={styles.benefitTitle}>{title}</Text>
-      <Text style={styles.benefitCopy}>{children}</Text>
+    <View style={styles.eyebrowRow}>
+      <View style={[styles.eyebrowRule, light && styles.eyebrowRuleLight]} />
+      <Text style={[styles.eyebrowText, light && styles.eyebrowTextLight]}>{children}</Text>
+      <View style={[styles.eyebrowRule, light && styles.eyebrowRuleLight]} />
     </View>
   );
 }
 
-function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
+function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
-      <Text style={styles.footerLinkText}>{label}</Text>
-    </Pressable>
+    <View style={styles.testimonialCard}>
+      <Text style={styles.quoteMark}>“</Text>
+      <Text style={styles.testimonialQuote}>{item.quote}</Text>
+      <View style={styles.testimonialAuthorRule} />
+      <Text style={styles.testimonialAuthor}>{item.name}</Text>
+      <Text style={styles.testimonialPlace}>{item.place}</Text>
+    </View>
+  );
+}
+
+export function PublicFooter({ onCommunity, onTerms }: { onCommunity: () => void; onTerms: () => void }) {
+  return (
+    <View style={styles.footer}>
+      <View style={styles.footerBrandBlock}>
+        <ChonLoveLogo height={54} width={132} />
+        <Text style={styles.footerTagline}>Chọn đúng người, Yêu đúng Gu © 2026 Chon.Love</Text>
+      </View>
+      <View style={styles.footerLinks}>
+        <Pressable accessibilityRole="link" onPress={onTerms} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
+          <Text style={styles.footerLinkText}>Điều khoản</Text>
+        </Pressable>
+        <View style={styles.footerDot} />
+        <Pressable accessibilityRole="link" onPress={onCommunity} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
+          <Text style={styles.footerLinkText}>Tiêu chuẩn cộng đồng</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: '#FBF8F6', flexGrow: 1 },
-  loadingContainer: { alignItems: 'center', backgroundColor: luxyColors.surface, flex: 1, gap: luxySpacing.lg, justifyContent: 'center', padding: luxySpacing.xl },
-  loadingBrand: { color: luxyColors.brandCoral, fontFamily: luxyTypography.families.brand, fontSize: 36, letterSpacing: -1.4 },
-  loadingCopy: { color: luxyColors.muted, fontSize: 14 },
-  hero: { minHeight: 720, position: 'relative', width: '100%' },
-  heroPhone: { minHeight: 690 },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4, 17, 29, 0.24)' },
-  desktopHeader: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', height: 72, maxWidth: 1440, paddingHorizontal: 40, position: 'relative', width: '100%', zIndex: 20 },
-  mobileHeader: { alignItems: 'center', flexDirection: 'row', height: 64, justifyContent: 'space-between', paddingHorizontal: luxySpacing.lg, position: 'relative', width: '100%', zIndex: 30 },
-  headerBrand: { color: luxyColors.surface, fontFamily: luxyTypography.families.brand, fontSize: 28, letterSpacing: -1.2 },
-  headerBrandCompact: { fontSize: 26 },
-  desktopNav: { alignItems: 'stretch', flex: 1, flexDirection: 'row', gap: 8, marginLeft: 30 },
-  desktopActions: { alignItems: 'center', flexDirection: 'row', gap: 16 },
-  mobileHeaderActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  headerNavButton: { alignItems: 'center', justifyContent: 'center', minHeight: luxyLayout.minimumTouchTarget, paddingHorizontal: 12 },
-  headerLink: { color: luxyColors.surface, fontSize: 15, fontWeight: '500' },
+  page: { backgroundColor: '#FFF8F5', flexGrow: 1 },
+  loadingContainer: { alignItems: 'center', backgroundColor: '#FFF8F5', flex: 1, gap: 18, justifyContent: 'center', padding: 32 },
+  loadingCopy: { color: '#5A4C48', fontSize: 14 },
+  hero: { backgroundColor: '#090909', minHeight: 740, overflow: 'hidden', position: 'relative', width: '100%' },
+  heroPhone: { minHeight: 660 },
+  heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.34)' },
+  header: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', height: 78, justifyContent: 'space-between', maxWidth: 1440, paddingHorizontal: 42, position: 'relative', width: '100%', zIndex: 10 },
+  headerPhone: { height: 62, paddingHorizontal: 14 },
+  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   loginButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  mobileLogin: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 8 },
-  mobileMenuButton: { alignItems: 'center', borderColor: 'rgba(255,255,255,0.68)', borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 44, minWidth: 58, paddingHorizontal: 12 },
-  mobileMenuButtonText: { color: luxyColors.surface, fontSize: 13, fontWeight: '600' },
-  headerJoin: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 44, minWidth: 124, paddingHorizontal: 20 },
-  headerJoinText: { color: luxyColors.surface, fontSize: 14, fontWeight: '700' },
-  mobileMenu: { backgroundColor: 'rgba(8,23,38,0.97)', borderColor: 'rgba(255,255,255,0.18)', borderRadius: 12, borderWidth: 1, gap: 2, padding: 10, position: 'absolute', right: 16, top: 62, width: 228, zIndex: 40 },
-  menuLink: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
-  menuLinkText: { color: luxyColors.surface, fontSize: 15 },
-  menuJoinButton: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.pill, justifyContent: 'center', marginTop: 8, minHeight: 44 },
-  menuJoinText: { color: luxyColors.surface, fontWeight: '700' },
-  heroContent: { alignItems: 'center', alignSelf: 'center', justifyContent: 'center', maxWidth: 690, minHeight: 620, paddingBottom: 34, paddingHorizontal: 24, width: '100%' },
-  heroContentPhone: { minHeight: 600, paddingBottom: 38, paddingTop: 40 },
-  heroBrand: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 88, letterSpacing: -4, lineHeight: 94, textAlign: 'center' },
-  heroBrandPhone: { fontSize: 52, letterSpacing: -2.5, lineHeight: 60 },
-  heroTitle: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 29, fontWeight: '400', lineHeight: 38, marginTop: 10, textAlign: 'center' },
-  heroTitlePhone: { fontSize: 25, lineHeight: 32, maxWidth: 340 },
-  heroSubtitle: { color: 'rgba(255,255,255,0.9)', fontSize: 16, lineHeight: 24, marginTop: 14, maxWidth: 590, textAlign: 'center' },
-  heroSubtitlePhone: { fontSize: 15, lineHeight: 22, maxWidth: 350 },
-  primaryCta: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.pill, justifyContent: 'center', marginTop: 24, minHeight: 48, minWidth: 168, paddingHorizontal: 26 },
-  primaryCtaText: { color: luxyColors.surface, fontSize: 15, fontWeight: '700' },
-  mindsetSection: { alignItems: 'center', backgroundColor: '#FFFCFA', overflow: 'hidden', paddingHorizontal: 24, paddingTop: 92, position: 'relative' },
-  sectionPhone: { paddingHorizontal: 18, paddingTop: 64 },
-  mindsetAccentLeft: { borderColor: '#F2D8D2', borderRadius: 999, borderWidth: 18, height: 180, left: -126, opacity: 0.6, position: 'absolute', top: 130, width: 180 },
-  mindsetAccentRight: { borderColor: '#F2D8D2', borderRadius: 999, borderWidth: 18, height: 180, opacity: 0.6, position: 'absolute', right: -126, top: 130, width: 180 },
-  displayHeading: { color: luxyColors.ink, fontFamily: luxyTypography.families.display, fontSize: 42, fontWeight: '400', letterSpacing: -1.5, lineHeight: 48, textAlign: 'center' },
-  displayHeadingPhone: { fontSize: 34, letterSpacing: -1, lineHeight: 40 },
-  alignLeft: { textAlign: 'left' },
-  centeredBody: { color: luxyColors.ink, fontSize: 16, lineHeight: 25, marginTop: 24, maxWidth: 600, textAlign: 'center' },
-  mindsetSignature: { color: luxyColors.ink, fontFamily: luxyTypography.families.display, fontSize: 18, fontStyle: 'italic', marginTop: 26, textAlign: 'center' },
-  sectionCta: { marginBottom: 42 },
-  responsibleBlock: { alignItems: 'center', borderTopColor: '#E5E1DE', borderTopWidth: 1, maxWidth: 760, paddingBottom: 66, paddingHorizontal: 16, paddingTop: 36, width: '100%' },
-  responsibleStrong: { color: luxyColors.ink, fontSize: 14, fontWeight: '700', lineHeight: 21, textAlign: 'center' },
-  responsibleText: { color: luxyColors.ink, fontSize: 14, fontWeight: '600', lineHeight: 21, marginTop: 16, maxWidth: 650, textAlign: 'center' },
-  testimonialSection: { alignItems: 'center', justifyContent: 'center', minHeight: 620, paddingHorizontal: 30, paddingVertical: 70, position: 'relative' },
-  testimonialSectionPhone: { minHeight: 590, paddingHorizontal: 16, paddingVertical: 58 },
-  testimonialOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(5,20,31,0.16)' },
-  testimonialHeading: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 38, fontWeight: '400', marginBottom: 24, position: 'relative', textAlign: 'center' },
-  testimonialHeadingPhone: { fontSize: 32 },
-  testimonialRail: { alignItems: 'center', flexDirection: 'row', gap: 24, maxWidth: 980, position: 'relative', width: '100%' },
-  testimonialRailPhone: { gap: 8 },
-  arrowButton: { alignItems: 'center', justifyContent: 'center', minHeight: 52, minWidth: 52 },
-  arrowButtonPhone: { minWidth: 36 },
-  arrowText: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 56, fontWeight: '300', lineHeight: 60 },
-  quoteCard: { backgroundColor: 'rgba(8,23,38,0.96)', borderRadius: 10, flex: 1, maxWidth: 690, minHeight: 245, padding: 34 },
-  quoteCardPhone: { minHeight: 300, padding: 24 },
-  quoteText: { color: luxyColors.surface, fontSize: 16, lineHeight: 25 },
-  quoteTextPhone: { fontSize: 14.5, lineHeight: 23 },
-  quoteAuthor: { color: luxyColors.surface, fontSize: 14, fontWeight: '700', marginTop: 24, textAlign: 'right' },
-  quotePlace: { color: 'rgba(255,255,255,0.78)', fontWeight: '400' },
-  benefitsSection: { backgroundColor: '#FFFCFA', paddingHorizontal: 24, paddingTop: 80 },
-  benefitsInner: { alignSelf: 'center', gap: 44, maxWidth: 1120, width: '100%' },
-  benefitsInnerWide: { alignItems: 'flex-start', flexDirection: 'row', gap: 64 },
-  benefitsCopy: { flex: 1 },
-  benefitItem: { marginTop: 30 },
-  benefitTitle: { color: luxyColors.ink, fontFamily: luxyTypography.families.display, fontSize: 28, fontStyle: 'italic', lineHeight: 34 },
-  benefitCopy: { color: luxyColors.ink, fontSize: 15, lineHeight: 23, marginTop: 8, maxWidth: 550 },
-  benefitsArtFrame: { borderTopLeftRadius: 220, borderTopRightRadius: 220, flex: 1, height: 650, maxWidth: 475, overflow: 'hidden', width: '100%' },
-  benefitsArtFramePhone: { alignSelf: 'center', borderTopLeftRadius: 170, borderTopRightRadius: 170, height: 500, marginTop: 10, maxWidth: 390 },
+  loginText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  registerButton: { alignItems: 'center', backgroundColor: '#D92D2A', borderColor: 'rgba(255,255,255,0.35)', borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 20 },
+  registerText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  heroContent: { alignItems: 'center', alignSelf: 'center', justifyContent: 'center', minHeight: 650, paddingBottom: 70, paddingHorizontal: 24, position: 'relative', width: '100%', zIndex: 2 },
+  heroContentPhone: { minHeight: 580, paddingBottom: 44 },
+  heroSlogan: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 44, marginTop: -12, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  heroSloganPhone: { fontSize: 25, lineHeight: 34, marginTop: -5 },
+  goldRule: { backgroundColor: '#F2B51D', height: 2, marginBottom: 22, marginTop: 16, width: 74 },
+  primaryButton: { alignItems: 'center', backgroundColor: '#D92D2A', borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 48, minWidth: 150, paddingHorizontal: 24 },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  positioningSection: { alignItems: 'center', backgroundColor: '#FFF8F5', justifyContent: 'center', minHeight: 560, overflow: 'hidden', paddingHorizontal: 24, paddingVertical: 88, position: 'relative' },
+  positioningSectionPhone: { gap: 16, minHeight: 0, paddingHorizontal: 18, paddingVertical: 58 },
+  positioningCopy: { alignItems: 'center', maxWidth: 720, width: '58%', zIndex: 2 },
+  positioningCopyPhone: { width: '100%' },
+  sideArtwork: { borderColor: '#F2B51D', borderRadius: 140, borderWidth: 2, height: 250, overflow: 'hidden', position: 'absolute', top: 155, width: 190 },
+  sideArtworkLeft: { left: -38, transform: [{ rotate: '-5deg' }] },
+  sideArtworkRight: { right: -38, transform: [{ rotate: '5deg' }] },
+  sideArtworkPhone: { borderRadius: 52, height: 92, marginBottom: 2, position: 'relative', right: undefined, left: undefined, top: undefined, transform: [], width: 132 },
   fillImage: { height: '100%', width: '100%' },
-  benefitsCtaBlock: { alignItems: 'center', alignSelf: 'center', maxWidth: 780, paddingBottom: 68, paddingTop: 62, width: '100%' },
-  benefitsPrompt: { color: luxyColors.ink, fontSize: 16, fontWeight: '700', lineHeight: 23, textAlign: 'center' },
-  ctaDisplay: { color: luxyColors.ink, fontFamily: luxyTypography.families.display, fontSize: 33, lineHeight: 37, marginTop: 26, textAlign: 'center' },
-  ctaDisplayPhone: { fontSize: 29, lineHeight: 34 },
-  missionSection: { alignItems: 'center', backgroundColor: luxyColors.ink, paddingBottom: 68, paddingHorizontal: 24, paddingTop: 66 },
-  missionSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
-  missionHeading: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 42, fontWeight: '400', lineHeight: 48, textAlign: 'center' },
-  missionBody: { color: 'rgba(255,255,255,0.9)', fontSize: 15.5, lineHeight: 24, marginTop: 22, maxWidth: 610, textAlign: 'center' },
-  missionCta: { marginTop: 30 },
-  valuesSection: { alignItems: 'center', backgroundColor: '#FFFCFA', paddingBottom: 92, paddingHorizontal: 24, paddingTop: 82 },
-  valuesInner: { alignItems: 'stretch', gap: 36, marginTop: 54, maxWidth: 1020, width: '100%' },
-  valuesInnerWide: { alignItems: 'center', flexDirection: 'row', gap: 80 },
-  valuesArtFrame: { borderRadius: 230, height: 500, overflow: 'hidden', width: 430 },
-  valuesArtFramePhone: { alignSelf: 'center', height: 350, maxWidth: 350, width: '100%' },
-  valuesList: { flex: 1, minWidth: 0 },
-  valueRow: { alignItems: 'center', borderBottomColor: '#E6DEDA', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 58, paddingHorizontal: 4 },
-  valueRowSelected: { borderBottomColor: luxyColors.brandCoral },
-  valueTitle: { color: luxyColors.ink, fontFamily: luxyTypography.families.display, fontSize: 26 },
-  valueTitleSelected: { color: luxyColors.actionRed },
-  valueArrow: { color: luxyColors.brandCoral, fontFamily: luxyTypography.families.display, fontSize: 34 },
-  valueCopyBox: { minHeight: 126, paddingTop: 22 },
-  valueCopyTitle: { color: luxyColors.ink, fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
-  valueCopy: { color: luxyColors.muted, fontSize: 14.5, lineHeight: 22, marginTop: 8 },
-  finalSection: { alignItems: 'center', justifyContent: 'center', minHeight: 560, padding: 30, position: 'relative' },
-  finalSectionPhone: { minHeight: 520, paddingHorizontal: 18 },
-  finalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,13,23,0.2)' },
-  finalCard: { alignItems: 'center', backgroundColor: 'rgba(8,23,38,0.82)', maxWidth: 640, paddingHorizontal: 68, paddingVertical: 48, position: 'relative', width: '100%' },
-  finalCardPhone: { paddingHorizontal: 26, paddingVertical: 38 },
-  finalTitle: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 38, lineHeight: 43, textAlign: 'center' },
-  finalTitlePhone: { fontSize: 31, lineHeight: 36 },
-  finalFree: { color: luxyColors.surface, fontFamily: luxyTypography.families.display, fontSize: 24, marginTop: 22, textAlign: 'center' },
-  finalButton: { marginTop: 22 },
-  footer: { alignSelf: 'center', backgroundColor: '#FFFCFA', maxWidth: 1200, paddingBottom: 52, paddingHorizontal: 24, paddingTop: 52, width: '100%' },
-  footerPhone: { paddingHorizontal: 18, paddingVertical: 44 },
-  footerBrand: { color: luxyColors.brandCoral, fontFamily: luxyTypography.families.brand, fontSize: 34, textAlign: 'center' },
-  footerLanguage: { color: luxyColors.ink, fontSize: 13, marginTop: 18, textAlign: 'center', textDecorationLine: 'underline' },
-  footerColumns: { borderTopColor: '#E6DEDA', borderTopWidth: 1, gap: 24, marginTop: 32, paddingTop: 32 },
-  footerColumnsWide: { alignItems: 'flex-start', flexDirection: 'row' },
-  footerLinks: { minWidth: 180 },
-  footerLinkButton: { justifyContent: 'center', minHeight: 34 },
-  footerLinkText: { color: luxyColors.ink, fontSize: 13, textDecorationLine: 'underline' },
-  footerAbout: { flex: 1, maxWidth: 540 },
-  footerDescription: { color: luxyColors.ink, fontSize: 13, lineHeight: 19 },
-  footerSafety: { color: luxyColors.ink, fontSize: 12, fontWeight: '700', lineHeight: 18, marginTop: 18, textTransform: 'uppercase' },
-  footerCopyright: { color: luxyColors.muted, fontSize: 11, fontWeight: '600', marginTop: 24 },
-  pressed: { opacity: 0.72 },
+  eyebrowRow: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 14 },
+  eyebrowRule: { backgroundColor: '#F2B51D', height: 1, width: 30 },
+  eyebrowRuleLight: { backgroundColor: '#F6C843' },
+  eyebrowText: { color: '#A66A00', fontSize: 11, fontWeight: '800', letterSpacing: 1.8 },
+  eyebrowTextLight: { color: '#F6C843' },
+  sectionHeading: { color: '#171312', fontFamily: luxyTypography.families.display, fontSize: 34, fontWeight: '500', letterSpacing: -0.5, lineHeight: 43, marginBottom: 22, textAlign: 'center' },
+  sectionHeadingPhone: { fontSize: 26, lineHeight: 34 },
+  centerBody: { color: '#514844', fontSize: 15, lineHeight: 25, marginBottom: 13, maxWidth: 680, textAlign: 'center' },
+  textCta: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 14, minHeight: 44 },
+  textCtaText: { color: '#C81C1D', fontSize: 14, fontWeight: '800' },
+  textCtaArrow: { color: '#F2B51D', fontSize: 20, fontWeight: '700' },
+  testimonialSection: { minHeight: 720, paddingHorizontal: 24, paddingVertical: 78, position: 'relative' },
+  testimonialSectionPhone: { minHeight: 650, paddingHorizontal: 16, paddingVertical: 58 },
+  testimonialShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(5,7,8,0.56)' },
+  testimonialInner: { alignSelf: 'center', maxWidth: 1280, position: 'relative', width: '100%', zIndex: 2 },
+  testimonialHeading: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 36, fontWeight: '500', lineHeight: 46, marginBottom: 34, textAlign: 'center' },
+  testimonialGrid: { flexDirection: 'row', gap: 18 },
+  testimonialMobileWrap: { alignItems: 'center', gap: 18 },
+  testimonialCard: { backgroundColor: 'rgba(8,10,12,0.84)', borderColor: 'rgba(242,181,29,0.45)', borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 370, paddingHorizontal: 25, paddingVertical: 28 },
+  quoteMark: { color: '#F2B51D', fontFamily: luxyTypography.families.display, fontSize: 48, lineHeight: 48 },
+  testimonialQuote: { color: '#F6F0EC', fontSize: 13.5, lineHeight: 22, marginTop: 4 },
+  testimonialAuthorRule: { backgroundColor: '#D92D2A', height: 2, marginTop: 22, width: 38 },
+  testimonialAuthor: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', marginTop: 12 },
+  testimonialPlace: { color: '#D7CEC9', fontSize: 12, marginTop: 3 },
+  carouselControls: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'center' },
+  carouselButton: { alignItems: 'center', borderColor: '#F2B51D', borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
+  carouselArrow: { color: '#FFFFFF', fontSize: 28, lineHeight: 30 },
+  carouselCount: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  benefitsSection: { backgroundColor: '#FFF8F5', paddingHorizontal: 32, paddingVertical: 88 },
+  benefitsSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
+  benefitsInner: { alignSelf: 'center', gap: 36, maxWidth: 1220, width: '100%' },
+  benefitsInnerDesktop: { alignItems: 'flex-start', flexDirection: 'row', gap: 70 },
+  benefitsCopy: { flex: 1, minWidth: 0 },
+  alignLeft: { textAlign: 'left' },
+  benefitItem: { borderTopColor: '#E7DCD5', borderTopWidth: 1, flexDirection: 'row', gap: 16, paddingVertical: 18 },
+  benefitNumber: { alignItems: 'center', borderColor: '#F2B51D', borderRadius: 999, borderWidth: 1, height: 34, justifyContent: 'center', width: 34 },
+  benefitNumberText: { color: '#A66A00', fontSize: 10, fontWeight: '800' },
+  benefitContent: { flex: 1 },
+  benefitTitle: { color: '#191514', fontFamily: luxyTypography.families.display, fontSize: 20, fontStyle: 'italic', lineHeight: 26 },
+  benefitCopyText: { color: '#584E49', fontSize: 13.5, lineHeight: 21, marginTop: 6 },
+  benefitsArtwork: { borderBottomLeftRadius: 180, borderBottomRightRadius: 180, borderTopLeftRadius: 180, borderTopRightRadius: 180, height: 720, marginTop: 58, maxWidth: 430, overflow: 'hidden', position: 'relative', width: '38%' },
+  benefitsArtworkPhone: { alignSelf: 'center', borderBottomLeftRadius: 110, borderBottomRightRadius: 110, borderTopLeftRadius: 110, borderTopRightRadius: 110, height: 470, marginTop: 0, maxWidth: 360, width: '100%' },
+  artworkGoldFrame: { ...StyleSheet.absoluteFillObject, borderColor: 'rgba(242,181,29,0.72)', borderRadius: 180, borderWidth: 2 },
+  missionSection: { alignItems: 'center', backgroundColor: '#080B0D', minHeight: 660, overflow: 'hidden', paddingHorizontal: 24, paddingVertical: 92, position: 'relative' },
+  missionSectionPhone: { minHeight: 0, paddingHorizontal: 18, paddingVertical: 64 },
+  missionGlow: { backgroundColor: 'rgba(200,28,29,0.16)', borderRadius: 999, height: 520, position: 'absolute', right: -180, top: -160, width: 520 },
+  missionInner: { alignItems: 'center', maxWidth: 780, zIndex: 2 },
+  missionHeading: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 36, fontWeight: '500', lineHeight: 46, marginBottom: 22, textAlign: 'center' },
+  missionBody: { color: '#D8D1CD', fontSize: 14, lineHeight: 23, marginBottom: 14, textAlign: 'center' },
+  missionButton: { alignItems: 'center', borderColor: '#F2B51D', borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 48, paddingHorizontal: 24 },
+  missionButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  cultureSection: { backgroundColor: '#FCEFEB', paddingHorizontal: 24, paddingVertical: 84 },
+  cultureSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
+  cultureInner: { alignSelf: 'center', maxWidth: 1120, width: '100%' },
+  cultureGrid: { gap: 12, marginTop: 10 },
+  cultureGridDesktop: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  cultureItem: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.64)', borderColor: '#E6D7D0', borderRadius: 10, borderWidth: 1, flexDirection: 'row', gap: 14, minHeight: 94, padding: 16, width: '100%' },
+  cultureIcon: { alignItems: 'center', backgroundColor: '#111111', borderRadius: 999, height: 44, justifyContent: 'center', width: 44 },
+  cultureIconText: { color: '#F2B51D', fontSize: 19 },
+  cultureCopyWrap: { flex: 1 },
+  cultureIndex: { color: '#C81C1D', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
+  cultureCopy: { color: '#201B19', fontFamily: luxyTypography.families.display, fontSize: 17, lineHeight: 23, marginTop: 3 },
+  footer: { alignItems: 'center', backgroundColor: '#070707', flexDirection: 'row', justifyContent: 'space-between', minHeight: 150, paddingHorizontal: 42, paddingVertical: 28 },
+  footerBrandBlock: { alignItems: 'flex-start', gap: 2, maxWidth: 430 },
+  footerTagline: { color: '#CFC6C1', fontSize: 12, lineHeight: 18 },
+  footerLinks: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  footerLinkButton: { justifyContent: 'center', minHeight: 44 },
+  footerLinkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  footerDot: { backgroundColor: '#F2B51D', borderRadius: 999, height: 4, width: 4 },
+  pressed: { opacity: 0.78 },
 });
