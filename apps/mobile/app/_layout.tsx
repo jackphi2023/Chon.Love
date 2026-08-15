@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
+import { MemberProfileMobileActions } from '@/components/member-profile-mobile-actions';
 import { AppProviders } from '@/providers/app-providers';
 
 const WEB_TITLE = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
@@ -25,6 +26,7 @@ export default function RootLayout() {
         <WebDocumentMetadata />
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }} />
+        <MemberProfileMobileActions />
       </AppProviders>
     </AppErrorBoundary>
   );
