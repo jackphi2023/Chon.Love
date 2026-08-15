@@ -72,7 +72,7 @@ for (const viewport of viewports) {
     const page = await context.newPage();
     try {
       await page.goto('/');
-      await expect(page.getByTestId('luxy-public-homepage')).toBeVisible();
+      await expect(page.getByTestId('chon-love-public-homepage')).toBeVisible();
       await capture(page, testInfo, viewport, 'homepage');
 
       await page.goto('/auth?mode=login');
