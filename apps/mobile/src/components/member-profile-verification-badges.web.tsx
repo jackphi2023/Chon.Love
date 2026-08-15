@@ -103,12 +103,12 @@ export function MemberProfileVerificationBadges() {
     };
   }, [username]);
 
-  if (!portalTarget || !profileQuery.data) return null;
+  if (!portalTarget || !profileQuery.data || !badgesQuery.data) return null;
 
   const states: Record<VerificationKey, boolean> = {
-    selfie: badgesQuery.data?.selfie_verified ?? false,
-    identity: badgesQuery.data?.identity_verified ?? false,
-    linkedin: badgesQuery.data?.linkedin_verified ?? false,
+    selfie: badgesQuery.data.selfie_verified,
+    identity: badgesQuery.data.identity_verified,
+    linkedin: badgesQuery.data.linkedin_verified,
   };
 
   return createPortal(
