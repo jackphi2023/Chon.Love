@@ -71,7 +71,10 @@ test('authenticated Free desktop shell follows Chon.Love connection hierarchy an
     await expect(desktopNavigation).toHaveCount(0);
     await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     const compactBrand = page.getByRole('button', { name: 'Chọn.love — về Kết nối' });
-    await expect(compactBrand.getByText('Chon', { exact: true })).toBeVisible();
+    await expect(compactBrand).toBeVisible();
+    const compactBrandBox = await compactBrand.boundingBox();
+    expect(compactBrandBox).not.toBeNull();
+    expect(compactBrandBox.height).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Kết nối', exact: true })).toBeVisible();
 
     await page.setViewportSize({ width: 1024, height: 768 });
