@@ -23,8 +23,8 @@ const primaryItems = [
 ] as const;
 
 const accountItems = [
-  { label: 'Hồ sơ của tôi', href: '/(tabs)/profile' as const },
-  { label: 'Quà', href: '/(tabs)/gifts' as const },
+  { label: 'Hồ sơ của tôi', icon: 'profile' as const, href: '/(tabs)/profile' as const },
+  { label: 'Quà', icon: 'gift' as const, href: '/(tabs)/gifts' as const },
   { label: 'Số dư', href: '/(tabs)/balance' as const },
   { label: 'Cài đặt', href: '/settings' as const },
 ] as const;
@@ -223,6 +223,7 @@ export function LuxyDesktopNavigation() {
                           pressed && styles.pressed,
                         ]}
                       >
+                        {'icon' in item ? <ChonBrandIcon name={item.icon} size={17} /> : <View style={styles.menuIconSpacer} />}
                         <Text style={styles.menuLabel}>{item.label}</Text>
                       </Pressable>
                     );
@@ -363,7 +364,8 @@ const styles = StyleSheet.create({
     zIndex: 160,
     ...luxyShadows.navigation,
   },
-  menuItem: { justifyContent: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg },
+  menuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingHorizontal: luxySpacing.lg },
+  menuIconSpacer: { height: 17, width: 17 },
   menuItemHover: { backgroundColor: luxyColors.brandWarmSurface },
   menuLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '500' },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },
