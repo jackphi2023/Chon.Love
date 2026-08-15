@@ -1,4 +1,4 @@
-import { listLuxyInterests, listLuxyMailbox } from '@myfan/supabase';
+import { getMyLuxyMembershipSnapshot, listLuxyInterests, listLuxyMailbox } from '@myfan/supabase';
 import {
   luxyColors,
   luxyLayout,
@@ -15,7 +15,7 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const primaryItems = [
-  { key: 'search', label: 'Tìm kiếm', symbol: '⌕', href: '/(tabs)' as const },
+  { key: 'search', label: 'Kết nối', symbol: '↔', href: '/(tabs)' as const },
   { key: 'favorites', label: 'Yêu thích', symbol: '♥', href: '/(tabs)/favorites' as const },
   { key: 'messages', label: 'Tin nhắn', symbol: '✉', href: '/(tabs)/messages' as const },
   { key: 'upgrade', label: 'Nâng cấp', symbol: '✦', href: '/settings/membership' as const },
@@ -50,6 +50,17 @@ export function LuxyDesktopNavigation() {
   const client = getMobileSupabaseClient();
   const [accountOpen, setAccountOpen] = useState(false);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+
+  const membershipQuery = useQuery({
+    queryKey: ['luxy-membership', auth.userId],
+    enabled: Boolean(client && auth.userId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      if (!client) throw new Error('supabase_unavailable');
+      return getMyLuxyMembershipSnapshot(client);
+    },
+  });
 
   const interestsBadgeQuery = useQuery({
     queryKey: ['luxy-nav-interests', auth.userId, 'favorited_me'],
@@ -100,18 +111,25 @@ export function LuxyDesktopNavigation() {
     router.replace('/(tabs)');
   };
 
+  const isFreeMembership = membershipQuery.data?.tier === 'free';
+
   return (
     <View style={styles.shell} testID="chon-desktop-navigation">
-      {auth.userId ? (
-        <View style={styles.promo}>
-          <Text style={styles.promoHeart}>♥</Text>
-          <Text style={styles.promoText}>Kết nối nghiêm túc · <Text style={styles.promoStrong}>Premium & Diamond</Text></Text>
-        </View>
+      {auth.userId && isFreeMembership ? (
+        <Pressable
+          accessibilityLabel="Nâng cấp ngay để gửi tin nhắn"
+          accessibilityRole="button"
+          onPress={() => router.push('/settings/membership')}
+          style={({ pressed }) => [styles.promo, pressed && styles.promoPressed]}
+          testID="luxy-free-upgrade-promo"
+        >
+          <Text style={styles.promoText}><Text style={styles.promoStrong}>Nâng cấp ngay</Text> để gửi tin nhắn</Text>
+        </Pressable>
       ) : null}
       <View style={styles.navRow}>
         <View style={styles.inner}>
           <Pressable
-            accessibilityLabel="Chon.Love — về Tìm kiếm"
+            accessibilityLabel="Chon.Love — về Kết nối"
             accessibilityRole="button"
             onPointerEnter={() => setHoveredKey('brand')}
             onPointerLeave={() => setHoveredKey(null)}
@@ -146,7 +164,7 @@ export function LuxyDesktopNavigation() {
                   ]}
                 >
                   <View style={styles.iconWrap}>
-                    <Text accessibilityElementsHidden style={[styles.navIcon, upgrade && styles.upgradeIcon]}>{item.symbol}</Text>
+                    <Text accessibilityElementsHidden style={[styles.navIcon, item.key === 'search' && styles.connectionIcon, upgrade && styles.upgradeIcon]}>{item.symbol}</Text>
                     {badge > 0 ? (
                       <View accessibilityElementsHidden style={styles.badge}>
                         <Text accessibilityElementsHidden style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
@@ -230,16 +248,14 @@ const styles = StyleSheet.create({
   shell: { backgroundColor: luxyColors.surface, position: 'relative', zIndex: 120 },
   promo: {
     alignItems: 'center',
-    backgroundColor: luxyColors.charcoal,
-    flexDirection: 'row',
-    gap: 8,
+    backgroundColor: '#090909',
     height: 34,
     justifyContent: 'center',
     paddingHorizontal: luxySpacing.lg,
   },
-  promoHeart: { color: luxyColors.brandGold, fontSize: 14, fontWeight: '700' },
+  promoPressed: { backgroundColor: '#1A1A1A' },
   promoText: { color: luxyColors.surface, fontSize: 12.5, lineHeight: 17 },
-  promoStrong: { color: luxyColors.brandGold, fontWeight: '700' },
+  promoStrong: { fontWeight: '800', textDecorationLine: 'underline' },
   navRow: {
     alignItems: 'stretch',
     backgroundColor: luxyColors.surface,
@@ -280,6 +296,7 @@ const styles = StyleSheet.create({
   navItemHover: { backgroundColor: luxyColors.brandWarmSurface },
   iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 24, minWidth: 24, position: 'relative' },
   navIcon: { color: luxyColors.brandGoldStrong, fontSize: 20, fontWeight: '700', lineHeight: 22, textAlign: 'center' },
+  connectionIcon: { color: luxyColors.actionRed, fontSize: 21 },
   navLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600', lineHeight: 19 },
   navLabelActive: { color: luxyColors.actionRed, fontWeight: '700' },
   badge: {
