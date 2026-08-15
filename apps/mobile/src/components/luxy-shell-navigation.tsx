@@ -210,7 +210,15 @@ export function LuxyShellNavigation() {
   };
 
   const accountMenu = (variant: ShellVariant) => accountOpen ? (
-    <View accessibilityRole="menu" style={[styles.accountMenu, variant === 'phone' && styles.phoneMenu, variant === 'tablet' && styles.tabletMenu]}>
+    <View
+      accessibilityRole="menu"
+      style={[
+        styles.accountMenu,
+        variant === 'phone' && styles.phoneMenu,
+        variant === 'phone' && isFreeMembership && styles.phoneMenuWithPromo,
+        variant === 'tablet' && styles.tabletMenu,
+      ]}
+    >
       {accountItems.map((item) => (
         <Pressable
           accessibilityRole="menuitem"
@@ -325,7 +333,7 @@ const styles = StyleSheet.create({
   navTextActive: { fontWeight: '700' },
   upgrade: { alignSelf: 'center', backgroundColor: luxyColors.actionRed, borderBottomWidth: 0, borderRadius: luxyRadii.pill, marginHorizontal: luxySpacing.sm, minHeight: 36, minWidth: 100, paddingHorizontal: luxySpacing.lg },
   tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.sm },
-  phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 42, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
+  phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
   upgradeText: { color: luxyColors.surface, fontWeight: '700' },
   accountButton: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.sm, justifyContent: 'center', minWidth: 164, paddingHorizontal: luxySpacing.xl },
   tabletAccountButton: { minWidth: 64, paddingHorizontal: luxySpacing.sm },
@@ -338,7 +346,8 @@ const styles = StyleSheet.create({
   accountLabel: { color: luxyColors.text, fontSize: 16, fontWeight: '500', maxWidth: 110 },
   chevron: { color: luxyColors.text, fontSize: 15 },
   accountMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 224, paddingVertical: luxySpacing.sm, position: 'absolute', right: luxySpacing.md, top: luxyLayout.authenticatedNavHeight - 2, zIndex: 140, ...luxyShadows.navigation },
-  phoneMenu: { maxWidth: 280, minWidth: 216, right: luxySpacing.sm, top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight + luxyLayout.authenticatedPromoHeight - 2 },
+  phoneMenu: { maxWidth: 280, minWidth: 216, right: luxySpacing.sm, top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight - 2 },
+  phoneMenuWithPromo: { top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight + luxyLayout.authenticatedPromoHeight - 2 },
   tabletMenu: { right: luxySpacing.sm },
   menuItem: { justifyContent: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg },
   menuItemPressed: { backgroundColor: luxyColors.subtleSurface },
