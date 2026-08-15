@@ -7,7 +7,7 @@ async function login(page) {
   await page.getByPlaceholder('email@example.com').fill('br06.viewer@example.test');
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-  await expect(page.getByText('Tìm kiếm', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('luxy-search-desktop')).toBeVisible({ timeout: 30_000 });
 }
 
 test('WEB-R02 member profile keeps photo and favorite as separate interactive controls', async ({ browser }) => {

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
-const actor = { email: 'br06.viewer@example.test' };
+const actor = { email: 'br06.outsider@example.test' };
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -22,7 +22,7 @@ async function expectNoHorizontalOverflow(page) {
 }
 
 async function expectPrimaryTouchTargets(page) {
-  for (const label of ['Tìm kiếm', 'Yêu thích', 'Tin nhắn', 'Nâng cấp']) {
+  for (const label of ['Kết nối', 'Yêu thích', 'Tin nhắn', 'Nâng cấp']) {
     const button = page.getByRole('button', { name: label, exact: true });
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
@@ -31,7 +31,13 @@ async function expectPrimaryTouchTargets(page) {
   }
 }
 
-test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs or horizontal overflow', async ({ browser }, testInfo) => {
+async function expectFreeUpgradePrompt(page) {
+  const promo = page.getByTestId('luxy-free-upgrade-promo');
+  await expect(promo).toBeVisible();
+  await expect(promo.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
+}
+
+test('authenticated Free shell keeps connection tabs responsive at 390/430/768 and desktop at 1024', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -42,75 +48,72 @@ test('LX-04 responsive authenticated shell fits 390/430/768 without bottom tabs 
 
   try {
     await login(page);
-    const shellBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
+    const shellBrand = page.getByRole('button', { name: 'Chọn.love — về Kết nối' });
 
-    // Compact phone remains intentionally unchanged in the desktop-only Chon UI pass.
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
     await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
+    await expectFreeUpgradePrompt(page);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
     const compactBrandBox = await shellBrand.boundingBox();
-    const compactSearchBox = await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).boundingBox();
+    const compactConnectBox = await page.getByRole('button', { name: 'Kết nối', exact: true }).boundingBox();
     expect(compactBrandBox).not.toBeNull();
-    expect(compactSearchBox).not.toBeNull();
-    expect(compactBrandBox.y).toBeLessThan(compactSearchBox.y);
+    expect(compactConnectBox).not.toBeNull();
+    expect(compactBrandBox.y).toBeLessThan(compactConnectBox.y);
 
-    await page.getByRole('button', { name: 'Mở menu tài khoản Luxy' }).click();
+    await page.getByRole('button', { name: 'Mở menu tài khoản Chọn.love' }).click();
     await expect(page.getByRole('menu')).toBeVisible();
     const phoneMenuBox = await page.getByRole('menu').boundingBox();
     expect(phoneMenuBox).not.toBeNull();
     expect(phoneMenuBox.x).toBeGreaterThanOrEqual(0);
     expect(phoneMenuBox.x + phoneMenuBox.width).toBeLessThanOrEqual(390);
-    await page.getByRole('button', { name: 'Mở menu tài khoản Luxy' }).click();
+    await page.getByRole('button', { name: 'Mở menu tài khoản Chọn.love' }).click();
 
-    await testInfo.attach('lx04-shell-390', {
+    await testInfo.attach('free-shell-390', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
 
-    // 430px phone: same two-row behavior, full Chon.Love brand when there is room.
     await page.setViewportSize({ width: 430, height: 932 });
     await expect(shellBrand.getByText('Chon.Love', { exact: true })).toBeVisible();
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
+    await expectFreeUpgradePrompt(page);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
     const phoneBrandBox = await shellBrand.boundingBox();
-    const phoneSearchBox = await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).boundingBox();
+    const phoneConnectBox = await page.getByRole('button', { name: 'Kết nối', exact: true }).boundingBox();
     expect(phoneBrandBox).not.toBeNull();
-    expect(phoneSearchBox).not.toBeNull();
-    expect(phoneBrandBox.y).toBeLessThan(phoneSearchBox.y);
+    expect(phoneConnectBox).not.toBeNull();
+    expect(phoneBrandBox.y).toBeLessThan(phoneConnectBox.y);
 
-    await testInfo.attach('lx04-shell-430', {
+    await testInfo.attach('free-shell-430', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
 
-    // Tablet: a single restrained top row, still no desktop promo strip and no scroller.
     await page.setViewportSize({ width: 768, height: 1024 });
     await expect(shellBrand.getByText('Chon', { exact: true })).toBeVisible();
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
+    await expectFreeUpgradePrompt(page);
     await expectPrimaryTouchTargets(page);
     await expectNoHorizontalOverflow(page);
 
     const tabletBrandBox = await shellBrand.boundingBox();
-    const tabletSearchBox = await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).boundingBox();
+    const tabletConnectBox = await page.getByRole('button', { name: 'Kết nối', exact: true }).boundingBox();
     expect(tabletBrandBox).not.toBeNull();
-    expect(tabletSearchBox).not.toBeNull();
-    expect(Math.abs(tabletBrandBox.y - tabletSearchBox.y)).toBeLessThan(24);
+    expect(tabletConnectBox).not.toBeNull();
+    expect(Math.abs(tabletBrandBox.y - tabletConnectBox.y)).toBeLessThan(24);
 
-    await testInfo.attach('lx04-shell-768', {
+    await testInfo.attach('free-shell-768', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
 
-    // At 1024px the new desktop-only Chon shell takes over; mobile/tablet behavior above is untouched.
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
-    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Chon.Love — về Tìm kiếm' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' })).toHaveCount(0);
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chon.Love — về Kết nối' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Kết nối', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' })).toHaveCount(0);
   } finally {
     await context.close();
   }

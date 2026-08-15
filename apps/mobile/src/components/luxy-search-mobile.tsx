@@ -27,7 +27,6 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -36,6 +35,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { LazyProfileImage } from '@/components/lazy-profile-image';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
 import { requestDiscoveryLocation } from '@/lib/location';
 import { getReadableLocationError } from '@/lib/location-errors';
@@ -329,8 +329,8 @@ export function LuxySearchMobile() {
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator>
         <View style={styles.toolbar} testID="luxy-search-mobile-toolbar">
           <View style={styles.toolbarTitleBlock}>
-            <Text accessibilityRole="header" style={styles.title}>Tìm kiếm</Text>
-            <Text style={styles.resultCount}>{profiles.length ? `${profiles.length} thành viên` : 'Khám phá thành viên Luxy'}</Text>
+            <Text accessibilityRole="header" style={styles.title}>Kết nối</Text>
+            <Text style={styles.resultCount}>{profiles.length ? `${profiles.length} thành viên` : 'Khám phá thành viên phù hợp'}</Text>
           </View>
           <View style={styles.toolbarActions}>
             <Pressable
@@ -358,10 +358,10 @@ export function LuxySearchMobile() {
         </View>
 
         {profilesQuery.isLoading && profiles.length === 0 ? (
-          <State><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.stateText}>Đang tìm thành viên phù hợp…</Text></State>
+          <SearchSkeletonGrid />
         ) : profilesQuery.error ? (
           <State>
-            <Text accessibilityRole="alert" style={styles.errorText}>Không thể tải kết quả tìm kiếm.</Text>
+            <Text accessibilityRole="alert" style={styles.errorText}>Không thể tải kết quả kết nối.</Text>
             <Pressable accessibilityRole="button" onPress={() => void profilesQuery.refetch()} style={styles.primaryPill}><Text style={styles.primaryPillText}>Thử lại</Text></Pressable>
           </State>
         ) : profiles.length === 0 ? (
@@ -390,7 +390,7 @@ export function LuxySearchMobile() {
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Pressable accessibilityRole="button" onPress={() => setFiltersOpen(false)} style={styles.sheetHeaderAction}><Text style={styles.sheetHeaderActionText}>Đóng</Text></Pressable>
-              <Text accessibilityRole="header" style={styles.sheetTitle}>Bộ lọc tìm kiếm</Text>
+              <Text accessibilityRole="header" style={styles.sheetTitle}>Bộ lọc kết nối</Text>
               <Pressable accessibilityRole="button" onPress={resetFilters} style={styles.sheetHeaderAction}><Text style={styles.sheetResetText}>Đặt lại</Text></Pressable>
             </View>
 
@@ -498,6 +498,22 @@ function State({ children }: { children: React.ReactNode }) {
   return <View style={styles.centerState}>{children}</View>;
 }
 
+function SearchSkeletonGrid() {
+  return (
+    <View accessibilityLabel="Đang tải danh sách thành viên" style={styles.memberGrid} testID="luxy-search-mobile-skeleton">
+      {Array.from({ length: 6 }, (_, index) => (
+        <View key={index} style={[styles.memberCard, styles.skeletonCard]}>
+          <View style={styles.skeletonPhoto} />
+          <View style={styles.skeletonCopy}>
+            <View style={styles.skeletonName} />
+            <View style={styles.skeletonLocation} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function MobileFilterSection({ title, children, last = false }: { title: string; children: React.ReactNode; last?: boolean }) {
   return <View style={[styles.filterSection, last && styles.filterSectionLast]}><Text style={styles.filterHeading}>{title}</Text><View style={styles.filterBody}>{children}</View></View>;
 }
@@ -525,7 +541,7 @@ function RangeInputs({ leftLabel, leftValue, rightLabel, rightValue, onLeftChang
 function LuxyMobileMemberCard({ profile }: { profile: LuxySearchProfile }) {
   const router = useRouter();
   const client = getMobileSupabaseClient();
-  const name = profile.display_name || profile.username || 'Thành viên Luxy';
+  const name = profile.display_name || profile.username || 'Thành viên Chọn.Love';
   const distance = formatLuxyDistance(profile.distance_km);
   const location = [profile.province_name, distance].filter(Boolean).join(' · ');
   const imageQuery = useQuery({
@@ -549,7 +565,7 @@ function LuxyMobileMemberCard({ profile }: { profile: LuxySearchProfile }) {
         style={({ pressed }) => [styles.cardPressable, pressed && styles.memberCardPressed]}
       >
         <View style={styles.photoFrame}>
-          {imageQuery.data ? <Image accessibilityLabel={`Ảnh hồ sơ của ${name}`} resizeMode="cover" source={{ uri: imageQuery.data }} style={styles.memberPhoto} /> : <View style={styles.photoFallback}><Text style={styles.photoInitial}>{name.slice(0, 1).toUpperCase()}</Text></View>}
+          {imageQuery.data ? <LazyProfileImage accessibilityLabel={`Ảnh hồ sơ của ${name}`} resizeMode="cover" source={{ uri: imageQuery.data }} style={styles.memberPhoto} /> : <View style={styles.photoFallback}><Text style={styles.photoInitial}>{name.slice(0, 1).toUpperCase()}</Text></View>}
           <View style={styles.photoCountBadge}><Text style={styles.photoCountText}>▣ {profile.photo_count}</Text></View>
           <View style={styles.photoOverlay}>
             <View style={styles.memberNameRow}>{profile.is_online ? <View accessibilityLabel="Đang online" style={styles.onlineDot} /> : null}<Text numberOfLines={1} style={styles.memberName}>{name}</Text><Text style={styles.memberAge}>{profile.age}</Text></View>
@@ -594,6 +610,11 @@ const styles = StyleSheet.create({
   memberAge: { color: luxyColors.surface, fontSize: 11 },
   memberLocation: { color: '#F1F1F1', fontSize: 9, marginTop: 3 },
   favoriteOverlay: { bottom: 7, position: 'absolute', right: 7, zIndex: 4 },
+  skeletonCard: { overflow: 'hidden' },
+  skeletonPhoto: { width: '100%', aspectRatio: luxyLayout.memberCardAspectRatio, borderRadius: luxyRadii.sm, backgroundColor: '#E8EAED' },
+  skeletonCopy: { gap: 6, paddingHorizontal: 4, paddingTop: 8, paddingBottom: 4 },
+  skeletonName: { width: '66%', height: 12, borderRadius: 6, backgroundColor: '#E1E4E8' },
+  skeletonLocation: { width: '48%', height: 9, borderRadius: 5, backgroundColor: '#ECEEF1' },
   centerState: { minHeight: 360, alignItems: 'center', justifyContent: 'center', gap: luxySpacing.md, paddingHorizontal: luxySpacing.xl },
   stateText: { color: luxyColors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   emptyTitle: { color: luxyColors.text, fontSize: 17, fontWeight: '600', textAlign: 'center' },

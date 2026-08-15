@@ -9,7 +9,7 @@ async function login(page) {
   await page.getByPlaceholder('email@example.com').fill(actor.email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-  await expect(page.getByText('Tìm kiếm', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Kết nối', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
 async function assertNoHorizontalOverflow(page) {
@@ -22,7 +22,7 @@ async function assertNoHorizontalOverflow(page) {
 
 async function openSettingsFromAccountMenu(page) {
   const viewport = page.viewportSize();
-  const accountButtonName = (viewport?.width ?? 0) >= 1024 ? 'Mở menu tài khoản' : 'Mở menu tài khoản Luxy';
+  const accountButtonName = (viewport?.width ?? 0) >= 1024 ? 'Mở menu tài khoản' : 'Mở menu tài khoản Chọn.love';
   await page.getByRole('button', { name: accountButtonName, exact: true }).click();
   const settingsItem = page.getByRole('menuitem', { name: 'Cài đặt' });
   await expect(settingsItem).toBeVisible();
@@ -59,7 +59,7 @@ async function assertPrivatePhotoSettings(page) {
   await expect(page.getByText(/Free: chỉ thấy số lượng\/khu vực ảnh bị khóa/i)).toBeVisible();
 }
 
-test('WEB-R01 Settings hub follows final Luxy V1 contract on desktop', async ({ browser }, testInfo) => {
+test('WEB-R01 Settings hub follows final Chon.Love V1 contract on desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
@@ -102,7 +102,7 @@ test('WEB-R01 Settings remains usable on 390px mobile web', async ({ browser }, 
     await login(page);
     await openSettingsFromAccountMenu(page);
     await assertSettingsHub(page);
-    await expect(page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' }).getByText('Chon', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' }).getByText('Chon', { exact: true })).toBeVisible();
     await assertNoHorizontalOverflow(page);
 
     await page.getByTestId('settings-verification').click();

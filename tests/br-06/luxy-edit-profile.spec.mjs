@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
-const actor = { email: 'br06.viewer@example.test' };
+const actor = { email: 'br06.outsider@example.test' };
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -9,7 +9,7 @@ async function login(page) {
   await page.getByPlaceholder('email@example.com').fill(actor.email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-  await expect(page.getByText('Tìm kiếm', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Kết nối', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
 async function noHorizontalOverflow(page) {
@@ -46,7 +46,7 @@ async function assertCoreEditor(page) {
   await expect(page.getByText('Xác minh', { exact: true })).toBeVisible();
 }
 
-test('LX-08 desktop edit profile follows Seeking two-column hierarchy inside the Chon shell', async ({ browser }, testInfo) => {
+test('desktop edit profile follows Seeking two-column hierarchy inside the Chon shell', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
@@ -55,7 +55,7 @@ test('LX-08 desktop edit profile follows Seeking two-column hierarchy inside the
     await assertCoreEditor(page);
 
     await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
-    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('chon-desktop-navigation').getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     const photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     const formBox = await page.getByTestId('lx08-profile-form').boundingBox();
     expect(photoBox).not.toBeNull();
@@ -71,7 +71,7 @@ test('LX-08 desktop edit profile follows Seeking two-column hierarchy inside the
     await locationButton.click();
 
     await noHorizontalOverflow(page);
-    await testInfo.attach('lx08-edit-profile-1280', {
+    await testInfo.attach('edit-profile-1280', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
@@ -80,14 +80,14 @@ test('LX-08 desktop edit profile follows Seeking two-column hierarchy inside the
   }
 });
 
-test('LX-08 edit profile stacks cleanly on tablet and phone without bottom-tab regression', async ({ browser }, testInfo) => {
+test('edit profile stacks cleanly on tablet and phone with the Free upgrade shell', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 768, height: 1024 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
     await login(page);
     await page.goto('/profile/edit');
     await assertCoreEditor(page);
-    await expect(page.getByText('Nâng cấp ngay', { exact: true })).toHaveCount(0);
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
 
     let photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     let formBox = await page.getByTestId('lx08-profile-form').boundingBox();
@@ -97,7 +97,8 @@ test('LX-08 edit profile stacks cleanly on tablet and phone without bottom-tab r
     await noHorizontalOverflow(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' }).getByText('Chon', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' }).getByText('Chon', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     photoBox = await page.getByTestId('lx08-photo-rail').boundingBox();
     formBox = await page.getByTestId('lx08-profile-form').boundingBox();
     expect(photoBox).not.toBeNull();
@@ -110,7 +111,7 @@ test('LX-08 edit profile stacks cleanly on tablet and phone without bottom-tab r
     expect(saveBox).not.toBeNull();
     expect(saveBox.height).toBeGreaterThanOrEqual(44);
 
-    await testInfo.attach('lx08-edit-profile-390', {
+    await testInfo.attach('edit-profile-390', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
