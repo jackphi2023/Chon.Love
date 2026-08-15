@@ -66,6 +66,14 @@ async function openSearch(page) {
   await expect(page.getByText('Tìm kiếm', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
+async function openProfileMessage(page, viewport, displayName) {
+  const button = viewport.width < 1024
+    ? page.getByRole('button', { name: `Gửi tin nhắn cho ${displayName}`, exact: true })
+    : page.getByRole('button', { name: 'Nhắn tin', exact: true });
+  await expect(button).toBeVisible();
+  await button.click();
+}
+
 for (const viewport of viewports) {
   test(`WEB-R02 public/auth UI has no overflow at ${viewport.name}px`, async ({ browser }, testInfo) => {
     const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1 });
@@ -174,6 +182,11 @@ for (const viewport of viewports) {
       await expect(freePage.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
       await expect(freePage.locator('button button'), 'Member Profile must not render nested interactive buttons').toHaveCount(0);
       await expect(freePage.getByTestId('luxy-private-photo-entitlement-button')).toContainText('Nâng cấp');
+      await expect(freePage.getByTestId('luxy-member-verification-badges')).toBeVisible();
+      if (viewport.width < 1024) {
+        await expect(freePage.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
+        await expect(freePage.getByTestId('luxy-profile-mobile-action-dock')).toBeVisible();
+      }
       await capture(freePage, testInfo, viewport, 'member-profile');
 
       await page.goto('/favorites');
@@ -192,7 +205,7 @@ for (const viewport of viewports) {
 
       await page.goto(`/profile/${creator.username}`);
       await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
-      await page.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
+      await openProfileMessage(page, viewport, creator.displayName);
       await expect(page.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true })).toBeVisible({ timeout: 20_000 });
       const retentionSwitch = page.getByRole('switch', { name: 'Tự động xóa tin nhắn sau 7 ngày cho cả hai người' });
       await expect(retentionSwitch).toBeVisible({ timeout: 20_000 });
@@ -225,18 +238,25 @@ for (const viewport of viewports) {
 
       await freePage.goto(`/profile/${creator.username}`);
       await expect(freePage.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
-      await freePage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
-      const upgradeGate = freePage.getByTestId('luxy-upgrade-gate-message');
-      await expect(upgradeGate).toBeVisible();
-      expect(await upgradeGate.evaluate((node) => {
-        const rect = node.getBoundingClientRect();
-        return [0.25, 0.5, 0.75].every((ratio) => {
-          const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height * ratio);
-          return Boolean(top && node.contains(top));
-        });
-      }), 'Upgrade modal must be the top visual stacking layer').toBe(true);
-      await capture(freePage, testInfo, viewport, 'upgrade-gate', false);
-      await freePage.getByRole('button', { name: 'Để sau' }).click();
+      if (viewport.width < 1024) {
+        await freePage.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}`, exact: true }).click();
+        await expect(freePage).toHaveURL(/\/settings\/membership/);
+        await expect(freePage.getByTestId('luxy-upgrade-billing')).toBeVisible();
+        await capture(freePage, testInfo, viewport, 'upgrade-membership', false);
+      } else {
+        await freePage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
+        const upgradeGate = freePage.getByTestId('luxy-upgrade-gate-message');
+        await expect(upgradeGate).toBeVisible();
+        expect(await upgradeGate.evaluate((node) => {
+          const rect = node.getBoundingClientRect();
+          return [0.25, 0.5, 0.75].every((ratio) => {
+            const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height * ratio);
+            return Boolean(top && node.contains(top));
+          });
+        }), 'Upgrade modal must be the top visual stacking layer').toBe(true);
+        await capture(freePage, testInfo, viewport, 'upgrade-gate', false);
+        await freePage.getByRole('button', { name: 'Để sau' }).click();
+      }
 
       await freePage.goto('/settings/membership');
       const checkoutButton = freePage.getByTestId('membership-checkout-cta');
