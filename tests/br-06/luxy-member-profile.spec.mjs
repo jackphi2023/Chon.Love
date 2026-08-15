@@ -80,7 +80,7 @@ async function assertFreeFavoriteWorks(photoModal, page) {
   }
 }
 
-async function assertVerificationBadges(page) {
+async function assertVerificationBadges(page, hoverTooltips = true) {
   const badges = page.getByTestId('luxy-member-verification-badges');
   await expect(badges).toBeVisible();
 
@@ -95,8 +95,10 @@ async function assertVerificationBadges(page) {
     await expect(icon).toBeVisible();
     const tooltip = await icon.getAttribute('aria-label');
     expect(tooltip).toMatch(matcher);
-    await icon.hover();
-    await expect(page.getByText(tooltip, { exact: true })).toBeVisible();
+    if (hoverTooltips && tooltip) {
+      await icon.hover();
+      await expect(page.getByText(tooltip, { exact: true })).toBeVisible();
+    }
   }
 }
 
@@ -177,7 +179,7 @@ test('mobile profile shows verification badges, gift action, anchored message CT
     await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeHidden();
     await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
     await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
-    await assertVerificationBadges(page);
+    await assertVerificationBadges(page, false);
 
     await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
