@@ -23,8 +23,8 @@ export function HomepageYoutubeHero({
   isPhone = false,
   fallbackSource,
 }: {
-  desktopUrl?: string | null;
-  mobileUrl?: string | null;
+  desktopUrl?: string | null | undefined;
+  mobileUrl?: string | null | undefined;
   isPhone?: boolean;
   fallbackSource: { uri: string };
   style?: StyleProp<ViewStyle>;
