@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react';
-import { StyleSheet, type ImageStyle, type StyleProp } from 'react-native';
+import { Image as ReactNativeImage, StyleSheet, type ImageStyle, type StyleProp } from 'react-native';
+
+const logoUri = ReactNativeImage.resolveAssetSource(require('../../public/chonlove-logo.webp')).uri;
 
 export function ChonLoveLogo({
   width = 150,
@@ -19,7 +21,7 @@ export function ChonLoveLogo({
       draggable={false}
       height={height}
       loading="eager"
-      src="/chonlove-logo.webp"
+      src={logoUri}
       style={{
         display: 'block',
         height,
