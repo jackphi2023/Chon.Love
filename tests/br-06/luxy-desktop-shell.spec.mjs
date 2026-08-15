@@ -19,7 +19,7 @@ async function xPosition(locator) {
   return box.x;
 }
 
-test('LX-03 authenticated desktop shell follows Chon.Love hierarchy and 1024px breakpoint', async ({ browser }, testInfo) => {
+test('authenticated desktop shell follows Chon.Love connection hierarchy and 1024px breakpoint', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     deviceScaleFactor: 1,
@@ -30,17 +30,17 @@ test('LX-03 authenticated desktop shell follows Chon.Love hierarchy and 1024px b
     await login(page);
 
     const desktopNavigation = page.getByTestId('chon-desktop-navigation');
-    const shellBrand = page.getByRole('button', { name: 'Chon.Love — về Tìm kiếm' });
-    const searchNav = page.getByRole('button', { name: 'Tìm kiếm', exact: true });
+    const shellBrand = page.getByRole('button', { name: 'Chon.Love — về Kết nối' });
+    const connectionsNav = page.getByRole('button', { name: 'Kết nối', exact: true });
     const favoritesNav = page.getByRole('button', { name: 'Yêu thích', exact: true });
     const messagesNav = page.getByRole('button', { name: 'Tin nhắn', exact: true });
     const upgradeNav = page.getByRole('button', { name: 'Nâng cấp', exact: true });
     const accountButton = page.getByRole('button', { name: 'Mở menu tài khoản' });
 
     await expect(desktopNavigation).toBeVisible();
-    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     await expect(shellBrand).toBeVisible();
-    await expect(searchNav).toBeVisible();
+    await expect(connectionsNav).toBeVisible();
     await expect(favoritesNav).toBeVisible();
     await expect(messagesNav).toBeVisible();
     await expect(upgradeNav).toBeVisible();
@@ -49,7 +49,7 @@ test('LX-03 authenticated desktop shell follows Chon.Love hierarchy and 1024px b
 
     const positions = await Promise.all([
       xPosition(shellBrand),
-      xPosition(searchNav),
+      xPosition(connectionsNav),
       xPosition(favoritesNav),
       xPosition(messagesNav),
       xPosition(upgradeNav),
@@ -69,16 +69,17 @@ test('LX-03 authenticated desktop shell follows Chon.Love hierarchy and 1024px b
 
     await page.setViewportSize({ width: 1023, height: 768 });
     await expect(desktopNavigation).toHaveCount(0);
-    await expect(page.getByText('Premium & Diamond', { exact: true })).toHaveCount(0);
-    const compactBrand = page.getByRole('button', { name: 'Luxy.Love — về Tìm kiếm' });
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    const compactBrand = page.getByRole('button', { name: 'Chọn.love — về Kết nối' });
     await expect(compactBrand.getByText('Chon', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Kết nối', exact: true })).toBeVisible();
 
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
-    await expect(page.getByText('Premium & Diamond', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Chon.Love — về Tìm kiếm' })).toBeVisible();
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chon.Love — về Kết nối' })).toBeVisible();
 
-    await testInfo.attach('lx03-desktop-shell-1280', {
+    await testInfo.attach('connection-desktop-shell-1280', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
