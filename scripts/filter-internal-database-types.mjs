@@ -14,43 +14,58 @@ const serverOnlyFunctions = [
   'admin_list_luxy_reports',
   'admin_review_luxy_report',
   'get_public_chon_profile',
+  'admin_get_homepage_settings',
+  'admin_update_homepage_settings',
+  'get_public_homepage_settings',
+  'is_super_admin',
 ];
+
+// homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
+// the public/mobile and Admin clients consume only the narrow, Zod-validated RPC contract instead.
+const serverOnlyTables = ['homepage_settings'];
 
 let source = readFileSync(file, 'utf8');
 
-for (const name of serverOnlyFunctions) {
-  const marker = `      ${name}: {\n`;
-  const start = source.indexOf(marker);
-  if (start < 0) {
-    console.error(`Expected server-only RPC missing from generated types: ${name}`);
-    process.exit(1);
-  }
+function removeGeneratedBlocks(names, kind) {
+  for (const name of names) {
+    // Supabase emits both multiline blocks and compact one-line blocks such as
+    // `is_super_admin: { Args: never; Returns: boolean }`; match both forms.
+    const marker = `      ${name}: {`;
+    const start = source.indexOf(marker);
+    if (start < 0) {
+      console.error(`Expected server-only ${kind} missing from generated types: ${name}`);
+      process.exit(1);
+    }
 
-  let depth = 0;
-  let opened = false;
-  let end = -1;
-  for (let index = start; index < source.length; index += 1) {
-    const char = source[index];
-    if (char === '{') {
-      depth += 1;
-      opened = true;
-    } else if (char === '}') {
-      depth -= 1;
-      if (opened && depth === 0) {
-        end = index + 1;
-        if (source[end] === ',') end += 1;
-        if (source[end] === '\n') end += 1;
-        break;
+    let depth = 0;
+    let opened = false;
+    let end = -1;
+    for (let index = start; index < source.length; index += 1) {
+      const char = source[index];
+      if (char === '{') {
+        depth += 1;
+        opened = true;
+      } else if (char === '}') {
+        depth -= 1;
+        if (opened && depth === 0) {
+          end = index + 1;
+          if (source[end] === ',') end += 1;
+          if (source[end] === '\n') end += 1;
+          break;
+        }
       }
     }
-  }
 
-  if (end < 0) {
-    console.error(`Unable to isolate generated type block for ${name}`);
-    process.exit(1);
+    if (end < 0) {
+      console.error(`Unable to isolate generated type block for ${name}`);
+      process.exit(1);
+    }
+    source = source.slice(0, start) + source.slice(end);
   }
-  source = source.slice(0, start) + source.slice(end);
 }
+
+removeGeneratedBlocks(serverOnlyFunctions, 'RPC');
+removeGeneratedBlocks(serverOnlyTables, 'table');
 
 const beforeProfileCodeFilter = source;
 source = source
@@ -64,4 +79,6 @@ if (source === beforeProfileCodeFilter) {
 }
 
 writeFileSync(file, source, 'utf8');
-console.warn(`Filtered ${serverOnlyFunctions.length} server-only RPCs plus profiles.public_profile_code from the client database contract.`);
+console.warn(
+  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
+);

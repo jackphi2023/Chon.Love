@@ -20,9 +20,9 @@ async function expectCleanBranding(page, screen) {
   await expect(body, `${screen}: deferred Activity branding must not be visible`).not.toContainText('Hoạt động');
 }
 
-test('WEB-R03 public/auth surfaces use Luxy.Love branding', async ({ page }) => {
+test('WEB-R03 public/auth surfaces use Chọn.love branding', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByTestId('luxy-public-homepage')).toBeVisible();
+  await expect(page.getByTestId('chon-love-public-homepage')).toBeVisible();
   await expectCleanBranding(page, 'homepage');
   await page.goto('/auth');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
