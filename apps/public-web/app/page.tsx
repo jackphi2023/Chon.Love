@@ -1,23 +1,23 @@
 import type { Metadata } from 'next';
-import './home.css';
+import { redirect } from 'next/navigation';
+
 const description = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm.';
+const title = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
+
 export const metadata: Metadata = {
-  title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description, alternates: { canonical: '/' },
-  openGraph: { title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description, locale: 'vi_VN', type: 'website' },
-  twitter: { card: 'summary', title: 'Chon.Love | Chọn đúng người, Yêu đúng Gu', description },
+  title,
+  description,
+  alternates: { canonical: '/' },
+  openGraph: { title, description, locale: 'vi_VN', type: 'website' },
+  twitter: { card: 'summary', title, description },
 };
-const structuredData = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Chon.Love', slogan: 'Chọn đúng người, Yêu đúng Gu', description, inLanguage: 'vi-VN', audience: { '@type': 'PeopleAudience', requiredMinAge: 18 } };
+
+/**
+ * The public and authenticated Netlify release embeds the Expo Web app under
+ * `/app`. The Expo homepage is the single UI source of truth for Chon.Love.
+ * Keep this route as a server-side fallback so an accidentally selected
+ * public-web package can never expose the retired static homepage again.
+ */
 export default function Page() {
-  return <main className="homePage">
-    <script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} type="application/ld+json" />
-    <section className="homeHero" aria-labelledby="home-title">
-      <div className="homeHeroGlow homeHeroGlowOne" aria-hidden="true" /><div className="homeHeroGlow homeHeroGlowTwo" aria-hidden="true" />
-      <div className="homeHeroCopy"><span className="homePill">♥ NGƯỜI DÙNG THẬT · KẾT NỐI VĂN MINH · HẸN HÒ NGHIÊM TÚC</span><h1 id="home-title">Chọn đúng người,<br /><span>Yêu đúng Gu</span></h1><p>{description}</p><div className="homeHeroActions"><a className="homePrimaryButton" href="/?intent=signup">Tham gia Chon.Love</a><a className="homeGhostButton" href="/?intent=login">Đăng nhập</a></div><p className="homeHeroNote">Hồ sơ, xác thực, quyền riêng tư và công cụ an toàn được thiết kế để hỗ trợ các kết nối lành mạnh và có chất lượng.</p></div>
-      <div className="homePhone" aria-label="Minh họa giao diện hồ sơ Chon.Love"><div className="homePhoneTop"><span className="homePhoneBrand">Chon.Love</span><span className="homePhoneAge">Nghiêm túc</span></div><article className="homePhonePost"><header><span className="homePhoneAvatar">C</span><div><strong>Thành viên đã xác thực</strong><small>Hồ Chí Minh · đang online</small></div><span className="homePhoneCheck">✓</span></header><p>Hồ sơ rõ ràng, kết nối có chọn lọc và tôn trọng quyền riêng tư.</p><div className="homePhoneMedia"><span>Ảnh hồ sơ qua luồng kiểm duyệt</span></div><footer><span>♡ Yêu thích</span><span>✉ Nhắn tin</span></footer></article><div className="homePhoneGifts"><span>Premium</span><span>Diamond</span><span>Ảnh riêng tư</span></div></div>
-    </section>
-    <section className="homeTrustBar" aria-label="Nguyên tắc chính của Chon.Love"><div><strong>♥</strong><span>Hẹn hò nghiêm túc và có chọn lọc</span></div><div><strong>✓</strong><span>Xác thực hồ sơ và hình ảnh</span></div><div><strong>🔒</strong><span>Quyền riêng tư được kiểm tra phía server</span></div></section>
-    <section className="homeSection homeIntro" aria-labelledby="about-title"><div className="homeSectionHeading"><div><p className="homeEyebrow">CHON.LOVE LÀ GÌ?</p><h2 id="about-title">Hẹn hò dành cho người dùng thật và văn minh</h2></div><p>Chon.Love hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm, thay vì tối đa hóa lượt lướt hay kết nối thiếu chủ đích.</p></div><div className="homeFeatureGrid"><article><span className="homeFeatureIcon">✦</span><h3>Chọn đúng người</h3><p>Tìm kiếm theo hồ sơ và tiêu chí phù hợp sau khi đăng nhập.</p></article><article><span className="homeFeatureIcon">◎</span><h3>Người dùng thật</h3><p>Selfie và các lớp xác thực hỗ trợ giảm hồ sơ giả, trong khi trạng thái kiểm duyệt được tách rõ.</p></article><article><span className="homeFeatureIcon">♥</span><h3>Kết nối văn minh</h3><p>Chặn, báo cáo, quyền riêng tư và entitlement được ưu tiên hơn mọi quyền lợi trả phí.</p></article></div></section>
-    <section className="homeSection homeSafety" aria-labelledby="safety-title"><div className="homeSafetyCopy"><p className="homeEyebrow">RIÊNG TƯ VÀ AN TOÀN</p><h2 id="safety-title">Công khai vừa đủ, bảo vệ dữ liệu nhạy cảm</h2><p>Trang profile có thể chia sẻ chỉ hiển thị dữ liệu hồ sơ phù hợp; ngày sinh đầy đủ, vị trí chính xác, ảnh riêng tư và dữ liệu xác minh nội bộ không được đưa ra public.</p><a className="homeTextLink" href="/community-standards">Đọc Tiêu chuẩn cộng đồng ›</a></div><ol className="homeSafetySteps"><li><span>01</span><div><strong>Thông tin rõ ràng</strong><p>Thành viên hoàn tất thông tin cần thiết trước khi sử dụng đầy đủ các tính năng kết nối.</p></div></li><li><span>02</span><div><strong>Xác thực hồ sơ</strong><p>Ảnh và selfie đi qua luồng xác minh/kiểm duyệt.</p></div></li><li><span>03</span><div><strong>Kiểm soát quyền xem</strong><p>Danh sách thành viên chỉ dành cho người đã đăng nhập; profile share dùng public ID riêng.</p></div></li></ol></section>
-    <section className="homeFinalCta" aria-labelledby="join-title"><div><p className="homeEyebrow homeEyebrowLight">CHỌN ĐÚNG NGƯỜI, YÊU ĐÚNG GU</p><h2 id="join-title">Bắt đầu kết nối trên Chon.Love</h2><p>Tạo hồ sơ, hoàn tất xác thực và khám phá những người phù hợp trong một môi trường có kiểm soát.</p></div><div className="homeFinalActions"><a className="homeWhiteButton" href="/?intent=signup">Tham gia ngay</a><a className="homeOutlineLightButton" href="/?intent=login">Đăng nhập</a></div></section>
-  </main>;
+  redirect('/app/');
 }
