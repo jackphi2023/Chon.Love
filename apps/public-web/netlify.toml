@@ -1,72 +1,15 @@
+# RETIRED AS A PRODUCTION TARGET.
+# Chon.Love production is deployed only from repository-root /netlify.toml and
+# publishes apps/mobile/dist. This guard prevents an old Netlify package selection
+# from silently bringing the former combined public-web + /app architecture back.
+# The Next.js code is retained only as non-production source for future SEO/public
+# profile extraction and can still be built manually with:
+#   pnpm --filter @myfan/public-web build
+
 [build]
-  command = "corepack enable && pnpm build:netlify:chon"
+  command = "echo 'apps/public-web is not a Chon.Love production Netlify target. Use repository root netlify.toml.' && exit 1"
   publish = "apps/public-web/.next"
 
 [build.environment]
   NODE_VERSION = "22.23.1"
   PNPM_VERSION = "10.15.1"
-
-[context.production.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "production"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-  # Fail closed until Supabase Authentication > Providers > Google is enabled
-  # with a valid Google OAuth Web Client ID + Client Secret. Enabling the UI
-  # before the hosted provider is configured causes /auth/v1/authorize to 400.
-  EXPO_PUBLIC_FEATURE_GOOGLE_AUTH = "false"
-
-[context.develop.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-
-[context."release/staging".environment]
-  NEXT_PUBLIC_MYFAN_ENV = "staging"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-
-[context.deploy-preview.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-
-[context.branch-deploy.environment]
-  NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
-
-[[redirects]]
-  from = "/"
-  to = "/app/auth?mode=login"
-  status = 302
-  force = true
-  query = {intent = "login"}
-
-[[redirects]]
-  from = "/"
-  to = "/app/auth"
-  status = 302
-  force = true
-  query = {intent = "signup"}
-
-# The rebuilt Expo homepage is the only homepage source of truth. This catch-all
-# root redirect prevents the retired Next.js homepage from resurfacing if the
-# combined public-web Netlify site is selected for production.
-[[redirects]]
-  from = "/"
-  to = "/app/"
-  status = 302
-  force = true
-
-[[redirects]]
-  from = "/app/*"
-  to = "/app/index.html"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "DENY"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), geolocation=(), microphone=()"
-
-[[headers]]
-  for = "/app/*"
-  [headers.values]
-    Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"
