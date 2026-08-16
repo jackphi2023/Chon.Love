@@ -1,5 +1,5 @@
 import {
-  createPrivateMediaUrl,
+  createPublicProfileMediaUrl,
   formatLuxyDistance,
   getMyDiscoveryContext,
   getNextLuxySearchOffset,
@@ -555,7 +555,7 @@ function LuxyMobileMemberCard({ profile }: { profile: LuxySearchProfile }) {
     gcTime: 5 * 60_000,
     queryFn: async () => {
       if (!client || !profile.avatar_storage_bucket || !profile.avatar_storage_path) return null;
-      return createPrivateMediaUrl(client, { storage_bucket: profile.avatar_storage_bucket, storage_path: profile.avatar_storage_path });
+      return createPublicProfileMediaUrl(client, { storage_bucket: profile.avatar_storage_bucket, storage_path: profile.avatar_storage_path });
     },
   });
 

@@ -11,8 +11,11 @@ import {
 
 describe('profile photo delivery', () => {
   it('reuses public/avatar signed URLs for an hour so browser and CDN caches can warm', async () => {
-    const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.test/photo' }, error: null });
-    const from = vi.fn().mockReturnValue({ createSignedUrl });
+    const createSignedUrls = vi.fn().mockResolvedValue({
+      data: [{ path: 'profiles/user/avatar.jpg', signedUrl: 'https://example.test/photo' }],
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ createSignedUrls });
     const client = { storage: { from } } as unknown as Parameters<typeof createPublicProfileMediaUrl>[0];
 
     await expect(createPublicProfileMediaUrl(client, {
@@ -22,13 +25,16 @@ describe('profile photo delivery', () => {
 
     expect(PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS).toBe(60 * 60);
     expect(from).toHaveBeenCalledWith('profile-media');
-    expect(createSignedUrl).toHaveBeenCalledWith('profiles/user/avatar.jpg', 60 * 60);
+    expect(createSignedUrls).toHaveBeenCalledWith(['profiles/user/avatar.jpg'], 60 * 60);
   });
 
   it('keeps private media URLs short-lived by default', async () => {
-    const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.test/private' }, error: null });
+    const createSignedUrls = vi.fn().mockResolvedValue({
+      data: [{ path: 'profiles/user/private.jpg', signedUrl: 'https://example.test/private' }],
+      error: null,
+    });
     const client = {
-      storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) },
+      storage: { from: vi.fn().mockReturnValue({ createSignedUrls }) },
     } as unknown as Parameters<typeof createPrivateMediaUrl>[0];
 
     await createPrivateMediaUrl(client, {
@@ -37,7 +43,36 @@ describe('profile photo delivery', () => {
     });
 
     expect(PRIVATE_PROFILE_MEDIA_URL_TTL_SECONDS).toBe(5 * 60);
-    expect(createSignedUrl).toHaveBeenCalledWith('profiles/user/private.jpg', 5 * 60);
+    expect(createSignedUrls).toHaveBeenCalledWith(['profiles/user/private.jpg'], 5 * 60);
+  });
+
+  it('coalesces concurrently mounted public profile photos into one storage signing request', async () => {
+    const createSignedUrls = vi.fn().mockImplementation(async (paths: string[]) => ({
+      data: paths.map((path) => ({ path, signedUrl: `https://example.test/${path}` })),
+      error: null,
+    }));
+    const client = {
+      storage: { from: vi.fn().mockReturnValue({ createSignedUrls }) },
+    } as unknown as Parameters<typeof createPublicProfileMediaUrl>[0];
+
+    const [avatarUrl, galleryUrl] = await Promise.all([
+      createPublicProfileMediaUrl(client, {
+        storage_bucket: 'profile-media',
+        storage_path: 'profiles/user/avatar.jpg',
+      }),
+      createPublicProfileMediaUrl(client, {
+        storage_bucket: 'profile-media',
+        storage_path: 'profiles/user/gallery.jpg',
+      }),
+    ]);
+
+    expect(avatarUrl).toBe('https://example.test/profiles/user/avatar.jpg');
+    expect(galleryUrl).toBe('https://example.test/profiles/user/gallery.jpg');
+    expect(createSignedUrls).toHaveBeenCalledTimes(1);
+    expect(createSignedUrls).toHaveBeenCalledWith(
+      ['profiles/user/avatar.jpg', 'profiles/user/gallery.jpg'],
+      PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS,
+    );
   });
 });
 

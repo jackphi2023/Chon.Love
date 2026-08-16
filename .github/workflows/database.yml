@@ -102,6 +102,9 @@ jobs:
           test -f supabase/migrations/20260812121500_lx_14_private_photo_premium_interactions.sql
           test -f supabase/migrations/20260816101657_chon_policy_reaccept_preserve_verified_identity.sql
           test -f supabase/migrations/20260816101704_chon_runtime_legacy_retirement.sql
+          test -f supabase/migrations/20260816121228_chon_existing_user_access_and_badges.sql
+          test -f supabase/migrations/20260816153138_chon_profile_media_delivery_integrity.sql
+          test -f supabase/migrations/20260816154812_chon_public_media_approval_scope_private_compatibility.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -120,6 +123,7 @@ jobs:
           test -f supabase/tests/lx_14_private_photo_premium_entitlements.sql
           test -f supabase/tests/chon_policy_reaccept_preserve_verified_identity.sql
           test -f supabase/tests/chon_runtime_legacy_retirement.sql
+          test -f supabase/tests/chon_profile_media_delivery.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -172,6 +176,9 @@ jobs:
 
       - name: Run Chon.Love retired runtime grant contract
         run: supabase test db supabase/tests/chon_runtime_legacy_retirement.sql --local
+
+      - name: Run Chon.Love profile media delivery contract
+        run: supabase test db supabase/tests/chon_profile_media_delivery.sql --local
 
       - name: Run concurrent gift ledger test
         run: bash supabase/tests/09_concurrency.sh

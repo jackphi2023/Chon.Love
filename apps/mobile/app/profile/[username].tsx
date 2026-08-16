@@ -3,7 +3,7 @@ import {
   cancelFriendRequest,
   createChatClientMessageId,
   createLuxyUpgradeIntent,
-  createPrivateMediaUrl,
+  createPublicProfileMediaUrl,
   createSafetyReport,
   getLuxyProfileConversation,
   getLuxyMemberProfile,
@@ -137,7 +137,7 @@ export default function LuxyMemberProfilePage() {
     staleTime: 45_000,
     queryFn: async () => {
       if (!client || !profile?.avatar_storage_bucket || !profile.avatar_storage_path) return null;
-      return createPrivateMediaUrl(client, {
+      return createPublicProfileMediaUrl(client, {
         storage_bucket: profile.avatar_storage_bucket,
         storage_path: profile.avatar_storage_path,
       });
@@ -486,7 +486,7 @@ function ProfilePhotoTile({ media, name, onOpen }: { media: AlbumMediaItem; name
     staleTime: 40_000,
     queryFn: async () => {
       if (!client) return null;
-      return createPrivateMediaUrl(client, media);
+      return createPublicProfileMediaUrl(client, media);
     },
   });
   return (

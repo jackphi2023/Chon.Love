@@ -83,10 +83,97 @@ type ModeratedMediaState = {
   deleted_at: string | null;
 };
 
+type SignedUrlTarget = Pick<ProfileMediaRow, 'storage_bucket' | 'storage_path'> | Pick<AlbumMediaItem, 'storage_bucket' | 'storage_path'>;
+type SignedUrlWaiter = { resolve: (url: string) => void; reject: (error: unknown) => void };
+type SignedUrlBatch = { scheduled: boolean; waitersByPath: Map<string, SignedUrlWaiter[]> };
+
+// Search/profile grids can mount dozens of images in the same render. Coalesce those
+// requests per Supabase client + bucket + TTL so Storage receives one createSignedUrls
+// request instead of one request per card/tile. This keeps the private bucket model and
+// authorization checks intact while eliminating the N+1 signing burst.
+const signedUrlBatches = new WeakMap<object, Map<string, SignedUrlBatch>>();
+
 function assertData<T>(data: T | null, error: { message: string } | null): T {
   if (error) throw new Error(error.message);
   if (data === null) throw new Error('missing_response_data');
   return data;
+}
+
+function signedUrlBatchKey(bucket: string, expiresInSeconds: number): string {
+  return `${bucket}:${expiresInSeconds}`;
+}
+
+async function flushSignedUrlBatch(
+  client: Client,
+  bucket: string,
+  expiresInSeconds: number,
+  batch: SignedUrlBatch,
+) {
+  const pending = batch.waitersByPath;
+  batch.waitersByPath = new Map();
+  batch.scheduled = false;
+  const paths = [...pending.keys()];
+  if (!paths.length) return;
+
+  try {
+    const { data, error } = await client.storage.from(bucket).createSignedUrls(paths, expiresInSeconds);
+    if (error) throw error;
+
+    const signedByPath = new Map<string, string>();
+    for (let index = 0; index < (data ?? []).length; index += 1) {
+      const row = data![index]!;
+      const path = row.path ?? paths[index];
+      if (path && row.signedUrl) signedByPath.set(path, row.signedUrl);
+    }
+
+    for (const [path, waiters] of pending) {
+      const signedUrl = signedByPath.get(path);
+      if (!signedUrl) {
+        const missingError = new Error('profile_media_signed_url_missing');
+        waiters.forEach(({ reject }) => reject(missingError));
+        continue;
+      }
+      waiters.forEach(({ resolve }) => resolve(signedUrl));
+    }
+  } catch (error) {
+    for (const waiters of pending.values()) waiters.forEach(({ reject }) => reject(error));
+  }
+
+  if (batch.waitersByPath.size > 0 && !batch.scheduled) {
+    batch.scheduled = true;
+    void Promise.resolve().then(() => flushSignedUrlBatch(client, bucket, expiresInSeconds, batch));
+  }
+}
+
+function enqueueSignedMediaUrl(
+  client: Client,
+  media: SignedUrlTarget,
+  expiresInSeconds: number,
+): Promise<string> {
+  const clientKey = client as unknown as object;
+  let clientBatches = signedUrlBatches.get(clientKey);
+  if (!clientBatches) {
+    clientBatches = new Map();
+    signedUrlBatches.set(clientKey, clientBatches);
+  }
+
+  const key = signedUrlBatchKey(media.storage_bucket, expiresInSeconds);
+  let batch = clientBatches.get(key);
+  if (!batch) {
+    batch = { scheduled: false, waitersByPath: new Map() };
+    clientBatches.set(key, batch);
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const waiters = batch!.waitersByPath.get(media.storage_path) ?? [];
+    waiters.push({ resolve, reject });
+    batch!.waitersByPath.set(media.storage_path, waiters);
+
+    if (!batch!.scheduled) {
+      batch!.scheduled = true;
+      void Promise.resolve().then(() => flushSignedUrlBatch(client, media.storage_bucket, expiresInSeconds, batch!));
+    }
+  });
 }
 
 export async function getMyProfile(client: Client): Promise<ProfileRow> {
@@ -211,21 +298,17 @@ export async function listProfileAlbumMedia(
 
 export async function createPrivateMediaUrl(
   client: Client,
-  media: Pick<ProfileMediaRow, 'storage_bucket' | 'storage_path'> | Pick<AlbumMediaItem, 'storage_bucket' | 'storage_path'>,
+  media: SignedUrlTarget,
   expiresInSeconds = PRIVATE_PROFILE_MEDIA_URL_TTL_SECONDS,
 ): Promise<string> {
-  const { data, error } = await client.storage
-    .from(media.storage_bucket)
-    .createSignedUrl(media.storage_path, expiresInSeconds);
-  if (error) throw error;
-  return data.signedUrl;
+  return enqueueSignedMediaUrl(client, media, expiresInSeconds);
 }
 
 export async function createPublicProfileMediaUrl(
   client: Client,
-  media: Pick<ProfileMediaRow, 'storage_bucket' | 'storage_path'> | Pick<AlbumMediaItem, 'storage_bucket' | 'storage_path'>,
+  media: SignedUrlTarget,
 ): Promise<string> {
-  return createPrivateMediaUrl(client, media, PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS);
+  return enqueueSignedMediaUrl(client, media, PUBLIC_PROFILE_MEDIA_URL_TTL_SECONDS);
 }
 
 export async function uploadProfileImage(
