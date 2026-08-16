@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
-  "releaseId": "beta-mobile-web",
-  "canonicalBranch": "release/beta-mobile-web",
-  "integrationBase": "develop",
+  "releaseId": "chon-web-v1",
+  "canonicalBranch": "main",
+  "integrationBase": "main",
   "productionBranch": "main",
-  "sourceBranch": "agent/br-01-security-reconciliation",
-  "sourceCommit": "31367a17135cd98078016d264ba2cd9b5335c896",
+  "sourceBranch": "main",
+  "sourceCommit": "ccb5e98c087f7cf607e7ca1bcb5a0b56543d68a3",
   "supabaseProjectRef": "asnydvqsduonyidjyyzq",
-  "deploymentTarget": "netlify-preview",
-  "status": "draft",
+  "deploymentTarget": "netlify-production",
+  "status": "prelive",
   "mergeAllowed": false,
   "productionDeployAllowed": false,
   "financialFeaturesEnabled": false,
-  "createdAt": "2026-07-31T20:15:00+07:00"
+  "compatibilityNote": "Historical filename retained so older validators keep one manifest path; the values in this file now describe Chon.Love Web V1, not the retired beta release branch.",
+  "createdAt": "2026-08-16T17:30:00+07:00"
 }
