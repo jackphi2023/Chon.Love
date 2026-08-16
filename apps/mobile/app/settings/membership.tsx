@@ -220,7 +220,7 @@ export default function MembershipBillingPage() {
           </View>
           <View style={styles.headingBlock}>
             <Text accessibilityRole="header" style={styles.title}>Nâng cấp trải nghiệm của bạn</Text>
-            <Text style={styles.subtitle}>Chọn quyền truy cập phù hợp. Giá và quyền lợi được lấy trực tiếp từ hệ thống Luxy.Love.</Text>
+            <Text style={styles.subtitle}>Chọn quyền truy cập phù hợp. Giá và quyền lợi được lấy trực tiếp từ hệ thống Chon.Love.</Text>
             <View style={styles.currentPill}><Text style={styles.currentText}>Gói hiện tại: {currentName}{membershipQuery.data?.expires_at ? ` · đến ${formatDate(membershipQuery.data.expires_at)}` : ''}</Text></View>
           </View>
 
@@ -232,7 +232,7 @@ export default function MembershipBillingPage() {
           {tab === 'one_time' ? (
             <View style={styles.emptyBox}>
               <Text style={styles.sectionTitle}>Sản phẩm mua một lần chưa khả dụng</Text>
-              <Text style={styles.muted}>Các giao dịch mua một lần hiện chưa được mở. Luxy.Love không tạo sản phẩm giả chỉ để lấp giao diện.</Text>
+              <Text style={styles.muted}>Các giao dịch mua một lần hiện chưa được mở. Chon.Love không tạo sản phẩm giả chỉ để lấp giao diện.</Text>
               <Pressable onPress={() => setTab('membership')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Xem gói thành viên</Text></Pressable>
             </View>
           ) : (

@@ -261,7 +261,7 @@ export default function LuxyMemberProfilePage() {
         reasonCode: reportReason,
         description: reportDescription,
       });
-      setMessage('Báo cáo đã được gửi tới đội ngũ an toàn Luxy.Love.');
+      setMessage('Báo cáo đã được gửi tới đội ngũ an toàn Chon.Love.');
       setShowReport(false);
       setReportDescription('');
       setReportReason('spam');
@@ -586,7 +586,7 @@ function SafetyModal(props: {
 
 function LoadingScreen() { return <View style={styles.centeredPage}><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.mutedText}>Đang tải hồ sơ…</Text></View>; }
 function formatLastActive(value: string | null): string { if (!value) return 'Truy cập gần đây'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'Truy cập gần đây'; const diff = Date.now() - date.getTime(); if (diff < 15 * 60_000) return 'Đang online'; if (diff < 3_600_000) return `Truy cập ${Math.max(1, Math.floor(diff / 60_000))} phút trước`; if (diff < 86_400_000) return `Truy cập ${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`; return `Truy cập ${Math.max(1, Math.floor(diff / 86_400_000))} ngày trước`; }
-function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Luxy.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
+function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Chon.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
 function interestedInSentence(profile: LuxyMemberProfile): string { return `Đang tìm ${interestedInLabel(profile.interested_in).toLowerCase()} cho một kết nối chất lượng`; }
 function interestedInLabel(value: LuxyMemberProfile['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }
 function genderLabel(value: LuxyMemberProfile['gender']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : value === 'non_binary' ? 'Phi nhị nguyên' : value === 'other' ? 'Khác' : 'Chưa chia sẻ'; }

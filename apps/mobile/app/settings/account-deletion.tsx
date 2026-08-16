@@ -149,7 +149,7 @@ export default function AccountDeletionPage() {
             maxLength={500}
             multiline
             onChangeText={setReason}
-            placeholder="Bạn có thể chia sẻ lý do để Luxy.Love cải thiện"
+            placeholder="Bạn có thể chia sẻ lý do để Chon.Love cải thiện"
             style={styles.textArea}
             value={reason}
           />

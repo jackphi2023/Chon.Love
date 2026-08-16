@@ -403,7 +403,7 @@ export default function ChatDetailPage() {
       setReportMessage(null);
       setReportReason('spam');
       setReportDescription('');
-      setSuccessMessage('Báo cáo tin nhắn đã được gửi tới đội ngũ an toàn Luxy.Love.');
+      setSuccessMessage('Báo cáo tin nhắn đã được gửi tới đội ngũ an toàn Chon.Love.');
     } catch (error) {
       setErrorMessage(getReadableSocialError(error));
     } finally {
@@ -473,7 +473,7 @@ export default function ChatDetailPage() {
     );
   }
 
-  const displayName = detail.display_name || detail.username || 'Thành viên Luxy.Love';
+  const displayName = detail.display_name || detail.username || 'Thành viên Chon.Love';
   const composerDisabled = !detail.can_send || safetyBusy;
   const retentionEnabled = retentionQuery.data?.auto_delete_enabled ?? false;
 
@@ -569,7 +569,7 @@ export default function ChatDetailPage() {
             ) : (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>Bắt đầu cuộc trò chuyện</Text>
-                <Text style={styles.muted}>Chỉ gửi nội dung phù hợp với Tiêu chuẩn cộng đồng Luxy.Love.</Text>
+                <Text style={styles.muted}>Chỉ gửi nội dung phù hợp với Tiêu chuẩn cộng đồng Chon.Love.</Text>
               </View>
             )
           }

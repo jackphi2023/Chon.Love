@@ -36,13 +36,13 @@ export default function ForgotPasswordPage() {
   return (
     <Screen
       title="Khôi phục mật khẩu"
-      description="Nhập email tài khoản. Nếu email hợp lệ, Luxy.Love sẽ gửi liên kết đặt lại mật khẩu."
+      description="Nhập email tài khoản. Nếu email hợp lệ, Chon.Love sẽ gửi liên kết đặt lại mật khẩu."
     >
       {sent ? (
         <View style={styles.card}>
           <Text style={styles.title}>Kiểm tra hộp thư</Text>
           <Text style={styles.copy}>
-            Yêu cầu đã được tiếp nhận. Vì lý do bảo mật, Luxy.Love luôn hiển thị thông báo này dù email có tồn tại hay không.
+            Yêu cầu đã được tiếp nhận. Vì lý do bảo mật, Chon.Love luôn hiển thị thông báo này dù email có tồn tại hay không.
           </Text>
           <Pressable accessibilityRole="button" onPress={() => router.replace('/(auth)')} style={styles.primaryButton}>
             <Text style={styles.primaryButtonText}>Quay lại đăng nhập</Text>
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
       <View style={styles.noticeCard}>
         <Text style={styles.noticeTitle}>Lưu ý bảo mật</Text>
         <Text style={styles.noticeCopy}>
-          Liên kết chỉ dùng một lần và có thời hạn. Sau khi đặt mật khẩu mới, Luxy.Love sẽ thu hồi toàn bộ phiên đăng nhập để bạn đăng nhập lại.
+          Liên kết chỉ dùng một lần và có thời hạn. Sau khi đặt mật khẩu mới, Chon.Love sẽ thu hồi toàn bộ phiên đăng nhập để bạn đăng nhập lại.
         </Text>
       </View>
     </Screen>
