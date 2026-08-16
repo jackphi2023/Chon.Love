@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const json = (path) => JSON.parse(read(path));
 const packageJson = json('package.json');
-const releaseManifest = json('config/releases/beta-mobile-web.json');
+const releaseManifest = json('config/releases/chon-web-v1.json');
 const migration = read('supabase/migrations/20260801045034_br_09_runtime_observability_resilience.sql');
 const dbTest = read('supabase/tests/br_09_runtime_observability_resilience.sql');
 const runtime = read('packages/supabase/src/runtime-observability.ts');
