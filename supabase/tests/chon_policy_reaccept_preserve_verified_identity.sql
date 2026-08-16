@@ -22,7 +22,9 @@ set date_of_birth = date '2002-01-01',
     community_rules_accepted_at = timestamptz '2026-01-01 00:00:00+00'
 where user_id = '10000000-0000-0000-0000-000000000091';
 
-set local role authenticated;
+-- Keep the pgTAP session as the database test owner so assertions may inspect
+-- private state. auth.uid() reads the JWT claims below; client EXECUTE grants are
+-- covered separately by ACL tests.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000091","role":"authenticated"}',true);
 select lives_ok(
   format(
@@ -32,7 +34,6 @@ select lives_ok(
   ),
   'verified adult may re-accept current policies without rewriting identity'
 );
-reset role;
 select set_config('request.jwt.claims','',true);
 
 select is((select date_of_birth from private.user_identity where user_id='10000000-0000-0000-0000-000000000091'), date '2002-01-01', 'verified DOB is preserved');
