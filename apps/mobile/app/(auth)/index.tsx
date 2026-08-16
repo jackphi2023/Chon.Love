@@ -84,7 +84,7 @@ export default function AuthHome() {
         return;
       }
       if (result.requiresEmailConfirmation) {
-        setSuccessMessage('Tài khoản đã được tạo. Hãy kiểm tra email để xác nhận, sau đó đăng nhập để tiếp tục hoàn tất hồ sơ.');
+        setSuccessMessage('Tài khoản đã được tạo. Hãy kiểm tra email và bấm liên kết xác nhận để tiếp tục hoàn tất hồ sơ trên Chon.Love.');
       }
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
@@ -332,7 +332,7 @@ function AccountForm({
           autoComplete={login ? 'current-password' : 'new-password'}
           onChangeText={onPassword}
           onSubmitEditing={onSubmit}
-          placeholder={login ? 'Nhập mật khẩu' : 'Tối thiểu 10 ký tự'}
+          placeholder={login ? 'Nhập mật khẩu' : 'Tối thiểu 8 ký tự'}
           placeholderTextColor={luxyColors.muted}
           secureTextEntry
           style={styles.input}
