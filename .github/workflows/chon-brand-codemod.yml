@@ -1,0 +1,54 @@
+name: One-time Chon brand codemod
+
+on:
+  push:
+    branches: ['agent/chon-source-of-truth-cleanup']
+
+permissions:
+  contents: write
+
+jobs:
+  codemod:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/chon-source-of-truth-cleanup
+          fetch-depth: 0
+      - name: Replace only audited user-facing legacy brand literals
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              'apps/mobile/app/chat/[conversationId].tsx',
+              'apps/mobile/app/profile/[username].tsx',
+              'apps/mobile/app/auth/forgot-password.tsx',
+              'apps/mobile/app/settings/account-deletion.tsx',
+              'apps/mobile/app/settings/membership.tsx',
+              'apps/mobile/app/(tabs)/friends.tsx',
+              'apps/mobile/app/payments/vietqr.tsx',
+              'apps/mobile/src/components/app-error-boundary.tsx',
+              'apps/mobile/src/lib/location-errors.ts',
+          ]
+          for name in paths:
+              path = Path(name)
+              text = path.read_text()
+              text = text.replace('Luxy.Love', 'Chon.Love')
+              path.write_text(text)
+
+          creator = Path('apps/mobile/app/creator/index.tsx')
+          text = creator.read_text().replace('MyFan/Luxy', 'legacy').replace('MyFan', 'legacy')
+          creator.write_text(text)
+          PY
+      - name: Remove this one-time workflow
+        run: rm .github/workflows/chon-brand-codemod.yml
+      - name: Commit codemod
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/mobile .github/workflows/chon-brand-codemod.yml
+          git diff --cached --check
+          git commit -m 'cleanup: remove remaining user-facing Luxy branding'
+          git push origin HEAD:agent/chon-source-of-truth-cleanup
