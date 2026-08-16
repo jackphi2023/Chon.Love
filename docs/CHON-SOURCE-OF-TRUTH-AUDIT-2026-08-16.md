@@ -59,6 +59,10 @@ This was the highest-value deployment cleanup item.
 
 `/activity*` had already become redirects but still carried Luxy-era comments. `/creator` still rendered a Luxy.Love placeholder. Cleanup converts all of these into explicit Chon.Love legacy redirects.
 
+### User-facing branding cleanup
+
+The release branding gate found remaining `Luxy.Love` copy in chat, member profile, forgot-password, account deletion, membership, connections, VietQR, error handling and location-error states. An audited one-time codemod replaced **only the literal user-facing brand string** with `Chon.Love`; it did not rename `luxy_*` technical identifiers or shared package APIs. The temporary write-enabled workflow removed itself in the same bot commit.
+
 ## Supabase findings
 
 ### Data preservation
