@@ -1,11 +1,11 @@
 {
   "name": "staging",
   "gitBranch": "release/staging",
-  "supabaseProjectRef": "asnydvqsduonyidjyyzq",
-  "supabaseUrl": "https://asnydvqsduonyidjyyzq.supabase.co",
+  "supabaseProjectRef": null,
+  "supabaseUrl": null,
   "supabaseRegion": "ap-southeast-1",
-  "supabaseLifecycle": "phase-c-shared-development",
+  "supabaseLifecycle": "unconfigured-isolated",
   "netlifyContext": "release/staging",
-  "deployPolicy": "disabled-until-phase-c-beta",
+  "deployPolicy": "requires-context-scoped-supabase",
   "production": false
 }

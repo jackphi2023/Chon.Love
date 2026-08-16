@@ -1,8 +1,7 @@
 # Chon.Love production web source of truth.
-# Netlify Base directory must remain repository root (/).
-# The user-facing site is the responsive Expo Web app in apps/mobile; this keeps
-# the rebuilt homepage, authenticated member UI and current Chon.Love icon system
-# on one deployment instead of allowing package selection to switch homepages.
+# Netlify Base directory must remain the repository root (/).
+# Production deploys one responsive Expo Web application from apps/mobile.
+# Do not select apps/public-web as the package/build target for the main Chon.Love site.
 
 [build]
   command = "corepack enable && pnpm --filter @myfan/mobile build:web"
@@ -21,21 +20,21 @@
   EXPO_PUBLIC_MYFAN_ENV = "production"
   EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
+# Non-production deploys are intentionally not hard-wired to the production database.
+# Configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY per Netlify
+# deploy context when a preview/staging database is available. Missing config must
+# fail closed rather than silently writing test traffic to production.
 [context.deploy-preview.environment]
   EXPO_PUBLIC_MYFAN_ENV = "development"
-  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context.branch-deploy.environment]
   EXPO_PUBLIC_MYFAN_ENV = "development"
-  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context.develop.environment]
   EXPO_PUBLIC_MYFAN_ENV = "development"
-  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context."release/staging".environment]
   EXPO_PUBLIC_MYFAN_ENV = "staging"
-  EXPO_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [[headers]]
   for = "/*"

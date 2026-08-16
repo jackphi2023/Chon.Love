@@ -1,9 +1,7 @@
-import { Placeholder, Screen } from '@/components/screen';
+import { Redirect } from 'expo-router';
 
-export default function Page() {
-  return (
-    <Screen title="Tính năng chưa khả dụng" description="Các công cụ nhận thưởng và rút tiền hiện chưa được mở trên Luxy.Love.">
-      <Placeholder text="Không có luồng tài chính thay thế được mở trong phiên bản hiện tại." />
-    </Screen>
-  );
+// Chon.Love Web V1 has no Creator product surface. Keep the historical route as
+// a safe redirect so old bookmarks cannot reopen retired legacy flows.
+export default function RetiredCreatorRoute() {
+  return <Redirect href="/(tabs)/profile" />;
 }

@@ -1,26 +1,71 @@
 import { readFileSync } from 'node:fs';
-const read=(path)=>readFileSync(path,'utf8');
-const noMyFanOrPhase=['apps/mobile/app/chat/[conversationId].tsx','apps/mobile/app/profile/[username].tsx','apps/mobile/app/legal/terms.tsx','apps/mobile/app/legal/community-standards.tsx','apps/mobile/app/auth/forgot-password.tsx','apps/mobile/app/settings/account-deletion.tsx','apps/mobile/app/settings/private-photos.tsx','apps/mobile/app/settings/gifts.tsx','apps/mobile/app/settings/membership.tsx','apps/mobile/app/(tabs)/balance.tsx','apps/mobile/app/(tabs)/gifts.tsx','apps/mobile/app/(tabs)/friends.tsx','apps/mobile/app/payments/vietqr.tsx','apps/mobile/app/creator/index.tsx','apps/mobile/src/components/luxy-search-mobile.tsx','apps/mobile/src/components/luxy-search-desktop.tsx','apps/mobile/src/components/luxy-upgrade-gate-modal.tsx','apps/mobile/src/components/app-error-boundary.tsx','apps/mobile/src/lib/location-errors.ts','apps/mobile/src/lib/onboarding.ts','packages/config/src/index.ts','packages/validation/src/index.ts','apps/admin/app/layout.tsx','apps/admin/app/admin-login.tsx'];
-const searchSurfaces=['apps/mobile/src/components/luxy-search-mobile.tsx','apps/mobile/src/components/luxy-search-desktop.tsx'];
-const publicReachable=['apps/public-web/app/layout.tsx','apps/public-web/app/page.tsx','apps/public-web/app/about/page.tsx','apps/public-web/app/how-it-works/page.tsx','apps/public-web/app/manifest.ts','apps/public-web/app/[profileSlug]/page.tsx'];
-const failures=[];
-for(const path of noMyFanOrPhase){const text=read(path);if(/MyFan/.test(text))failures.push(`${path}: legacy MyFan copy remains`);if(/LX-[0-9]{2}/.test(text))failures.push(`${path}: internal LX phase label remains user-facing`);if(/Album Fan/.test(text))failures.push(`${path}: legacy Album Fan copy remains`)}
-for(const path of searchSurfaces){if(/Hoạt động gần đây/.test(read(path)))failures.push(`${path}: legacy Activity-style recent label remains`)}
-for(const path of publicReachable){const text=read(path);for(const[label,pattern]of[['MyFan',/MyFan/],['Creator',/Creator/],['Fan',/\bFan\b/],['Hoạt động',/Hoạt động/],['Social Creator',/Social Creator/]])if(pattern.test(text))failures.push(`${path}: legacy public-web term ${label} remains`)}
-const home=read('apps/public-web/app/page.tsx');const layout=read('apps/public-web/app/layout.tsx');const manifest=read('apps/public-web/app/manifest.ts');const ui=read('packages/ui/src/index.ts');const next=read('apps/public-web/next.config.ts');const netlify=read('apps/public-web/netlify.toml');const protectedTabs=read('apps/mobile/app/(tabs)/_layout.tsx');const mobileConfig=read('apps/mobile/app.json');const mobileHtml=read('apps/mobile/app/+html.tsx');const buildScript=read('scripts/build-chon-netlify.mjs');
-const exactTitle='Chon.Love | Chọn đúng người, Yêu đúng Gu';const exactDescription='Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm.';
-if(!home.includes(exactTitle)||!layout.includes(exactTitle)||!manifest.includes(exactTitle))failures.push('Chon.Love homepage/manifest title contract missing');
-if(!home.includes(exactDescription)||!layout.includes(exactDescription)||!manifest.includes(exactDescription))failures.push('Chon.Love description contract missing');
-if(!home.includes("redirect('/app/')"))failures.push('Public root must redirect to the rebuilt Expo homepage under /app so only one homepage implementation is deployable');
-if(!ui.includes("productName:'Chon.Love'"))failures.push('Shared authenticated brand must be Chon.Love');
-if(!mobileConfig.includes('"name": "Chon.Love"')||!mobileHtml.includes(exactTitle))failures.push('Authenticated Expo Web metadata must use Chon.Love branding');
-if(next.includes("output: 'export'"))failures.push('Public web must not use static export because shareable member profiles need dynamic metadata');
-if(!netlify.includes('apps/public-web/.next'))failures.push('Public web Netlify publish directory must use the Next.js .next output');
-if(!netlify.includes('pnpm build:netlify:chon'))failures.push('Netlify must build the combined Chon.Love public and authenticated web release');
-if(!netlify.includes('from = "/app/*"')||!netlify.includes('to = "/app/index.html"'))failures.push('Netlify must preserve SPA routing for the embedded authenticated app');
-if(!netlify.includes('to = "/app/"'))failures.push('Combined Netlify root must redirect to the rebuilt Expo homepage');
-if(!buildScript.includes("EXPO_PUBLIC_WEB_BASE_URL: appBasePath")||!buildScript.includes("NEXT_PUBLIC_APP_URL: appOrigin"))failures.push('Combined Netlify build must host authenticated Expo routes under /app');
-if(!layout.includes('href={loginUrl}')||!layout.includes('href={signupUrl}'))failures.push('Public header auth CTAs must link directly to the authenticated app');
-if(!protectedTabs.includes('<Redirect href="/"/>'))failures.push('Unauthenticated member-list access must return to the homepage');
-if(failures.length){console.error('WEB-R03/SEO branding validation failed:\n'+failures.map(x=>`- ${x}`).join('\n'));process.exit(1)}
-console.warn('WEB-R03/SEO validation passed: Chon.Love branding, rebuilt homepage routing, embedded /app auth routing, shareable profile runtime and member-list guards are intact.');
+
+const read = (path) => readFileSync(path, 'utf8');
+const failures = [];
+const expect = (condition, message) => { if (!condition) failures.push(message); };
+
+const userFacing = [
+  'apps/mobile/app/index.tsx',
+  'apps/mobile/app/(auth)/index.tsx',
+  'apps/mobile/app/chat/[conversationId].tsx',
+  'apps/mobile/app/profile/[username].tsx',
+  'apps/mobile/app/legal/terms.tsx',
+  'apps/mobile/app/legal/community-standards.tsx',
+  'apps/mobile/app/auth/forgot-password.tsx',
+  'apps/mobile/app/settings/account-deletion.tsx',
+  'apps/mobile/app/settings/private-photos.tsx',
+  'apps/mobile/app/settings/gifts.tsx',
+  'apps/mobile/app/settings/membership.tsx',
+  'apps/mobile/app/(tabs)/balance.tsx',
+  'apps/mobile/app/(tabs)/gifts.tsx',
+  'apps/mobile/app/(tabs)/friends.tsx',
+  'apps/mobile/app/payments/vietqr.tsx',
+  'apps/mobile/app/creator/index.tsx',
+  'apps/mobile/src/components/luxy-search-mobile.tsx',
+  'apps/mobile/src/components/luxy-search-desktop.tsx',
+  'apps/mobile/src/components/luxy-upgrade-gate-modal.tsx',
+  'apps/mobile/src/components/app-error-boundary.tsx',
+  'apps/mobile/src/lib/location-errors.ts',
+  'apps/mobile/src/lib/onboarding.ts',
+  'apps/admin/app/layout.tsx',
+  'apps/admin/app/admin-login.tsx',
+];
+
+for (const path of userFacing) {
+  const text = read(path);
+  if (/MyFan/.test(text)) failures.push(`${path}: user-facing MyFan branding remains`);
+  if (/Luxy\.Love/.test(text)) failures.push(`${path}: user-facing Luxy.Love branding remains`);
+  if (/Social Creator/.test(text)) failures.push(`${path}: legacy Social Creator positioning remains`);
+  if (/Album Fan/.test(text)) failures.push(`${path}: legacy Album Fan copy remains`);
+}
+
+const activityRoutes = [
+  'apps/mobile/app/(tabs)/activity.tsx',
+  'apps/mobile/app/activity/[username].tsx',
+  'apps/mobile/app/activity/create.tsx',
+];
+for (const path of activityRoutes) {
+  const text = read(path);
+  expect(text.includes("import { Redirect } from 'expo-router'"), `${path}: retired Activity route must remain a safe redirect.`);
+  expect(!/CreatorActivity|createCreator|listCreator/i.test(text), `${path}: retired Activity route must not import legacy Activity runtime.`);
+}
+
+const creatorRoute = read('apps/mobile/app/creator/index.tsx');
+expect(creatorRoute.includes("import { Redirect } from 'expo-router'"), 'Legacy /creator route must be a safe redirect, not a placeholder product surface.');
+
+const mobileHtml = read('apps/mobile/app/+html.tsx');
+const ui = read('packages/ui/src/index.ts');
+const rootNetlify = read('netlify.toml');
+const packageJson = JSON.parse(read('package.json'));
+const exactTitle = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
+expect(mobileHtml.includes(exactTitle), 'Expo Web metadata must use the Chon.Love title contract.');
+expect(ui.includes("productName:'Chon.Love'") || ui.includes("productName: 'Chon.Love'"), 'Shared authenticated brand must be Chon.Love.');
+expect(rootNetlify.includes('pnpm --filter @myfan/mobile build:web'), 'Root Netlify must build the canonical Chon.Love Expo Web app.');
+expect(!rootNetlify.includes('build:netlify:chon') && !rootNetlify.includes('apps/public-web/.next'), 'Root Netlify must not reference the retired combined public-web release.');
+expect(!packageJson.scripts?.['build:netlify:chon'], 'package.json must not expose the retired combined build script.');
+
+if (failures.length) {
+  console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
+  process.exit(1);
+}
+console.warn('Chon.Love branding/source-of-truth validation passed: current UI is canonical and legacy Activity/Creator routes are retired.');

@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 
-// WEB-R01: Activity is deferred/superseded for Luxy Web V1.
-// Keep the route as a safe redirect so old bookmarks cannot reopen the legacy surface.
-export default function DeferredActivityProfileRoute() {
+// Chon.Love Web V1 does not expose Activity profiles. Preserve this route only
+// as a safe redirect for historical bookmarks; no legacy Activity code runs.
+export default function RetiredActivityProfileRoute() {
   return <Redirect href="/(tabs)" />;
 }

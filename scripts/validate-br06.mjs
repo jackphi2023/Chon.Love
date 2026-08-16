@@ -28,9 +28,9 @@ expect(
   'package.json must expose validate:browser-e2e.',
 );
 expect(
-  packageJson.scripts?.validate?.includes('validate:creator-e2e') &&
-    packageJson.scripts?.validate?.includes('validate:browser-e2e'),
-  'The aggregate validate command must preserve historical BR-05 validation and include the Web V1 browser source guard.',
+  packageJson.scripts?.validate?.includes('validate:browser-e2e') &&
+    !packageJson.scripts?.validate?.includes('validate:creator-e2e'),
+  'The aggregate Web V1 validate command must include the browser source guard and must not restore retired Creator Activity as a release gate.',
 );
 expect(
   applicationCi.includes('pnpm validate:browser-e2e'),

@@ -10,21 +10,20 @@
   NEXT_PUBLIC_MYFAN_ENV = "production"
   NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
+# Preview/staging Admin must not default to the production database. Configure
+# NEXT_PUBLIC_SUPABASE_URL + publishable key per Netlify context when an isolated
+# backend is available.
 [context.develop.environment]
   NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context."release/staging".environment]
   NEXT_PUBLIC_MYFAN_ENV = "staging"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context.deploy-preview.environment]
   NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [context.branch-deploy.environment]
   NEXT_PUBLIC_MYFAN_ENV = "development"
-  NEXT_PUBLIC_SUPABASE_URL = "https://asnydvqsduonyidjyyzq.supabase.co"
 
 [[headers]]
   for = "/*"

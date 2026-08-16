@@ -1,8 +1,8 @@
 # Chon.Love — Web V1
 
-**Chon.Love** là nền tảng hẹn hò web-first dành cho người trưởng thành tại Việt Nam, phát triển theo hướng **người thật, văn minh, an toàn và có tiêu chuẩn**. Product tham chiếu mô hình database/search-first, Interests, Messages và Premium/Diamond của Seeking.com, đồng thời được điều chỉnh cho ngôn ngữ, hành vi người dùng, xác thực, thanh toán và yêu cầu riêng tư tại Việt Nam.
+**Chon.Love** là nền tảng hẹn hò web-first dành cho người trưởng thành tại Việt Nam, phát triển theo hướng **người thật, văn minh, an toàn và có tiêu chuẩn**. Product học information architecture và database/search-first model từ Seeking.com, nhưng UI, nội dung, verification, payment và safety được điều chỉnh cho Chon.Love.
 
-> **Chọn Đúng Người, Yêu Đúng Gu**
+> **Chọn đúng Người, Yêu đúng Gu**
 
 SEO title chuẩn:
 
@@ -12,85 +12,92 @@ SEO description chuẩn:
 
 `Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm.`
 
-## Source of truth
+## 1. Source of truth
 
 - Repository: `jackphi2023/Chon.Love`
 - Production branch: `main`
-- Supabase project: `asnydvqsduonyidjyyzq`
-- Luôn fetch lại `main` và ghi nhận exact HEAD SHA trước khi sửa code, test hoặc deploy.
-- Không bắt đầu implementation song song khi chức năng đã tồn tại trong codebase hiện tại.
+- Supabase production project: `asnydvqsduonyidjyyzq`
+- Production web app: `apps/mobile`
+- Production Netlify config: `/netlify.toml` tại repository root
+- Admin app: `apps/admin`
 
-Dự án kế thừa lịch sử kỹ thuật từ MyFan → Luxy.Love → Chon.Love. Các identifier nội bộ như `@myfan/*`, `myfan-*`, một số `luxy*`, schema, migration hoặc bảng legacy **có thể được giữ lại** khi đổi tên có nguy cơ gây regression. Product-facing, metadata và UI dành cho người dùng phải thống nhất là **Chon.Love**.
+Luôn fetch `main` mới nhất trước khi sửa code, test hoặc deploy. Không dùng tài liệu MyFan/Luxy/LX/BR cũ làm product source of truth khi nó mâu thuẫn với code hiện tại.
 
-## Product scope — Web V1
+## 2. Product scope — Chon.Love Web V1
 
-Web V1 ưu tiên một sản phẩm responsive cho:
+Web V1 là một responsive web product cho:
 
 - Desktop browser.
 - Mobile Safari trên iOS.
 - Mobile Chrome trên Android.
 
-Native iOS/Android, EAS và PWA nâng cao là roadmap sau khi Web V1 ổn định.
+Native iOS/Android và EAS không phải release target hiện tại.
 
-Core product:
+Core V1:
 
-- Search/Browse members.
-- Advanced filters và location/distance.
-- Interests/Favorites.
-- Messages.
+- Kết nối/Search member theo database, filter và distance.
+- Yêu thích/Interests.
+- Tin nhắn trực tiếp theo entitlement.
 - Member Profile và Edit Profile.
 - Premium / Diamond.
-- Verification.
-- Private photos.
-- Safety / Block / Report / Moderation.
+- Selfie / CCCD / LinkedIn verification.
+- Public/private profile photos.
+- Safety: block, report, moderation, account status.
+- VietQR/membership payment trên Web theo contract hiện hành.
 
-**Activity/Creator feed không thuộc Chon.Love Web V1.** Không đưa lại creator/social-feed model của MyFan vào navigation hoặc dating flow chỉ để tận dụng code legacy.
+**Activity/Creator feed không thuộc Chon.Love Web V1.** Các route lịch sử chỉ được giữ dạng redirect an toàn để bookmark cũ không mở lại sản phẩm MyFan/Luxy.
 
-## Product rules quan trọng
+Gift/Wallet/KYC payout/withdrawal code lịch sử có thể còn tồn tại để bảo toàn ledger và backward compatibility, nhưng các feature tài chính chưa được mở trong Web V1 nếu feature flag đang `false`.
 
-### Access và onboarding
+## 3. Product rules hiện hành
 
-- Guest không được browse danh sách thành viên.
-- Người dùng phải đủ 18 tuổi và hoàn thành các bước Terms, Community Standards, profile/media và verification theo flow hiện hành.
-- Existing account phải tiếp tục đăng nhập được bằng email/password.
-- Không tự cập nhật hoặc giả mạo consent/policy acceptance của người dùng cũ.
+### Auth và onboarding
+
+- Guest không browse member list.
+- Người dùng phải đủ 18 tuổi.
+- Existing user phải tiếp tục đăng nhập bằng account/Auth UUID hiện có.
+- Policy re-acceptance của user đã xác thực tuổi phải **giữ nguyên verified DOB/age-verification state**, chỉ cập nhật acceptance của Terms/Community hiện hành.
+- Không bulk-reset user, không tạo lại Auth user, không đổi UUID để “làm sạch” dữ liệu.
 
 ### Search và profile
 
-- Search ưu tiên database/search-first thay vì swipe-first.
-- Hồ sơ công khai chỉ chứa safe projection; không expose Auth UUID, DOB, email, phone, KYC, storage path, tọa độ chính xác hoặc ảnh riêng tư.
-- Public SEO profile dùng mã public riêng, không dùng UUID làm URL công khai.
+- Chon.Love ưu tiên search/database-first, không swipe-first.
+- Không expose email, phone, DOB đầy đủ, KYC, storage path, tọa độ chính xác hoặc Auth UUID qua public profile.
+- Distance trả về dạng đã làm tròn; backend giữ tọa độ chính xác.
 
-### Favorites, messaging và membership
+### Favorite, messaging và membership
 
-- Free member có thể browse/search cơ bản và Favorite theo entitlement hiện hành.
-- Messaging, advanced functionality và private-photo request/view tuân theo entitlement Free / Premium / Diamond.
-- Messaging theo dating model; không khôi phục friendship làm prerequisite nếu contract hiện tại đã bỏ dependency này.
+- Free member có thể browse/search cơ bản và Favorite theo entitlement backend.
+- Direct messaging không phụ thuộc friendship legacy nếu membership contract hiện tại cho phép.
+- Premium/Diamond là entitlement backend, không chỉ là badge UI.
 
 ### Private photos
 
-Private photo không được unlock bằng gift/payment.
+Contract hiện tại của LX-20/Chon.Love là:
 
-Flow chuẩn:
+- Owner có thể đổi ảnh profile eligible giữa `Public` và `Private`.
+- **Premium/Diamond có quyền xem private photos tự động theo backend entitlement.**
+- Free member chỉ thấy private-photo count/locked upgrade affordance; không nhận storage path.
+- Legacy request/approve rows có thể còn trong database để backward compatibility nhưng **không còn là authorization source of truth**.
+- Gift, Fan và friendship không unlock private photos.
 
-`request access → owner approve / decline → viewer được xem theo quyền backend`
+### Verification
 
-Owner approval và RLS/backend authorization là bắt buộc; không chỉ khóa ở UI.
+Public badges:
 
-### Verification và safety
+- Selfie.
+- CCCD/Identity.
+- LinkedIn.
 
-- Selfie live camera hỗ trợ desktop/mobile browser.
-- Automatic verification failure chuyển sang review phù hợp; không tự khóa vĩnh viễn chỉ vì face match fail.
-- Block/report/moderation/account status/discovery visibility phải được enforce backend.
-- Không nới RLS, ACL hoặc SECURITY DEFINER contract để làm UI test pass.
+Raw verification documents, legal identity và provider payload không public.
 
-## Monorepo architecture
+## 4. Monorepo architecture
 
 ```text
 apps/
-├── public-web/   # Next.js: marketing, SEO, legal, public member profile
-├── mobile/       # Expo Router: authenticated Chon.Love product, Web V1 dưới /app
-└── admin/        # Next.js: moderation, verification, membership/payment, operations
+├── mobile/       # CANONICAL Chon.Love responsive Expo Web product
+├── admin/        # Admin/operations web
+└── public-web/   # RETAINED LEGACY SOURCE only; NOT a production Netlify target
 
 packages/
 ├── config/
@@ -105,36 +112,130 @@ supabase/
 └── tests/
 ```
 
-### Runtime routing
+### Vì sao vẫn còn `@myfan/*`, `luxy_*`, `creator_*`?
 
-Production Web V1 dùng cùng origin cho public site và authenticated member app:
+Dự án kế thừa MyFan → Luxy.Love → Chon.Love. Tên kỹ thuật cũ **không đồng nghĩa tính năng cũ đang active**.
 
-```text
-/                    → Next.js public/SEO site
-/app/auth            → signup
-/app/auth?mode=login → login
-/app/...              → authenticated Expo Web app
-/admin/login          → Admin login theo deployment/admin routing hiện hành
+Không broad-rename package, table, enum hoặc migration chỉ để đồng bộ branding nếu việc đó có thể phá:
+
+- Auth/profile foreign keys.
+- generated types.
+- RPC signatures.
+- ledger/payment history.
+- migration replay.
+- deployed Edge Functions.
+
+Nguyên tắc cleanup là **retire runtime trước, rename internal sau khi có migration/test riêng**.
+
+## 5. Production web và Netlify
+
+### Canonical build
+
+Production chỉ build Expo Web hiện tại:
+
+```bash
+corepack enable && pnpm --filter @myfan/mobile build:web
 ```
 
-Authenticated Expo Web được build dưới base path `/app` và đưa vào combined Netlify release.
+Publish:
 
-## Development principles
+```text
+apps/mobile/dist
+```
 
-1. **Patch nhỏ, test được, backward compatible.** Không rewrite toàn bộ chỉ để đổi brand hoặc style.
-2. **Seeking.com là product/UX reference, không phải branding/content source.** Giữ information architecture và conversion logic phù hợp, Việt hóa ngôn ngữ, safety, payment và verification.
-3. **Tách presentation khỏi domain/data layer.** Business rules, entitlement, Supabase access và validation phải reusable cho native sau này.
-4. **Không hard-code secrets.** `service_role`, OAuth client secret, encryption key và credential server-side không được vào frontend hoặc Git.
-5. **Privacy by design.** Private photos/KYC/private identity/private location không được biến thành public URL vì tiện test.
-6. **Không broad rename technical legacy.** Chỉ đổi identifier khi có migration plan và test chứng minh an toàn.
-7. **UI mới phải responsive ngay từ đầu** cho desktop và mobile browser.
+Root `/netlify.toml` là source of truth.
 
-## Local development
+### Netlify UI settings
 
-Yêu cầu hiện tại theo root `package.json`/Netlify config:
+Trong Build settings của site production:
 
-- Node `>=22.13.0` (Netlify hiện pin Node 22.x).
-- pnpm `10.15.1` / `>=10.15.0 <11`.
+```text
+Production branch: main
+Base directory: [repository root / để trống]
+Package directory: [để trống]
+Build command: [để netlify.toml quản lý]
+Publish directory: [để netlify.toml quản lý]
+Functions directory: [để trống]
+```
+
+Nếu Netlify UI còn command/package từ MyFan/Luxy như:
+
+```text
+apps/mobile
+apps/public-web
+pnpm build:netlify:chon
+apps/public-web/.next
+```
+
+hãy xóa override để root `netlify.toml` kiểm soát build.
+
+`apps/public-web/netlify.toml` hiện fail-closed có chủ đích để ngăn package cũ bị chọn nhầm làm production site.
+
+### Environment
+
+Production URL hiện dùng Supabase project:
+
+```text
+https://asnydvqsduonyidjyyzq.supabase.co
+```
+
+Publishable/anon key phải đặt trong Netlify Environment Variables, không commit vào Git:
+
+```text
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<publishable key>
+```
+
+Tên `EXPO_PUBLIC_MYFAN_ENV` vẫn là technical legacy contract và chưa rename trong Web V1.
+
+### Preview/staging isolation
+
+Deploy Preview, branch deploy, `develop` và `release/staging` **không hard-code production Supabase URL trong repository**.
+
+Nếu cần preview có backend, cấu hình `EXPO_PUBLIC_SUPABASE_URL` + publishable key theo đúng Netlify deploy context. Không có preview database thì preview phải fail closed thay vì vô tình ghi test data vào production.
+
+### Feature flags fail-closed
+
+Web V1 hiện giữ các feature sau `false` tại Netlify:
+
+```text
+EXPO_PUBLIC_FEATURE_GOOGLE_PLAY_BILLING=false
+EXPO_PUBLIC_FEATURE_SEND_GIFT=false
+EXPO_PUBLIC_FEATURE_CREATOR_WALLET=false
+EXPO_PUBLIC_FEATURE_CREATOR_KYC=false
+EXPO_PUBLIC_FEATURE_WITHDRAWAL=false
+```
+
+## 6. Supabase/data preservation policy
+
+Production database đã có user thật/fixture, profile, media, membership và lịch sử nghiệp vụ. Cleanup **không được**:
+
+- xóa/recreate `auth.users`;
+- đổi user UUID;
+- truncate profile/media/membership/ledger tables;
+- sửa nội dung migration đã apply;
+- drop table legacy chỉ vì tên MyFan/Luxy;
+- reset database production để “làm sạch”.
+
+Mọi schema change phải là **forward-only migration**.
+
+### Private schema
+
+Client `anon` và `authenticated` không được cấp `USAGE` trực tiếp lên `private` schema hoặc direct table grants trên các bảng identity/membership nhạy cảm. Một số private tables vẫn chưa bật RLS vì đang được service/RPC-only access; đây là defense-in-depth debt cần xử lý bằng một phiên migration + regression riêng, không bật RLS hàng loạt trên production mà chưa kiểm thử RPC.
+
+### SECURITY DEFINER
+
+Public RPC dùng `SECURITY DEFINER` phải có explicit grant allowlist. Admin-only RPC không được executable bởi `anon`. Creator Activity RPC đã retire khỏi Chon.Love V1 phải bị revoke khỏi client roles thay vì chỉ ẩn nút ở frontend.
+
+### Edge Functions
+
+One-time seed/import/bootstrap endpoints sau khi dùng xong phải trả `410`/fail-closed hoặc được tombstone. Không giữ endpoint Auth Admin/seed thực thi được chỉ vì “có thể cần lại”.
+
+## 7. Local development
+
+Yêu cầu:
+
+- Node `22.23.1` theo repo/Netlify pin.
+- pnpm `10.15.1`.
 - Corepack.
 
 ```bash
@@ -148,20 +249,19 @@ pnpm test
 pnpm build
 ```
 
-Chạy full source/release validation:
+Full release-source validation:
 
 ```bash
 pnpm validate
 ```
 
-Các gate hiện hữu gồm:
+Current release gates:
 
 ```text
 validate:security
 validate:integration
 validate:auth
 validate:social-e2e
-validate:creator-e2e
 validate:browser-e2e
 validate:vietqr-reconciliation
 validate:kyc-withdrawal-operations
@@ -170,65 +270,58 @@ validate:netlify-release
 validate:branding
 ```
 
-Một số validator có tên lịch sử (`creator`, `luxy`, `myfan`, `BR-*`, `LX-*`) vì chúng khóa regression kỹ thuật đã tồn tại. Không đổi tên/xóa chúng chỉ vì branding nếu chưa kiểm tra dependency CI.
+`validate:creator-e2e:legacy` chỉ là historical regression tool, **không phải Chon.Love Web V1 release gate**.
 
-## Netlify — Chon.Love combined build
+## 8. Build commands
 
-Build chuẩn của Web V1:
+Canonical production-compatible build:
 
 ```bash
-corepack enable && pnpm build:netlify:chon
+pnpm build
 ```
 
-Cấu trúc chính:
+`pnpm build` hiện build:
 
-- Package directory trên Netlify: `apps/public-web`.
-- Publish directory: `apps/public-web/.next`.
-- Expo authenticated app được build trước và host dưới `/app`.
-- Public Web cần Next.js Runtime/OpenNext; không quay lại static homepage-only deploy.
-- Không hard-code Netlify preview hostname; auth phải hoạt động same-origin.
+1. `apps/admin`
+2. `apps/mobile` Expo Web
 
-## Environment và secrets
+Không còn chạy combined `public-web + /app` build.
 
-Public/browser variables chỉ được chứa dữ liệu an toàn cho client, ví dụ Supabase URL và publishable/anon key theo contract hiện tại.
+Nếu cần kiểm tra Next.js public-web source lịch sử riêng:
 
-Không đưa các giá trị sau vào client bundle hoặc repository:
+```bash
+pnpm build:public-web:legacy
+```
 
-- `SUPABASE_SERVICE_ROLE_KEY`
-- OAuth client secret
-- PII encryption key
-- KYC/provider private credential
-- Admin private secrets
+Lệnh này không có nghĩa `apps/public-web` là production target.
 
-## Release gate
+## 9. Release gate
 
-Sau mỗi thay đổi liên quan product/runtime:
+Trước merge/deploy:
 
-1. Fetch `main` mới nhất và kiểm tra diff.
-2. Chạy lint + typecheck + unit tests.
-3. Chạy build và validator liên quan.
-4. Với thay đổi UI/auth/data flow: chạy browser E2E/smoke tương ứng.
-5. Với database: migration forward-only, generated types và RLS/security tests phải khớp.
-6. Chỉ merge về `main` khi gate liên quan xanh.
-7. Không tuyên bố production/live nếu chưa smoke-test **exact deployed SHA** trên Netlify.
+1. Fetch latest `main` và review full diff.
+2. Application CI green.
+3. Database/migration tests green cho mọi DB change.
+4. Browser E2E core flow green.
+5. Existing-user login/session/onboarding re-accept smoke pass.
+6. Search → Profile → Favorite → Message pass.
+7. Free/Premium/Diamond entitlement pass.
+8. Private photo entitlement pass.
+9. Selfie/CCCD/LinkedIn verification path pass.
+10. Netlify build log phải đúng `@myfan/mobile build:web` và publish `apps/mobile/dist`.
+11. Smoke exact deployed SHA, không chỉ local branch.
+12. Không merge nếu một fix yêu cầu nới RLS/ACL hoặc reset production data.
 
-## Ưu tiên phát triển tiếp
+## 10. Security items cần theo dõi trước public launch
 
-Thứ tự mặc định cho các phiên tiếp theo:
+- Bật/test Supabase Auth leaked-password protection.
+- Rà explicit allowlist cho SECURITY DEFINER RPC.
+- Tạo migration defense-in-depth cho private tables còn RLS-off sau khi test RPC/service-role path.
+- Giữ service-role/OAuth secret/PII encryption key ngoài frontend và Git.
+- Google OAuth UI phải fail closed cho tới khi hosted provider được cấu hình đúng.
 
-1. Test online Netlify: `/`, `/app/auth`, `/app/auth?mode=login`.
-2. Auth/session: existing email/password và Gmail OAuth khi provider được cấu hình đầy đủ.
-3. Onboarding + policy re-accept cho user cần cập nhật consent.
-4. Search → Member Profile → Favorite → Message.
-5. Free vs Premium/Diamond entitlement.
-6. Private photo request/approve/decline.
-7. Profile edit + upload media.
-8. Live selfie camera và pending verification/Admin review.
-9. Desktop/mobile Seeking-style UI polish.
-10. Chỉ sau khi core Web V1 ổn định mới mở rộng các feature mới.
+## 11. Documentation policy
 
-## Documentation policy
+Các thư mục `docs/phase-*`, `docs/br-*`, `docs/luxy-seeking-ui` và migration cũ là historical implementation records. Chúng có thể chứa tên MyFan/Luxy hoặc assumptions đã superseded.
 
-Các thư mục `docs/phase-*`, `docs/br-*` và `docs/luxy-seeking-ui` là **historical implementation/audit records**. Chúng có thể chứa tên MyFan/Luxy hoặc product assumptions cũ và không phải product source of truth hiện tại.
-
-**README này + code trên `main` là baseline để tiếp tục test, debug, tối ưu UI và phát triển Chon.Love Web V1.** Khi README và code mâu thuẫn, hãy kiểm tra implementation thực tế và cập nhật README trong cùng change set thay vì tiếp tục dựa vào tài liệu lịch sử.
+**README này + current `main` + applied Supabase migrations là baseline để tiếp tục test-fix, tối ưu UI, build tính năng và chuẩn bị Chon.Love live.** Nếu tài liệu lịch sử mâu thuẫn với implementation hiện tại, cập nhật tài liệu hoặc retire đường code cũ; không tạo thêm lớp chấp vá mới.

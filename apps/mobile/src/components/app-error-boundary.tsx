@@ -42,11 +42,11 @@ export class AppErrorBoundary extends React.Component<PropsWithChildren, State> 
         accessibilityRole="alert"
         style={styles.container}
       >
-        <Text accessibilityRole="header" style={styles.title}>Luxy.Love chưa thể khởi động</Text>
+        <Text accessibilityRole="header" style={styles.title}>Chon.Love chưa thể khởi động</Text>
         <Text style={styles.body}>Vui lòng thử lại. Token và dữ liệu nhạy cảm không được ghi vào nhật ký.</Text>
         <Pressable
-          accessibilityHint="Tải lại giao diện Luxy.Love mà không gửi lại giao dịch tài chính"
-          accessibilityLabel="Thử tải lại Luxy.Love"
+          accessibilityHint="Tải lại giao diện Chon.Love mà không gửi lại giao dịch tài chính"
+          accessibilityLabel="Thử tải lại Chon.Love"
           accessibilityRole="button"
           onPress={this.handleRetry}
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}

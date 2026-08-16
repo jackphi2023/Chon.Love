@@ -1,7 +1,7 @@
 export function getReadableLocationError(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('permission_denied')) {
-    return 'Bạn chưa cho phép Luxy.Love dùng vị trí. Danh sách Gần đây vẫn hiển thị nhưng không có khoảng cách.';
+    return 'Bạn chưa cho phép Chon.Love dùng vị trí. Danh sách Gần đây vẫn hiển thị nhưng không có khoảng cách.';
   }
   if (message.includes('timeout')) {
     return 'Không lấy được vị trí kịp thời. Hãy kiểm tra GPS hoặc thử lại.';

@@ -236,7 +236,7 @@ export default function FriendsPage() {
 }
 
 function ConversationRow({ item, onOpen }: { item: ConversationSummary; onOpen: () => void }) {
-  const name = item.display_name || item.username || 'Thành viên Luxy.Love';
+  const name = item.display_name || item.username || 'Thành viên Chon.Love';
   const time = formatConversationTime(item.last_message_sent_at);
   return (
     <Pressable accessibilityRole="button" onPress={onOpen} style={styles.card}>
@@ -290,7 +290,7 @@ function ConnectionRow({
   onChat: () => void;
 }) {
   const router = useRouter();
-  const name = item.display_name || item.username || 'Thành viên Luxy.Love';
+  const name = item.display_name || item.username || 'Thành viên Chon.Love';
   return (
     <View style={styles.card}>
       <Pressable
@@ -342,7 +342,7 @@ function ConnectionRow({
 }
 
 function BlockedRow({ item, busy, onUnblock }: { item: BlockedProfile; busy: boolean; onUnblock: () => void }) {
-  const name = item.display_name || item.username || 'Tài khoản Luxy.Love';
+  const name = item.display_name || item.username || 'Tài khoản Chon.Love';
   return (
     <View style={styles.card}>
       <View style={styles.identityRow}>

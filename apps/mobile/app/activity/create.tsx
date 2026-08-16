@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-// WEB-R01: Activity creation is not part of Luxy Web V1.
-export default function DeferredActivityCreateRoute() {
+// Activity creation was a MyFan-era surface and is not part of Chon.Love Web V1.
+export default function RetiredActivityCreateRoute() {
   return <Redirect href="/(tabs)" />;
 }

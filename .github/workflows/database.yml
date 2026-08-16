@@ -10,7 +10,6 @@ on:
       - 'scripts/validate-br01.mjs'
       - 'scripts/validate-br03.mjs'
       - 'scripts/validate-br04.mjs'
-      - 'scripts/validate-br05.mjs'
       - 'scripts/validate-br06.mjs'
       - 'scripts/validate-br07.mjs'
       - 'scripts/validate-br08.mjs'
@@ -22,7 +21,6 @@ on:
       - 'docs/br-01/**'
       - 'docs/br-03/**'
       - 'docs/br-04/**'
-      - 'docs/br-05/**'
       - 'docs/br-06/**'
       - 'docs/br-07/**'
       - 'docs/br-08/**'
@@ -39,7 +37,6 @@ on:
       - 'scripts/validate-br01.mjs'
       - 'scripts/validate-br03.mjs'
       - 'scripts/validate-br04.mjs'
-      - 'scripts/validate-br05.mjs'
       - 'scripts/validate-br06.mjs'
       - 'scripts/validate-br07.mjs'
       - 'scripts/validate-br08.mjs'
@@ -51,7 +48,6 @@ on:
       - 'docs/br-01/**'
       - 'docs/br-03/**'
       - 'docs/br-04/**'
-      - 'docs/br-05/**'
       - 'docs/br-06/**'
       - 'docs/br-07/**'
       - 'docs/br-08/**'
@@ -81,7 +77,7 @@ jobs:
         with:
           version: 2.110.0
 
-      - name: Verify security reconciliation inventory
+      - name: Verify source-of-truth migration inventory
         run: |
           supabase --version
           test -f supabase/migrations/20260731100320_seed_16_beta_users_support.sql
@@ -96,8 +92,6 @@ jobs:
           test -f supabase/migrations/20260731134111_br_03_beta_auth_rotation_and_session_controls.sql
           test -f supabase/migrations/20260731134449_br_03_beta_fixed_credentials_exception.sql
           test -f supabase/migrations/20260731134617_br_03_remove_rotation_scaffolding.sql
-          test -f supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql
-          test -f supabase/migrations/20260731160038_br_05_anonymous_public_activity_feed_fix.sql
           test -f supabase/migrations/20260731172253_br_06_storage_policy_helper_execution.sql
           test -f supabase/migrations/20260731185855_br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql
@@ -106,6 +100,8 @@ jobs:
           test -f supabase/migrations/20260811161500_lx_09_search_backend_v2.sql
           test -f supabase/migrations/20260812094000_lx_13_member_profile_membership_presentation.sql
           test -f supabase/migrations/20260812121500_lx_14_private_photo_premium_interactions.sql
+          test -f supabase/migrations/20260816101657_chon_policy_reaccept_preserve_verified_identity.sql
+          test -f supabase/migrations/20260816101704_chon_runtime_legacy_retirement.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -114,7 +110,6 @@ jobs:
           test -f supabase/tests/br_01_security_reconciliation.sql
           test -f supabase/tests/br_03_auth_session_reconciliation.sql
           test -f supabase/tests/br_04_core_social_multi_account_e2e.sql
-          test -f supabase/tests/br_05_creator_activity_privacy_album_e2e.sql
           test -f supabase/tests/br_06_storage_policy_helper_acl.sql
           test -f supabase/tests/br_07_vietqr_reconciliation_mvp.sql
           test -f supabase/tests/br_08_kyc_withdrawal_operational_flow.sql
@@ -123,6 +118,8 @@ jobs:
           test -f supabase/tests/lx_09_search_backend_v2.sql
           test -f supabase/tests/lx_13_member_profile_membership_presentation.sql
           test -f supabase/tests/lx_14_private_photo_premium_entitlements.sql
+          test -f supabase/tests/chon_policy_reaccept_preserve_verified_identity.sql
+          test -f supabase/tests/chon_runtime_legacy_retirement.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -137,17 +134,14 @@ jobs:
       - name: Clean reset from repository migrations
         run: supabase db reset --local
 
-      - name: Run current BR-01 pgTAP contract
+      - name: Run BR-01 security reconciliation contract
         run: supabase test db supabase/tests/br_01_security_reconciliation.sql --local
 
       - name: Run BR-03 auth session reconciliation contract
         run: supabase test db supabase/tests/br_03_auth_session_reconciliation.sql --local
 
-      - name: Run BR-04 core social multi-account E2E
+      - name: Run BR-04 core social multi-account contract
         run: supabase test db supabase/tests/br_04_core_social_multi_account_e2e.sql --local
-
-      - name: Run BR-05 Creator Activity privacy and album E2E
-        run: supabase test db supabase/tests/br_05_creator_activity_privacy_album_e2e.sql --local
 
       - name: Run BR-06 Storage policy helper ACL contract
         run: supabase test db supabase/tests/br_06_storage_policy_helper_acl.sql --local
@@ -173,10 +167,16 @@ jobs:
       - name: Run LX-14 Private Photo and Premium interaction contract
         run: supabase test db supabase/tests/lx_14_private_photo_premium_entitlements.sql --local
 
-      - name: Run concurrent gift test
+      - name: Run Chon.Love existing-user policy re-acceptance contract
+        run: supabase test db supabase/tests/chon_policy_reaccept_preserve_verified_identity.sql --local
+
+      - name: Run Chon.Love retired runtime grant contract
+        run: supabase test db supabase/tests/chon_runtime_legacy_retirement.sql --local
+
+      - name: Run concurrent gift ledger test
         run: bash supabase/tests/09_concurrency.sh
 
-      - name: Run concurrent withdrawal test
+      - name: Run concurrent withdrawal ledger test
         run: bash supabase/tests/10_withdrawal_concurrency.sh
 
       - name: Lint schemas
@@ -220,7 +220,7 @@ jobs:
       - name: Upload generated public contract
         uses: actions/upload-artifact@v4
         with:
-          name: br-09-database-types
+          name: chon-database-types
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7

@@ -1,91 +1,111 @@
-# Chon.Love — Netlify Web Production Runbook
+# Chon.Love — Netlify Production Runbook
 
-## 1. Source of truth
+## 1. Một production source of truth
 
-Production web của Chon.Love dùng repository:
+Repository:
 
 ```text
 jackphi2023/Chon.Love
 ```
 
-và branch:
+Branch:
 
 ```text
 main
 ```
 
-`netlify.toml` tại **repository root** là source of truth khi Netlify dùng Base directory `/`.
+Netlify config:
 
-Production phải build đúng ứng dụng responsive Expo Web đang chứa toàn bộ UI hiện hành:
+```text
+/netlify.toml
+```
+
+Production app:
+
+```text
+apps/mobile
+```
+
+Build:
 
 ```text
 corepack enable && pnpm --filter @myfan/mobile build:web
 ```
 
-và publish:
+Publish:
 
 ```text
 apps/mobile/dist
 ```
 
-`@myfan/mobile` là tên package kỹ thuật còn giữ để tránh refactor monorepo; user-facing product là Chon.Love.
+`@myfan/mobile` là technical package name lịch sử; user-facing product là Chon.Love.
 
-Không chọn `apps/public-web` làm production package cho site Chon.Love chính. `apps/public-web` còn được giữ cho các bề mặt public/SEO tương thích, nhưng homepage sản phẩm hiện tại và authenticated UI có source of truth tại `apps/mobile`.
+`apps/public-web` **không phải production target**. Netlify config trong thư mục này fail-closed để tránh public-web/combined build cũ quay lại route `/`.
 
-## 2. Netlify Build settings
+## 2. Netlify UI settings
 
-Trong **Project configuration → Build & deploy → Continuous deployment → Build settings**:
+Trong **Project configuration → Build & deploy → Build settings**:
 
 ```text
 Production branch: main
-Base directory: [để trống / repository root]
+Base directory: [repository root / để trống]
 Package directory: [để trống]
-Build command: [để trống nếu Netlify đọc root netlify.toml]
-Publish directory: [để root netlify.toml quản lý]
-Functions directory: [để trống nếu site này không cần override]
+Build command: [để netlify.toml quản lý]
+Publish directory: [để netlify.toml quản lý]
+Functions directory: [để trống]
 ```
 
-Root `netlify.toml` khai báo chính thức:
+Nếu UI còn override từ MyFan/Luxy, xóa các giá trị như:
 
 ```text
-Build command:
-corepack enable && pnpm --filter @myfan/mobile build:web
-
-Publish:
-apps/mobile/dist
+Package directory: apps/mobile
+Package directory: apps/public-web
+Build: pnpm build:netlify:chon
+Publish: apps/public-web/.next
 ```
 
-Nếu UI Netlify hiển thị **Overridden by netlify.toml**, đây là trạng thái mong muốn. Xóa các build command/package directory cũ trong Netlify UI để tránh nhầm lẫn.
-
-Không đặt Package directory thành `apps/public-web` hoặc build command `pnpm build:netlify:chon` cho site production chính, vì điều đó có thể đưa một public-web shell cũ trở lại route `/`.
-
-Repository pin:
-
-```text
-Node.js: 22.23.1
-pnpm: 10.15.1
-```
+Trạng thái mong muốn là Netlify đọc root `netlify.toml` và log đúng `@myfan/mobile build:web`.
 
 ## 3. Environment variables
 
-Trong Netlify Environment variables cần có publishable key Supabase:
+Repository chỉ hard-code production Supabase URL trong `context.production`:
 
 ```text
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<Supabase publishable key>
-```
-
-Áp dụng cho Production và các context preview cần test.
-
-Root `netlify.toml` đã đặt:
-
-```text
-EXPO_PUBLIC_MYFAN_ENV=production
 EXPO_PUBLIC_SUPABASE_URL=https://asnydvqsduonyidjyyzq.supabase.co
 ```
 
-Tên `EXPO_PUBLIC_MYFAN_ENV` là technical legacy và chưa đổi để tránh phá contract runtime.
+Publishable/anon key phải cấu hình trong Netlify UI:
 
-Các financial/native flags vẫn fail closed trong Web V1:
+```text
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<publishable key>
+```
+
+Không commit:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY
+MYFAN_PII_ENCRYPTION_KEY_B64
+OAuth client secret
+Google Play service-account credential
+bank/webhook secrets
+```
+
+## 4. Preview/staging không dùng production DB mặc định
+
+`deploy-preview`, `branch-deploy`, `develop` và `release/staging` không hard-code project production.
+
+Khi cần preview có backend, cấu hình riêng theo Netlify context:
+
+```text
+EXPO_PUBLIC_SUPABASE_URL=<preview/staging project>
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<matching publishable key>
+```
+
+Nếu chưa có preview database, để build/runtime fail closed. Không trỏ preview vào production chỉ để Deploy Preview chạy được.
+
+## 5. Feature flags Web V1
+
+Giữ fail-closed cho tới khi module vận hành tương ứng được release:
 
 ```text
 EXPO_PUBLIC_FEATURE_GOOGLE_PLAY_BILLING=false
@@ -95,86 +115,48 @@ EXPO_PUBLIC_FEATURE_CREATOR_KYC=false
 EXPO_PUBLIC_FEATURE_WITHDRAWAL=false
 ```
 
-Không bao giờ đưa vào frontend Netlify:
+## 6. Deploy production
 
-```text
-SUPABASE_SERVICE_ROLE_KEY
-MYFAN_PII_ENCRYPTION_KEY_B64
-Google OAuth client secret
-Google Play service-account credential
-bank/webhook secrets
-```
+Sau merge `main`:
 
-Sau khi sửa environment variable, chạy deploy mới vì `EXPO_PUBLIC_*` được đóng gói lúc build.
+1. Xác nhận Netlify checkout exact SHA mới nhất của `main`.
+2. Build log phải hiển thị:
+   `corepack enable && pnpm --filter @myfan/mobile build:web`.
+3. Publish phải là `apps/mobile/dist`.
+4. Build output phải có `_redirects` SPA fallback.
+5. Nếu site còn asset cũ, dùng **Clear cache and deploy site**.
+6. Chỉ coi release hoàn tất khi exact SHA đã **Published** và smoke test pass.
 
-## 4. Deploy sau khi merge main
+## 7. Smoke test bắt buộc
 
-Sau khi release PR merge vào `main`:
+Public `/`:
 
-1. Mở Netlify → **Deploys**.
-2. Xác nhận Git integration checkout đúng commit mới nhất của `main`.
-3. Nếu site vẫn hiện asset/homepage cũ, chọn **Trigger deploy → Clear cache and deploy site**.
-4. Trong log phải thấy build command:
+- Chon.Love branding.
+- `Chọn đúng Người, Yêu đúng Gu`.
+- hero desktop/mobile đúng phiên bản hiện hành.
+- CTA signup/login.
+- legal/footer không còn MyFan/Luxy copy.
 
-```text
-corepack enable && pnpm --filter @myfan/mobile build:web
-```
+Existing-user flow:
 
-5. Publish directory phải là:
+- login email/password;
+- refresh giữ session;
+- user đã xác thực tuổi không bị buộc đổi DOB khi re-accept policy;
+- Search/Kết nối;
+- Yêu thích;
+- Member Profile;
+- Tin nhắn;
+- Settings/Membership;
+- Verification.
 
-```text
-apps/mobile/dist
-```
+Entitlement:
 
-6. Build output phải chứa `_redirects` với SPA fallback.
-7. Chỉ coi deploy hoàn tất khi trạng thái Netlify là **Published**.
+- Free không gửi message khi contract khóa.
+- Premium/Diamond đúng entitlement.
+- Free không nhận private-photo storage path.
+- Premium/Diamond xem private photos theo backend entitlement hiện tại.
 
-## 5. Homepage smoke test
-
-Mở `/` ở cửa sổ ẩn danh và xác nhận homepage rebuilt hiện tại:
-
-- header Chọn.love;
-- hero video riêng desktop/mobile;
-- slogan `Chọn đúng Người, Yêu đúng Gu`;
-- CTA `Tham gia ngay`;
-- section định vị `NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ`;
-- testimonials;
-- Quyền lợi thành viên;
-- Sứ mệnh;
-- Văn hoá kết nối;
-- footer/legal Chọn.love.
-
-Nếu `/` vẫn hiện homepage static cũ hoặc UI MyFan/Luxy, dừng release và kiểm tra lại Base/Package directory/build command trước khi sửa product code.
-
-## 6. Authenticated UI smoke test
-
-Đăng nhập một tài khoản test và kiểm tra:
-
-```text
-Kết nối
-Yêu thích
-Tin nhắn
-Nâng cấp
-Hồ sơ
-Quà
-Số dư
-Cài đặt
-```
-
-Kiểm tra thêm:
-
-- navigation desktop/mobile dùng cùng brand Chọn.love;
-- gold icons cho Kết nối / Yêu thích / Tin nhắn / Gift / Profile / Location / Recent Access;
-- Free user có promo đen `Nâng cấp ngay để gửi tin nhắn`;
-- mobile Kết nối dùng card ảnh HQ hai cột;
-- Member Profile có Selfie / CCCD / LinkedIn badges theo server state;
-- mobile Member Profile có dock `Tặng quà` + `Gửi tin nhắn`;
-- Free Message CTA mở Membership;
-- không có horizontal overflow.
-
-## 7. Responsive matrix
-
-Kiểm tra tối thiểu:
+Responsive:
 
 ```text
 390 × 844
@@ -185,49 +167,26 @@ Kiểm tra tối thiểu:
 1440 × 1000
 ```
 
-Browser ưu tiên:
+Không horizontal overflow.
 
-```text
-Chrome desktop
-Chrome Android
-Safari iOS
-Safari macOS
-```
+## 8. Khi thấy homepage MyFan/Luxy cũ
 
-## 8. Supabase Auth URL
+Không sửa UI trước.
 
-Supabase project:
+Kiểm tra theo thứ tự:
 
-```text
-asnydvqsduonyidjyyzq
-```
+1. Netlify repository có đúng `jackphi2023/Chon.Love` không.
+2. Production branch có phải `main` không.
+3. Base directory có phải repository root không.
+4. Package directory có đang override sang `apps/public-web` không.
+5. Build command có đúng `@myfan/mobile build:web` không.
+6. Publish có đúng `apps/mobile/dist` không.
+7. Exact deployed commit có đúng SHA trên `main` không.
 
-`Authentication → URL Configuration` phải dùng hostname production thật của Chon.Love và callback `/auth/callback` tương ứng. Khi custom domain thay đổi, cập nhật Site URL và Redirect URLs trước khi bật production traffic.
-
-Google Auth chỉ được bật khi Supabase Google Provider đã có OAuth Web Client ID/Secret hợp lệ. Không bật nút Google trước provider.
+Nếu bất kỳ mục nào sai, sửa deploy configuration trước khi đụng product code.
 
 ## 9. Rollback
 
-Nếu deploy production có regression:
+Rollback frontend bằng Netlify deploy trước đó chỉ khi database migration mới vẫn backward compatible.
 
-1. Netlify → Deploys.
-2. Chọn deploy Published ổn định gần nhất.
-3. Publish/Rollback deploy đó.
-4. Smoke test `/`, login, Kết nối và một Member Profile.
-5. Fix source trên branch mới; không chỉnh trực tiếp generated build output.
-
-Hosting rollback không rollback Supabase schema. Nếu release có migration riêng, phải theo runbook migration tương ứng.
-
-## 10. Release gate
-
-Không coi production hoàn tất nếu còn một trong các điều kiện:
-
-- GitHub CI/contract/Browser E2E đỏ;
-- Netlify checkout không phải `main` mới nhất;
-- build command không phải mobile web canonical command;
-- homepage `/` không phải homepage rebuilt hiện tại;
-- route refresh trả 404;
-- auth redirect sai hostname;
-- ảnh thành viên quay lại bản low-resolution;
-- gold icon/navigation không đồng nhất desktop/mobile;
-- layout lỗi nghiêm trọng ở 390–430 px.
+Database production không rollback bằng reset/truncate. Mọi schema correction phải là forward-only migration hoặc migration đảo ngược được review riêng.
