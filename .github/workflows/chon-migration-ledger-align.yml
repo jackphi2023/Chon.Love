@@ -1,0 +1,57 @@
+name: One-time Chon migration ledger alignment
+
+on:
+  push:
+    branches: ['agent/chon-source-of-truth-cleanup']
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/chon-source-of-truth-cleanup
+          fetch-depth: 0
+      - name: Align exact migration references with production ledger
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              '20260816150000_chon_policy_reaccept_preserve_verified_identity': '20260816101657_chon_policy_reaccept_preserve_verified_identity',
+              '20260816151000_chon_runtime_legacy_retirement': '20260816101704_chon_runtime_legacy_retirement',
+          }
+          roots = [Path('.github'), Path('docs'), Path('scripts'), Path('supabase')]
+          changed = []
+          for root in roots:
+              if not root.exists():
+                  continue
+              for path in root.rglob('*'):
+                  if not path.is_file() or path.name == 'chon-migration-ledger-align.yml':
+                      continue
+                  try:
+                      text = path.read_text()
+                  except UnicodeDecodeError:
+                      continue
+                  updated = text
+                  for old, new in replacements.items():
+                      updated = updated.replace(old, new)
+                  if updated != text:
+                      path.write_text(updated)
+                      changed.append(str(path))
+          print('\n'.join(changed))
+          PY
+      - name: Remove one-time workflow
+        run: rm .github/workflows/chon-migration-ledger-align.yml
+      - name: Commit ledger alignment
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github docs scripts supabase
+          git diff --cached --check
+          git commit -m 'chore: align repository migration ledger with production'
+          git push origin HEAD:agent/chon-source-of-truth-cleanup
