@@ -14,7 +14,7 @@ SEO description chuẩn:
 
 ## Source of truth
 
-- Repository: `jackphi2023/Luxy.Love`
+- Repository: `jackphi2023/Chon.Love`
 - Production branch: `main`
 - Supabase project: `asnydvqsduonyidjyyzq`
 - Luôn fetch lại `main` và ghi nhận exact HEAD SHA trước khi sửa code, test hoặc deploy.
