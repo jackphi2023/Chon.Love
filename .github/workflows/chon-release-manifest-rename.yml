@@ -1,0 +1,47 @@
+name: One-time Chon release manifest rename
+
+on:
+  push:
+    branches: ['agent/chon-source-of-truth-finalize']
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/chon-source-of-truth-finalize
+          fetch-depth: 0
+      - name: Rename active release manifest and update active validators
+        run: |
+          set -euo pipefail
+          git mv config/releases/beta-mobile-web.json config/releases/chon-web-v1.json
+          python3 - <<'PY'
+          from pathlib import Path
+          paths = [
+              Path('scripts/validate-br02.mjs'),
+              Path('scripts/validate-br06.mjs'),
+              Path('scripts/validate-br07.mjs'),
+              Path('scripts/validate-br08.mjs'),
+              Path('scripts/validate-br09.mjs'),
+          ]
+          old = 'config/releases/beta-mobile-web.json'
+          new = 'config/releases/chon-web-v1.json'
+          for path in paths:
+              text = path.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected manifest reference in {path}')
+              path.write_text(text.replace(old, new))
+          PY
+      - name: Commit active manifest rename
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/releases scripts/validate-br02.mjs scripts/validate-br06.mjs scripts/validate-br07.mjs scripts/validate-br08.mjs scripts/validate-br09.mjs
+          git diff --cached --check
+          git commit -m 'chore: rename active release manifest to Chon Web V1'
+          git push origin HEAD:agent/chon-source-of-truth-finalize
