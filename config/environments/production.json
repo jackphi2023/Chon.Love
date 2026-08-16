@@ -4,8 +4,8 @@
   "supabaseProjectRef": "asnydvqsduonyidjyyzq",
   "supabaseUrl": "https://asnydvqsduonyidjyyzq.supabase.co",
   "supabaseRegion": "ap-southeast-1",
-  "supabaseLifecycle": "phase-c-shared-development",
+  "supabaseLifecycle": "active-production",
   "netlifyContext": "production",
-  "deployPolicy": "disabled-until-production-project-approved",
-  "production": false
+  "deployPolicy": "main-after-release-gates",
+  "production": true
 }
