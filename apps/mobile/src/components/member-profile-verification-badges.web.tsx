@@ -3,7 +3,7 @@ import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows, luxySpacing } from
 import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'expo-router';
 import { createPortal } from 'react-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonVerificationIcon } from '@/components/chon-verification-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -16,6 +16,8 @@ const verificationMeta: Record<VerificationKey, { label: string }> = {
   identity: { label: 'CCCD' },
   linkedin: { label: 'LinkedIn' },
 };
+
+let activePortalOwner: symbol | null = null;
 
 function getProfileUsername(pathname: string): string | null {
   const match = pathname.match(/^\/profile\/([^/?#]+)$/u);
@@ -39,6 +41,7 @@ export function MemberProfileVerificationBadges() {
   const auth = useAuth();
   const client = getMobileSupabaseClient();
   const { width } = useWindowDimensions();
+  const ownerRef = useRef<symbol>(Symbol('chon-verification-badges'));
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
   const verificationIconSize = width >= luxyBreakpoints.desktop ? 26 : 18;
@@ -71,6 +74,13 @@ export function MemberProfileVerificationBadges() {
       return undefined;
     }
 
+    const owner = ownerRef.current;
+    if (activePortalOwner && activePortalOwner !== owner) {
+      setPortalTarget(null);
+      return undefined;
+    }
+    activePortalOwner = owner;
+
     let observer: MutationObserver | null = null;
     let mounted = true;
 
@@ -102,8 +112,11 @@ export function MemberProfileVerificationBadges() {
     return () => {
       mounted = false;
       observer?.disconnect();
-      const target = document.querySelector<HTMLElement>('[data-chon-love-verification-badges="true"]');
-      target?.remove();
+      if (activePortalOwner === owner) {
+        activePortalOwner = null;
+        const target = document.querySelector<HTMLElement>('[data-chon-love-verification-badges="true"]');
+        target?.remove();
+      }
       setPortalTarget(null);
     };
   }, [username]);
