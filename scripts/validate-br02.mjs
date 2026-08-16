@@ -12,40 +12,36 @@ const expect = (condition, message) => {
   if (!condition) errors.push(message);
 };
 
-expect(manifest.schemaVersion === 1, 'BR-02 manifest schemaVersion must be 1.');
-expect(manifest.releaseId === 'beta-mobile-web', 'BR-02 releaseId must be beta-mobile-web.');
-expect(
-  manifest.canonicalBranch === 'release/beta-mobile-web',
-  'Canonical integration branch must be release/beta-mobile-web.',
-);
-expect(manifest.integrationBase === 'develop', 'Beta integration base must be develop.');
-expect(manifest.productionBranch === 'main', 'Production branch must remain main.');
-expect(
-  manifest.sourceBranch === 'agent/br-01-security-reconciliation',
-  'BR-02 must preserve the audited BR-01 source branch anchor.',
-);
-expect(
-  /^[0-9a-f]{40}$/.test(manifest.sourceCommit),
-  'BR-02 sourceCommit must be a full 40-character commit SHA.',
-);
+expect(manifest.schemaVersion === 1, 'Chon.Love release manifest schemaVersion must be 1.');
+expect(manifest.releaseId === 'chon-web-v1', 'Active releaseId must be chon-web-v1.');
+expect(manifest.canonicalBranch === 'main', 'Canonical Chon.Love branch must be main.');
+expect(manifest.integrationBase === 'main', 'Active integration base must be main.');
+expect(manifest.productionBranch === 'main', 'Production branch must be main.');
+expect(manifest.sourceBranch === 'main', 'Active release source branch must be main.');
+expect(/^[0-9a-f]{40}$/.test(manifest.sourceCommit), 'sourceCommit must be a full 40-character commit SHA.');
 expect(
   manifest.supabaseProjectRef === 'asnydvqsduonyidjyyzq',
-  'BR-02 must retain the reconciled Supabase project reference.',
+  'Active release manifest must retain the reconciled Chon.Love Supabase project reference.',
 );
-expect(manifest.status === 'draft', 'BR-02 must remain draft until Beta acceptance is complete.');
-expect(manifest.mergeAllowed === false, 'BR-02 must not authorize merge automatically.');
+expect(manifest.deploymentTarget === 'netlify-production', 'Deployment target must be netlify-production.');
+expect(manifest.status === 'prelive', 'Chon.Love Web V1 must remain prelive until explicit live acceptance.');
+expect(manifest.mergeAllowed === false, 'The manifest must not authorize automatic merges.');
 expect(
   manifest.productionDeployAllowed === false,
-  'BR-02 must not authorize a production deployment.',
+  'The manifest must not authorize an automatic production deploy before explicit live acceptance.',
 );
 expect(
   manifest.financialFeaturesEnabled === false,
-  'BR-02 must keep financial feature flags disabled.',
+  'Financial feature flags must remain disabled for the current Web V1 baseline.',
+);
+expect(
+  typeof manifest.compatibilityNote === 'string' && manifest.compatibilityNote.includes('Historical filename'),
+  'The retained historical manifest filename must explicitly explain that its values are current Chon.Love Web V1.',
 );
 
 expect(
   packageJson.scripts?.['validate:security'] === 'node scripts/validate-br01.mjs',
-  'BR-01 security validation must remain enabled.',
+  'Security validation must remain enabled.',
 );
 expect(
   packageJson.scripts?.['validate:integration'] === 'node scripts/validate-br02.mjs',
@@ -54,38 +50,21 @@ expect(
 expect(
   packageJson.scripts?.validate?.includes('validate:security') &&
     packageJson.scripts?.validate?.includes('validate:integration'),
-  'The aggregate validate command must include BR-01 and BR-02 validation.',
+  'The aggregate validate command must include security and active release-source validation.',
 );
-expect(
-  ciWorkflow.includes("'release/**'"),
-  'Application CI must run for release/** branches.',
-);
+expect(ciWorkflow.includes('branches: [main,'), 'Application CI must run on main.');
 expect(
   ciWorkflow.includes('pnpm validate:integration'),
-  'Application CI must execute BR-02 integration validation.',
+  'Application CI must execute active Chon.Love release-source validation.',
 );
 
-for (const path of [
-  'docs/br-02/README.md',
-  'docs/br-02/INTEGRATION-MANIFEST.md',
-  'docs/br-02/BRANCH-POLICY.md',
-  'docs/br-02/ACCEPTANCE.md',
-  'docs/br-02/STATUS.md',
-]) {
-  try {
-    readText(path);
-  } catch {
-    errors.push(`Missing required BR-02 document: ${path}`);
-  }
-}
-
 if (errors.length > 0) {
-  console.error('BR-02 integration validation failed:');
+  console.error('Chon.Love release-source validation failed:');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
 
-console.warn('BR-02 integration validation passed.');
+console.warn('Chon.Love release-source validation passed.');
 console.warn(`Canonical branch: ${manifest.canonicalBranch}`);
-console.warn(`Integration base: ${manifest.integrationBase}`);
-console.warn(`Audited source: ${manifest.sourceCommit}`);
+console.warn(`Deployment target: ${manifest.deploymentTarget}`);
+console.warn(`Source commit: ${manifest.sourceCommit}`);
