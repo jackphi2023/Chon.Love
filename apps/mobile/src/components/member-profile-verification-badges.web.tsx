@@ -1,19 +1,20 @@
 import { getLuxyMemberProfile, getLuxyMemberVerificationBadges } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
+import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'expo-router';
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ChonVerificationIcon } from '@/components/chon-verification-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 type VerificationKey = 'selfie' | 'identity' | 'linkedin';
 
-const verificationMeta: Record<VerificationKey, { icon: string; label: string }> = {
-  selfie: { icon: '◎', label: 'Ảnh chụp cá nhân' },
-  identity: { icon: '▭', label: 'CCCD' },
-  linkedin: { icon: 'in', label: 'LinkedIn' },
+const verificationMeta: Record<VerificationKey, { label: string }> = {
+  selfie: { label: 'Ảnh chụp cá nhân' },
+  identity: { label: 'CCCD' },
+  linkedin: { label: 'LinkedIn' },
 };
 
 function getProfileUsername(pathname: string): string | null {
@@ -37,8 +38,10 @@ export function MemberProfileVerificationBadges() {
   const username = getProfileUsername(pathname);
   const auth = useAuth();
   const client = getMobileSupabaseClient();
+  const { width } = useWindowDimensions();
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
+  const verificationIconSize = width >= luxyBreakpoints.desktop ? 26 : 18;
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, username],
@@ -125,12 +128,15 @@ export function MemberProfileVerificationBadges() {
               accessibilityRole="button"
               onHoverIn={() => setHovered(key)}
               onHoverOut={() => setHovered((current) => (current === key ? null : current))}
-              style={({ pressed }) => [styles.iconButton, verified ? styles.iconVerified : styles.iconUnverified, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
               testID={`luxy-verification-${key}`}
             >
-              <Text style={[styles.iconText, verified ? styles.iconTextVerified : styles.iconTextUnverified]}>
-                {verificationMeta[key].icon}
-              </Text>
+              <ChonVerificationIcon
+                size={verificationIconSize}
+                testID={`luxy-verification-icon-${key}-${verified ? 'verified' : 'unverified'}`}
+                type={key}
+                verified={verified}
+              />
             </Pressable>
             <Text numberOfLines={1} style={[styles.label, verified && styles.labelVerified]}>{verificationMeta[key].label}</Text>
             {hovered === key ? (
@@ -170,16 +176,10 @@ const styles = StyleSheet.create({
   iconButton: {
     alignItems: 'center',
     borderRadius: luxyRadii.pill,
-    borderWidth: 1,
     height: 44,
     justifyContent: 'center',
     width: 44,
   },
-  iconVerified: { backgroundColor: '#0B3B67', borderColor: '#0B3B67' },
-  iconUnverified: { backgroundColor: '#F3F4F6', borderColor: '#9CA3AF' },
-  iconText: { fontSize: 16, fontWeight: '800', lineHeight: 18 },
-  iconTextVerified: { color: luxyColors.surface },
-  iconTextUnverified: { color: '#7B818B' },
   label: { color: '#7B818B', fontSize: 9.5, marginTop: 5, maxWidth: '100%', paddingHorizontal: 2, textAlign: 'center' },
   labelVerified: { color: '#0B3B67', fontWeight: '700' },
   tooltip: {
