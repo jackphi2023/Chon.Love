@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const readJson = (path) => JSON.parse(readText(path));
 
-const manifest = readJson('config/releases/beta-mobile-web.json');
+const manifest = readJson('config/releases/chon-web-v1.json');
 const packageJson = readJson('package.json');
 const ciWorkflow = readText('.github/workflows/ci.yml');
 
