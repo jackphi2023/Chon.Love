@@ -100,8 +100,8 @@ jobs:
           test -f supabase/migrations/20260811161500_lx_09_search_backend_v2.sql
           test -f supabase/migrations/20260812094000_lx_13_member_profile_membership_presentation.sql
           test -f supabase/migrations/20260812121500_lx_14_private_photo_premium_interactions.sql
-          test -f supabase/migrations/20260816150000_chon_policy_reaccept_preserve_verified_identity.sql
-          test -f supabase/migrations/20260816151000_chon_runtime_legacy_retirement.sql
+          test -f supabase/migrations/20260816101657_chon_policy_reaccept_preserve_verified_identity.sql
+          test -f supabase/migrations/20260816101704_chon_runtime_legacy_retirement.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
