@@ -104,6 +104,7 @@ jobs:
           test -f supabase/migrations/20260816101704_chon_runtime_legacy_retirement.sql
           test -f supabase/migrations/20260816121228_chon_existing_user_access_and_badges.sql
           test -f supabase/migrations/20260816153138_chon_profile_media_delivery_integrity.sql
+          test -f supabase/migrations/20260816154812_chon_public_media_approval_scope_private_compatibility.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
