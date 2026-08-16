@@ -105,8 +105,8 @@ insert into auth.users(
 
 update private.user_identity
 set date_of_birth = date '2012-01-01',
-    age_verified_at = now(),
-    age_verification_method = 'self_declared',
+    age_verified_at = null,
+    age_verification_method = null,
     terms_version = (select value_json #>> '{}' from private.app_config where key='terms_version_current'),
     terms_accepted_at = now(),
     community_rules_version = (select value_json #>> '{}' from private.app_config where key='community_rules_version_current'),
