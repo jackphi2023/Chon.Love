@@ -2,7 +2,7 @@ name: Browser E2E
 
 on:
   push:
-    branches: [develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
+    branches: [main, develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
     paths:
       - 'apps/mobile/**'
       - 'packages/config/**'
