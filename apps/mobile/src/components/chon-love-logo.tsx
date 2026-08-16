@@ -1,43 +1,45 @@
-import { luxyColors, luxyTypography } from '@myfan/ui';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, type ImageStyle, type StyleProp } from 'react-native';
+
+// React Native/Metro requires static require() for bundled raster assets.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const CHON_LOVE_LOGO = require('../../assets/luxy/chon-love-logo.png');
+const LOGO_ASPECT_RATIO = 420 / 184;
+const DEFAULT_LOGO_HEIGHT = 50;
 
 type ChonLoveLogoProps = {
   width?: number;
   height?: number;
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<ImageStyle>;
 };
 
-export function ChonLoveLogo({ width = 150, height = 50, style }: ChonLoveLogoProps) {
-  const fontSize = Math.min(height * 0.66, width / 4.4);
+function resolveLogoSize(width?: number, height?: number) {
+  if (width && height) {
+    const requestedAspectRatio = width / height;
+    if (requestedAspectRatio > LOGO_ASPECT_RATIO) {
+      return { height, width: height * LOGO_ASPECT_RATIO };
+    }
+    return { height: width / LOGO_ASPECT_RATIO, width };
+  }
 
-  return (
-    <View
-      accessibilityLabel="Chọn.love"
-      accessibilityRole="image"
-      style={[styles.container, { height, width }, style]}
-    >
-      <Text
-        allowFontScaling={false}
-        numberOfLines={1}
-        style={[styles.wordmark, { fontSize, lineHeight: fontSize * 1.05 }]}
-      >
-        Chọn.love
-      </Text>
-    </View>
-  );
+  if (width) {
+    return { height: width / LOGO_ASPECT_RATIO, width };
+  }
+
+  const resolvedHeight = height ?? DEFAULT_LOGO_HEIGHT;
+  return { height: resolvedHeight, width: resolvedHeight * LOGO_ASPECT_RATIO };
 }
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  wordmark: {
-    color: luxyColors.actionRed,
-    fontFamily: luxyTypography.families.brand,
-    fontWeight: '400',
-    letterSpacing: -0.7,
-    textAlign: 'center',
-  },
-});
+export function ChonLoveLogo({ width, height, style }: ChonLoveLogoProps) {
+  const resolvedSize = resolveLogoSize(width, height);
+
+  return (
+    <Image
+      accessibilityIgnoresInvertColors
+      accessibilityLabel="Chọn.Love"
+      accessibilityRole="image"
+      resizeMode="contain"
+      source={CHON_LOVE_LOGO}
+      style={[resolvedSize, style]}
+    />
+  );
+}
