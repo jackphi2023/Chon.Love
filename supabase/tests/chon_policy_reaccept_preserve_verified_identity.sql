@@ -68,6 +68,7 @@ where user_id = '10000000-0000-0000-0000-000000000092';
 update public.profiles
 set username = 'chonlegacyqa',
     display_name = 'Chon Legacy QA',
+    province_id = (select min(id) from public.administrative_areas),
     profile_status = 'active'
 where id = '10000000-0000-0000-0000-000000000092';
 
@@ -116,6 +117,7 @@ where user_id = '10000000-0000-0000-0000-000000000093';
 update public.profiles
 set username = 'chonfutureqa',
     display_name = 'Chon Future QA',
+    province_id = (select min(id) from public.administrative_areas),
     profile_status = 'active'
 where id = '10000000-0000-0000-0000-000000000093';
 
