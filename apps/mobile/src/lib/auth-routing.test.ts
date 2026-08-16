@@ -34,6 +34,18 @@ describe('authentication routing', () => {
     );
   });
 
+  it('maps the product password rule to an eight-character minimum', () => {
+    expect(getReadableAuthError(new Error('password_too_short'))).toBe(
+      'Mật khẩu cần ít nhất 8 ký tự và nên có chữ hoa, chữ thường, số và ký tự đặc biệt.',
+    );
+  });
+
+  it('maps a callback without a restored session to a useful message', () => {
+    expect(getReadableAuthError(new Error('auth_callback_session_missing'))).toBe(
+      'Liên kết xác thực chưa tạo được phiên đăng nhập. Vui lòng mở lại liên kết mới nhất trong email hoặc quay lại đăng nhập.',
+    );
+  });
+
   it('maps expired recovery links', () => {
     expect(getReadableAuthError(new Error('OTP expired'))).toBe(
       'Liên kết xác thực đã hết hạn hoặc không còn hợp lệ.',

@@ -38,10 +38,13 @@ export function getReadableAuthError(error: unknown): string {
     return 'Email chưa được xác nhận.';
   }
   if (/password_too_short|weak password|password should be at least/iu.test(message)) {
-    return 'Mật khẩu cần ít nhất 10 ký tự và nên có chữ hoa, chữ thường, số và ký tự đặc biệt.';
+    return 'Mật khẩu cần ít nhất 8 ký tự và nên có chữ hoa, chữ thường, số và ký tự đặc biệt.';
   }
   if (/same password|new password should be different/iu.test(message)) {
     return 'Mật khẩu mới phải khác mật khẩu hiện tại.';
+  }
+  if (/auth_callback_session_missing/iu.test(message)) {
+    return 'Liên kết xác thực chưa tạo được phiên đăng nhập. Vui lòng mở lại liên kết mới nhất trong email hoặc quay lại đăng nhập.';
   }
   if (/expired|invalid.*token|otp.*expired/iu.test(message)) {
     return 'Liên kết xác thực đã hết hạn hoặc không còn hợp lệ.';
