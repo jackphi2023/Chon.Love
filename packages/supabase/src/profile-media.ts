@@ -245,7 +245,7 @@ export async function updateMyLuxyProfile(
     p_interests: input.interests,
     p_discovery_enabled: input.discoveryEnabled,
     p_nearby_enabled: input.nearbyEnabled,
-    ...(input.headline ? { p_headline: input.headline }),
+    ...(input.headline ? { p_headline: input.headline } : {}),
     p_interested_in: input.interestedIn,
     ...(input.heightCm === null ? {} : { p_height_cm: input.heightCm }),
     ...(input.weightKg === null ? {} : { p_weight_kg: input.weightKg }),
