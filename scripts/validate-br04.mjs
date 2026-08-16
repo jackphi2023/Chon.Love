@@ -4,7 +4,7 @@ const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 
 const readJson = (path) => JSON.parse(readText(path));
 
 const packageJson = readJson('package.json');
-const releaseManifest = readJson('config/releases/beta-mobile-web.json');
+const releaseManifest = readJson('config/releases/chon-web-v1.json');
 const applicationCi = readText('.github/workflows/ci.yml');
 const databaseCi = readText('.github/workflows/database.yml');
 const e2e = readText('supabase/tests/br_04_core_social_multi_account_e2e.sql');
