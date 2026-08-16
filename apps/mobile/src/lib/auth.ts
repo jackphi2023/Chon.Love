@@ -9,6 +9,8 @@ export type EmailSignUpResult = {
   destination: AuthenticatedRoute | null;
 };
 
+export const MIN_PASSWORD_LENGTH = 8;
+
 const CONTROLLED_BETA_EMAIL = /^myfan(?:[1-9]|1[0-6])@gmail\.com$/iu;
 
 export function getAuthCallbackUrl(next?: string): string {
@@ -65,7 +67,7 @@ export async function signUpWithEmailPassword(email: string, password: string): 
   const client = requireAuthClient();
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail || !password) throw new Error('email_and_password_required');
-  if (password.length < 10) throw new Error('password_too_short');
+  if (password.length < MIN_PASSWORD_LENGTH) throw new Error('password_too_short');
 
   const { data, error } = await client.auth.signUp({
     email: normalizedEmail,
@@ -93,7 +95,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
 
 export async function updateCurrentPassword(newPassword: string): Promise<void> {
   const client = requireAuthClient();
-  if (newPassword.length < 10) throw new Error('password_too_short');
+  if (newPassword.length < MIN_PASSWORD_LENGTH) throw new Error('password_too_short');
   const { error } = await client.auth.updateUser({ password: newPassword });
   if (error) throw error;
   const { error: signOutError } = await client.auth.signOut({ scope: 'global' });
@@ -106,10 +108,25 @@ export async function signOutWithScope(scope: AuthSignOutScope): Promise<void> {
   if (error) throw error;
 }
 
-export async function completeAuthentication(code: string): Promise<void> {
+export async function completeAuthentication(code?: string): Promise<void> {
   const client = requireAuthClient();
-  const { error } = await client.auth.exchangeCodeForSession(code);
-  if (error) throw error;
+
+  // On Chon Web, detectSessionInUrl handles implicit confirmation/recovery
+  // fragments before this screen routes onward. Checking the restored session
+  // first also makes this callback compatible with already-consumed links.
+  const { data: sessionData, error: sessionError } = await client.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (sessionData.session) return;
+
+  // Keep compatibility with older PKCE links that may still be in inboxes
+  // during the rollout from the previous Web configuration.
+  if (code) {
+    const { error } = await client.auth.exchangeCodeForSession(code);
+    if (error) throw error;
+    return;
+  }
+
+  throw new Error('auth_callback_session_missing');
 }
 
 export const completeGoogleAuthentication = completeAuthentication;
