@@ -13,12 +13,16 @@ export function getMobileSupabaseClient(): MobileSupabaseClient | null {
     cachedClient = null;
     return cachedClient;
   }
+  const isWeb = Platform.OS === 'web';
   cachedClient = createPublicSupabaseClient(
     { url: environment.supabaseUrl, anonKey: environment.supabaseAnonKey },
     {
-      flowType: 'pkce',
-      detectSessionInUrl: false,
-      persistSession: Platform.OS === 'web',
+      // Chon.Love Web is a client-only Expo SPA. Supabase's implicit flow lets
+      // email-confirmation and recovery links establish the browser session
+      // directly after the redirect. Native keeps PKCE for future/deferred use.
+      flowType: isWeb ? 'implicit' : 'pkce',
+      detectSessionInUrl: isWeb,
+      persistSession: isWeb,
       allowInsecureLocalhost: environment.appEnvironment === 'development',
     },
   );
