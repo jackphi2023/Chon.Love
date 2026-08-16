@@ -78,8 +78,8 @@ function iconUri(type: ChonVerificationIconType, verified: boolean): string {
 export function ChonVerificationIcon({ type, verified, size, style, testID }: Props) {
   return (
     <Image
+      accessibilityElementsHidden
       accessible={false}
-      pointerEvents="none"
       resizeMode="contain"
       source={{ uri: iconUri(type, verified) }}
       style={[{ height: size, width: size }, style]}
