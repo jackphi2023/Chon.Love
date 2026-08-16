@@ -5,13 +5,14 @@
   "integrationBase": "main",
   "productionBranch": "main",
   "sourceBranch": "main",
-  "sourceCommit": "ccb5e98c087f7cf607e7ca1bcb5a0b56543d68a3",
+  "baselineCommit": "ccb5e98c087f7cf607e7ca1bcb5a0b56543d68a3",
   "supabaseProjectRef": "asnydvqsduonyidjyyzq",
   "deploymentTarget": "netlify-production",
   "status": "prelive",
   "mergeAllowed": false,
   "productionDeployAllowed": false,
   "financialFeaturesEnabled": false,
-  "compatibilityNote": "Historical filename retained so older validators keep one manifest path; the values in this file now describe Chon.Love Web V1, not the retired beta release branch.",
+  "baselineNote": "baselineCommit is the audited Chon.Love Web V1 source-of-truth cleanup anchor from PR #52; main is canonical and may advance after this anchor.",
+  "historyNote": "Historical BR/LX docs and migration identifiers may retain MyFan, Luxy or Beta names for audit compatibility; active release validators use this Chon.Love Web V1 manifest.",
   "createdAt": "2026-08-16T17:30:00+07:00"
 }

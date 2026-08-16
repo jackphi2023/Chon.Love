@@ -18,7 +18,15 @@ expect(manifest.canonicalBranch === 'main', 'Canonical Chon.Love branch must be 
 expect(manifest.integrationBase === 'main', 'Active integration base must be main.');
 expect(manifest.productionBranch === 'main', 'Production branch must be main.');
 expect(manifest.sourceBranch === 'main', 'Active release source branch must be main.');
-expect(/^[0-9a-f]{40}$/.test(manifest.sourceCommit), 'sourceCommit must be a full 40-character commit SHA.');
+expect(/^[0-9a-f]{40}$/.test(manifest.baselineCommit), 'baselineCommit must be a full 40-character commit SHA.');
+expect(
+  typeof manifest.baselineNote === 'string' && manifest.baselineNote.includes('may advance after this anchor'),
+  'The manifest must distinguish the audited baseline anchor from the moving main head.',
+);
+expect(
+  typeof manifest.historyNote === 'string' && manifest.historyNote.includes('active release validators use this Chon.Love Web V1 manifest'),
+  'The manifest must distinguish historical MyFan/Luxy/Beta identifiers from the active Chon.Love release source.',
+);
 expect(
   manifest.supabaseProjectRef === 'asnydvqsduonyidjyyzq',
   'Active release manifest must retain the reconciled Chon.Love Supabase project reference.',
@@ -33,10 +41,6 @@ expect(
 expect(
   manifest.financialFeaturesEnabled === false,
   'Financial feature flags must remain disabled for the current Web V1 baseline.',
-);
-expect(
-  typeof manifest.compatibilityNote === 'string' && manifest.compatibilityNote.includes('Historical filename'),
-  'The retained historical manifest filename must explicitly explain that its values are current Chon.Love Web V1.',
 );
 
 expect(
@@ -67,4 +71,4 @@ if (errors.length > 0) {
 console.warn('Chon.Love release-source validation passed.');
 console.warn(`Canonical branch: ${manifest.canonicalBranch}`);
 console.warn(`Deployment target: ${manifest.deploymentTarget}`);
-console.warn(`Source commit: ${manifest.sourceCommit}`);
+console.warn(`Audited baseline commit: ${manifest.baselineCommit}`);
