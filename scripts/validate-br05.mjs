@@ -4,7 +4,7 @@ const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 
 const readJson = (path) => JSON.parse(readText(path));
 
 const packageJson = readJson('package.json');
-const releaseManifest = readJson('config/releases/beta-mobile-web.json');
+const releaseManifest = readJson('config/releases/chon-web-v1.json');
 const applicationCi = readText('.github/workflows/ci.yml');
 const databaseCi = readText('.github/workflows/database.yml');
 const reportPrivacyMigration = readText('supabase/migrations/20260731153859_br_05_creator_activity_report_privacy_guard.sql');
@@ -19,31 +19,23 @@ const expect = (condition, message) => {
 };
 
 expect(
-  packageJson.scripts?.['validate:creator-e2e'] === 'node scripts/validate-br05.mjs',
-  'package.json must expose validate:creator-e2e.',
+  packageJson.scripts?.['validate:creator-e2e:legacy'] === 'node scripts/validate-br05.mjs',
+  'package.json must expose BR-05 only as validate:creator-e2e:legacy.',
 );
 expect(
   packageJson.scripts?.validate?.includes('validate:social-e2e') &&
-    packageJson.scripts?.validate?.includes('validate:creator-e2e'),
-  'The aggregate validate command must preserve BR-04 and include BR-05 validation.',
+    !packageJson.scripts?.validate?.includes('validate:creator-e2e'),
+  'The active Chon.Love aggregate validation must preserve BR-04 and exclude retired Creator Activity.',
 );
 expect(
-  applicationCi.includes('pnpm validate:creator-e2e'),
-  'Application CI must execute BR-05 Creator Activity source validation.',
+  !applicationCi.includes('pnpm validate:creator-e2e'),
+  'Application CI must not restore BR-05 Creator Activity as an active release gate.',
 );
 expect(
-  databaseCi.includes('supabase/tests/br_05_creator_activity_privacy_album_e2e.sql'),
-  'Database CI must execute the BR-05 pgTAP contract.',
+  !databaseCi.includes('Run BR-05 Creator Activity'),
+  'Database CI must not restore BR-05 Creator Activity as an active release gate.',
 );
-expect(
-  databaseCi.includes('20260731153859_br_05_creator_activity_report_privacy_guard.sql'),
-  'Database CI inventory must include the BR-05 report privacy migration.',
-);
-expect(
-  databaseCi.includes('20260731160038_br_05_anonymous_public_activity_feed_fix.sql'),
-  'Database CI inventory must include the BR-05 anonymous public feed migration.',
-);
-expect(e2e.includes('select plan(78);'), 'BR-05 pgTAP plan must contain 78 assertions.');
+expect(e2e.includes('select plan(78);'), 'BR-05 historical pgTAP plan must contain 78 assertions.');
 expect(
   ['000000000001', '000000000002', '000000000003', '000000000004', '000000000005']
     .every((suffix) => e2e.includes(`4c000000-0000-0000-0000-${suffix}`)),
@@ -111,9 +103,9 @@ expect(
   'BR-05 anonymous feed migration must preserve the Creator privacy gate.',
 );
 
-expect(activityClient.includes('getCreatorActivityAccess'), 'The shared client must expose Creator Activity access checks.');
-expect(activityClient.includes('listCreatorActivityAlbum'), 'The shared client must expose the Activity-derived album.');
-expect(activityClient.includes('reportCreatorActivity'), 'The shared client must expose privacy-checked Activity reporting.');
+expect(activityClient.includes('getCreatorActivityAccess'), 'The shared client must expose historical Creator Activity access checks.');
+expect(activityClient.includes('listCreatorActivityAlbum'), 'The shared client must expose the historical Activity-derived album.');
+expect(activityClient.includes('reportCreatorActivity'), 'The shared client must expose historical privacy-checked Activity reporting.');
 expect(socialClient.includes('blockUser') && socialClient.includes('unblockUser'), 'Shared safety controls must remain connected.');
 
 for (const migration of [reportPrivacyMigration, anonymousFeedMigration]) {
@@ -133,8 +125,8 @@ for (const financialOperation of [
 }
 
 expect(releaseManifest.financialFeaturesEnabled === false, 'Financial feature flags must remain disabled.');
-expect(releaseManifest.mergeAllowed === false, 'BR-05 must not authorize merge automatically.');
-expect(releaseManifest.productionDeployAllowed === false, 'BR-05 must not authorize production deployment.');
+expect(releaseManifest.mergeAllowed === false, 'Historical BR-05 must not authorize merge automatically.');
+expect(releaseManifest.productionDeployAllowed === false, 'Historical BR-05 must not authorize production deployment.');
 
 for (const path of [
   'docs/br-05/README.md',
@@ -145,15 +137,15 @@ for (const path of [
   try {
     readText(path);
   } catch {
-    errors.push(`Missing required BR-05 document: ${path}`);
+    errors.push(`Missing required historical BR-05 document: ${path}`);
   }
 }
 
 if (errors.length > 0) {
-  console.error('BR-05 Creator Activity E2E validation failed:');
+  console.error('Historical BR-05 Creator Activity regression validation failed:');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
 
-console.warn('BR-05 Creator Activity, privacy, and album E2E source validation passed.');
-console.warn('Coverage: moderation, anonymous/public/friends/fans gates, media access, Activity album, Fan album, reporting, blocking, archive/delete, and rollback isolation.');
+console.warn('Historical BR-05 Creator Activity regression source validation passed.');
+console.warn('Creator Activity remains retired from Chon.Love Web V1 release gates; this command is audit/regression only.');
