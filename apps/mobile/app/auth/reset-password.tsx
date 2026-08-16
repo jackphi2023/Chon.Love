@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
           autoCapitalize="none"
           autoComplete="new-password"
           onChangeText={setPassword}
-          placeholder="Ít nhất 10 ký tự"
+          placeholder="Ít nhất 8 ký tự"
           placeholderTextColor={colors.muted}
           secureTextEntry
           style={styles.input}
@@ -98,7 +98,7 @@ export default function ResetPasswordPage() {
       <View style={styles.noticeCard}>
         <Text style={styles.noticeTitle}>Yêu cầu mật khẩu</Text>
         <Text style={styles.copy}>
-          Dùng ít nhất 10 ký tự. Nên kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt; không tái sử dụng mật khẩu ở dịch vụ khác.
+          Dùng ít nhất 8 ký tự. Nên kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt; không tái sử dụng mật khẩu ở dịch vụ khác.
         </Text>
       </View>
     </Screen>
