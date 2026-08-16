@@ -59,9 +59,9 @@ set date_of_birth = date '2012-01-01',
     age_verified_at = null,
     age_verification_method = null,
     terms_version = 'legacy-terms',
-    terms_accepted_at = null,
+    terms_accepted_at = timestamptz '2026-01-01 00:00:00+00',
     community_rules_version = 'legacy-community',
-    community_rules_accepted_at = null,
+    community_rules_accepted_at = timestamptz '2026-01-01 00:00:00+00',
     onboarding_grandfathered_at = now()
 where user_id = '10000000-0000-0000-0000-000000000092';
 
