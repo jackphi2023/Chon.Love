@@ -25,11 +25,8 @@ export default function AuthCallback() {
       setErrorMessage(getReadableAuthError(new Error(providerError)));
       return;
     }
+
     const code = first(params.code);
-    if (!code) {
-      setErrorMessage('Liên kết xác thực không có mã hợp lệ.');
-      return;
-    }
     const safeNext = getSafeAuthCallbackDestination(first(params.next));
     let active = true;
     void completeAuthentication(code)
