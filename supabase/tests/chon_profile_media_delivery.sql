@@ -40,25 +40,25 @@ where id in ('10000000-0000-0000-0000-000000000096','10000000-0000-0000-0000-000
 
 insert into public.media_assets(
   id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,
-  visibility,moderation_status,uploaded_at,approved_at
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
 ) values
 (
   '10000000-0000-4000-8000-000000000096',
   '10000000-0000-0000-0000-000000000096',
   'profile-media','10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000096/approved.jpg',
-  'image/jpeg',1024,800,800,'avatar','approved',now(),now()
+  'image/jpeg',1024,800,800,'avatar','approved',now(),now(),'10000000-0000-0000-0000-000000000096'
 ),
 (
   '10000000-0000-4000-8000-000000000097',
   '10000000-0000-0000-0000-000000000096',
   'pending-media','10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000097/original.jpg',
-  'image/jpeg',1024,800,800,'avatar','pending_review',now(),null
+  'image/jpeg',1024,800,800,'avatar','pending_review',now(),null,null
 ),
 (
   '10000000-0000-4000-8000-000000000098',
   '10000000-0000-0000-0000-000000000096',
   'pending-media','10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/original.jpg',
-  'image/jpeg',1024,800,800,'public','pending_review',now(),null
+  'image/jpeg',1024,800,800,'public','pending_review',now(),null,null
 );
 
 update public.profiles
@@ -109,7 +109,7 @@ select is(
 );
 
 update public.media_assets
-set moderation_status='approved', approved_at=now(), storage_bucket='profile-media',
+set moderation_status='approved', approved_at=now(), approved_by='10000000-0000-0000-0000-000000000096', storage_bucket='profile-media',
     storage_path='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/approved.jpg'
 where id='10000000-0000-4000-8000-000000000098';
 select is(
@@ -119,7 +119,7 @@ select is(
 );
 
 update public.media_assets
-set moderation_status='approved', approved_at=now(), storage_bucket='profile-media',
+set moderation_status='approved', approved_at=now(), approved_by='10000000-0000-0000-0000-000000000096', storage_bucket='profile-media',
     storage_path='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000097/approved.jpg'
 where id='10000000-0000-4000-8000-000000000097';
 update public.profiles
