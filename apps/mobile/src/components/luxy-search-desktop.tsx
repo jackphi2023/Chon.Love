@@ -1,5 +1,5 @@
 import {
-  createPrivateMediaUrl,
+  createPublicProfileMediaUrl,
   formatLuxyDistance,
   getMyDiscoveryContext,
   getNextLuxySearchOffset,
@@ -277,7 +277,7 @@ function LuxyDesktopMemberCard({ profile }: { profile: LuxySearchProfile }) {
   const location = [profile.province_name, distance].filter(Boolean).join(' · ');
   const imageQuery = useQuery({
     queryKey: ['luxy-search', 'member-photo', profile.avatar_media_id], enabled: Boolean(client && profile.avatar_media_id && profile.avatar_storage_bucket && profile.avatar_storage_path), staleTime: 35_000, gcTime: 5 * 60_000,
-    queryFn: async () => { if (!client || !profile.avatar_storage_bucket || !profile.avatar_storage_path) return null; return createPrivateMediaUrl(client, { storage_bucket: profile.avatar_storage_bucket, storage_path: profile.avatar_storage_path }); },
+    queryFn: async () => { if (!client || !profile.avatar_storage_bucket || !profile.avatar_storage_path) return null; return createPublicProfileMediaUrl(client, { storage_bucket: profile.avatar_storage_bucket, storage_path: profile.avatar_storage_path }); },
   });
 
   return (
