@@ -11,6 +11,7 @@ import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
 import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
+import { MemberProfileVerificationBadges } from '@/components/member-profile-verification-badges';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/providers/auth-provider';
@@ -62,6 +63,7 @@ export default function PublicProfileRouteLayout() {
       {desktop ? <LuxyDesktopNavigation /> : null}
       <View style={styles.profileStage}>
         <Slot />
+        <MemberProfileVerificationBadges />
         {desktop && canOfferGift && profile ? (
           <Pressable
             accessibilityLabel={`Tặng quà cho ${recipientName}`}
