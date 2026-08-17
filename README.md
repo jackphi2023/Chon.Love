@@ -56,7 +56,6 @@ Gift/Wallet/KYC payout/withdrawal code lịch sử có thể còn tồn tại đ
 - Guest không browse member list.
 - Người dùng phải đủ 18 tuổi.
 - Existing user phải tiếp tục đăng nhập bằng account/Auth UUID hiện có.
-- Policy re-acceptance của user đã xác thực tuổi phải **giữ nguyên verified DOB/age-verification state**, chỉ cập nhật acceptance của Terms/Community hiện hành.
 - Không bulk-reset user, không tạo lại Auth user, không đổi UUID để “làm sạch” dữ liệu.
 
 ### Search và profile
@@ -94,7 +93,7 @@ Raw verification documents, legal identity và provider payload không public.
 ## 4. Monorepo architecture
 
 ```text
-apps/
+/
 ├── mobile/       # CANONICAL Chon.Love responsive Expo Web product
 ├── admin/        # Admin/operations web
 └── public-web/   # RETAINED LEGACY SOURCE only; NOT a production Netlify target
@@ -161,10 +160,10 @@ Functions directory: [để trống]
 Nếu Netlify UI còn command/package từ MyFan/Luxy như:
 
 ```text
-apps/mobile
-apps/public-web
+/mobile
+/public-web
 pnpm build:netlify:chon
-apps/public-web/.next
+/public-web/.next
 ```
 
 hãy xóa override để root `netlify.toml` kiểm soát build.
