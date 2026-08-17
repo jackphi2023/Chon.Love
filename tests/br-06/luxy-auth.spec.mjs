@@ -27,8 +27,8 @@ test('LX-06 Seeking-style join flow keeps preference hierarchy and eligibility h
     await page.getByRole('button', { name: 'Tiếp tục đăng ký' }).click();
 
     await expect(page.getByText('Tạo tài khoản', { exact: true }).first()).toBeVisible();
-    await expect(page.getByPlaceholder('email@example.com')).toBeVisible();
-    await expect(page.getByPlaceholder('Tối thiểu 10 ký tự')).toBeVisible();
+    await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Mật khẩu', { exact: true })).toBeVisible();
     await expect(page.getByText(/chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng/i)).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
@@ -57,8 +57,8 @@ test('LX-06 login reuses existing email auth and remains responsive at 390px', a
     await expect(page.getByRole('link', { name: 'Quên mật khẩu' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    await page.getByPlaceholder('email@example.com').fill(actor.email);
-    await page.getByPlaceholder('Nhập mật khẩu').fill(password);
+    await page.getByLabel('Email', { exact: true }).fill(actor.email);
+    await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
     await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 

@@ -5,7 +5,10 @@ export type ChonVerificationIconType = 'selfie' | 'identity' | 'linkedin';
 type Props = {
   type: ChonVerificationIconType;
   verified: boolean;
-  size: number;
+  /** Backward-compatible height alias. Width follows the icon's native ratio. */
+  size?: number;
+  height?: number;
+  width?: number;
   style?: StyleProp<ImageStyle>;
   testID?: string;
 };
@@ -13,15 +16,22 @@ type Props = {
 const VERIFIED_GREEN = '#10B940';
 const UNVERIFIED_GRAY = '#858585';
 const WHITE = '#FFFFFF';
+const DEFAULT_ICON_HEIGHT = 28;
+
+const ICON_ASPECT_RATIOS: Record<ChonVerificationIconType, number> = {
+  selfie: 1,
+  identity: 76 / 64,
+  linkedin: 1,
+};
 
 function svgDataUri(svg: string): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-function checkBadge(color: string): string {
+function checkBadge(color: string, cx = 50, cy = 50): string {
   return `
-    <circle cx="50" cy="50" r="12" fill="${color}"/>
-    <path d="M44 50.5l4 4 8-9" fill="none" stroke="${WHITE}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${cx}" cy="${cy}" r="12" fill="${color}"/>
+    <path d="M${cx - 6} ${cy + 0.5}l4 4 8-9" fill="none" stroke="${WHITE}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 }
 
@@ -42,13 +52,13 @@ function selfieSvg(color: string): string {
 
 function identitySvg(color: string): string {
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-      <rect x="4" y="11" width="51" height="38" rx="7" fill="none" stroke="${color}" stroke-width="4"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 64">
+      <rect x="4" y="11" width="58" height="38" rx="7" fill="none" stroke="${color}" stroke-width="4"/>
       <circle cx="20" cy="27" r="8" fill="none" stroke="${color}" stroke-width="3.5"/>
       <circle cx="20" cy="25" r="3" fill="none" stroke="${color}" stroke-width="2.7"/>
       <path d="M14.5 33c1.8-3.5 4-5 5.5-5s3.7 1.5 5.5 5" fill="none" stroke="${color}" stroke-width="2.7" stroke-linecap="round"/>
-      <path d="M33 23h14M33 31h11" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>
-      ${checkBadge(color)}
+      <path d="M34 23h19M34 31h15" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>
+      ${checkBadge(color, 64)}
     </svg>
   `;
 }
@@ -75,14 +85,25 @@ function iconUri(type: ChonVerificationIconType, verified: boolean): string {
   return svgDataUri(svg);
 }
 
-export function ChonVerificationIcon({ type, verified, size, style, testID }: Props) {
+export function ChonVerificationIcon({
+  type,
+  verified,
+  size,
+  height,
+  width,
+  style,
+  testID,
+}: Props) {
+  const resolvedHeight = height ?? size ?? DEFAULT_ICON_HEIGHT;
+  const resolvedWidth = width ?? resolvedHeight * ICON_ASPECT_RATIOS[type];
+
   return (
     <Image
       accessibilityElementsHidden
       accessible={false}
       resizeMode="contain"
       source={{ uri: iconUri(type, verified) }}
-      style={[{ height: size, width: size }, style]}
+      style={[style, { height: resolvedHeight, width: resolvedWidth }]}
       testID={testID}
     />
   );

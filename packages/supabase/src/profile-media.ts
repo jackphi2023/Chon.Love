@@ -88,9 +88,11 @@ type SignedUrlWaiter = { resolve: (url: string) => void; reject: (error: unknown
 type SignedUrlBatch = { scheduled: boolean; waitersByPath: Map<string, SignedUrlWaiter[]> };
 
 // Search/profile grids can mount dozens of images in the same render. Coalesce those
-// requests per Supabase client + bucket + TTL so Storage receives one createSignedUrls
-// request instead of one request per card/tile. This keeps the private bucket model and
-// authorization checks intact while eliminating the N+1 signing burst.
+// requests per Supabase client + bucket + TTL so Storage normally receives one
+// createSignedUrls request instead of one request per card/tile. If the batch endpoint
+// returns an incomplete payload or has a transient failure, retry only the missing paths
+// through createSignedUrl. This keeps the optimized path while preventing a single batch
+// failure from blanking every member image in the browser.
 const signedUrlBatches = new WeakMap<object, Map<string, SignedUrlBatch>>();
 
 function assertData<T>(data: T | null, error: { message: string } | null): T {
@@ -101,6 +103,18 @@ function assertData<T>(data: T | null, error: { message: string } | null): T {
 
 function signedUrlBatchKey(bucket: string, expiresInSeconds: number): string {
   return `${bucket}:${expiresInSeconds}`;
+}
+
+async function createSingleSignedMediaUrl(
+  client: Client,
+  bucket: string,
+  path: string,
+  expiresInSeconds: number,
+): Promise<string> {
+  const { data, error } = await client.storage.from(bucket).createSignedUrl(path, expiresInSeconds);
+  if (error) throw error;
+  if (!data?.signedUrl) throw new Error('profile_media_signed_url_missing');
+  return data.signedUrl;
 }
 
 async function flushSignedUrlBatch(
@@ -115,28 +129,47 @@ async function flushSignedUrlBatch(
   const paths = [...pending.keys()];
   if (!paths.length) return;
 
+  const signedByPath = new Map<string, string>();
+  const errorsByPath = new Map<string, unknown>();
+  let batchError: unknown = null;
+
   try {
     const { data, error } = await client.storage.from(bucket).createSignedUrls(paths, expiresInSeconds);
     if (error) throw error;
 
-    const signedByPath = new Map<string, string>();
     for (let index = 0; index < (data ?? []).length; index += 1) {
       const row = data![index]!;
       const path = row.path ?? paths[index];
       if (path && row.signedUrl) signedByPath.set(path, row.signedUrl);
     }
-
-    for (const [path, waiters] of pending) {
-      const signedUrl = signedByPath.get(path);
-      if (!signedUrl) {
-        const missingError = new Error('profile_media_signed_url_missing');
-        waiters.forEach(({ reject }) => reject(missingError));
-        continue;
-      }
-      waiters.forEach(({ resolve }) => resolve(signedUrl));
-    }
   } catch (error) {
-    for (const waiters of pending.values()) waiters.forEach(({ reject }) => reject(error));
+    batchError = error;
+  }
+
+  const missingPaths = paths.filter((path) => !signedByPath.has(path));
+  if (missingPaths.length) {
+    const fallbacks = await Promise.allSettled(
+      missingPaths.map(async (path) => ({
+        path,
+        url: await createSingleSignedMediaUrl(client, bucket, path, expiresInSeconds),
+      })),
+    );
+
+    fallbacks.forEach((result, index) => {
+      const path = missingPaths[index]!;
+      if (result.status === 'fulfilled') signedByPath.set(path, result.value.url);
+      else errorsByPath.set(path, result.reason);
+    });
+  }
+
+  for (const [path, waiters] of pending) {
+    const signedUrl = signedByPath.get(path);
+    if (signedUrl) {
+      waiters.forEach(({ resolve }) => resolve(signedUrl));
+      continue;
+    }
+    const error = errorsByPath.get(path) ?? batchError ?? new Error('profile_media_signed_url_missing');
+    waiters.forEach(({ reject }) => reject(error));
   }
 
   if (batch.waitersByPath.size > 0 && !batch.scheduled) {

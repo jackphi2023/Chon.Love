@@ -9,14 +9,16 @@ async function assertNoHorizontalOverflow(page) {
 }
 
 async function assertLogoRendered(page) {
-  const logo = page.getByLabel('Chọn.love').first();
+  const logo = page.getByTestId('chon-love-wordmark').first();
   await expect(logo).toBeVisible();
-  await expect(logo).toContainText('Chọn.love');
+  await expect(logo).toHaveAttribute('role', 'img');
+  await expect(logo).toHaveAttribute('aria-label', 'Chọn.Love');
 
   const box = await logo.boundingBox();
   expect(box).not.toBeNull();
-  expect(box.width).toBeGreaterThan(80);
-  expect(box.height).toBeGreaterThan(30);
+  const expectedHeight = (page.viewportSize()?.width ?? 1280) < 768 ? 22 : 26;
+  expect(Math.abs(box.height - expectedHeight)).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.width / box.height - (420 / 184))).toBeLessThanOrEqual(0.05);
 }
 
 async function assertPrimaryHomepageContent(page) {

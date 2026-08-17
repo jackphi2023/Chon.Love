@@ -60,8 +60,8 @@ async function expectSearchSurface(page) {
 async function login(page, actor) {
   await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
-  await page.getByPlaceholder('email@example.com').fill(actor.email);
-  await page.getByPlaceholder('Nhập mật khẩu').fill(password);
+  await page.getByLabel('Email', { exact: true }).fill(actor.email);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
   await expectSearchSurface(page);
 }
@@ -115,8 +115,8 @@ test('WEB-R02 onboarding/profile/selfie UI is responsive across the six release 
     await page.getByRole('radio', { name: 'Nữ', exact: true }).last().click();
     await page.getByRole('button', { name: 'Tiếp tục đăng ký' }).click();
     const uniqueEmail = `web-r02-${Date.now()}@example.test`;
-    await page.getByPlaceholder('email@example.com').fill(uniqueEmail);
-    await page.getByPlaceholder('Tối thiểu 10 ký tự').fill(password);
+    await page.getByLabel('Email', { exact: true }).fill(uniqueEmail);
+    await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Tạo tài khoản bằng email' }).click();
     await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible({ timeout: 30_000 });
 
