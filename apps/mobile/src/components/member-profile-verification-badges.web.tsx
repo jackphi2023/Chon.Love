@@ -1,10 +1,10 @@
 import { getLuxyMemberProfile, getLuxyMemberVerificationBadges } from '@myfan/supabase';
-import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
+import { luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'expo-router';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChonVerificationIcon } from '@/components/chon-verification-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -17,6 +17,7 @@ const verificationMeta: Record<VerificationKey, { label: string }> = {
   linkedin: { label: 'LinkedIn' },
 };
 
+const VERIFICATION_ICON_HEIGHT = 28;
 let activePortalOwner: symbol | null = null;
 
 function getProfileUsername(pathname: string): string | null {
@@ -40,11 +41,9 @@ export function MemberProfileVerificationBadges() {
   const username = getProfileUsername(pathname);
   const auth = useAuth();
   const client = getMobileSupabaseClient();
-  const { width } = useWindowDimensions();
   const ownerRef = useRef<symbol>(Symbol('chon-verification-badges'));
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
-  const verificationIconSize = width >= luxyBreakpoints.desktop ? 26 : 18;
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, username],
@@ -145,7 +144,7 @@ export function MemberProfileVerificationBadges() {
               testID={`luxy-verification-${key}`}
             >
               <ChonVerificationIcon
-                size={verificationIconSize}
+                height={VERIFICATION_ICON_HEIGHT}
                 testID={`luxy-verification-icon-${key}-${verified ? 'verified' : 'unverified'}`}
                 type={key}
                 verified={verified}
