@@ -7,8 +7,8 @@ async function login(page) {
   await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
   await expect(page.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
-  await page.getByPlaceholder('email@example.com').fill(actor.email);
-  await page.getByPlaceholder('Nhập mật khẩu').fill(password);
+  await page.getByLabel('Email', { exact: true }).fill(actor.email);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
   await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
@@ -38,11 +38,14 @@ async function expectFreeUpgradePrompt(page) {
 }
 
 async function expectChonLoveBrand(shellBrand, expectedHeight) {
-  const logo = shellBrand.getByRole('img', { name: 'Chọn.Love', exact: true });
+  const logo = shellBrand.getByTestId('chon-love-wordmark');
   await expect(logo).toBeVisible();
+  await expect(logo).toHaveAttribute('role', 'img');
+  await expect(logo).toHaveAttribute('aria-label', 'Chọn.Love');
   const logoBox = await logo.boundingBox();
   expect(logoBox).not.toBeNull();
   expect(Math.abs(logoBox.height - expectedHeight)).toBeLessThanOrEqual(1);
+  expect(Math.abs(logoBox.width / logoBox.height - (420 / 184))).toBeLessThanOrEqual(0.05);
 }
 
 test('authenticated Free shell keeps connection tabs responsive at 390/430/768 and desktop at 1024', async ({ browser }, testInfo) => {
