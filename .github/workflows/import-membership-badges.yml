@@ -1,0 +1,47 @@
+name: Import canonical membership badges
+
+on:
+  push:
+    branches: ['agent/fix-production-media-badges-icons']
+    paths:
+      - '.asset-import/**'
+      - '.github/workflows/import-membership-badges.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import-badges:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/fix-production-media-badges-icons
+          fetch-depth: 0
+
+      - name: Rebuild exact canonical badge assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/mobile/assets/luxy
+          cat .asset-import/premium.*.b64 | tr -d '\n' | base64 -d > apps/mobile/assets/luxy/premium-badge-hq.webp
+          cat .asset-import/diamond.*.b64 | tr -d '\n' | base64 -d > apps/mobile/assets/luxy/diamond-badge-hq.webp
+
+          echo '9b3ed168ce4a5a0e743835cf0401a9eb7e9b776a161081b099d4e00781c9527e  apps/mobile/assets/luxy/premium-badge-hq.webp' | sha256sum -c -
+          echo 'ce422f1f54ad061b906ecf5c9a4e06c0e1309dbc0593628c2de53758996d9349  apps/mobile/assets/luxy/diamond-badge-hq.webp' | sha256sum -c -
+          test "$(stat -c %s apps/mobile/assets/luxy/premium-badge-hq.webp)" = '30748'
+          test "$(stat -c %s apps/mobile/assets/luxy/diamond-badge-hq.webp)" = '33122'
+          file apps/mobile/assets/luxy/premium-badge-hq.webp apps/mobile/assets/luxy/diamond-badge-hq.webp
+
+      - name: Commit assets and remove one-time transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .asset-import
+          rm .github/workflows/import-membership-badges.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add canonical membership badge artwork'
+          git push origin HEAD:agent/fix-production-media-badges-icons
