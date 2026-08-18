@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(11);
 
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,
@@ -61,6 +61,26 @@ insert into public.media_assets(
   'image/jpeg',1024,800,800,'public','pending_review',now(),null,null
 );
 
+insert into storage.objects(bucket_id,name,owner_id,metadata) values
+(
+  'profile-media',
+  '10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000096/approved.jpg',
+  '10000000-0000-0000-0000-000000000096',
+  '{"mimetype":"image/jpeg","size":1024}'::jsonb
+),
+(
+  'pending-media',
+  '10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000097/original.jpg',
+  '10000000-0000-0000-0000-000000000096',
+  '{"mimetype":"image/jpeg","size":1024}'::jsonb
+),
+(
+  'pending-media',
+  '10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/original.jpg',
+  '10000000-0000-0000-0000-000000000096',
+  '{"mimetype":"image/jpeg","size":1024}'::jsonb
+);
+
 update public.profiles
 set avatar_media_id='10000000-0000-4000-8000-000000000096'
 where id='10000000-0000-0000-0000-000000000096';
@@ -97,6 +117,20 @@ select is(
   'owner can still review their own pending avatar'
 );
 
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000097","role":"authenticated"}',true);
+select is(
+  (select count(*) from storage.objects where bucket_id='profile-media' and name='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000096/approved.jpg'),
+  1::bigint,
+  'ordinary member Storage RLS exposes another active member approved avatar'
+);
+select is(
+  (select count(*) from storage.objects where bucket_id='pending-media' and name='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000097/original.jpg'),
+  0::bigint,
+  'ordinary member Storage RLS still hides another member pending avatar'
+);
+reset role;
+
 insert into public.albums(id,owner_id,name,album_type,fan_threshold_units,is_active)
 values('10000000-0000-4000-8000-000000000099','10000000-0000-0000-0000-000000000096','Ảnh công khai','public',0,true);
 insert into public.album_media(album_id,media_id,sort_order)
@@ -112,11 +146,26 @@ update public.media_assets
 set moderation_status='approved', approved_at=now(), approved_by='10000000-0000-0000-0000-000000000096', storage_bucket='profile-media',
     storage_path='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/approved.jpg'
 where id='10000000-0000-4000-8000-000000000098';
+update storage.objects
+set bucket_id='profile-media',
+    name='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/approved.jpg'
+where bucket_id='pending-media'
+  and name='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/original.jpg';
+
 select is(
   private.can_view_media_internal('10000000-0000-4000-8000-000000000098','10000000-0000-0000-0000-000000000097'),
   true,
   'approved public album photo becomes visible to other members'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000097","role":"authenticated"}',true);
+select is(
+  (select count(*) from storage.objects where bucket_id='profile-media' and name='10000000-0000-0000-0000-000000000096/10000000-0000-4000-8000-000000000098/approved.jpg'),
+  1::bigint,
+  'ordinary member Storage RLS exposes another member approved public album photo'
+);
+reset role;
 
 update public.media_assets
 set moderation_status='approved', approved_at=now(), approved_by='10000000-0000-0000-0000-000000000096', storage_bucket='profile-media',
