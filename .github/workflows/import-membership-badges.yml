@@ -6,12 +6,18 @@ on:
     paths:
       - '.asset-import/**'
       - '.github/workflows/import-membership-badges.yml'
+  pull_request:
+    branches: ['main']
+    paths:
+      - '.asset-import/**'
+      - '.github/workflows/import-membership-badges.yml'
 
 permissions:
   contents: write
 
 jobs:
   import-badges:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout hotfix branch
@@ -27,7 +33,6 @@ jobs:
           mkdir -p apps/mobile/assets/luxy
           cat .asset-import/premium.*.b64 | tr -d '\n' | base64 -d > apps/mobile/assets/luxy/premium-badge-hq.webp
           cat .asset-import/diamond.*.b64 | tr -d '\n' | base64 -d > apps/mobile/assets/luxy/diamond-badge-hq.webp
-
           echo '9b3ed168ce4a5a0e743835cf0401a9eb7e9b776a161081b099d4e00781c9527e  apps/mobile/assets/luxy/premium-badge-hq.webp' | sha256sum -c -
           echo 'ce422f1f54ad061b906ecf5c9a4e06c0e1309dbc0593628c2de53758996d9349  apps/mobile/assets/luxy/diamond-badge-hq.webp' | sha256sum -c -
           test "$(stat -c %s apps/mobile/assets/luxy/premium-badge-hq.webp)" = '30748'
