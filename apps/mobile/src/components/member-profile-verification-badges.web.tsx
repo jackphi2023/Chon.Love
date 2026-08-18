@@ -1,10 +1,10 @@
 import { getLuxyMemberProfile, getLuxyMemberVerificationBadges } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
+import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'expo-router';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ChonVerificationIcon } from '@/components/chon-verification-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -17,7 +17,8 @@ const verificationMeta: Record<VerificationKey, { label: string }> = {
   linkedin: { label: 'LinkedIn' },
 };
 
-const VERIFICATION_ICON_HEIGHT = 28;
+const MOBILE_VERIFICATION_ICON_HEIGHT = 18;
+const DESKTOP_VERIFICATION_ICON_HEIGHT = 26;
 let activePortalOwner: symbol | null = null;
 
 function getProfileUsername(pathname: string): string | null {
@@ -41,9 +42,13 @@ export function MemberProfileVerificationBadges() {
   const username = getProfileUsername(pathname);
   const auth = useAuth();
   const client = getMobileSupabaseClient();
+  const { width: viewportWidth } = useWindowDimensions();
   const ownerRef = useRef<symbol>(Symbol('chon-verification-badges'));
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
+  const verificationIconHeight = viewportWidth >= luxyBreakpoints.desktop
+    ? DESKTOP_VERIFICATION_ICON_HEIGHT
+    : MOBILE_VERIFICATION_ICON_HEIGHT;
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, username],
@@ -144,7 +149,7 @@ export function MemberProfileVerificationBadges() {
               testID={`luxy-verification-${key}`}
             >
               <ChonVerificationIcon
-                height={VERIFICATION_ICON_HEIGHT}
+                height={verificationIconHeight}
                 testID={`luxy-verification-icon-${key}-${verified ? 'verified' : 'unverified'}`}
                 type={key}
                 verified={verified}
