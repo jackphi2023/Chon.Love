@@ -61,7 +61,14 @@ async function expectCanonicalMembershipArtwork(page, expectedWidth) {
   const badge = page.locator('[data-testid="luxy-membership-badge-diamond"]:visible');
   await expect(badge).toHaveCount(1);
   await expect(badge.locator('svg')).toHaveCount(0);
-  await expect(badge.locator('img')).toHaveCount(1);
+  const image = badge.locator('img');
+  await expect(image).toHaveCount(1);
+  const naturalSize = await image.evaluate((node) => ({
+    width: node.naturalWidth,
+    height: node.naturalHeight,
+  }));
+  expect(naturalSize.width, 'membership artwork natural width').toBe(768);
+  expect(naturalSize.height, 'membership artwork natural height').toBe(512);
   const box = await badge.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.round(box.width)).toBe(expectedWidth);
