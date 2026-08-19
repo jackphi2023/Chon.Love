@@ -57,6 +57,16 @@ async function expectProfileFactIconSize(page, expectedSize) {
   }
 }
 
+async function expectCleanProfilePresentation(page) {
+  await expect(page.getByText('Kết nối Beta', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Gửi lời mời kết bạn', exact: true })).toHaveCount(0);
+  const relationship = page.getByTestId('luxy-profile-fact-relationship');
+  await expect(relationship).toBeVisible();
+  await expect(relationship.getByText('Tình trạng', { exact: true })).toBeVisible();
+  const relationshipText = await relationship.innerText();
+  expect(relationshipText).not.toMatch(/[↕▣♥]/u);
+}
+
 async function expectCanonicalMembershipArtwork(page, expectedWidth) {
   const badge = page.locator('[data-testid="luxy-membership-badge-diamond"]:visible');
   await expect(badge).toHaveCount(1);
@@ -75,7 +85,7 @@ async function expectCanonicalMembershipArtwork(page, expectedWidth) {
   expect(Math.round(box.height)).toBe(Math.round((expectedWidth * 2) / 3));
 }
 
-test('desktop locks canonical 26px brand icons and large membership artwork', async ({ browser }) => {
+test('desktop locks canonical 26px brand icons and clean profile presentation', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
@@ -85,12 +95,13 @@ test('desktop locks canonical 26px brand icons and large membership artwork', as
     await expectCanonicalMembershipArtwork(page, 160);
     await expectVerificationIconHeight(page, 26);
     await expectProfileFactIconSize(page, 26);
+    await expectCleanProfilePresentation(page);
   } finally {
     await context.close();
   }
 });
 
-test('mobile locks canonical 18px brand icons and large membership artwork', async ({ browser }) => {
+test('mobile locks canonical 18px brand icons and clean profile presentation', async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -105,6 +116,7 @@ test('mobile locks canonical 18px brand icons and large membership artwork', asy
     await expectCanonicalMembershipArtwork(page, 132);
     await expectVerificationIconHeight(page, 18);
     await expectProfileFactIconSize(page, 18);
+    await expectCleanProfilePresentation(page);
   } finally {
     await context.close();
   }
