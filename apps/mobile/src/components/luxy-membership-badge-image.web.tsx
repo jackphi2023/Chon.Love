@@ -23,20 +23,29 @@ export function LuxyMembershipBadgeImage({
   const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
 
   return (
-    <View
-      accessibilityLabel={label}
-      accessibilityRole="image"
-      pointerEvents="none"
-      style={[styles.badge, { height, left: inset, top: inset, width }]}
-      testID={`luxy-membership-badge-${tier}`}
-    >
-      <Image
-        accessibilityIgnoresInvertColors
-        resizeMode="contain"
-        source={tier === 'diamond' ? DIAMOND_BADGE : PREMIUM_BADGE}
-        style={styles.image}
-      />
-    </View>
+    <>
+      <style>{`
+        /* Retire the legacy text-pill membership badge on Member Profile web.
+           The canonical raster certification below is the only visible badge. */
+        [data-testid^="luxy-membership-badge-"]:not(:has(img)) {
+          display: none !important;
+        }
+      `}</style>
+      <View
+        accessibilityLabel={label}
+        accessibilityRole="image"
+        pointerEvents="none"
+        style={[styles.badge, { height, left: inset, top: inset, width }]}
+        testID={`luxy-membership-badge-${tier}`}
+      >
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="contain"
+          source={tier === 'diamond' ? DIAMOND_BADGE : PREMIUM_BADGE}
+          style={styles.image}
+        />
+      </View>
+    </>
   );
 }
 
