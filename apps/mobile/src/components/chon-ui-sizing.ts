@@ -1,4 +1,4 @@
-// Canonical Chon.Love web presentation sizes.
+// Canonical Chon.Love web presentation sizes. Do not override these per screen.
 // Keep artwork size separate from touch targets so accessibility targets remain >=44px.
 export const CHON_ICON_SIZE_DESKTOP = 26;
 export const CHON_ICON_SIZE_MOBILE = 18;
