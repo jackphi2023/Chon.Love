@@ -8,9 +8,14 @@ const description = 'Chon.Love là nền tảng hẹn hò dành cho người dù
 const titleSuffix = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const rootLayout = read('apps/mobile/app/_layout.tsx');
 const rootHtml = read('apps/mobile/app/+html.tsx');
-const publicRoute = read('apps/mobile/app/thanh-vien/[id].tsx');
+const publicRoute = read('apps/mobile/app/thanh-vien/[username].tsx');
+const legacyRoute = read('apps/mobile/app/profile/[username].tsx');
+const richProfileScreen = read('apps/mobile/src/screens/luxy-member-profile-screen.tsx');
 const sharedPublicProfile = read('packages/supabase/src/public-profile.ts');
+const memberProfileClient = read('packages/supabase/src/member-profile.ts');
 const sharedIndex = read('packages/supabase/src/index.ts');
+const routeMigration = read('supabase/migrations/20260819145000_chon_public_member_route_resolution.sql');
+const viewerCompatMigration = read('supabase/migrations/20260819151000_chon_profile_viewer_public_id_compat.sql');
 const netlifySeo = read('netlify/edge-functions/seo.ts');
 const supabaseSeo = read('supabase/functions/public-profile-seo/index.ts');
 const supabaseConfig = read('supabase/config.toml');
@@ -32,19 +37,27 @@ expect(rootHtml.includes(`Trang chủ | ${titleSuffix}`), 'Homepage must use the
 
 expect(sharedPublicProfile.includes('/^id-([0-9a-f]{6})$/u'), 'Public member route IDs must use id-xxxxxx public codes, never usernames or auth UUIDs.');
 expect(sharedPublicProfile.includes("rpc('get_public_chon_profile'"), 'Public member data must come from the existing safe public profile RPC.');
+expect(sharedPublicProfile.includes("rpc('resolve_chon_member_route'"), 'Authenticated compatibility must resolve legacy usernames to opaque public member codes.');
 expect(sharedIndex.includes("export * from './public-profile';"), 'Shared Supabase entry point must export the public profile client.');
+expect(memberProfileClient.includes('resolveChonMemberUsername'), 'Rich member profile client must resolve canonical id-xxxxxx routes without changing existing profile RPC contracts.');
 
-expect(publicRoute.includes("useLocalSearchParams<{ id?"), 'Public profile screen must be keyed by member public ID.');
+expect(publicRoute.includes("useLocalSearchParams<{ username?"), 'Canonical member route must use a single dynamic segment while carrying id-xxxxxx as the value.');
 expect(publicRoute.includes('publicProfileCodeFromRouteId'), 'Public profile screen must validate id-xxxxxx routes.');
 expect(publicRoute.includes('publicProfileAvatarUrl'), 'Public profile screen must use the matching member avatar, not the global thumbnail.');
+expect(publicRoute.includes('LuxyMemberProfileScreen'), 'Signed-in canonical member route must preserve the complete existing rich profile experience.');
 expect(publicRoute.includes('`Thành viên ${profile.display_name} | ${TITLE_SUFFIX}`'), 'Public profile browser title must include the member display name.');
-expect(!publicRoute.includes("pathname: '/profile/[username]'"), 'Public profile screen must not expose username-based canonical URLs.');
+expect(!publicRoute.includes("pathname: '/profile/[username]'"), 'Canonical public profile screen must not navigate back to username URLs.');
+expect(richProfileScreen.includes('getLuxyMemberProfile') && richProfileScreen.includes('getProfileViewer'), 'Extracted rich member screen must preserve existing profile and social behavior.');
+
+expect(legacyRoute.includes('resolveChonMemberRoute') && legacyRoute.includes('router.replace(toPublicMemberPath(code))'), 'Legacy /profile/<username> route must canonicalize authenticated users to /thanh-vien/id-xxxxxx.');
+expect(routeMigration.includes('resolve_chon_member_route') && routeMigration.includes('revoke all') && routeMigration.includes('to authenticated, service_role'), 'Legacy route resolver must be authenticated-only and avoid public username mapping.');
+expect(viewerCompatMigration.includes("v_identifier ~ '^id-[0-9a-f]{6}$'"), 'Rich profile viewer must accept canonical public member IDs after routing migration.');
 
 expect(rootLayout.includes("pathname.startsWith('/thanh-vien/')"), 'Guest routing must explicitly allow public member profiles.');
 expect(rootLayout.includes("if (!auth.userId && !isGuestPublicPath(pathname)) return <Redirect href=\"/\" />"), 'Logged-out protected/internal links must redirect to homepage.');
 expect(rootLayout.includes('Đăng ký |') && rootLayout.includes('Đăng nhập |') && rootLayout.includes('Điều khoản |') && rootLayout.includes('Tiêu chuẩn cộng đồng |'), 'Browser titles must cover auth and legal public pages.');
 
-expect(netlifySeo.includes("path: ['/', '/auth', '/auth/*', '/legal/*', '/thanh-vien/*']"), 'Netlify Edge SEO must cover all requested public/shareable routes.');
+expect(netlifySeo.includes("'/thanh-vien/*'"), 'Netlify Edge SEO must cover public member routes.');
 expect(netlifySeo.includes('context.next()'), 'Netlify Edge SEO must decorate the canonical Expo Web response rather than introduce a second web app.');
 expect(netlifySeo.includes('public-profile-seo') && netlifySeo.includes('profile.avatar_url'), 'Member crawler metadata must resolve safe public data and use the member-specific avatar returned by Supabase.');
 expect(netlifySeo.includes('og:title') && netlifySeo.includes('og:image') && netlifySeo.includes('twitter:image') && netlifySeo.includes('canonical'), 'Crawler response must include Open Graph, Twitter/X and canonical metadata.');
@@ -67,4 +80,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.warn('Chọn.love public profile SEO validation passed: public id routes, member-specific social images, public-page metadata, and guest route protection are present.');
+console.warn('Chọn.love public profile SEO validation passed: canonical id routes, legacy username redirects, member-specific social images, public-page metadata, and guest route protection are present.');
