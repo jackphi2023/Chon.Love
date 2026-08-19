@@ -14,8 +14,8 @@ const richProfileScreen = read('apps/mobile/src/screens/luxy-member-profile-scre
 const sharedPublicProfile = read('packages/supabase/src/public-profile.ts');
 const memberProfileClient = read('packages/supabase/src/member-profile.ts');
 const sharedIndex = read('packages/supabase/src/index.ts');
-const routeMigration = read('supabase/migrations/20260819145000_chon_public_member_route_resolution.sql');
-const viewerCompatMigration = read('supabase/migrations/20260819151000_chon_profile_viewer_public_id_compat.sql');
+const routeMigration = read('supabase/migrations/20260819153018_chon_public_member_route_resolution.sql');
+const viewerCompatMigration = read('supabase/migrations/20260819153533_chon_profile_viewer_public_id_compat.sql');
 const netlifySeo = read('netlify/edge-functions/seo.ts');
 const supabaseSeo = read('supabase/functions/public-profile-seo/index.ts');
 const supabaseConfig = read('supabase/config.toml');
@@ -57,7 +57,8 @@ expect(rootLayout.includes("pathname.startsWith('/thanh-vien/')"), 'Guest routin
 expect(rootLayout.includes("if (!auth.userId && !isGuestPublicPath(pathname)) return <Redirect href=\"/\" />"), 'Logged-out protected/internal links must redirect to homepage.');
 expect(rootLayout.includes('Đăng ký |') && rootLayout.includes('Đăng nhập |') && rootLayout.includes('Điều khoản |') && rootLayout.includes('Tiêu chuẩn cộng đồng |'), 'Browser titles must cover auth and legal public pages.');
 
-expect(netlifySeo.includes("'/thanh-vien/*'"), 'Netlify Edge SEO must cover public member routes.');
+expect(netlifySeo.includes("'/thanh-vien/*'") && netlifySeo.includes("'/profile/*'"), 'Netlify Edge SEO must cover canonical member routes and reject legacy username routes.');
+expect(netlifySeo.includes("url.pathname.startsWith('/profile/')") && netlifySeo.includes("Response.redirect(new URL('/', url), 302)"), 'Legacy username profile deep links must redirect guests/crawlers to homepage.');
 expect(netlifySeo.includes('context.next()'), 'Netlify Edge SEO must decorate the canonical Expo Web response rather than introduce a second web app.');
 expect(netlifySeo.includes('public-profile-seo') && netlifySeo.includes('profile.avatar_url'), 'Member crawler metadata must resolve safe public data and use the member-specific avatar returned by Supabase.');
 expect(netlifySeo.includes('og:title') && netlifySeo.includes('og:image') && netlifySeo.includes('twitter:image') && netlifySeo.includes('canonical'), 'Crawler response must include Open Graph, Twitter/X and canonical metadata.');
