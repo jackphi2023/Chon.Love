@@ -8,6 +8,7 @@ import { Slot, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
+import { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';
 import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
 import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
@@ -72,7 +73,7 @@ export default function PublicProfileRouteLayout() {
             style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
             testID="luxy-profile-desktop-gift-button"
           >
-            <ChonBrandIcon name="gift" size={18} />
+            <ChonBrandIcon name="gift" size={CHON_ICON_SIZE_DESKTOP} />
             <Text style={styles.giftText}>Tặng quà</Text>
           </Pressable>
         ) : null}
