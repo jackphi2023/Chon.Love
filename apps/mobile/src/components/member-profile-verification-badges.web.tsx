@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ChonVerificationIcon } from '@/components/chon-verification-icon';
+import { CHON_ICON_SIZE_DESKTOP, CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -17,8 +18,6 @@ const verificationMeta: Record<VerificationKey, { label: string }> = {
   linkedin: { label: 'LinkedIn' },
 };
 
-const MOBILE_VERIFICATION_ICON_HEIGHT = 18;
-const DESKTOP_VERIFICATION_ICON_HEIGHT = 26;
 let activePortalOwner: symbol | null = null;
 
 function getProfileUsername(pathname: string): string | null {
@@ -47,8 +46,8 @@ export function MemberProfileVerificationBadges() {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
   const verificationIconHeight = viewportWidth >= luxyBreakpoints.desktop
-    ? DESKTOP_VERIFICATION_ICON_HEIGHT
-    : MOBILE_VERIFICATION_ICON_HEIGHT;
+    ? CHON_ICON_SIZE_DESKTOP
+    : CHON_ICON_SIZE_MOBILE;
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, username],

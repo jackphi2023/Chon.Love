@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
+import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -155,7 +156,7 @@ export function LuxyShellNavigation() {
         ) : (
           <View style={[styles.navStack, phone && styles.phoneNavStack]}>
             <View style={styles.symbolWrap}>
-              {'icon' in item ? <ChonBrandIcon name={item.icon} size={phone ? 15 : 18} /> : null}
+              {'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_MOBILE} /> : null}
               {badge > 0 ? (
                 <View accessibilityElementsHidden style={styles.navBadge}>
                   <Text accessibilityElementsHidden style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text>
@@ -215,7 +216,7 @@ export function LuxyShellNavigation() {
           }}
           style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
         >
-          {'icon' in item ? <ChonBrandIcon name={item.icon} size={17} /> : <View style={styles.menuIconSpacer} />}
+          {'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_MOBILE} /> : <View style={styles.menuIconSpacer} />}
           <Text style={styles.menuLabel}>{item.label}</Text>
         </Pressable>
       ))}
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
   phoneMenuWithPromo: { top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight + luxyLayout.authenticatedPromoHeight - 2 },
   tabletMenu: { right: luxySpacing.sm },
   menuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingHorizontal: luxySpacing.lg },
-  menuIconSpacer: { height: 17, width: 17 },
+  menuIconSpacer: { height: CHON_ICON_SIZE_MOBILE, width: CHON_ICON_SIZE_MOBILE },
   menuItemPressed: { backgroundColor: luxyColors.subtleSurface },
   menuLabel: { color: luxyColors.text, fontSize: 15 },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },

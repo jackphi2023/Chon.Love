@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
+import { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -166,7 +167,7 @@ export function LuxyDesktopNavigation() {
                 >
                   <View style={styles.iconWrap}>
                     {'icon' in item ? (
-                      <ChonBrandIcon name={item.icon} size={18} />
+                      <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_DESKTOP} />
                     ) : (
                       <Text accessibilityElementsHidden style={[styles.navIcon, styles.upgradeIcon]}>{item.symbol}</Text>
                     )}
@@ -223,7 +224,7 @@ export function LuxyDesktopNavigation() {
                           pressed && styles.pressed,
                         ]}
                       >
-                        {'icon' in item ? <ChonBrandIcon name={item.icon} size={17} /> : <View style={styles.menuIconSpacer} />}
+                        {'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_DESKTOP} /> : <View style={styles.menuIconSpacer} />}
                         <Text style={styles.menuLabel}>{item.label}</Text>
                       </Pressable>
                     );
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
   },
   navItemActive: { backgroundColor: luxyColors.brandRedSurface, borderBottomColor: luxyColors.actionRed },
   navItemHover: { backgroundColor: luxyColors.brandWarmSurface },
-  iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 24, minWidth: 24, position: 'relative' },
+  iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: CHON_ICON_SIZE_DESKTOP, minWidth: CHON_ICON_SIZE_DESKTOP, position: 'relative' },
   navIcon: { color: luxyColors.brandGoldStrong, fontSize: 20, fontWeight: '700', lineHeight: 22, textAlign: 'center' },
   navLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600', lineHeight: 19 },
   navLabelActive: { color: luxyColors.actionRed, fontWeight: '700' },
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
     ...luxyShadows.navigation,
   },
   menuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingHorizontal: luxySpacing.lg },
-  menuIconSpacer: { height: 17, width: 17 },
+  menuIconSpacer: { height: CHON_ICON_SIZE_DESKTOP, width: CHON_ICON_SIZE_DESKTOP },
   menuItemHover: { backgroundColor: luxyColors.brandWarmSurface },
   menuLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '500' },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },

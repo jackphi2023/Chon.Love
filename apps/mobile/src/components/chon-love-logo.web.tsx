@@ -1,4 +1,5 @@
 import { Image, type ImageStyle, type StyleProp, useWindowDimensions } from 'react-native';
+import { CHON_LOGO_HEIGHT_DESKTOP, CHON_LOGO_HEIGHT_MOBILE } from '@/components/chon-ui-sizing';
 
 // Keep the browser on the same approved bundled logo asset as native.
 // React Native Web resolves Metro's static asset module without relying on
@@ -6,8 +7,6 @@ import { Image, type ImageStyle, type StyleProp, useWindowDimensions } from 'rea
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const CHON_LOVE_LOGO = require('../../assets/luxy/chon-love-logo.png');
 const LOGO_ASPECT_RATIO = 420 / 184;
-const MOBILE_LOGO_HEIGHT = 22;
-const DESKTOP_LOGO_HEIGHT = 26;
 const DESKTOP_BREAKPOINT = 768;
 
 type ChonLoveLogoProps = {
@@ -20,8 +19,8 @@ type ChonLoveLogoProps = {
 export function ChonLoveLogo({ style, testID = 'chon-love-wordmark' }: ChonLoveLogoProps) {
   const { width: viewportWidth } = useWindowDimensions();
   const resolvedHeight = viewportWidth < DESKTOP_BREAKPOINT
-    ? MOBILE_LOGO_HEIGHT
-    : DESKTOP_LOGO_HEIGHT;
+    ? CHON_LOGO_HEIGHT_MOBILE
+    : CHON_LOGO_HEIGHT_DESKTOP;
   const resolvedWidth = resolvedHeight * LOGO_ASPECT_RATIO;
 
   return (
