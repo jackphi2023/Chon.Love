@@ -1,6 +1,5 @@
 import {
   blockUser,
-  cancelFriendRequest,
   createChatClientMessageId,
   createLuxyUpgradeIntent,
   createPublicProfileMediaUrl,
@@ -15,9 +14,7 @@ import {
   listProfileAlbumMedia,
   LUXY_LIFESTYLE_LABELS,
   REPORT_REASON_OPTIONS,
-  respondToFriendRequest,
   sendChatMessage,
-  sendFriendRequest,
   unblockUser,
   type AlbumMediaItem,
   type LuxyMemberProfile,
@@ -72,7 +69,6 @@ export default function LuxyMemberProfilePage() {
     ? CHON_MEMBERSHIP_BADGE_WIDTH_DESKTOP
     : CHON_MEMBERSHIP_BADGE_WIDTH_MOBILE;
 
-  const [greeting, setGreeting] = useState('');
   const [profileMessageDraft, setProfileMessageDraft] = useState('');
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -153,7 +149,7 @@ export default function LuxyMemberProfilePage() {
     },
   });
 
-  const displayName = profile?.display_name || profile?.username || 'Thành viên Luxy';
+  const displayName = profile?.display_name || profile?.username || 'Thành viên Chọn.Love';
   const favoriteState = interestQuery.data;
   const publicMedia = useMemo(() => publicMediaQuery.data ?? [], [publicMediaQuery.data]);
 
@@ -163,7 +159,6 @@ export default function LuxyMemberProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile-viewer', auth.userId, username] }),
       queryClient.invalidateQueries({ queryKey: ['social-connections', auth.userId] }),
       queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
-      queryClient.invalidateQueries({ queryKey: ['creator-activity'] }),
     ]);
   }
 
@@ -180,25 +175,6 @@ export default function LuxyMemberProfilePage() {
     } finally {
       setBusyAction(null);
     }
-  }
-
-  async function handleSendFriendRequest() {
-    if (!client || !profile) return;
-    await runSocialAction('friend', () => sendFriendRequest(client, profile.id, greeting), 'Đã gửi lời mời kết bạn.');
-    setGreeting('');
-  }
-
-  async function handleRelationshipAction(action: 'accept' | 'decline' | 'cancel') {
-    if (!client || !social?.friendship_id) return;
-    if (action === 'cancel') {
-      await runSocialAction('friend', () => cancelFriendRequest(client, social.friendship_id!), 'Đã hủy lời mời.');
-      return;
-    }
-    await runSocialAction(
-      'friend',
-      () => respondToFriendRequest(client, social.friendship_id!, action === 'accept'),
-      action === 'accept' ? 'Hai bạn đã kết nối.' : 'Đã từ chối lời mời.',
-    );
   }
 
   async function handleMessageAction(draft = '') {
@@ -350,22 +326,9 @@ export default function LuxyMemberProfilePage() {
             <Text style={styles.memberSinceValue}>{formatMemberSince(profile.member_since)}</Text>
           </View>
 
-
           <Pressable accessibilityRole="button" disabled style={styles.notesButton}>
             <Text style={styles.notesButtonText}>Ghi chú thành viên</Text>
           </Pressable>
-
-          <LegacyConnectionPanel
-            busy={busyAction === 'friend'}
-            direction={social.friendship_direction}
-            greeting={greeting}
-            onAccept={() => void handleRelationshipAction('accept')}
-            onCancel={() => void handleRelationshipAction('cancel')}
-            onDecline={() => void handleRelationshipAction('decline')}
-            onGreetingChange={setGreeting}
-            onSend={() => void handleSendFriendRequest()}
-            status={social.friendship_status}
-          />
         </View>
 
         <View style={styles.rightColumn}>
@@ -500,14 +463,24 @@ function ProfilePhotoTile({ media, name, onOpen }: { media: AlbumMediaItem; name
 }
 
 function ProfileFacts({ profile, iconSize }: { profile: LuxyMemberProfile; iconSize: number }) {
-  const legacyFacts = [
-    profile.height_cm ? `↕ ${profile.height_cm} cm` : null,
-    profile.weight_kg ? `▣ ${profile.weight_kg} kg` : null,
-    `♥ ${relationshipLabel(profile.relationship_status)}`,
-  ].filter(Boolean) as string[];
   return (
     <View style={styles.factList}>
-      {legacyFacts.map((fact) => <Text key={fact} style={styles.factText}>{fact}</Text>)}
+      {profile.height_cm ? (
+        <View style={styles.factRow} testID="luxy-profile-fact-height">
+          <Text style={styles.profileFactLabel}>Chiều cao</Text>
+          <Text style={styles.factText}>{profile.height_cm} cm</Text>
+        </View>
+      ) : null}
+      {profile.weight_kg ? (
+        <View style={styles.factRow} testID="luxy-profile-fact-weight">
+          <Text style={styles.profileFactLabel}>Cân nặng</Text>
+          <Text style={styles.factText}>{profile.weight_kg} kg</Text>
+        </View>
+      ) : null}
+      <View style={styles.factRow} testID="luxy-profile-fact-relationship">
+        <Text style={styles.profileFactLabel}>Tình trạng</Text>
+        <Text style={styles.factText}>{relationshipLabel(profile.relationship_status)}</Text>
+      </View>
       <View style={styles.factRow} testID="luxy-profile-fact-recent">
         <ChonBrandIcon name="recent" size={iconSize} />
         <Text style={styles.factText}>{formatLastActive(profile.last_active_at)}</Text>
@@ -547,24 +520,6 @@ function ProfileStorySection({ profile }: { profile: LuxyMemberProfile }) {
   );
 }
 
-function LegacyConnectionPanel(props: {
-  busy: boolean;
-  direction: 'none' | 'outgoing' | 'incoming' | 'mutual' | 'outgoing_block';
-  greeting: string;
-  onAccept: () => void;
-  onCancel: () => void;
-  onDecline: () => void;
-  onGreetingChange: (value: string) => void;
-  onSend: () => void;
-  status: 'none' | 'pending' | 'accepted' | 'blocked';
-}) {
-  if (props.status === 'blocked') return null;
-  if (props.status === 'accepted') return <View style={styles.connectionPanel}><Text style={styles.connectionText}>✓ Hai bạn đã kết nối</Text></View>;
-  if (props.status === 'pending' && props.direction === 'incoming') return <View style={styles.connectionPanel}><Text style={styles.connectionText}>Lời mời kết nối đang chờ bạn</Text><View style={styles.inlineActions}><Pressable accessibilityRole="button" onPress={props.onDecline} style={styles.smallOutline}><Text style={styles.smallOutlineText}>Từ chối</Text></Pressable><Pressable accessibilityRole="button" onPress={props.onAccept} style={styles.smallDark}><Text style={styles.smallDarkText}>Chấp nhận</Text></Pressable></View></View>;
-  if (props.status === 'pending') return <View style={styles.connectionPanel}><Text style={styles.connectionText}>Lời mời kết nối đang chờ phản hồi</Text><Pressable accessibilityRole="button" onPress={props.onCancel} style={styles.smallOutline}><Text style={styles.smallOutlineText}>Hủy lời mời</Text></Pressable></View>;
-  return <View style={styles.connectionPanel}><Text style={styles.connectionText}>Kết nối Beta</Text><TextInput accessibilityLabel="Lời chào khi gửi lời mời kết bạn" maxLength={280} multiline onChangeText={props.onGreetingChange} placeholder="Lời chào tùy chọn" placeholderTextColor={luxyColors.softMuted} style={styles.greetingInput} value={props.greeting} /><Pressable accessibilityRole="button" disabled={props.busy} onPress={props.onSend} style={styles.smallDark}><Text style={styles.smallDarkText}>{props.busy ? 'Đang gửi…' : 'Gửi lời mời kết bạn'}</Text></Pressable></View>;
-}
-
 function SafetyModal(props: {
   mode: 'block' | 'report' | null;
   displayName: string;
@@ -582,7 +537,7 @@ function SafetyModal(props: {
 
 function LoadingScreen() { return <View style={styles.centeredPage}><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.mutedText}>Đang tải hồ sơ…</Text></View>; }
 function formatLastActive(value: string | null): string { if (!value) return 'Truy cập gần đây'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'Truy cập gần đây'; const diff = Date.now() - date.getTime(); if (diff < 15 * 60_000) return 'Đang online'; if (diff < 3_600_000) return `Truy cập ${Math.max(1, Math.floor(diff / 60_000))} phút trước`; if (diff < 86_400_000) return `Truy cập ${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`; return `Truy cập ${Math.max(1, Math.floor(diff / 86_400_000))} ngày trước`; }
-function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Chon.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
+function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Chọn.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
 function interestedInSentence(profile: LuxyMemberProfile): string { return `Đang tìm ${interestedInLabel(profile.interested_in).toLowerCase()} cho một kết nối chất lượng`; }
 function interestedInLabel(value: LuxyMemberProfile['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }
 function genderLabel(value: LuxyMemberProfile['gender']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : value === 'non_binary' ? 'Phi nhị nguyên' : value === 'other' ? 'Khác' : 'Chưa chia sẻ'; }
@@ -597,7 +552,7 @@ const styles = StyleSheet.create({
   leftColumn: { width: '100%' }, leftColumnDesktop: { flexBasis: 330, flexGrow: 0, flexShrink: 0, width: 330 }, rightColumn: { flex: 1, minWidth: 0 },
   heroPhotoFrame: { aspectRatio: 0.72, backgroundColor: '#E7E5E4', borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' }, heroPhotoPressTarget: { height: '100%', width: '100%' }, heroPhoto: { height: '100%', width: '100%' }, heroFallback: { alignItems: 'center', height: '100%', justifyContent: 'center', width: '100%' }, heroFallbackText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 70 }, heroFavorite: { bottom: 10, position: 'absolute', right: 10 },
   privateRequestButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 8, minHeight: 44, paddingHorizontal: 12 }, privateRequestText: { color: luxyColors.text, fontSize: 12, fontWeight: '600' },
-  factList: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, gap: 12, paddingHorizontal: 12, paddingVertical: 18 }, factRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 20 }, factText: { color: luxyColors.text, flexShrink: 1, fontSize: 12, lineHeight: 18 }, memberSinceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', gap: 8, minHeight: 52, paddingHorizontal: 12 }, factLabelStrong: { color: luxyColors.text, flex: 1, fontSize: 11, fontWeight: '700' }, memberSinceValue: { color: luxyColors.muted, fontSize: 11 },
+  factList: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, gap: 12, paddingHorizontal: 12, paddingVertical: 18 }, factRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 20 }, factText: { color: luxyColors.text, flexShrink: 1, fontSize: 12, lineHeight: 18 }, profileFactLabel: { color: luxyColors.muted, fontSize: 11, fontWeight: '600', minWidth: 76 }, memberSinceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', gap: 8, minHeight: 52, paddingHorizontal: 12 }, factLabelStrong: { color: luxyColors.text, flex: 1, fontSize: 11, fontWeight: '700' }, memberSinceValue: { color: luxyColors.muted, fontSize: 11 },
   notesButton: { alignItems: 'center', borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 18, minHeight: 44, opacity: 0.55 }, notesButtonText: { color: luxyColors.text, fontSize: 11 },
   identityHeader: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', minHeight: 92, paddingBottom: 14 }, identityCopy: { flex: 1, minWidth: 0, paddingRight: 12 }, nameLine: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, displayName: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 29, fontWeight: '400', lineHeight: 35 }, locationText: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 18, lineHeight: 23 }, headline: { color: luxyColors.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
   moreWrap: { position: 'relative', zIndex: 20 }, moreButton: { alignItems: 'center', borderColor: luxyColors.border, borderRadius: 22, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 }, moreText: { color: luxyColors.muted, fontSize: 18, letterSpacing: 1 }, moreMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 180, position: 'absolute', right: 0, top: 48, zIndex: 30 }, moreMenuItem: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 }, moreMenuText: { color: luxyColors.text, fontSize: 12 }, moreMenuDanger: { color: luxyColors.danger, fontSize: 12 },
@@ -605,8 +560,7 @@ const styles = StyleSheet.create({
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }, photoTile: { aspectRatio: 0.8, backgroundColor: '#E7E5E4', borderRadius: 9, flexBasis: '23.8%', flexGrow: 1, maxWidth: '24%', minWidth: 120, overflow: 'hidden', position: 'relative' }, photoTileImage: { height: '100%', width: '100%' }, photoTileFallback: { alignItems: 'center', height: '100%', justifyContent: 'center', width: '100%' }, photoHeart: { alignItems: 'center', backgroundColor: 'rgba(8,23,38,0.52)', borderRadius: 17, bottom: 6, height: 34, justifyContent: 'center', position: 'absolute', right: 6, width: 34 }, photoHeartText: { color: luxyColors.surface, fontSize: 20 },
   privateTile: { alignItems: 'center', aspectRatio: 0.8, backgroundColor: luxyColors.ink, borderRadius: 9, flexBasis: '23.8%', flexGrow: 1, justifyContent: 'center', maxWidth: '24%', minWidth: 120, padding: 10 }, privateEye: { color: luxyColors.surface, fontSize: 30 }, privateTileTitle: { color: luxyColors.surface, fontSize: 11, marginTop: 10, textAlign: 'center' }, privateTileButton: { backgroundColor: luxyColors.surface, borderRadius: luxyRadii.pill, color: luxyColors.ink, fontSize: 10, fontWeight: '700', marginTop: 12, overflow: 'hidden', paddingHorizontal: 12, paddingVertical: 9 },
   storyWrap: { gap: 32 }, storySection: { gap: 10, paddingHorizontal: 16 }, sectionTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 22, fontWeight: '400', lineHeight: 28 }, storyText: { color: luxyColors.text, fontSize: 12, lineHeight: 19, maxWidth: 880 }, storyMeta: { color: luxyColors.muted, fontSize: 11, lineHeight: 17 }, sectionHeadingRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, interestedIn: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 18 }, tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 }, tag: { backgroundColor: '#E8E8E8', borderRadius: 3, paddingHorizontal: 10, paddingVertical: 6 }, tagText: { color: luxyColors.text, fontSize: 10 }, detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 20, paddingHorizontal: 16 }, detailItem: { flexBasis: '47%', minWidth: 180 }, detailLabel: { color: luxyColors.softMuted, fontSize: 10 }, detailValue: { color: luxyColors.text, fontSize: 11, marginTop: 2 },
-  activitySection: { borderTopColor: luxyColors.border, borderTopWidth: 1, marginTop: 24, paddingHorizontal: 16, paddingTop: 24 }, sectionCount: { color: luxyColors.muted, fontSize: 11 },
-  connectionPanel: { borderTopColor: luxyColors.border, borderTopWidth: 1, gap: 8, marginTop: 16, paddingTop: 14 }, connectionText: { color: luxyColors.muted, fontSize: 11, fontWeight: '600' }, greetingInput: { borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, color: luxyColors.text, fontSize: 11, minHeight: 58, padding: 8, textAlignVertical: 'top' }, inlineActions: { flexDirection: 'row', gap: 8, marginTop: 8 }, smallOutline: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 12 }, smallOutlineText: { color: luxyColors.text, fontSize: 11, fontWeight: '600' }, smallDark: { alignItems: 'center', backgroundColor: luxyColors.ink, borderRadius: luxyRadii.pill, flex: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 12 }, smallDarkText: { color: luxyColors.surface, fontSize: 11, fontWeight: '600' },
+  inlineActions: { flexDirection: 'row', gap: 8, marginTop: 8 }, smallOutline: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 12 }, smallOutlineText: { color: luxyColors.text, fontSize: 11, fontWeight: '600' }, smallDark: { alignItems: 'center', backgroundColor: luxyColors.ink, borderRadius: luxyRadii.pill, flex: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 12 }, smallDarkText: { color: luxyColors.surface, fontSize: 11, fontWeight: '600' },
   warningCard: { backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderRadius: luxyRadii.md, borderWidth: 1, gap: 10, padding: 16 }, warningTitle: { color: luxyColors.text, fontSize: 15, fontWeight: '700' }, darkButton: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: luxyColors.ink, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 44, paddingHorizontal: 22 }, darkButtonText: { color: luxyColors.surface, fontSize: 12, fontWeight: '600' },
   centeredPage: { alignItems: 'center', backgroundColor: luxyColors.background, flex: 1, gap: 14, justifyContent: 'center', padding: 24 }, notFoundTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 26 }, mutedText: { color: luxyColors.muted, fontSize: 12, lineHeight: 18 }, outlineButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 22 }, outlineButtonText: { color: luxyColors.text, fontSize: 12, fontWeight: '600' }, success: { color: '#166534', fontSize: 12, marginHorizontal: 16, marginTop: 18 }, error: { color: luxyColors.danger, fontSize: 12, marginHorizontal: 16, marginTop: 18 },
   safetyBackdrop: { alignItems: 'center', backgroundColor: 'rgba(8,23,38,0.72)', flex: 1, justifyContent: 'center', padding: 16 }, safetyDismiss: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 }, safetyCard: { backgroundColor: luxyColors.surface, borderRadius: 14, gap: 14, maxWidth: 460, padding: 22, width: '100%' }, safetyTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 23 }, reasonWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 }, reasonChip: { borderColor: luxyColors.border, borderRadius: luxyRadii.pill, borderWidth: 1, minHeight: 36, paddingHorizontal: 10, paddingVertical: 8 }, reasonChipActive: { backgroundColor: luxyColors.elevatedSubtle, borderColor: luxyColors.ink }, reasonText: { color: luxyColors.text, fontSize: 10 }, reportInput: { borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, color: luxyColors.text, minHeight: 90, padding: 10, textAlignVertical: 'top' }, dangerFilled: { alignItems: 'center', backgroundColor: luxyColors.danger, borderRadius: luxyRadii.pill, flex: 1, justifyContent: 'center', minHeight: 42 }, dangerFilledText: { color: luxyColors.surface, fontSize: 11, fontWeight: '700' }, pressed: { opacity: 0.8 },
