@@ -1,0 +1,49 @@
+name: Finalize profile action icon sizes
+
+on:
+  push:
+    branches: [agent/finalize-ui-icon-badge-sizing]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/finalize-ui-icon-badge-sizing
+          fetch-depth: 0
+      - name: Apply profile action icon sizing
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          def replace_once(path, old, new):
+              p = Path(path); text = p.read_text(); count = text.count(old)
+              if count != 1: raise SystemExit(f'{path}: expected 1 occurrence, got {count}: {old}')
+              p.write_text(text.replace(old, new, 1))
+
+          p = 'apps/mobile/app/profile/_layout.tsx'
+          replace_once(p, "import { ChonBrandIcon } from '@/components/chon-brand-icon';\n", "import { ChonBrandIcon } from '@/components/chon-brand-icon';\nimport { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';\n")
+          replace_once(p, '<ChonBrandIcon name="gift" size={18} />', '<ChonBrandIcon name="gift" size={CHON_ICON_SIZE_DESKTOP} />')
+
+          p = 'apps/mobile/src/components/member-profile-mobile-actions.web.tsx'
+          replace_once(p, "import { ChonBrandIcon } from '@/components/chon-brand-icon';\n", "import { ChonBrandIcon } from '@/components/chon-brand-icon';\nimport { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';\n")
+          replace_once(p, '<ChonBrandIcon name="gift" size={15} />', '<ChonBrandIcon name="gift" size={CHON_ICON_SIZE_MOBILE} />')
+          replace_once(p, '<ChonBrandIcon name="message" size={16} />', '<ChonBrandIcon name="message" size={CHON_ICON_SIZE_MOBILE} />')
+
+          Path('.github/workflows/finalize-profile-action-icons.yml').unlink()
+          PY
+          git diff --check
+          ! grep -q 'name="gift" size={18}' apps/mobile/app/profile/_layout.tsx
+          ! grep -q 'name="gift" size={15}' apps/mobile/src/components/member-profile-mobile-actions.web.tsx
+          ! grep -q 'name="message" size={16}' apps/mobile/src/components/member-profile-mobile-actions.web.tsx
+      - name: Commit clean result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Align public profile action icons with Chon.Love sizing"
+          git push origin HEAD:agent/finalize-ui-icon-badge-sizing
