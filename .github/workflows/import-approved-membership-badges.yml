@@ -1,7 +1,12 @@
 name: Import approved membership badges
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - agent/finalize-ui-icon-badge-sizing
+    paths:
+      - '.asset-import/**'
+      - '.github/workflows/import-approved-membership-badges.yml'
 
 permissions:
   contents: write
