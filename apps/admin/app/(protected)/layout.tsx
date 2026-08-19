@@ -9,7 +9,9 @@ const links = [
   ['Gói thành viên', '/memberships'],
   ['Gifts', '/gifts'],
   ['Payments', '/payments'],
+  ['Đối soát VietQR', '/vietqr-reconciliation'],
   ['Withdrawals', '/withdrawals'],
+  ['KYC & rút tiền', '/kyc-withdrawal-operations'],
   ['Moderation', '/moderation'],
   ['Observability', '/runtime-observability'],
 ] as const;
