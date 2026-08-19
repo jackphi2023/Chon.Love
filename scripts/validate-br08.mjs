@@ -11,7 +11,7 @@ const sharedClient = readText('packages/supabase/src/kyc-withdrawal-operations.t
 const sharedTest = readText('packages/supabase/src/kyc-withdrawal-operations.test.ts');
 const sharedIndex = readText('packages/supabase/src/index.ts');
 const adminPage = readText('apps/admin/app/kyc-withdrawal-operations/kyc-withdrawal-operations-client.tsx');
-const adminLogin = readText('apps/admin/app/admin-login.tsx');
+const adminNavigation = readText('apps/admin/app/(protected)/layout.tsx');
 const applicationCi = readText('.github/workflows/ci.yml');
 const databaseCi = readText('.github/workflows/database.yml');
 const errors = [];
@@ -84,7 +84,7 @@ for (const token of ['listPayoutOperationalQueue','startPayoutOperationalReview'
 }
 expect(adminPage.includes('COMPLIANCE · FINANCE · BR-08'), 'Admin page must identify BR-08.');
 expect(adminPage.includes('maker–checker') && adminPage.includes('SHA-256'), 'Admin page must explain dual control and payment evidence.');
-expect(adminLogin.includes('href="/kyc-withdrawal-operations"'), 'Admin home must link to BR-08 operations.');
+expect(adminNavigation.includes("'/kyc-withdrawal-operations'"), 'Protected Admin navigation must link to BR-08 operations.');
 expect(releaseManifest.financialFeaturesEnabled === false, 'Financial release flag must remain disabled.');
 expect(releaseManifest.mergeAllowed === false, 'BR-08 must not authorize merge.');
 expect(releaseManifest.productionDeployAllowed === false, 'BR-08 must not authorize production deployment.');
