@@ -71,6 +71,9 @@ jobs:
       - name: Validate Chon.Love branding and retired legacy surfaces
         run: pnpm validate:branding
 
+      - name: Validate public profile SEO and sharing
+        run: pnpm validate:seo-public-profile
+
       - name: Lint
         run: pnpm lint
 
@@ -85,4 +88,3 @@ jobs:
           pnpm build
           test -f apps/admin/out/login/index.html
           test -f apps/admin/out/users/index.html
-
