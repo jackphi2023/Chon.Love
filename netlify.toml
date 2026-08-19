@@ -1,10 +1,11 @@
 # Chon.Love production web source of truth.
-# Netlify Base directory must remain the repository root (/).
-# Production deploys one responsive Expo Web application from apps/mobile.
-# Do not select apps/public-web as the package/build target for the main Chon.Love site.
+# Netlify Base directory must remain repository root (/).
+# Production deploys the responsive Expo Web member app plus the static Next.js
+# Admin application under /admin from one Netlify site/domain.
+# Do not select apps/public-web as the package/build target.
 
 [build]
-  command = "corepack enable && pnpm --filter @myfan/mobile build:web"
+  command = "bash scripts/build-netlify-web.sh"
   publish = "apps/mobile/dist"
 
 [build.environment]
@@ -43,3 +44,10 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Permissions-Policy = "camera=(), geolocation=(), microphone=()"

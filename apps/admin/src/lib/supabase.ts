@@ -3,6 +3,11 @@
 import { createPublicSupabaseClient } from '@myfan/supabase';
 
 type AdminSupabaseClient = ReturnType<typeof createPublicSupabaseClient>;
+type AdminRoleRpcResult = { data: boolean | null; error: { message: string } | null };
+type AdminRoleRpcClient = {
+  rpc: (functionName: 'is_super_admin') => Promise<AdminRoleRpcResult>;
+};
+
 let cachedClient: AdminSupabaseClient | null | undefined;
 
 export function getAdminSupabaseClient(): AdminSupabaseClient | null {
@@ -15,4 +20,12 @@ export function getAdminSupabaseClient(): AdminSupabaseClient | null {
   }
   cachedClient = createPublicSupabaseClient({ url, anonKey }, { persistSession: true });
   return cachedClient;
+}
+
+export async function isCurrentUserSuperAdmin(client: AdminSupabaseClient): Promise<boolean> {
+  // The live database exposes is_super_admin() but the checked-in generated Database
+  // types can lag production migrations. Keep this compatibility cast isolated here.
+  const rpcClient = client as unknown as AdminRoleRpcClient;
+  const { data, error } = await rpcClient.rpc('is_super_admin');
+  return !error && data === true;
 }

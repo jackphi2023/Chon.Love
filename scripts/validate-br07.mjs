@@ -13,7 +13,7 @@ const sharedClient = readText('packages/supabase/src/vietqr-reconciliation.ts');
 const sharedClientTest = readText('packages/supabase/src/vietqr-reconciliation.test.ts');
 const sharedIndex = readText('packages/supabase/src/index.ts');
 const adminPage = readText('apps/admin/app/vietqr-reconciliation/vietqr-reconciliation-client.tsx');
-const adminLogin = readText('apps/admin/app/admin-login.tsx');
+const adminNavigation = readText('apps/admin/app/(protected)/layout.tsx');
 const applicationCi = readText('.github/workflows/ci.yml');
 const databaseCi = readText('.github/workflows/database.yml');
 
@@ -150,7 +150,7 @@ expect(adminPage.includes('FINANCE CONTROL · BR-07'), 'Admin page must identify
 expect(adminPage.includes('Import vào inbox'), 'Admin page must support manual bank transaction import.');
 expect(adminPage.includes('Xác nhận ghi có'), 'Admin page must make settlement an explicit action.');
 expect(adminPage.includes('Fail closed:'), 'Admin page must explain fail-closed settlement controls.');
-expect(adminLogin.includes('href="/vietqr-reconciliation"'), 'Admin home must link to VietQR reconciliation.');
+expect(adminNavigation.includes("'/vietqr-reconciliation'"), 'Protected Admin navigation must link to VietQR reconciliation.');
 
 expect(releaseManifest.financialFeaturesEnabled === false, 'Financial feature flags must remain disabled.');
 expect(releaseManifest.mergeAllowed === false, 'BR-07 must not authorize merge.');

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AdminRouteGuard } from './admin-route-guard';
 
 export const metadata: Metadata = {
   title: 'Chon.Love Admin',
@@ -12,7 +13,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="vi">
       <body>
         <a className="skipLink" href="#main-content">Bỏ qua đến nội dung chính</a>
-        <div id="main-content" tabIndex={-1}>{children}</div>
+        <div id="main-content" tabIndex={-1}><AdminRouteGuard>{children}</AdminRouteGuard></div>
       </body>
     </html>
   );
