@@ -9,12 +9,12 @@
   "supabaseProjectRef": "asnydvqsduonyidjyyzq",
   "deploymentTarget": "netlify-production",
   "status": "live",
-  "mergeAllowed": true,
-  "productionDeployAllowed": true,
+  "mergeAllowed": false,
+  "productionDeployAllowed": false,
   "financialFeaturesEnabled": false,
   "baselineNote": "baselineCommit is the audited Chon.Love Web V1 source-of-truth cleanup anchor from PR #52; main is canonical and may advance after this anchor.",
   "historyNote": "Historical BR/LX docs and migration identifiers may retain MyFan, Luxy or Beta names for audit compatibility; active release validators use this Chon.Love Web V1 manifest.",
   "liveAcceptedAt": "2026-08-19T17:27:00+07:00",
-  "liveAcceptanceNote": "Chon.Love Web V1 is explicitly accepted for Netlify production deployment from main. Gift, Creator Wallet, Creator KYC, Withdrawal and Google Play Billing remain fail-closed/off until separately accepted.",
+  "liveAcceptanceNote": "Chon.Love Web V1 is explicitly accepted for Netlify production deployment from main. Merge and deploy remain explicit operator actions rather than automatic authorization. Gift, Creator Wallet, Creator KYC, Withdrawal and Google Play Billing remain fail-closed/off until separately accepted.",
   "createdAt": "2026-08-16T17:30:00+07:00"
 }
