@@ -1,22 +1,17 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getAdminSupabaseClient, isCurrentUserSuperAdmin } from '../src/lib/supabase';
 
 export function AdminLogin() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (searchParams.get('error') === 'forbidden') {
-      setMessage('Tài khoản không có quyền Super Admin.');
-    }
-
     const client = getAdminSupabaseClient();
     if (!client) return;
 
@@ -33,7 +28,7 @@ export function AdminLogin() {
     return () => {
       active = false;
     };
-  }, [router, searchParams]);
+  }, [router]);
 
   async function signIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
