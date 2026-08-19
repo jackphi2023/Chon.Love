@@ -81,4 +81,8 @@ jobs:
         run: pnpm test
 
       - name: Build Admin and canonical Chon.Love Expo Web
-        run: pnpm build
+        run: |
+          pnpm build
+          test -f apps/admin/out/login/index.html
+          test -f apps/admin/out/users/index.html
+
