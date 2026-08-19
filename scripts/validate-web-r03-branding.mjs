@@ -124,13 +124,29 @@ for (const path of [
   validatePng(path, 768, 528);
 }
 
-const membershipBadge = read('apps/mobile/src/components/luxy-membership-badge-image.tsx');
-expect(membershipBadge.includes('BADGE_ASPECT_WIDTH = 16') && membershipBadge.includes('BADGE_ASPECT_HEIGHT = 11'), 'Membership badge layout must preserve the canonical 16:11 artwork ratio.');
-expect(membershipBadge.includes("premium-badge-hq.png") && membershipBadge.includes("diamond-badge-hq.png"), 'Membership presentation must use both validated HQ raster assets.');
+for (const path of [
+  'apps/mobile/src/components/luxy-membership-badge-image.tsx',
+  'apps/mobile/src/components/luxy-membership-badge-image.web.tsx',
+]) {
+  const membershipBadge = read(path);
+  expect(
+    membershipBadge.includes('BADGE_ASPECT_WIDTH = 16') && membershipBadge.includes('BADGE_ASPECT_HEIGHT = 11'),
+    `${path}: membership badge layout must preserve the canonical 16:11 artwork ratio.`,
+  );
+  expect(
+    membershipBadge.includes("premium-badge-hq.png") && membershipBadge.includes("diamond-badge-hq.png"),
+    `${path}: membership presentation must use both validated HQ raster assets.`,
+  );
+  expect(
+    !membershipBadge.includes('(width * 2) / 3'),
+    `${path}: stale 3:2 membership badge sizing must not return.`,
+  );
+}
 
 const badgeE2e = read('tests/br-06/luxy-profile-visual-regressions.spec.mjs');
 expect(badgeE2e.includes("tier: 'premium'") && badgeE2e.includes("tier: 'diamond'"), 'Browser regression must exercise both Premium and Diamond badges.');
 expect(badgeE2e.includes('await node.decode()') && badgeE2e.includes('natural height`).toBe(528)'), 'Browser regression must require complete image decoding and the 768×528 natural canvas.');
+expect(badgeE2e.includes('expectedWidth * 11') && badgeE2e.includes("getByTestId('luxy-member-profile-hero-photo')"), 'Browser regression must enforce 16:11 rendered height and keep the badge inside the hero frame.');
 
 const mobileHtml = read('apps/mobile/app/+html.tsx');
 const ui = read('packages/ui/src/index.ts');
@@ -151,4 +167,4 @@ if (failures.length) {
   console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
   process.exit(1);
 }
-console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, membership PNGs are intact, and legacy Activity/Creator routes are retired.');
+console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, membership PNGs are intact, native/Web badge renderers preserve 16:11, and legacy Activity/Creator routes are retired.');
