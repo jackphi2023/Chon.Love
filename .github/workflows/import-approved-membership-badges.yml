@@ -1,0 +1,56 @@
+name: Import approved membership badges
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/finalize-ui-icon-badge-sizing
+          fetch-depth: 0
+
+      - name: Reconstruct approved PNG assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .asset-import/diamond/00.bin .asset-import/diamond/01.bin .asset-import/diamond/02.bin .asset-import/diamond/03.bin > apps/mobile/assets/luxy/diamond-badge-hq.png
+          cat .asset-import/premium/00.bin .asset-import/premium/01.bin .asset-import/premium/02.bin .asset-import/premium/03.bin > apps/mobile/assets/luxy/premium-badge-hq.png
+          echo "51d0a349681e116d550a36d527a0ab8244ba7b28acf9b990e4eaa5b1f1be71df  apps/mobile/assets/luxy/diamond-badge-hq.png" | sha256sum -c -
+          echo "39a2efd8277c11c3fd946a352a260abd112d9b751d2a4b70eb71324a5a19c0d7  apps/mobile/assets/luxy/premium-badge-hq.png" | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          for path in [
+              Path('apps/mobile/assets/luxy/diamond-badge-hq.png'),
+              Path('apps/mobile/assets/luxy/premium-badge-hq.png'),
+          ]:
+              data = path.read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', path
+              assert struct.unpack('>II', data[16:24]) == (360, 240), (path, struct.unpack('>II', data[16:24]))
+          PY
+
+      - name: Switch renderers to approved PNG assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/diamond-badge-hq\.webp/diamond-badge-hq.png/g; s/premium-badge-hq\.webp/premium-badge-hq.png/g' apps/mobile/src/components/luxy-membership-badge-image.tsx apps/mobile/src/components/luxy-membership-badge-image.web.tsx
+          git rm -f apps/mobile/assets/luxy/diamond-badge-hq.webp apps/mobile/assets/luxy/premium-badge-hq.webp
+          rm -rf .asset-import
+          rm -f .github/workflows/import-approved-membership-badges.yml
+
+      - name: Commit canonical artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Use approved Chon.Love membership artwork"
+          git push origin HEAD:agent/finalize-ui-icon-badge-sizing
