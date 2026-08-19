@@ -33,10 +33,10 @@ expect(
 );
 expect(manifest.deploymentTarget === 'netlify-production', 'Deployment target must be netlify-production.');
 expect(manifest.status === 'live', 'Chon.Love Web V1 must be explicitly accepted as live.');
-expect(manifest.mergeAllowed === true, 'The live Chon.Love Web V1 manifest must allow reviewed release merges.');
+expect(manifest.mergeAllowed === false, 'Reviewed release merges must remain explicit operator actions.');
 expect(
-  manifest.productionDeployAllowed === true,
-  'The live Chon.Love Web V1 manifest must authorize production deployment from main.',
+  manifest.productionDeployAllowed === false,
+  'Production deployment must remain an explicit operator action even after live acceptance.',
 );
 expect(
   typeof manifest.liveAcceptedAt === 'string' && manifest.liveAcceptedAt.length > 0,
