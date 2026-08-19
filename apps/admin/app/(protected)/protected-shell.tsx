@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getAdminSupabaseClient } from '../../src/lib/supabase';
+import { getAdminSupabaseClient, isCurrentUserSuperAdmin } from '../../src/lib/supabase';
 
 export function ProtectedShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const router = useRouter();
@@ -26,10 +26,10 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
         return;
       }
 
-      const { data: isSuperAdmin, error } = await client.rpc('is_super_admin');
+      const isSuperAdmin = await isCurrentUserSuperAdmin(client);
       if (!active) return;
 
-      if (error || isSuperAdmin !== true) {
+      if (!isSuperAdmin) {
         await client.auth.signOut();
         if (active) router.replace('/login?error=forbidden');
         return;
