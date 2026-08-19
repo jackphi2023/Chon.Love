@@ -1,7 +1,7 @@
 import type { LuxyMembershipTier } from '@myfan/supabase';
 import { Image, StyleSheet, View } from 'react-native';
 
-// Canonical artwork supplied for Chon.Love membership certification.
+// Canonical 768x512 artwork supplied for Chon.Love membership certification.
 // Keep these as static requires so Expo/Metro fingerprints and bundles the exact assets.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PREMIUM_BADGE = require('../../assets/luxy/premium-badge-hq.webp');
