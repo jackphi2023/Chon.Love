@@ -32,15 +32,23 @@ expect(
   'Active release manifest must retain the reconciled Chon.Love Supabase project reference.',
 );
 expect(manifest.deploymentTarget === 'netlify-production', 'Deployment target must be netlify-production.');
-expect(manifest.status === 'prelive', 'Chon.Love Web V1 must remain prelive until explicit live acceptance.');
-expect(manifest.mergeAllowed === false, 'The manifest must not authorize automatic merges.');
+expect(manifest.status === 'live', 'Chon.Love Web V1 must be explicitly accepted as live.');
+expect(manifest.mergeAllowed === true, 'The live Chon.Love Web V1 manifest must allow reviewed release merges.');
 expect(
-  manifest.productionDeployAllowed === false,
-  'The manifest must not authorize an automatic production deploy before explicit live acceptance.',
+  manifest.productionDeployAllowed === true,
+  'The live Chon.Love Web V1 manifest must authorize production deployment from main.',
+);
+expect(
+  typeof manifest.liveAcceptedAt === 'string' && manifest.liveAcceptedAt.length > 0,
+  'Live acceptance timestamp must be recorded.',
+);
+expect(
+  typeof manifest.liveAcceptanceNote === 'string' && manifest.liveAcceptanceNote.includes('Netlify production deployment from main'),
+  'Live acceptance note must preserve the main-to-Netlify production contract.',
 );
 expect(
   manifest.financialFeaturesEnabled === false,
-  'Financial feature flags must remain disabled for the current Web V1 baseline.',
+  'Financial feature flags must remain disabled for the current Web V1 live baseline.',
 );
 
 expect(
@@ -71,4 +79,5 @@ if (errors.length > 0) {
 console.warn('Chon.Love release-source validation passed.');
 console.warn(`Canonical branch: ${manifest.canonicalBranch}`);
 console.warn(`Deployment target: ${manifest.deploymentTarget}`);
+console.warn(`Release status: ${manifest.status}`);
 console.warn(`Audited baseline commit: ${manifest.baselineCommit}`);
