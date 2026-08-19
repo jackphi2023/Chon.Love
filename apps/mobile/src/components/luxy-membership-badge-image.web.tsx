@@ -10,10 +10,10 @@ const DIAMOND_BADGE = require('../../assets/luxy/diamond-badge-hq.webp');
 
 export function LuxyMembershipBadgeImage({
   tier,
-  width = 112,
-  inset = 10,
+  width = 58,
+  inset = 2,
 }: {
-  tier: LuxyMembershipTier;
+  tier: LuxyMembershipTier | null | undefined;
   width?: number;
   inset?: number;
 }) {
