@@ -1,0 +1,123 @@
+name: Finalize Chon.Love UI sizing
+
+on:
+  push:
+    branches: [agent/finalize-ui-icon-badge-sizing]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/finalize-ui-icon-badge-sizing
+          fetch-depth: 0
+
+      - name: Apply atomic UI cleanup
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected 1 occurrence, found {count}: {old[:80]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          sizing = Path('apps/mobile/src/components/chon-ui-sizing.ts')
+          sizing.write_text("""// Canonical Chon.Love web presentation sizes.\n// Keep artwork size separate from touch targets so accessibility targets remain >=44px.\nexport const CHON_ICON_SIZE_DESKTOP = 26;\nexport const CHON_ICON_SIZE_MOBILE = 18;\nexport const CHON_LOGO_HEIGHT_DESKTOP = 26;\nexport const CHON_LOGO_HEIGHT_MOBILE = 22;\nexport const CHON_MEMBERSHIP_BADGE_WIDTH_DESKTOP = 160;\nexport const CHON_MEMBERSHIP_BADGE_WIDTH_MOBILE = 132;\n""")
+
+          # Desktop authenticated navigation: canonical 26px brand artwork.
+          p = 'apps/mobile/src/components/luxy-desktop-navigation.tsx'
+          replace_once(p,
+              "import { ChonLoveLogo } from '@/components/chon-love-logo';\n",
+              "import { ChonLoveLogo } from '@/components/chon-love-logo';\nimport { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';\n")
+          replace_once(p, '<ChonBrandIcon name={item.icon} size={18} />', '<ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_DESKTOP} />')
+          replace_once(p, "{'icon' in item ? <ChonBrandIcon name={item.icon} size={17} /> : <View style={styles.menuIconSpacer} />}", "{'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_DESKTOP} /> : <View style={styles.menuIconSpacer} />}")
+          replace_once(p, "iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 24, minWidth: 24, position: 'relative' },", "iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: CHON_ICON_SIZE_DESKTOP, minWidth: CHON_ICON_SIZE_DESKTOP, position: 'relative' },")
+          replace_once(p, "menuIconSpacer: { height: 17, width: 17 },", "menuIconSpacer: { height: CHON_ICON_SIZE_DESKTOP, width: CHON_ICON_SIZE_DESKTOP },")
+
+          # Responsive shell is used for phone/tablet on web: canonical 18px artwork.
+          p = 'apps/mobile/src/components/luxy-shell-navigation.tsx'
+          replace_once(p,
+              "import { ChonLoveLogo } from '@/components/chon-love-logo';\n",
+              "import { ChonLoveLogo } from '@/components/chon-love-logo';\nimport { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';\n")
+          replace_once(p, "<ChonBrandIcon name={item.icon} size={phone ? 15 : 18} />", "<ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_MOBILE} />")
+          replace_once(p, "{'icon' in item ? <ChonBrandIcon name={item.icon} size={17} /> : <View style={styles.menuIconSpacer} />}", "{'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_MOBILE} /> : <View style={styles.menuIconSpacer} />}")
+          replace_once(p, "menuIconSpacer: { height: 17, width: 17 },", "menuIconSpacer: { height: CHON_ICON_SIZE_MOBILE, width: CHON_ICON_SIZE_MOBILE },")
+
+          # Logo stays 26px desktop / 22px mobile from one canonical sizing contract.
+          p = 'apps/mobile/src/components/chon-love-logo.web.tsx'
+          replace_once(p,
+              "import { Image, type ImageStyle, type StyleProp, useWindowDimensions } from 'react-native';\n",
+              "import { Image, type ImageStyle, type StyleProp, useWindowDimensions } from 'react-native';\nimport { CHON_LOGO_HEIGHT_DESKTOP, CHON_LOGO_HEIGHT_MOBILE } from '@/components/chon-ui-sizing';\n")
+          replace_once(p, "const MOBILE_LOGO_HEIGHT = 22;\nconst DESKTOP_LOGO_HEIGHT = 26;\n", "")
+          replace_once(p, "    ? MOBILE_LOGO_HEIGHT\n    : DESKTOP_LOGO_HEIGHT;", "    ? CHON_LOGO_HEIGHT_MOBILE\n    : CHON_LOGO_HEIGHT_DESKTOP;")
+
+          # Verification row uses the same canonical 26/18 icon sizes.
+          p = 'apps/mobile/src/components/member-profile-verification-badges.web.tsx'
+          replace_once(p,
+              "import { ChonVerificationIcon } from '@/components/chon-verification-icon';\n",
+              "import { ChonVerificationIcon } from '@/components/chon-verification-icon';\nimport { CHON_ICON_SIZE_DESKTOP, CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';\n")
+          replace_once(p, "const MOBILE_VERIFICATION_ICON_HEIGHT = 18;\nconst DESKTOP_VERIFICATION_ICON_HEIGHT = 26;\n", "")
+          replace_once(p, "    ? DESKTOP_VERIFICATION_ICON_HEIGHT\n    : MOBILE_VERIFICATION_ICON_HEIGHT;", "    ? CHON_ICON_SIZE_DESKTOP\n    : CHON_ICON_SIZE_MOBILE;")
+
+          # Member Profile: brand facts 26/18, larger canonical certification artwork,
+          # and remove duplicate legacy Premium/Diamond text pills completely.
+          p = 'apps/mobile/app/profile/[username].tsx'
+          replace_once(p,
+              "import { ChonBrandIcon } from '@/components/chon-brand-icon';\n",
+              "import { ChonBrandIcon } from '@/components/chon-brand-icon';\nimport {\n  CHON_ICON_SIZE_DESKTOP,\n  CHON_ICON_SIZE_MOBILE,\n  CHON_MEMBERSHIP_BADGE_WIDTH_DESKTOP,\n  CHON_MEMBERSHIP_BADGE_WIDTH_MOBILE,\n} from '@/components/chon-ui-sizing';\n")
+          replace_once(p, "  const profileIconSize = desktop ? 18 : 15;\n", "  const profileIconSize = desktop ? CHON_ICON_SIZE_DESKTOP : CHON_ICON_SIZE_MOBILE;\n  const membershipBadgeWidth = desktop\n    ? CHON_MEMBERSHIP_BADGE_WIDTH_DESKTOP\n    : CHON_MEMBERSHIP_BADGE_WIDTH_MOBILE;\n")
+          replace_once(p, "<LuxyMembershipBadgeImage tier={profile.membership_tier} width={112} inset={10} />", "<LuxyMembershipBadgeImage tier={profile.membership_tier} width={membershipBadgeWidth} inset={10} />")
+          replace_once(p, "          <View style={styles.memberSinceRow}>\n", "          <View style={styles.memberSinceRow} testID=\"luxy-profile-fact-member-since\">\n")
+          replace_once(p, "\n          {profile.membership_badge_visible ? (\n            <View style={styles.sideBadgeBlock}>\n              <Text style={styles.sideLabel}>Thành viên trả phí</Text>\n              <MembershipBadge tier={profile.membership_tier} />\n            </View>\n          ) : null}\n", "\n")
+          replace_once(p, "                {profile.membership_badge_visible ? <MembershipBadge compact tier={profile.membership_tier} /> : null}\n", "")
+          start = "function MembershipBadge({ tier, compact = false }: { tier: LuxyMemberProfile['membership_tier']; compact?: boolean }) {\n"
+          end = "}\n\nfunction LegacyConnectionPanel"
+          text = Path(p).read_text()
+          if text.count(start) != 1 or text.count(end) != 1:
+              raise SystemExit('profile: legacy membership helper boundaries changed')
+          before, tail = text.split(start, 1)
+          _, after = tail.split(end, 1)
+          Path(p).write_text(before + "function LegacyConnectionPanel" + after)
+          replace_once(p, "      <View style={styles.factRow}>\n        <ChonBrandIcon name=\"recent\" size={iconSize} />", "      <View style={styles.factRow} testID=\"luxy-profile-fact-recent\">\n        <ChonBrandIcon name=\"recent\" size={iconSize} />")
+          replace_once(p, "      <View style={styles.factRow}>\n        <ChonBrandIcon name=\"location\" size={iconSize} />", "      <View style={styles.factRow} testID=\"luxy-profile-fact-location\">\n        <ChonBrandIcon name=\"location\" size={iconSize} />")
+          replace_once(p,
+              "  sideBadgeBlock: { gap: 8, paddingHorizontal: 12, paddingTop: 16 }, sideLabel: { color: luxyColors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }, notesButton:",
+              "  notesButton:")
+          replace_once(p,
+              "  membershipBadge: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: luxyRadii.pill, flexDirection: 'row', gap: 5, minHeight: 32, paddingHorizontal: 11 }, membershipBadgeCompact: { minHeight: 28, paddingHorizontal: 9 }, premiumBadge: { backgroundColor: '#E7F1FF', borderColor: '#5D8EC8', borderWidth: 1 }, diamondBadge: { backgroundColor: '#081726', borderColor: '#D8B874', borderWidth: 1 }, membershipBadgeCheck: { color: '#235A91', fontSize: 11, fontWeight: '800' }, membershipBadgeText: { color: '#235A91', fontSize: 10, fontWeight: '800' }, diamondBadgeText: { color: '#F1D79B' },\n",
+              "")
+
+          # No global CSS workaround: only the canonical supplied raster certificate renders.
+          Path('apps/mobile/src/components/luxy-membership-badge-image.web.tsx').write_text("""import type { LuxyMembershipTier } from '@myfan/supabase';\nimport { Image, StyleSheet, View } from 'react-native';\n\n// Canonical 768x512 artwork supplied for Chon.Love membership certification.\n// Static requires let Expo/Metro fingerprint and bundle the exact approved assets.\n// eslint-disable-next-line @typescript-eslint/no-require-imports\nconst PREMIUM_BADGE = require('../../assets/luxy/premium-badge-hq.webp');\n// eslint-disable-next-line @typescript-eslint/no-require-imports\nconst DIAMOND_BADGE = require('../../assets/luxy/diamond-badge-hq.webp');\n\nexport function LuxyMembershipBadgeImage({\n  tier,\n  width = 112,\n  inset = 10,\n}: {\n  tier: LuxyMembershipTier;\n  width?: number;\n  inset?: number;\n}) {\n  if (tier !== 'premium' && tier !== 'diamond') return null;\n\n  const height = Math.round((width * 2) / 3);\n  const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';\n\n  return (\n    <View\n      accessibilityLabel={label}\n      accessibilityRole=\"image\"\n      pointerEvents=\"none\"\n      style={[styles.badge, { height, left: inset, top: inset, width }]}\n      testID={`luxy-membership-badge-${tier}`}\n    >\n      <Image\n        accessibilityIgnoresInvertColors\n        resizeMode=\"contain\"\n        source={tier === 'diamond' ? DIAMOND_BADGE : PREMIUM_BADGE}\n        style={styles.image}\n      />\n    </View>\n  );\n}\n\nconst styles = StyleSheet.create({\n  badge: { position: 'absolute', zIndex: 6 },\n  image: { height: '100%', width: '100%' },\n});\n""")
+
+          # Browser regression: exact nav/profile artwork dimensions plus canonical badge raster.
+          Path('tests/br-06/luxy-profile-visual-regressions.spec.mjs').write_text("""import { expect, test } from '@playwright/test';\n\nconst password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';\nconst creator = { username: 'br06_creator', displayName: 'BR06 Creator' };\nconst outsider = { email: 'br06.outsider@example.test' };\n\nasync function login(page, expectedSearchTestId) {\n  await page.goto('/auth?mode=login');\n  await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();\n  await page.getByPlaceholder('email@example.com').fill(outsider.email);\n  await page.getByPlaceholder('Nhập mật khẩu').fill(password);\n  await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();\n  await expect(page.getByTestId(expectedSearchTestId)).toBeVisible({ timeout: 30_000 });\n}\n\nasync function openCreatorProfile(page) {\n  await page.goto(`/profile/${creator.username}`);\n  await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();\n  await expect(page.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();\n}\n\nasync function expectImageSize(locator, expectedSize, label) {\n  await expect(locator).toBeVisible();\n  const box = await locator.boundingBox();\n  expect(box, `${label} should have a rendered box`).not.toBeNull();\n  expect(Math.round(box.width), `${label} width`).toBe(expectedSize);\n  expect(Math.round(box.height), `${label} height`).toBe(expectedSize);\n}\n\nasync function expectNavigationIconSize(page, expectedSize) {\n  for (const label of ['Kết nối', 'Yêu thích', 'Tin nhắn']) {\n    const button = page.getByRole('button', { name: label, exact: true });\n    await expect(button).toHaveCount(1);\n    await expectImageSize(button.locator('img').first(), expectedSize, `${label} navigation icon`);\n  }\n}\n\nasync function expectVerificationIconHeight(page, expectedHeight) {\n  const badges = page.getByTestId('luxy-member-verification-badges');\n  await expect(badges).toBeVisible();\n  for (const key of ['selfie', 'identity', 'linkedin']) {\n    const icon = badges.locator(`[data-testid^=\"luxy-verification-icon-${key}-\"]`);\n    await expect(icon).toHaveCount(1);\n    const box = await icon.boundingBox();\n    expect(box).not.toBeNull();\n    expect(Math.round(box.height), `${key} verification icon height`).toBe(expectedHeight);\n  }\n}\n\nasync function expectProfileFactIconSize(page, expectedSize) {\n  for (const [testId, label] of [\n    ['luxy-profile-fact-recent', 'recent'],\n    ['luxy-profile-fact-location', 'location'],\n    ['luxy-profile-fact-member-since', 'profile'],\n  ]) {\n    await expectImageSize(page.getByTestId(testId).locator('img').first(), expectedSize, `${label} profile icon`);\n  }\n}\n\nasync function expectCanonicalMembershipArtwork(page, expectedWidth) {\n  const badge = page.locator('[data-testid=\"luxy-membership-badge-diamond\"]:visible');\n  await expect(badge).toHaveCount(1);\n  await expect(badge.locator('svg')).toHaveCount(0);\n  await expect(badge.locator('img')).toHaveCount(1);\n  const box = await badge.boundingBox();\n  expect(box).not.toBeNull();\n  expect(Math.round(box.width)).toBe(expectedWidth);\n  expect(Math.round(box.height)).toBe(Math.round((expectedWidth * 2) / 3));\n}\n\ntest('desktop locks canonical 26px brand icons and large membership artwork', async ({ browser }) => {\n  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });\n  const page = await context.newPage();\n  try {\n    await login(page, 'luxy-search-desktop');\n    await expectNavigationIconSize(page, 26);\n    await openCreatorProfile(page);\n    await expectCanonicalMembershipArtwork(page, 160);\n    await expectVerificationIconHeight(page, 26);\n    await expectProfileFactIconSize(page, 26);\n  } finally {\n    await context.close();\n  }\n});\n\ntest('mobile locks canonical 18px brand icons and large membership artwork', async ({ browser }) => {\n  const context = await browser.newContext({\n    viewport: { width: 390, height: 844 },\n    deviceScaleFactor: 2,\n    isMobile: true,\n    hasTouch: true,\n  });\n  const page = await context.newPage();\n  try {\n    await login(page, 'luxy-search-mobile');\n    await expectNavigationIconSize(page, 18);\n    await openCreatorProfile(page);\n    await expectCanonicalMembershipArtwork(page, 132);\n    await expectVerificationIconHeight(page, 18);\n    await expectProfileFactIconSize(page, 18);\n  } finally {\n    await context.close();\n  }\n});\n""")
+
+          Path('.github/workflows/finalize-ui-sizing.yml').unlink()
+          PY
+
+          git diff --check
+          grep -q "CHON_ICON_SIZE_DESKTOP = 26" apps/mobile/src/components/chon-ui-sizing.ts
+          grep -q "CHON_ICON_SIZE_MOBILE = 18" apps/mobile/src/components/chon-ui-sizing.ts
+          ! grep -q "size={phone ? 15 : 18}" apps/mobile/src/components/luxy-shell-navigation.tsx
+          ! grep -q "width={112}" apps/mobile/app/profile/'[username].tsx'
+          ! grep -q "function MembershipBadge" apps/mobile/app/profile/'[username].tsx'
+
+      - name: Commit clean UI result
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize Chon.Love icon and membership badge sizing"
+          git push origin HEAD:agent/finalize-ui-icon-badge-sizing
