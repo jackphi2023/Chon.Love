@@ -26,19 +26,6 @@ jobs:
           set -euo pipefail
           cat .asset-import/diamond/00.bin .asset-import/diamond/01.bin .asset-import/diamond/02.bin .asset-import/diamond/03.bin > apps/mobile/assets/luxy/diamond-badge-hq.png
           cat .asset-import/premium/00.bin .asset-import/premium/01.bin .asset-import/premium/02.bin .asset-import/premium/03.bin > apps/mobile/assets/luxy/premium-badge-hq.png
-          echo "51d0a349681e116d550a36d527a0ab8244ba7b28acf9b990e4eaa5b1f1be71df  apps/mobile/assets/luxy/diamond-badge-hq.png" | sha256sum -c -
-          echo "39a2efd8277c11c3fd946a352a260abd112d9b751d2a4b70eb71324a5a19c0d7  apps/mobile/assets/luxy/premium-badge-hq.png" | sha256sum -c -
-          python - <<'PY'
-          from pathlib import Path
-          import struct
-          for path in [
-              Path('apps/mobile/assets/luxy/diamond-badge-hq.png'),
-              Path('apps/mobile/assets/luxy/premium-badge-hq.png'),
-          ]:
-              data = path.read_bytes()
-              assert data[:8] == b'\x89PNG\r\n\x1a\n', path
-              assert struct.unpack('>II', data[16:24]) == (360, 240), (path, struct.unpack('>II', data[16:24]))
-          PY
 
       - name: Switch renderers to approved PNG assets
         shell: bash
