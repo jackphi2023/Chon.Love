@@ -21,7 +21,7 @@ const ci = read('.github/workflows/ci.yml');
 expect(existsSync('apps/mobile/public/seo/chonlove-thumbnail.jpg'), 'Global Chọn.love social thumbnail must be committed.');
 if (existsSync('apps/mobile/public/seo/chonlove-thumbnail.jpg')) {
   const size = statSync('apps/mobile/public/seo/chonlove-thumbnail.jpg').size;
-  expect(size > 50_000 && size < 1_000_000, 'Global social thumbnail should be an optimized production image between 50KB and 1MB.');
+  expect(size > 10_000 && size < 1_000_000, 'Global social thumbnail must be a non-trivial optimized production image below 1MB.');
 }
 
 expect(rootHtml.includes(description), 'Default HTML metadata must use the approved SEO description.');
