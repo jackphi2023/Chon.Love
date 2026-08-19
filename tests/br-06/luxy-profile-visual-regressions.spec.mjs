@@ -34,7 +34,9 @@ async function expectVerificationIconHeight(page, expectedHeight) {
 }
 
 async function expectCanonicalMembershipArtwork(page) {
-  const badge = page.getByTestId('luxy-membership-badge-diamond').first();
+  const visibleBadges = page.locator('[data-testid="luxy-membership-badge-diamond"]:visible');
+  await expect(visibleBadges).toHaveCount(1);
+  const badge = visibleBadges.first();
   await expect(badge).toBeVisible();
   await expect(badge.locator('svg')).toHaveCount(0);
   await expect(badge.locator('img')).toHaveCount(1);
