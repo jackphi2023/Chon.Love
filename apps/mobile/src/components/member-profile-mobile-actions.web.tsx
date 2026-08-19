@@ -9,6 +9,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
+import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -160,7 +161,7 @@ export function MemberProfileMobileActions() {
             style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
             testID="luxy-profile-gift-button"
           >
-            <ChonBrandIcon name="gift" size={15} />
+            <ChonBrandIcon name="gift" size={CHON_ICON_SIZE_MOBILE} />
             <Text style={styles.giftButtonText}>Tặng quà</Text>
           </Pressable>
           <Pressable
@@ -171,7 +172,7 @@ export function MemberProfileMobileActions() {
             style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
             testID="luxy-profile-fixed-message-button"
           >
-            <ChonBrandIcon name="message" size={16} />
+            <ChonBrandIcon name="message" size={CHON_ICON_SIZE_MOBILE} />
             <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
           </Pressable>
         </View>
