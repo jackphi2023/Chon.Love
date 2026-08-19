@@ -2,11 +2,11 @@ import type { LuxyMembershipTier } from '@myfan/supabase';
 import { Image, StyleSheet, View } from 'react-native';
 
 // React Native/Metro requires static require() for bundled raster assets.
-// Use the canonical HQ PNG artwork supplied for Chon.Love membership certification.
+// Use the canonical PNG artwork supplied for Chon.Love membership certification.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const PREMIUM_BADGE = require('../../assets/luxy/premium-badge-hq.png');
+const PREMIUM_BADGE = require('../../assets/luxy/premium-badge.png');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const DIAMOND_BADGE = require('../../assets/luxy/diamond-badge-hq.png');
+const DIAMOND_BADGE = require('../../assets/luxy/diamond-badge.png');
 
 export function LuxyMembershipBadgeImage({
   tier,
