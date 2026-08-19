@@ -37,7 +37,7 @@ expect(sharedIndex.includes("export * from './public-profile';"), 'Shared Supaba
 expect(publicRoute.includes("useLocalSearchParams<{ id?"), 'Public profile screen must be keyed by member public ID.');
 expect(publicRoute.includes('publicProfileCodeFromRouteId'), 'Public profile screen must validate id-xxxxxx routes.');
 expect(publicRoute.includes('publicProfileAvatarUrl'), 'Public profile screen must use the matching member avatar, not the global thumbnail.');
-expect(publicRoute.includes(`Thành viên \${profile.display_name} | \${TITLE_SUFFIX}`), 'Public profile browser title must include the member display name.');
+expect(publicRoute.includes('`Thành viên ${profile.display_name} | ${TITLE_SUFFIX}`'), 'Public profile browser title must include the member display name.');
 expect(!publicRoute.includes("pathname: '/profile/[username]'"), 'Public profile screen must not expose username-based canonical URLs.');
 
 expect(rootLayout.includes("pathname.startsWith('/thanh-vien/')"), 'Guest routing must explicitly allow public member profiles.');
@@ -46,7 +46,7 @@ expect(rootLayout.includes('Đăng ký |') && rootLayout.includes('Đăng nhập
 
 expect(netlifySeo.includes("path: ['/', '/auth', '/auth/*', '/legal/*', '/thanh-vien/*']"), 'Netlify Edge SEO must cover all requested public/shareable routes.');
 expect(netlifySeo.includes('context.next()'), 'Netlify Edge SEO must decorate the canonical Expo Web response rather than introduce a second web app.');
-expect(netlifySeo.includes('public-profile-seo') && netlifySeo.includes('public-profile-avatar'), 'Member crawler metadata must resolve safe public data and the member-specific avatar.');
+expect(netlifySeo.includes('public-profile-seo') && netlifySeo.includes('profile.avatar_url'), 'Member crawler metadata must resolve safe public data and use the member-specific avatar returned by Supabase.');
 expect(netlifySeo.includes('og:title') && netlifySeo.includes('og:image') && netlifySeo.includes('twitter:image') && netlifySeo.includes('canonical'), 'Crawler response must include Open Graph, Twitter/X and canonical metadata.');
 expect(netlifySeo.includes(description), 'Crawler response must use the approved SEO description.');
 expect(!netlifySeo.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Netlify Edge SEO must never contain or require the Supabase service-role key.');
