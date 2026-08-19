@@ -1,44 +1,39 @@
-name: Badge asset forensic bundle
+name: Repair membership badge assets
 
 on:
   pull_request:
     branches: ['main']
     paths:
       - '.github/workflows/badge-asset-forensics.yml'
+      - 'scripts/rebuild-membership-badges.py'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  bundle:
+  repair:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - name: Export historical badge versions
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Rebuild valid 16:11 badge PNGs
+        run: |
+          python -m pip install --disable-pip-version-check pillow==11.3.0
+          python scripts/rebuild-membership-badges.py
+      - name: Commit repaired raster assets
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p forensic
-          for path in \
-            apps/mobile/assets/luxy/premium-badge.png \
-            apps/mobile/assets/luxy/diamond-badge.png \
-            apps/mobile/assets/luxy/premium-badge-hq.png \
-            apps/mobile/assets/luxy/diamond-badge-hq.png; do
-            name="$(basename "$path" .png)"
-            git log --all --format='%H' -- "$path" | while read -r commit; do
-              short="${commit:0:12}"
-              if git cat-file -e "$commit:$path" 2>/dev/null; then
-                git show "$commit:$path" > "forensic/${name}-${short}.png"
-              fi
-            done
-          done
-          sha256sum forensic/* | sort > forensic/SHA256SUMS.txt
-          file forensic/* > forensic/FILE-TYPES.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: membership-badge-history
-          path: forensic
-          if-no-files-found: error
-          retention-days: 1
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/mobile/assets/luxy/premium-badge-hq.png apps/mobile/assets/luxy/diamond-badge-hq.png
+          if git diff --cached --quiet; then
+            echo 'Assets already match the deterministic repair.'
+            exit 0
+          fi
+          git commit -m 'Repair Premium and Diamond badge raster assets'
+          git push origin HEAD:${{ github.head_ref }}
