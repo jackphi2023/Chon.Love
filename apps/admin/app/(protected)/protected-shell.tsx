@@ -15,22 +15,23 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
       router.replace('/login');
       return;
     }
+    const supabase = client;
 
     let active = true;
 
     async function checkAccess() {
-      const { data: userData } = await client.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       if (!active) return;
       if (!userData.user) {
         router.replace('/login');
         return;
       }
 
-      const isSuperAdmin = await isCurrentUserSuperAdmin(client);
+      const isSuperAdmin = await isCurrentUserSuperAdmin(supabase);
       if (!active) return;
 
       if (!isSuperAdmin) {
-        await client.auth.signOut();
+        await supabase.auth.signOut();
         if (active) router.replace('/login?error=forbidden');
         return;
       }
@@ -41,7 +42,7 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
 
     void checkAccess();
 
-    const { data } = client.auth.onAuthStateChange((event) => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setAllowed(false);
         router.replace('/login');
