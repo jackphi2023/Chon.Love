@@ -14,13 +14,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Export historical badge versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p forensic
+          for path in \
+            apps/mobile/assets/luxy/premium-badge.png \
+            apps/mobile/assets/luxy/diamond-badge.png \
+            apps/mobile/assets/luxy/premium-badge-hq.png \
+            apps/mobile/assets/luxy/diamond-badge-hq.png; do
+            name="$(basename "$path" .png)"
+            git log --all --format='%H' -- "$path" | while read -r commit; do
+              short="${commit:0:12}"
+              if git cat-file -e "$commit:$path" 2>/dev/null; then
+                git show "$commit:$path" > "forensic/${name}-${short}.png"
+              fi
+            done
+          done
+          sha256sum forensic/* | sort > forensic/SHA256SUMS.txt
+          file forensic/* > forensic/FILE-TYPES.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: membership-badge-assets
-          path: |
-            apps/mobile/assets/luxy/premium-badge.png
-            apps/mobile/assets/luxy/diamond-badge.png
-            apps/mobile/assets/luxy/premium-badge-hq.png
-            apps/mobile/assets/luxy/diamond-badge-hq.png
+          name: membership-badge-history
+          path: forensic
           if-no-files-found: error
           retention-days: 1
