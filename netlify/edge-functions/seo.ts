@@ -3,7 +3,7 @@ const TITLE_SUFFIX = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const PROFILE_SEO_ENDPOINT = 'https://asnydvqsduonyidjyyzq.supabase.co/functions/v1/public-profile-seo';
 
 export const config = {
-  path: ['/', '/auth', '/auth/*', '/legal/*', '/thanh-vien/*'],
+  path: ['/', '/auth', '/auth/*', '/legal/*', '/thanh-vien/*', '/profile/*'],
 };
 
 type SeoMetadata = {
@@ -121,6 +121,11 @@ function injectSeo(html: string, metadata: SeoMetadata): string {
 
 export default async function seo(request: Request, context: { next: () => Promise<Response> }) {
   const url = new URL(request.url);
+
+  // Old username-based profile links are intentionally non-public. Existing
+  // in-app navigation canonicalizes them client-side for signed-in members.
+  if (url.pathname.startsWith('/profile/')) return Response.redirect(new URL('/', url), 302);
+
   const metadata = await getSeoMetadata(url);
   if (!metadata) return Response.redirect(new URL('/', url), 302);
 
