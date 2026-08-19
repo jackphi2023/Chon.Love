@@ -1,8 +1,8 @@
 name: Badge asset forensic bundle
 
 on:
-  push:
-    branches: ['agent/fix-membership-badge-rendering']
+  pull_request:
+    branches: ['main']
     paths:
       - '.github/workflows/badge-asset-forensics.yml'
 
