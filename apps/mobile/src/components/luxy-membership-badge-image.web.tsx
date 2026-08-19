@@ -1,5 +1,12 @@
 import type { LuxyMembershipTier } from '@myfan/supabase';
-import type { CSSProperties } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
+
+// Canonical 768x512 artwork supplied for Chon.Love membership certification.
+// Keep these as static requires so Expo/Metro fingerprints and bundles the exact assets.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PREMIUM_BADGE = require('../../assets/luxy/premium-badge-hq.webp');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const DIAMOND_BADGE = require('../../assets/luxy/diamond-badge-hq.webp');
 
 export function LuxyMembershipBadgeImage({
   tier,
@@ -12,61 +19,43 @@ export function LuxyMembershipBadgeImage({
 }) {
   if (tier !== 'premium' && tier !== 'diamond') return null;
 
-  const diamond = tier === 'diamond';
-  const label = diamond ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
-  const height = Math.max(22, Math.round(width * 0.31));
-  const style = {
-    height,
-    left: inset,
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: inset,
-    width,
-    zIndex: 6,
-  } satisfies CSSProperties;
+  const height = Math.round((width * 2) / 3);
+  const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
 
   return (
-    <div aria-label={label} role="img" style={style} data-testid={`luxy-membership-badge-${tier}`}>
-      <svg
-        aria-hidden="true"
-        height="100%"
-        preserveAspectRatio="xMidYMid meet"
-        viewBox="0 0 180 56"
-        width="100%"
+    <>
+      <style>{`
+        /* Retire the legacy text-pill membership badge on Member Profile web.
+           The canonical raster certification below is the only visible badge. */
+        [data-testid^="luxy-membership-badge-"]:not(:has(img)) {
+          display: none !important;
+        }
+      `}</style>
+      <View
+        accessibilityLabel={label}
+        accessibilityRole="image"
+        pointerEvents="none"
+        style={[styles.badge, { height, left: inset, top: inset, width }]}
+        testID={`luxy-membership-badge-${tier}`}
       >
-        <rect
-          fill={diamond ? '#081726' : '#C81C1D'}
-          height="52"
-          rx="26"
-          stroke="#F2B51D"
-          strokeWidth="2"
-          width="176"
-          x="2"
-          y="2"
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="contain"
+          source={tier === 'diamond' ? DIAMOND_BADGE : PREMIUM_BADGE}
+          style={styles.image}
         />
-        {diamond ? (
-          <g transform="translate(13 14)">
-            <path d="M6 0h20l6 8-16 20L0 8 6 0Z" fill="#F2B51D" />
-            <path d="m6 0 10 28L26 0M0 8h32" fill="none" stroke="#FFF8DC" strokeWidth="1.4" />
-          </g>
-        ) : (
-          <g transform="translate(13 13)">
-            <path d="m1 20 3-14 8 7 6-12 6 12 8-7 3 14H1Z" fill="#F2B51D" />
-            <rect fill="#FFF8DC" height="4" rx="2" width="34" x="1" y="23" />
-          </g>
-        )}
-        <text
-          fill="#FFFFFF"
-          fontFamily="Arial, Helvetica, sans-serif"
-          fontSize="18"
-          fontWeight="700"
-          letterSpacing="0.6"
-          x="58"
-          y="35"
-        >
-          {diamond ? 'DIAMOND' : 'PREMIUM'}
-        </text>
-      </svg>
-    </div>
+      </View>
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    zIndex: 6,
+  },
+  image: {
+    height: '100%',
+    width: '100%',
+  },
+});
