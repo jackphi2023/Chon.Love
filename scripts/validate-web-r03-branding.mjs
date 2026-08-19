@@ -56,16 +56,20 @@ expect(creatorRoute.includes("import { Redirect } from 'expo-router'"), 'Legacy 
 const mobileHtml = read('apps/mobile/app/+html.tsx');
 const ui = read('packages/ui/src/index.ts');
 const rootNetlify = read('netlify.toml');
+const netlifyBuildScript = read('scripts/build-netlify-web.sh');
 const packageJson = JSON.parse(read('package.json'));
 const exactTitle = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
 expect(mobileHtml.includes(exactTitle), 'Expo Web metadata must use the Chon.Love title contract.');
 expect(ui.includes("productName:'Chon.Love'") || ui.includes("productName: 'Chon.Love'"), 'Shared authenticated brand must be Chon.Love.');
-expect(rootNetlify.includes('pnpm --filter @myfan/mobile build:web'), 'Root Netlify must build the canonical Chon.Love Expo Web app.');
+expect(rootNetlify.includes('command = "bash scripts/build-netlify-web.sh"'), 'Root Netlify must use the canonical combined Chon.Love build script.');
+expect(netlifyBuildScript.includes('pnpm --filter @myfan/mobile build:web'), 'Canonical Netlify build script must build the Chon.Love Expo Web app.');
+expect(netlifyBuildScript.includes('pnpm --filter @myfan/admin build'), 'Canonical Netlify build script must build the Chon.Love Admin app.');
 expect(!rootNetlify.includes('build:netlify:chon') && !rootNetlify.includes('apps/public-web/.next'), 'Root Netlify must not reference the retired combined public-web release.');
+expect(!netlifyBuildScript.includes('apps/public-web'), 'Canonical Netlify build script must not revive the retired public-web app.');
 expect(!packageJson.scripts?.['build:netlify:chon'], 'package.json must not expose the retired combined build script.');
 
 if (failures.length) {
   console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
   process.exit(1);
 }
-console.warn('Chon.Love branding/source-of-truth validation passed: current UI is canonical and legacy Activity/Creator routes are retired.');
+console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical and legacy Activity/Creator routes are retired.');
