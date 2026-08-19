@@ -26,10 +26,14 @@ export type PublicChonProfile = {
   avatar_available: boolean;
 };
 
-type PublicProfileRpcResult = {
-  data: PublicChonProfile[] | PublicChonProfile | null;
-  error: { message?: string } | null;
+export type ChonMemberRouteResolution = {
+  public_profile_code: string;
+  username: string;
 };
+
+type RpcError = { message?: string } | null;
+type PublicProfileRpcResult = { data: PublicChonProfile[] | PublicChonProfile | null; error: RpcError };
+type RouteResolutionRpcResult = { data: ChonMemberRouteResolution[] | ChonMemberRouteResolution | null; error: RpcError };
 
 type PublicProfileRpcClient = {
   rpc: (
@@ -37,6 +41,13 @@ type PublicProfileRpcClient = {
     args: { p_code: string },
   ) => Promise<PublicProfileRpcResult>;
   supabaseUrl?: string;
+};
+
+type RouteResolutionRpcClient = {
+  rpc: (
+    functionName: 'resolve_chon_member_route',
+    args: { p_identifier: string },
+  ) => Promise<RouteResolutionRpcResult>;
 };
 
 export function publicProfileCodeFromRouteId(value: string | null | undefined): string | null {
@@ -74,4 +85,25 @@ export async function getPublicChonProfile(
   if (error) throw new Error(error.message || 'public_profile_unavailable');
   if (Array.isArray(data)) return data[0] ?? null;
   return data ?? null;
+}
+
+export async function resolveChonMemberRoute(
+  client: SupabaseClient<Database>,
+  identifier: string,
+): Promise<ChonMemberRouteResolution | null> {
+  const normalized = identifier.trim().toLowerCase().replace(/^id-/u, '');
+  if (!normalized || normalized.length > 48) return null;
+  const rpcClient = client as unknown as RouteResolutionRpcClient;
+  const { data, error } = await rpcClient.rpc('resolve_chon_member_route', { p_identifier: normalized });
+  if (error) throw new Error(error.message || 'member_route_unavailable');
+  if (Array.isArray(data)) return data[0] ?? null;
+  return data ?? null;
+}
+
+export async function resolveChonMemberUsername(
+  client: SupabaseClient<Database>,
+  identifier: string,
+): Promise<string | null> {
+  if (!CHON_PUBLIC_PROFILE_ID_PATTERN.test(identifier.trim().toLowerCase())) return identifier.trim();
+  return (await resolveChonMemberRoute(client, identifier))?.username ?? null;
 }
