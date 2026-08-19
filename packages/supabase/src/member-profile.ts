@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { resolveChonMemberUsername } from './public-profile';
 
 type Client = SupabaseClient;
 
@@ -55,9 +56,11 @@ const memberProfileSchema = z.object({
 
 export type LuxyMemberProfile = z.infer<typeof memberProfileSchema>;
 
-export async function getLuxyMemberProfile(client: Client, username: string): Promise<LuxyMemberProfile | null> {
-  const parsedUsername = z.string().trim().min(1).max(48).parse(username);
-  const { data, error } = await client.rpc('get_luxy_member_profile', { p_username: parsedUsername });
+export async function getLuxyMemberProfile(client: Client, usernameOrPublicId: string): Promise<LuxyMemberProfile | null> {
+  const parsedIdentifier = z.string().trim().min(1).max(48).parse(usernameOrPublicId);
+  const resolvedUsername = await resolveChonMemberUsername(client, parsedIdentifier);
+  if (!resolvedUsername) return null;
+  const { data, error } = await client.rpc('get_luxy_member_profile', { p_username: resolvedUsername });
   if (error) throw error;
   const rows = z.array(memberProfileSchema).parse(data ?? []);
   const row = rows[0];
