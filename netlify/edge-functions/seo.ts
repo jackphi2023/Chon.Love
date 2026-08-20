@@ -5,6 +5,9 @@ const PROFILE_SEO_ENDPOINT = 'https://asnydvqsduonyidjyyzq.supabase.co/functions
 
 export const config = {
   path: ['/', '/auth', '/auth/*', '/legal/*', '/thanh-vien/*', '/profile/*'],
+  // SEO is progressive enhancement. A metadata/middleware failure must never
+  // replace the customer-facing Chọn.Love app with Netlify's generic error page.
+  onError: 'bypass',
 };
 
 type SeoMetadata = {
@@ -90,7 +93,10 @@ function injectSeo(html: string, metadata: SeoMetadata): string {
     'twitter:title',
     'twitter:description',
     'twitter:image',
-  ].join('|').replaceAll(':', '\\:');
+  ].join('|');
+  // ':' is a literal character in JavaScript regular expressions and must not
+  // be escaped under Unicode mode. `\:` with the `u` flag throws SyntaxError at
+  // runtime and previously crashed every Netlify Edge SEO invocation.
   const metaPattern = new RegExp(`<meta\\b[^>]*(?:name|property)=["'](?:${metaKeys})["'][^>]*>`, 'giu');
   let cleaned = html
     .replace(metaPattern, '')
