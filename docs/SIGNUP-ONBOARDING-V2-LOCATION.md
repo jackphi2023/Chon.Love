@@ -7,9 +7,10 @@ Step 4 follows the Seeking-style location flow while keeping Chon.Love's privacy
 - `Tỉnh / thành phố` is required and selected from the canonical 34 active Vietnam province/municipality rows.
 - Current GPS location is optional because browser/device permission can be denied.
 - The public profile stores only `profiles.province_id`.
-- Exact coordinates are never added to `public.profiles`; when the member consents, they stay in `private.user_locations` and are used by the existing distance/nearby backend.
+- Exact coordinates are never added to `public.profiles`; when the member consents, they stay in `private.user_locations` for later distance/nearby use after profile activation.
 - The UI never prints raw latitude/longitude. It only confirms capture and approximate accuracy.
-- If GPS is unavailable or denied, registration can continue with the selected province/city and `nearby_enabled = false` unless an already-consented unexpired private location exists from a previous Step 4 attempt.
+- If GPS is unavailable or denied, registration can continue with the selected province/city.
+- While the profile remains `incomplete`, `nearby_enabled` intentionally stays `false` because the mature database invariant requires nearby discovery to imply `discovery_enabled = true`. Signup does not activate discovery early.
 
 ## Signup-safe server contract
 
@@ -24,7 +25,7 @@ The staged RPC:
 5. accepts either no exact-location payload or one complete location payload;
 6. applies the mature coordinate, source, capture-age and configured accuracy limits;
 7. stores consented GPS only in `private.user_locations` and records a private `location_events` set event;
-8. updates only `province_id` and the nearby opt-in state on the public profile;
+8. updates only the public `province_id` while keeping `nearby_enabled = false` during the incomplete-registration state;
 9. does not activate `profile_status` or `discovery_enabled`;
 10. returns only province/nearby/save-state metadata, never coordinates.
 
@@ -32,13 +33,13 @@ The mature `set_my_location(...)` RPC is unchanged and continues to require an a
 
 ## Resume and consent behavior
 
-A province-only retry does not silently delete a location the member already consented to earlier. If that private location is still enabled and unexpired, the staged RPC preserves the nearby flag. Members can explicitly update/disable location later through the mature profile/settings controls.
+A province-only retry does not silently delete a location the member already consented to earlier. The enabled/unexpired private location remains available for the later activation gate, but the public `nearby_enabled` flag remains false until discovery/profile activation. This preserves the existing `profiles_nearby_requires_discovery` invariant.
 
 Step 3 now routes successful new registrations to `/onboarding/location`. If a registration resumes after SU-04 and has no province yet, it also resumes at Location instead of skipping Step 4.
 
 ## Transitional bridge
 
-Until SU-06/SU-07 replace the old combined profile/photo screen, Step 4 continues to `/onboarding/profile`. The bridge no longer invents a first-province default or hard-codes `nearby_enabled = true`; it preserves the province and nearby state established by SU-05.
+Until SU-06/SU-07 replace the old combined profile/photo screen, Step 4 continues to `/onboarding/profile`. The bridge no longer invents a first-province default or hard-codes `nearby_enabled = true`; it preserves the selected province and keeps the staged nearby flag off. A later SU activation gate must turn nearby on only when the completed member still has a valid consented private location.
 
 ## Generated client-type checkpoint
 
