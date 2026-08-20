@@ -10,7 +10,6 @@ import {
   isAtLeastAge,
   luxyProfileEditorSchema,
   luxyProfileSetupSchema,
-  maritalStatusSchema,
   minimumOnboardingSchema,
   normalizeInterests,
   profileEditorSchema,
@@ -40,7 +39,7 @@ describe('shared validation', () => {
     expect(adultDateOfBirthSchema.safeParse('2010-01-01').success).toBe(false);
   });
 
-  it('requires every minimum onboarding acceptance', () => {
+  it('requires every legacy minimum onboarding acceptance', () => {
     const valid = {
       dateOfBirth: '1990-01-01',
       confirmedAdult: true,
@@ -90,7 +89,7 @@ describe('shared validation', () => {
     expect(profileEditorSchema.safeParse({ ...base, provinceId: 0 }).success).toBe(false);
   });
 
-  it('locks the Seeking-derived Luxy enum vocabularies', () => {
+  it('locks the Seeking-derived profile enum vocabularies', () => {
     expect(datingInterestSchema.options).toEqual(['female', 'male', 'everyone']);
     expect(relationshipStatusSchema.options).toEqual([
       'single',
@@ -124,7 +123,7 @@ describe('shared validation', () => {
     expect(profileLifestyleTagSchema.options).toContain('fine_dining');
   });
 
-  it('validates Luxy physical fields at database boundary ranges', () => {
+  it('validates mature physical fields at database boundary ranges', () => {
     expect(heightCmSchema.safeParse(120).success).toBe(true);
     expect(heightCmSchema.safeParse(178).success).toBe(true);
     expect(heightCmSchema.safeParse(230).success).toBe(true);
@@ -139,7 +138,7 @@ describe('shared validation', () => {
     expect(weightKgSchema.safeParse(251).success).toBe(false);
   });
 
-  it('validates the full LX-07 profile editor contract while keeping optional physical data nullable', () => {
+  it('validates the full profile editor contract while keeping physical data nullable', () => {
     const base = {
       username: 'luxy_member',
       displayName: 'Luxy Member',
@@ -164,18 +163,11 @@ describe('shared validation', () => {
       languages: ['Tiếng Việt', 'English'],
     };
 
-    const result = luxyProfileEditorSchema.safeParse({ ...base, heightCm: 178, weightKg: 72 });
-    expect(result.success).toBe(true);
-
-    const legacyCompatible = luxyProfileEditorSchema.safeParse({
-      ...base,
-      heightCm: null,
-      weightKg: null,
-    });
-    expect(legacyCompatible.success).toBe(true);
+    expect(luxyProfileEditorSchema.safeParse({ ...base, heightCm: 178, weightKg: 72 }).success).toBe(true);
+    expect(luxyProfileEditorSchema.safeParse({ ...base, heightCm: null, weightKg: null }).success).toBe(true);
   });
 
-  it('normalizes Luxy tags/languages and rejects inverted age preference', () => {
+  it('normalizes profile tags/languages and rejects inverted age preference', () => {
     const base = {
       username: 'luxy_member',
       displayName: 'Luxy Member',
@@ -200,24 +192,13 @@ describe('shared validation', () => {
       languages: [' Tiếng Việt ', 'tiếng việt', 'English'],
     };
 
-    const parsed = luxyProfileEditorSchema.parse({
-      ...base,
-      agePreferenceMin: 25,
-      agePreferenceMax: 40,
-    });
+    const parsed = luxyProfileEditorSchema.parse({ ...base, agePreferenceMin: 25, agePreferenceMax: 40 });
     expect(parsed.lifestyleTags).toEqual(['romantic', 'fine_dining']);
     expect(parsed.languages).toEqual(['Tiếng Việt', 'English']);
-
-    expect(
-      luxyProfileEditorSchema.safeParse({
-        ...base,
-        agePreferenceMin: 45,
-        agePreferenceMax: 30,
-      }).success,
-    ).toBe(false);
+    expect(luxyProfileEditorSchema.safeParse({ ...base, agePreferenceMin: 45, agePreferenceMax: 30 }).success).toBe(false);
   });
 
-  it('requires the Seeking-derived core fields for Luxy profile setup', () => {
+  it('keeps the mature setup schema unchanged', () => {
     const setup = {
       gender: 'female' as const,
       interestedIn: 'male' as const,
@@ -230,18 +211,7 @@ describe('shared validation', () => {
     expect(luxyProfileSetupSchema.safeParse({ ...setup, provinceId: null }).success).toBe(false);
   });
 
-  it('locks the SU-03 marital-status taxonomy', () => {
-    expect(maritalStatusSchema.options).toEqual([
-      'prefer_not_to_say',
-      'never_married',
-      'married',
-      'separated',
-      'divorced',
-      'widowed',
-    ]);
-  });
-
-  it('validates the staged Signup V2 personal-info contract', () => {
+  it('validates a fully populated Signup V2 Personal Info payload without marital duplication', () => {
     const valid = {
       dateOfBirth: '1990-01-01',
       displayName: 'Nguyen Minh Anh',
@@ -251,60 +221,61 @@ describe('shared validation', () => {
       weightKg: 52,
       educationLevel: 'bachelors' as const,
       relationshipStatus: 'single' as const,
-      maritalStatus: 'never_married' as const,
       childrenStatus: 'no_children' as const,
       drinkingStatus: 'socially' as const,
       smokingStatus: 'never' as const,
     };
-
     expect(signupPersonalInfoSchema.safeParse(valid).success).toBe(true);
-    expect(signupPersonalInfoSchema.safeParse({ ...valid, heightCm: null, weightKg: null, maritalStatus: null }).success).toBe(true);
   });
 
-  it('keeps Signup V2 validation stricter than the legacy profile editor without changing legacy ranges', () => {
+  it('allows every factual SU-04 field to remain unselected', () => {
+    expect(signupPersonalInfoSchema.safeParse({
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female',
+      interestedIn: 'male',
+    }).success).toBe(true);
+  });
+
+  it('accepts explicit not-shared values and null physical values', () => {
+    expect(signupPersonalInfoSchema.safeParse({
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female',
+      interestedIn: 'male',
+      heightCm: null,
+      weightKg: null,
+      educationLevel: 'prefer_not_to_say',
+      relationshipStatus: 'prefer_not_to_say',
+      childrenStatus: 'prefer_not_to_say',
+      drinkingStatus: 'prefer_not_to_say',
+      smokingStatus: 'prefer_not_to_say',
+    }).success).toBe(true);
+  });
+
+  it('keeps Signup V2 validation stricter than legacy profile ranges without changing legacy validation', () => {
     expect(heightCmSchema.safeParse(230).success).toBe(true);
     expect(signupHeightCmSchema.safeParse(220).success).toBe(true);
     expect(signupHeightCmSchema.safeParse(221).success).toBe(false);
 
-    const valid = {
+    const base = {
       dateOfBirth: '1990-01-01',
       displayName: 'Nguyen Minh Anh',
       gender: 'female' as const,
       interestedIn: 'male' as const,
-      heightCm: 165,
-      weightKg: null,
-      educationLevel: 'prefer_not_to_say' as const,
-      relationshipStatus: 'prefer_not_to_say' as const,
-      maritalStatus: null,
-      childrenStatus: 'prefer_not_to_say' as const,
-      drinkingStatus: 'prefer_not_to_say' as const,
-      smokingStatus: 'prefer_not_to_say' as const,
     };
-
-    expect(signupPersonalInfoSchema.safeParse({ ...valid, displayName: 'Short' }).success).toBe(false);
-    expect(signupPersonalInfoSchema.safeParse({ ...valid, displayName: 'A'.repeat(51) }).success).toBe(false);
-    expect(signupPersonalInfoSchema.safeParse({ ...valid, gender: 'non_binary' }).success).toBe(false);
-    expect(signupPersonalInfoSchema.safeParse({ ...valid, dateOfBirth: '2015-01-01' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, displayName: 'Short' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, displayName: 'A'.repeat(51) }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, gender: 'non_binary' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, dateOfBirth: '2015-01-01' }).success).toBe(false);
   });
 
   it('rejects oversized or mismatched image metadata', () => {
-    expect(
-      profileImageMetadataSchema.safeParse({
-        mimeType: 'image/jpeg',
-        fileSizeBytes: 1024,
-        width: 1080,
-        height: 1080,
-        extension: 'png',
-      }).success,
-    ).toBe(false);
-    expect(
-      profileImageMetadataSchema.safeParse({
-        mimeType: 'image/jpeg',
-        fileSizeBytes: 11 * 1024 * 1024,
-        width: 1080,
-        height: 1080,
-        extension: 'jpg',
-      }).success,
-    ).toBe(false);
+    expect(profileImageMetadataSchema.safeParse({
+      mimeType: 'image/jpeg', fileSizeBytes: 1024, width: 1080, height: 1080, extension: 'png',
+    }).success).toBe(false);
+    expect(profileImageMetadataSchema.safeParse({
+      mimeType: 'image/jpeg', fileSizeBytes: 11 * 1024 * 1024, width: 1080, height: 1080, extension: 'jpg',
+    }).success).toBe(false);
   });
 });
