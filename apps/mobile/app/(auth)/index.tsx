@@ -39,6 +39,7 @@ type JoinStep = 'preferences' | 'account' | 'otp';
 type SubmitMode = 'email' | 'otp' | 'google' | 'resend' | null;
 
 const googleAuthEnabled = process.env.EXPO_PUBLIC_FEATURE_GOOGLE_AUTH === 'true';
+const AUTH_COMPACT_BREAKPOINT = 768;
 
 export default function AuthHome() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function AuthHome() {
   const [submitMode, setSubmitMode] = useState<SubmitMode>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const compact = width < 768;
+  const compact = width < AUTH_COMPACT_BREAKPOINT;
   const disabled = !auth.isConfigured || submitMode !== null;
   const googleDisabled = disabled || !googleAuthEnabled;
 
@@ -219,7 +220,7 @@ export default function AuthHome() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.authPanel, compact && styles.authPanelCompact]}>
+        <View style={[styles.authPanel, compact && styles.authPanelCompact]} testID="signup-auth-panel">
           {mode === 'join' ? (
             joinStep === 'preferences' ? (
               <JoinPreferences
@@ -346,7 +347,7 @@ function ChoiceGroup({ label, children }: { label: string; children: ReactNode }
   return (
     <View style={styles.choiceGroup}>
       <Text style={styles.choiceLabel}>{label}</Text>
-      <View style={styles.choiceRow}>{children}</View>
+      <View accessibilityRole="radiogroup" style={styles.choiceRow}>{children}</View>
     </View>
   );
 }
@@ -354,6 +355,7 @@ function ChoiceGroup({ label, children }: { label: string; children: ReactNode }
 function ChoiceButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
@@ -397,7 +399,7 @@ function AccountForm({
   return (
     <View style={styles.accountForm}>
       {onBack ? (
-        <Pressable accessibilityRole="button" onPress={onBack} style={styles.backButton}>
+        <Pressable accessibilityLabel="Quay lại bước chọn giới tính và đối tượng quan tâm" accessibilityRole="button" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>‹ Quay lại</Text>
         </Pressable>
       ) : null}
@@ -468,7 +470,7 @@ function AccountForm({
         onPress={onGoogle}
         style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, googleDisabled && styles.disabled]}
       >
-        <View style={styles.googleMark}><Text style={styles.googleMarkText}>G</Text></View>
+        <View accessible={false} style={styles.googleMark}><Text accessibilityElementsHidden style={styles.googleMarkText}>G</Text></View>
         {submitMode === 'google' ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.googleButtonText}>Tiếp tục với Gmail</Text>}
       </Pressable>
 
@@ -503,7 +505,7 @@ function OtpForm({
   const verifyDisabled = disabled || !isCompleteEmailOtp(otp);
   return (
     <View style={styles.accountForm} testID="signup-email-otp-step">
-      <Pressable accessibilityRole="button" onPress={onBack} style={styles.backButton}>
+      <Pressable accessibilityLabel="Thay đổi email hoặc mật khẩu" accessibilityRole="button" onPress={onBack} style={styles.backButton}>
         <Text style={styles.backText}>‹ Thay đổi email / mật khẩu</Text>
       </Pressable>
 
@@ -538,7 +540,9 @@ function OtpForm({
       />
 
       <Pressable
+        accessibilityLabel="Gửi lại mã OTP"
         accessibilityRole="button"
+        accessibilityState={{ disabled, busy: submitMode === 'resend' }}
         disabled={disabled}
         onPress={onResend}
         style={({ pressed }) => [styles.resendButton, pressed && styles.pressed, disabled && styles.disabled]}
@@ -573,12 +577,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   choiceButtonSelected: { borderWidth: 2, borderColor: '#F2B51D', backgroundColor: '#FFF1B8' },
-  choiceButtonText: { color: luxyColors.ink, fontSize: 15, fontWeight: '500' },
+  choiceButtonText: { color: luxyColors.ink, fontSize: 16, fontWeight: '500' },
   choiceButtonTextSelected: { color: '#6F4B00', fontWeight: '700' },
   ageNote: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 14 },
   accountForm: { gap: 0 },
-  backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 2 },
-  backText: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
+  backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 2, paddingHorizontal: 2 },
+  backText: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
   formFields: { gap: 8 },
   fieldLabel: { color: luxyColors.ink, fontSize: 15, fontWeight: '700', marginTop: 8 },
   input: {
@@ -589,13 +593,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     color: luxyColors.ink,
-    fontSize: 15,
+    fontSize: 16,
   },
   passwordHelp: { color: luxyColors.muted, fontSize: 11, lineHeight: 17 },
   otpInput: { fontSize: 24, fontWeight: '700', letterSpacing: 8, textAlign: 'center' },
   otpHelp: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center' },
   forgotButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
-  linkText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '700' },
+  linkText: { color: luxyColors.actionRed, fontSize: 16, fontWeight: '700' },
   primaryButton: {
     minHeight: 50,
     marginTop: 8,
@@ -609,8 +613,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 2,
+    width: '100%',
   },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22 },
   divider: { flex: 1, height: 1, backgroundColor: '#D9D9D9' },
   dividerText: { color: luxyColors.muted, fontSize: 12 },
@@ -625,10 +630,11 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   googleMark: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#F3F5F6', alignItems: 'center', justifyContent: 'center' },
   googleMarkText: { color: '#4285F4', fontSize: 16, fontWeight: '800' },
-  googleButtonText: { color: luxyColors.ink, fontSize: 14, fontWeight: '600' },
+  googleButtonText: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
   termsText: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 16 },
   error: { color: luxyColors.danger, fontSize: 11, lineHeight: 17, marginBottom: 10, textAlign: 'center' },
   resendButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 8 },
