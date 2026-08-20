@@ -20,8 +20,8 @@ const verificationMeta: Record<VerificationKey, { label: string }> = {
 
 let activePortalOwner: symbol | null = null;
 
-function getProfileUsername(pathname: string): string | null {
-  const match = pathname.match(/^\/profile\/([^/?#]+)$/u);
+function getProfileIdentifier(pathname: string): string | null {
+  const match = pathname.match(/^\/(?:profile|thanh-vien)\/([^/?#]+)$/u);
   if (!match?.[1]) return null;
   try {
     return decodeURIComponent(match[1]);
@@ -38,7 +38,7 @@ function tooltipText(key: VerificationKey, verified: boolean): string {
 
 export function MemberProfileVerificationBadges() {
   const pathname = usePathname();
-  const username = getProfileUsername(pathname);
+  const identifier = getProfileIdentifier(pathname);
   const auth = useAuth();
   const client = getMobileSupabaseClient();
   const { width: viewportWidth } = useWindowDimensions();
@@ -50,12 +50,12 @@ export function MemberProfileVerificationBadges() {
     : CHON_ICON_SIZE_MOBILE;
 
   const profileQuery = useQuery({
-    queryKey: ['luxy-member-profile', auth.userId, username],
-    enabled: Boolean(client && auth.userId && username),
+    queryKey: ['luxy-member-profile', auth.userId, identifier],
+    enabled: Boolean(client && auth.userId && identifier),
     staleTime: 30_000,
     queryFn: async () => {
-      if (!client || !username) throw new Error('profile_not_available');
-      return getLuxyMemberProfile(client, username);
+      if (!client || !identifier) throw new Error('profile_not_available');
+      return getLuxyMemberProfile(client, identifier);
     },
   });
 
@@ -72,7 +72,7 @@ export function MemberProfileVerificationBadges() {
 
   useEffect(() => {
     setHovered(null);
-    if (!username || typeof document === 'undefined') {
+    if (!identifier || typeof document === 'undefined') {
       setPortalTarget(null);
       return undefined;
     }
@@ -122,7 +122,7 @@ export function MemberProfileVerificationBadges() {
       }
       setPortalTarget(null);
     };
-  }, [username]);
+  }, [identifier]);
 
   if (!portalTarget || !profileQuery.data || !badgesQuery.data) return null;
 
