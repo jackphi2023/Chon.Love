@@ -1,9 +1,11 @@
 import {
   minimumOnboardingSchema,
+  signupHeadlineBioSchema,
   signupLocationSchema,
   signupLookingForSchema,
   signupPersonalInfoSchema,
   type MinimumOnboardingInput,
+  type SignupHeadlineBioInput,
   type SignupLocationInput,
   type SignupLookingForInput,
   type SignupPersonalInfoInput,
@@ -160,6 +162,23 @@ export async function saveSignupLookingFor(input: SignupLookingForInput): Promis
   if (error) throw error;
 }
 
+export async function saveSignupHeadlineBio(input: SignupHeadlineBioInput): Promise<void> {
+  const parsed = signupHeadlineBioSchema.parse(input);
+  const client = requireAuthClient();
+
+  // SU-08 stays on the integration-only structural boundary until SU-11 emits
+  // the final generated database contract. The staged RPC itself remains
+  // authenticated/incomplete-profile-only and never activates discovery.
+  const { error } = await client.rpc(
+    'save_my_signup_headline_bio_v2' as never,
+    {
+      p_bio: parsed.bio,
+      ...(parsed.headline ? { p_headline: parsed.headline } : {}),
+    } as never,
+  );
+  if (error) throw error;
+}
+
 export function getReadableOnboardingError(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'issues' in error) {
     const issues = (error as { issues?: Array<{ message?: string }> }).issues;
@@ -183,13 +202,25 @@ export function getReadableOnboardingError(error: unknown): string {
     return 'Vui lòng hoàn thành bước Thông tin cá nhân trước khi tiếp tục.';
   }
   if (/signup location must be completed first/iu.test(message)) {
-    return 'Vui lòng hoàn thành bước Vị trí trước khi mô tả điều bạn đang tìm kiếm.';
+    return 'Vui lòng hoàn thành bước Vị trí trước khi tiếp tục.';
+  }
+  if (/signup looking for must be completed first/iu.test(message)) {
+    return 'Vui lòng hoàn thành bước Bạn đang tìm kiếm điều gì trước khi tiếp tục.';
   }
   if (/signup looking for must be 50 to 4000 characters|looking.?for/iu.test(message)) {
     return 'Hãy chia sẻ từ 50 đến 4000 ký tự về người hoặc mối quan hệ bạn đang tìm kiếm.';
   }
   if (/signup lifestyle tags must contain 1 to 7 values|lifestyle tags/iu.test(message)) {
     return 'Vui lòng chọn từ 1 đến 7 mục tiêu / phong cách phù hợp.';
+  }
+  if (/signup profile photo must be completed first|profile photo required/iu.test(message)) {
+    return 'Vui lòng upload ít nhất một ảnh hồ sơ trước khi giới thiệu bản thân.';
+  }
+  if (/signup headline must be blank or 10 to 50 characters|headline/iu.test(message)) {
+    return 'Tiêu đề có thể để trống; nếu nhập cần từ 10 đến 50 ký tự.';
+  }
+  if (/signup bio must be 50 to 4000 characters|invalid_bio|biography/iu.test(message)) {
+    return 'Hãy giới thiệu bản thân từ 50 đến 4000 ký tự.';
   }
   if (/location accuracy too low/iu.test(message)) {
     return 'Vị trí hiện tại chưa đủ chính xác. Bạn có thể thử lại hoặc tiếp tục chỉ với tỉnh/thành phố.';
