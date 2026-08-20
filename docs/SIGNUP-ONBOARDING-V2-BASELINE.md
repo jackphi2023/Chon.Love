@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-04.
+Status: integration baseline through SU-05.
 
 ## Source of truth
 
@@ -15,7 +15,8 @@ Status: integration baseline through SU-04.
 - Do not merge this branch to `main` until the complete Signup / Onboarding V2 release gate is green.
 - Do not reset, recreate, truncate or destructively backfill existing member tables.
 - Do not change existing user IDs, usernames, public profile codes, media ownership, membership, balances or verification history.
-- Do not change location persistence or selfie-provider behavior before their dedicated SU sessions.
+- SU-05 may add a signup-only staged location contract, but must not weaken or replace the mature active-member `set_my_location` authorization/privacy behavior.
+- Do not change selfie-provider behavior before its dedicated SU session.
 - Do not turn stricter new-signup rules into global constraints that can invalidate historical active profiles.
 
 ## SU-01 UI foundation
@@ -45,7 +46,19 @@ Status: integration baseline through SU-04.
 - The three old visible adult/Terms/Community checkboxes are removed from Step 3; acceptance remains recorded atomically when Personal Info is saved.
 - Signup V2 display name is 10–50 and signup height is 120–220, enforced only by staged signup validation/RPC rather than by tightening mature global constraints.
 - The staged Personal Info RPC is restricted to `profile_status = incomplete`, preserves existing usernames, generates an internal username only when missing, and does not activate discovery, location, media or the profile.
-- Existing incomplete users who already completed the mature age/policy onboarding contract continue through the existing bridge instead of being forced through the stricter new-registration screen.
+- Existing incomplete users who already completed the mature age/policy onboarding contract are not forced through stricter Personal Info again.
+
+## SU-05 location contract
+
+- Step 4 is a dedicated responsive `Vị trí của bạn` screen using the same SignupShell/progress/chrome.
+- `Tỉnh / thành phố` is required and comes from the canonical 34 active Vietnam province/municipality rows; no arbitrary first-province default is invented.
+- Current GPS is optional and explicitly consent-based so a denied browser/device permission cannot block registration.
+- Public profile storage remains `profiles.province_id`; no public latitude/longitude/location columns are introduced.
+- Consented exact location remains only in `private.user_locations`, with the existing configuration bounds for accuracy/capture age and private location-event auditing.
+- The staged `save_my_signup_location_v2` accepts only incomplete profiles that already satisfy the SU-04 adult/policy authority and never activates the profile or discovery.
+- Province-only saves keep nearby disabled when no private location exists. A resume/retry preserves an already-consented unexpired private location instead of silently deleting it.
+- The existing mature `set_my_location` contract remains unchanged for active adult members.
+- The transitional profile/photo bridge now preserves the SU-05 province/nearby state and no longer hard-codes nearby true or asks the member to choose province again.
 
 ## Visual contract
 
@@ -57,11 +70,13 @@ Status: integration baseline through SU-04.
 - Help/warning/success copy: approximately 11–12 px gray/red/green.
 - Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-04
+## Release acceptance through SU-05
 
 - Integration branch remains isolated from `main`.
 - Shared public chrome / SignupShell remain the single registration presentation foundation.
 - Email/password + signup OTP contract remains intact.
-- Personal Info DB contract, validation, optional-dropdown mapping and UI are regression-tested.
-- Production user data remains unchanged by this implementation session.
+- Personal Info and Location DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
+- Exact GPS remains private; only province/city is public.
+- Production user data/schema remains unchanged by this implementation session.
+- `save_my_signup_location_v2` stays on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
 - Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
