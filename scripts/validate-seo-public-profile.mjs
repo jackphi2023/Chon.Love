@@ -10,8 +10,12 @@ const productionOrigin = 'https://www.chon.love';
 const rootLayout = read('apps/mobile/app/_layout.tsx');
 const rootHtml = read('apps/mobile/app/+html.tsx');
 const publicRoute = read('apps/mobile/app/thanh-vien/[username].tsx');
+const canonicalProfileLayout = read('apps/mobile/app/thanh-vien/_layout.tsx');
 const legacyRoute = read('apps/mobile/app/profile/[username].tsx');
+const sharedProfileLayout = read('apps/mobile/app/profile/_layout.tsx');
 const richProfileScreen = read('apps/mobile/src/screens/luxy-member-profile-screen.tsx');
+const verificationBadgesWeb = read('apps/mobile/src/components/member-profile-verification-badges.web.tsx');
+const mobileActionsWeb = read('apps/mobile/src/components/member-profile-mobile-actions.web.tsx');
 const sharedPublicProfile = read('packages/supabase/src/public-profile.ts');
 const memberProfileClient = read('packages/supabase/src/member-profile.ts');
 const sharedIndex = read('packages/supabase/src/index.ts');
@@ -21,6 +25,7 @@ const netlifySeo = read('netlify/edge-functions/seo.ts');
 const supabaseSeo = read('supabase/functions/public-profile-seo/index.ts');
 const supabaseConfig = read('supabase/config.toml');
 const browserTest = read('tests/br-09/observability-accessibility-resilience.spec.mjs');
+const homepageBrowserTest = read('tests/br-06/luxy-public-homepage.spec.mjs');
 const packageJson = JSON.parse(read('package.json'));
 const ci = read('.github/workflows/ci.yml');
 
@@ -50,6 +55,12 @@ expect(publicRoute.includes('`Thành viên ${profile.display_name} | ${TITLE_SUF
 expect(!publicRoute.includes("pathname: '/profile/[username]'"), 'Canonical public profile screen must not navigate back to username URLs.');
 expect(richProfileScreen.includes('getLuxyMemberProfile') && richProfileScreen.includes('getProfileViewer'), 'Extracted rich member screen must preserve existing profile and social behavior.');
 
+expect(canonicalProfileLayout.includes("export { default } from '../profile/_layout';"), 'Canonical member route must reuse the authenticated profile shell instead of silently dropping profile actions.');
+expect(sharedProfileLayout.includes('if (!auth.userId) return <Slot />;'), 'Shared member profile shell must stay clean for logged-out public profile visitors.');
+expect(sharedProfileLayout.includes('recordProfileViewByUsername(client, profile.username)'), 'Canonical profile views must keep analytics after resolving the opaque public ID to the existing username contract.');
+expect(verificationBadgesWeb.includes('(?:profile|thanh-vien)'), 'Verification badges must activate on both legacy and canonical member routes.');
+expect(mobileActionsWeb.includes('(?:profile|thanh-vien)'), 'Mobile member actions and the Free upgrade prompt must activate on both legacy and canonical member routes.');
+
 expect(legacyRoute.includes('resolveChonMemberRoute') && legacyRoute.includes('router.replace(toPublicMemberPath(code))'), 'Legacy /profile/<username> route must canonicalize authenticated users to /thanh-vien/id-xxxxxx.');
 expect(routeMigration.includes('resolve_chon_member_route') && routeMigration.includes('revoke all') && routeMigration.includes('to authenticated, service_role'), 'Legacy route resolver must be authenticated-only and avoid public username mapping.');
 expect(viewerCompatMigration.includes("v_identifier ~ '^id-[0-9a-f]{6}$'"), 'Rich profile viewer must accept canonical public member IDs after routing migration.');
@@ -75,6 +86,7 @@ expect(!supabaseSeo.includes(".from('profiles').select"), 'Public SEO endpoint m
 expect(supabaseConfig.includes('[functions.public-profile-seo]') && supabaseConfig.includes('verify_jwt = false'), 'Public SEO metadata endpoint must be explicitly configured for crawler access.');
 
 expect(browserTest.includes(`Đăng nhập | ${titleSuffix}`), 'Browser accessibility test must assert the new login title contract.');
+expect(homepageBrowserTest.includes(`const homepageSeoTitle = 'Trang chủ | ${titleSuffix}'`), 'BR-06 homepage browser test must assert the new SEO title instead of stale Chon.Love branding.');
 expect(packageJson.scripts?.['validate:seo-public-profile'] === 'node scripts/validate-seo-public-profile.mjs', 'package.json must expose the public profile SEO validator.');
 expect(packageJson.scripts?.validate?.includes('validate:seo-public-profile'), 'Aggregate validation must include public profile SEO.');
 expect(ci.includes('pnpm validate:seo-public-profile'), 'Application CI must execute public profile SEO validation.');
@@ -85,4 +97,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.warn('Chọn.love public profile SEO validation passed: canonical id routes, legacy username redirects, member-specific social images, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
+console.warn('Chọn.love public profile SEO validation passed: canonical id routes, legacy username redirects, shared authenticated profile shell, member-specific social images, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
