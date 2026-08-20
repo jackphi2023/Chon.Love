@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
 
 const CHON_GOLD = '#FFBB00';
+const NAV_LOGO_SCALE = 1.16;
 
 type PublicHeaderProps = {
   compact: boolean;
@@ -33,7 +34,7 @@ export function PublicHeader({
   onAction,
 }: PublicHeaderProps) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const logo = <ChonLoveLogo height={compact ? 49 : 63} width={compact ? 111 : 146} />;
+  const logo = <ChonLoveLogo height={compact ? 42 : 54} scale={NAV_LOGO_SCALE} width={compact ? 96 : 126} />;
 
   return (
     <View
