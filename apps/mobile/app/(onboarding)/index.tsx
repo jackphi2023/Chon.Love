@@ -96,9 +96,6 @@ export default function OnboardingPersonalInfo() {
         const mediaRows = client ? await listMyMedia(client) : [];
         if (!active) return;
 
-        // Resume staged Signup V2 at the earliest incomplete screen. Existing
-        // mature incomplete users are not forced through stricter Personal Info
-        // again, but must complete the remaining public profile flow before selfie.
         if (status.age_verified && status.policies_accepted) {
           if (profile?.province_id == null) {
             router.replace('/onboarding/location');
@@ -191,7 +188,7 @@ export default function OnboardingPersonalInfo() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={styles.loadingText}>Đang chuẩn bị hồ sơ…</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.loadingText}>Đang chuẩn bị hồ sơ…</Text>
       </View>
     );
   }
@@ -207,7 +204,7 @@ export default function OnboardingPersonalInfo() {
         {deletionRequested ? (
           <SignupPrimaryButton label="Xem hoặc hủy yêu cầu xóa" onPress={() => router.push('/settings/account-deletion')} />
         ) : null}
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+        <Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
           <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
       </SignupShell>
@@ -230,6 +227,7 @@ export default function OnboardingPersonalInfo() {
 
       <SignupFieldLabel required>Tên hiển thị</SignupFieldLabel>
       <SignupTextField
+        accessibilityLabel="Tên hiển thị"
         autoCapitalize="words"
         maxLength={50}
         onChangeText={setDisplayName}
@@ -299,5 +297,5 @@ const styles = StyleSheet.create({
   policyCopy: { color: colors.muted, fontSize: 11.5, lineHeight: 18, marginTop: 4 },
   inlineLink: { color: colors.accent, fontWeight: '800' },
   signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48, marginTop: 8 },
-  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });
