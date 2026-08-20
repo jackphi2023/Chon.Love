@@ -672,7 +672,7 @@ export default function EditProfilePage() {
                   <LongTextSection
                     control={control}
                     helper="Chia sẻ bạn là ai, điều bạn yêu thích và điều khiến bạn nổi bật. Nội dung này xuất hiện trên hồ sơ của bạn."
-                    maxLength={500}
+                    maxLength={4000}
                     name="bio"
                     title="Giới thiệu về bạn"
                   />
