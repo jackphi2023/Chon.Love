@@ -15,9 +15,11 @@ import {
   profileEditorSchema,
   profileImageMetadataSchema,
   profileLifestyleTagSchema,
+  profileLookingForSchema,
   relationshipStatusSchema,
   signupHeightCmSchema,
   signupLocationSchema,
+  signupLookingForSchema,
   signupPersonalInfoSchema,
   smokingStatusSchema,
   usernameSchema,
@@ -304,6 +306,37 @@ describe('shared validation', () => {
       provinceId: 79,
       location: { latitude: 10.7, longitude: 106.7 },
     }).success).toBe(false);
+  });
+
+  it('validates Signup V2 looking-for text and 1-7 selected tags', () => {
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'Tôi mong muốn một mối quan hệ nghiêm túc, chân thành và tôn trọng lẫn nhau.',
+      lifestyleTags: ['long_term', 'marriage_minded', 'ready_to_travel'],
+    }).success).toBe(true);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'Ngắn hơn năm mươi ký tự.',
+      lifestyleTags: ['long_term'],
+    }).success).toBe(false);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'A'.repeat(4001),
+      lifestyleTags: ['long_term'],
+    }).success).toBe(false);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'A'.repeat(80),
+      lifestyleTags: [],
+    }).success).toBe(false);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'A'.repeat(80),
+      lifestyleTags: [
+        'true_love', 'luxury_lifestyle', 'active_lifestyle', 'flexible_schedule',
+        'emotional_connection', 'refined', 'fine_dining', 'friendship',
+      ],
+    }).success).toBe(false);
+  });
+
+  it('widens mature looking-for validation to preserve Signup V2 4000-character answers', () => {
+    expect(profileLookingForSchema.safeParse('A'.repeat(4000)).success).toBe(true);
+    expect(profileLookingForSchema.safeParse('A'.repeat(4001)).success).toBe(false);
   });
 
   it('rejects oversized or mismatched image metadata', () => {
