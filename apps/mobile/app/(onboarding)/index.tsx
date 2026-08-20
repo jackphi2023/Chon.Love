@@ -1,4 +1,4 @@
-import { getMyProfile } from '@myfan/supabase';
+import { getMyProfile, listMyMedia } from '@myfan/supabase';
 import { colors, luxyBreakpoints, spacing } from '@myfan/ui';
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -24,6 +24,7 @@ import {
   SIGNUP_SMOKING_OPTIONS,
   SIGNUP_WEIGHT_OPTIONS,
 } from '@/lib/signup-profile-contract';
+import { isUsableSignupProfilePhoto } from '@/lib/signup-photo-contract';
 import { readSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -92,11 +93,12 @@ export default function OnboardingPersonalInfo() {
         const draft = readSignupDraft();
         const client = getMobileSupabaseClient();
         const profile = client ? await getMyProfile(client) : null;
+        const mediaRows = client ? await listMyMedia(client) : [];
         if (!active) return;
 
         // Resume staged Signup V2 at the earliest incomplete screen. Existing
-        // mature incomplete users are not forced through Personal Info again;
-        // they only fill missing province/intent data before the dedicated photo step.
+        // mature incomplete users are not forced through stricter Personal Info
+        // again, but must complete the remaining public profile flow before selfie.
         if (status.age_verified && status.policies_accepted) {
           if (profile?.province_id == null) {
             router.replace('/onboarding/location');
@@ -104,11 +106,23 @@ export default function OnboardingPersonalInfo() {
           }
           const lookingForLength = profile.looking_for?.trim().length ?? 0;
           const lifestyleTagCount = profile.lifestyle_tags?.length ?? 0;
-          if (lookingForLength < 50 || lookingForLength > 4000 || lifestyleTagCount < 1) {
+          if (lookingForLength < 50 || lookingForLength > 4000 || lifestyleTagCount < 1 || lifestyleTagCount > 7) {
             router.replace('/onboarding/looking-for');
             return;
           }
-          router.replace('/onboarding/photos');
+          if (!mediaRows.some(isUsableSignupProfilePhoto)) {
+            router.replace('/onboarding/photos');
+            return;
+          }
+          const headlineLength = profile.headline?.trim().length ?? 0;
+          const bioLength = profile.bio?.trim().length ?? 0;
+          const headlineValid = headlineLength === 0 || (headlineLength >= 10 && headlineLength <= 50);
+          const bioValid = bioLength >= 50 && bioLength <= 4000;
+          if (!headlineValid || !bioValid) {
+            router.replace('/onboarding/about');
+            return;
+          }
+          router.replace('/onboarding/selfie');
           return;
         }
 
