@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-07.
+Status: integration baseline through SU-08.
 
 ## Source of truth
 
@@ -17,7 +17,6 @@ Status: integration baseline through SU-07.
 - Do not change existing user IDs, usernames, public profile codes, media ownership, membership, balances or verification history.
 - Signup-only staged contracts must not weaken mature active-member authorization/privacy behavior.
 - Widening a mature content maximum is allowed only when it is backwards-compatible and needed so valid Signup V2 data remains editable later.
-- Do not change selfie-provider behavior before its dedicated SU session.
 - Do not turn stricter new-signup rules into global constraints that can invalidate historical active profiles.
 
 ## SU-01 UI foundation
@@ -86,7 +85,21 @@ Status: integration baseline through SU-07.
 - Unsupported or oversized files alone are re-rendered. The fallback starts at up to 4096 px on the longest edge with JPEG quality 0.96 and steps down only as needed to remain inside 10 MB.
 - No low-resolution thumbnail or blur transform is added to Step 6 previews; local prepared images and existing signed media URLs are rendered directly.
 - Existing media ownership, moderation, storage buckets and signed-URL delivery authority remain unchanged; SU-07 does not require a database migration.
-- SU-08 will insert the dedicated Headline/Bio screen after Photos and before Selfie.
+
+## SU-08 headline + bio contract
+
+- Step 7 is a dedicated responsive `Giới thiệu về bạn` screen at `/onboarding/about`, after Photos and before Selfie.
+- `headline` is optional. Blank is valid; when provided it is trimmed and must contain 10–50 characters during Signup V2.
+- `bio` is required during Signup V2 and is trimmed/validated at 50–4000 characters with a live counter.
+- Canonical storage remains `public.profiles.headline` and `public.profiles.bio`; no duplicate onboarding-only profile-copy columns are introduced.
+- The mature/global headline contract remains up to 120 characters. Production audit found an existing active headline over 50 characters, so the stricter 10–50 rule stays signup-only.
+- The mature biography maximum is widened from 500 to 4000 so a valid Signup V2 biography remains fully editable later. No mature minimum is added: production audit found existing active short biographies below 50 characters and these remain valid.
+- Profile Edit is aligned to the 4000-character biography maximum while retaining the mature blank/short-bio behavior.
+- `save_my_signup_headline_bio_v2(...)` is authenticated and incomplete-profile-only. It requires adult/policy completion, canonical province, valid Looking For data and at least one usable uploaded profile photo.
+- The staged Step 7 RPC writes only headline/bio and never activates profile, discovery or nearby.
+- Resume logic now advances through the earliest missing stage: Location → Looking For → Photos → About → Selfie.
+- The selfie Edge Function independently rejects a new verification submit when Step 7 profile copy is incomplete, so a client route cannot bypass the server-side activation gate.
+- The existing 60% face-similarity threshold, maximum five reference photos and declared-gender consistency-only behavior remain unchanged.
 
 ## Visual contract
 
@@ -98,17 +111,20 @@ Status: integration baseline through SU-07.
 - Help/warning/success copy: approximately 11–12 px gray/red/green.
 - Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-07
+## Release acceptance through SU-08
 
 - Integration branch remains isolated from `main`.
 - Shared public chrome / SignupShell remain the single registration presentation foundation.
 - Email/password + signup OTP contract remains intact.
-- Personal Info, Location and Looking For DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
+- Personal Info, Location, Looking For and Headline/Bio DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
 - Exact GPS remains private; only province/city is public.
 - Looking-for content uses the existing typed profile taxonomy rather than a duplicate schema.
-- Signup, mature validation/server storage and Profile Edit all share the 4000-character looking-for ceiling.
-- Signup photo selection now has one dedicated five-slot screen and no longer runs the old combined profile activation bridge.
+- Signup, mature validation/server storage and Profile Edit share the 4000-character looking-for ceiling.
+- Signup photo selection has one dedicated five-slot screen and no longer runs the old combined profile activation bridge.
 - Supported profile-image files that fit the backend contract are not recompressed or downscaled by the client.
+- Signup V2 headline/bio minimums remain staged-only; mature existing short bios and >50-character headlines are not invalidated.
+- Mature biography storage, validation, server RPC and Profile Edit are aligned to a 4000-character maximum.
+- New selfie submissions require completed Step 7 profile copy before the verification/activation path can proceed.
 - Production user data/schema remains unchanged by this implementation session.
-- `save_my_signup_location_v2` and `save_my_signup_looking_for_v2` stay on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
+- `save_my_signup_location_v2`, `save_my_signup_looking_for_v2` and `save_my_signup_headline_bio_v2` stay on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
 - Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
