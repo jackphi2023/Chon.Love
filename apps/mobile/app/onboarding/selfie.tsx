@@ -1,4 +1,4 @@
-import { getMyProfile, type GenderIdentity } from '@myfan/supabase';
+import { getMyProfile, listMyMedia, type GenderIdentity } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -17,6 +17,7 @@ import {
   type MemberPhotoVerificationResult,
 } from '@/lib/member-photo-verification';
 import type { PreparedLocalProfileImage } from '@/lib/profile-media';
+import { isUsableSignupProfilePhoto } from '@/lib/signup-photo-contract';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -44,12 +45,29 @@ export default function SelfieVerificationOnboarding() {
       return;
     }
 
-    void Promise.all([getMyProfile(client), getMemberPhotoVerificationStatus(client)])
-      .then(([profile, status]) => {
+    void Promise.all([getMyProfile(client), listMyMedia(client), getMemberPhotoVerificationStatus(client)])
+      .then(([profile, mediaRows, status]) => {
         if (!active) return;
         setDeclaredGender(profile.gender);
         setResult(status);
-        if (status.state === 'approved') router.replace('/(tabs)');
+        if (status.state === 'approved') {
+          router.replace('/(tabs)');
+          return;
+        }
+
+        if (status.state === 'not_started' && profile.profile_status === 'incomplete') {
+          if (!mediaRows.some(isUsableSignupProfilePhoto)) {
+            router.replace('/onboarding/photos');
+            return;
+          }
+          const headlineLength = profile.headline?.trim().length ?? 0;
+          const bioLength = profile.bio?.trim().length ?? 0;
+          const headlineValid = headlineLength === 0 || (headlineLength >= 10 && headlineLength <= 50);
+          const bioValid = bioLength >= 50 && bioLength <= 4000;
+          if (!headlineValid || !bioValid) {
+            router.replace('/onboarding/about');
+          }
+        }
       })
       .catch(() => {
         if (active) setErrorMessage('Không thể tải trạng thái xác minh ảnh. Hãy thử lại.');
@@ -75,6 +93,8 @@ export default function SelfieVerificationOnboarding() {
       const message = error instanceof Error ? error.message : '';
       if (message.includes('profile_photo_required')) {
         setErrorMessage('Bạn cần upload ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.');
+      } else if (message.includes('signup_profile_details_required')) {
+        setErrorMessage('Vui lòng hoàn thành phần Giới thiệu về bạn trước khi xác minh.');
       } else {
         setErrorMessage('Không thể hoàn tất xác minh ảnh. Hãy kiểm tra kết nối và thử lại.');
       }
@@ -132,7 +152,7 @@ export default function SelfieVerificationOnboarding() {
   return (
     <SignupShell
       description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
-      onBack={() => router.replace('/onboarding/photos')}
+      onBack={() => router.replace('/onboarding/about')}
       step={8}
       testID="chon-selfie-verification"
       title="Chụp selfie xác minh"
