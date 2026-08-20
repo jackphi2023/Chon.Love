@@ -108,6 +108,7 @@ jobs:
           test -f supabase/migrations/20260820095000_su_03_signup_personal_info_contract.sql
           test -f supabase/migrations/20260820112500_su_05_signup_location_contract.sql
           test -f supabase/migrations/20260820113500_su_06_signup_looking_for_contract.sql
+          test -f supabase/migrations/20260820124000_su_08_signup_headline_bio_contract.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -130,6 +131,7 @@ jobs:
           test -f supabase/tests/su_03_signup_personal_info_contract.sql
           test -f supabase/tests/su_05_signup_location_contract.sql
           test -f supabase/tests/su_06_signup_looking_for_contract.sql
+          test -f supabase/tests/su_08_signup_headline_bio_contract.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -194,6 +196,9 @@ jobs:
 
       - name: Run SU-06 Signup looking-for contract
         run: supabase test db supabase/tests/su_06_signup_looking_for_contract.sql --local
+
+      - name: Run SU-08 Signup headline/bio contract
+        run: supabase test db supabase/tests/su_08_signup_headline_bio_contract.sql --local
 
       - name: Run concurrent gift ledger test
         run: bash supabase/tests/09_concurrency.sh
