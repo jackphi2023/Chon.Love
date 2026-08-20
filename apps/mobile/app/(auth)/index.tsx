@@ -15,8 +15,9 @@ import {
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SignupSecondaryButton } from '@/components/signup-shell';
 import {
-  requestEmailSignupOtp,
+  resendEmailSignupOtp,
   signInWithEmailPassword,
+  signUpWithEmailPassword,
   startGoogleAuthentication,
   verifyEmailSignupOtp,
 } from '@/lib/auth';
@@ -66,6 +67,7 @@ export default function AuthHome() {
     setMode(nextMode);
     setErrorMessage(null);
     setOtp('');
+    setPassword('');
     if (nextMode === 'join') {
       const draft = readSignupDraft();
       if (draft) {
@@ -106,7 +108,7 @@ export default function AuthHome() {
     }
   }
 
-  async function handleRequestOtp() {
+  async function handleSignUp() {
     setErrorMessage(null);
     if (!gender || !interest) {
       setJoinStep('preferences');
@@ -115,11 +117,36 @@ export default function AuthHome() {
     }
     setSubmitMode('email');
     try {
-      const normalizedEmail = await requestEmailSignupOtp(email);
+      const result = await signUpWithEmailPassword(email, password);
+      const normalizedEmail = email.trim().toLowerCase();
       setEmail(normalizedEmail);
-      setOtp('');
-      writeSignupDraft({ gender, interest, email: normalizedEmail, stage: 'otp', updatedAt: Date.now() });
-      setJoinStep('otp');
+
+      if (result.destination) {
+        if (result.destination === '/(tabs)') clearSignupDraft();
+        else {
+          writeSignupDraft({
+            gender,
+            interest,
+            email: normalizedEmail,
+            stage: 'verified',
+            updatedAt: Date.now(),
+          });
+        }
+        router.replace(result.destination);
+        return;
+      }
+
+      if (result.requiresEmailConfirmation) {
+        setOtp('');
+        writeSignupDraft({
+          gender,
+          interest,
+          email: normalizedEmail,
+          stage: 'otp',
+          updatedAt: Date.now(),
+        });
+        setJoinStep('otp');
+      }
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
     } finally {
@@ -146,7 +173,7 @@ export default function AuthHome() {
     setErrorMessage(null);
     setSubmitMode('resend');
     try {
-      const normalizedEmail = await requestEmailSignupOtp(email);
+      const normalizedEmail = await resendEmailSignupOtp(email);
       setEmail(normalizedEmail);
       patchSignupDraft({ email: normalizedEmail, stage: 'otp', updatedAt: Date.now() });
     } catch (error) {
@@ -213,12 +240,12 @@ export default function AuthHome() {
                 onBack={() => {
                   setJoinStep('preferences');
                   setErrorMessage(null);
+                  setPassword('');
                 }}
                 onEmail={setEmail}
-                onForgotPassword={() => router.push('/auth/forgot-password')}
                 onGoogle={handleGoogle}
                 onPassword={setPassword}
-                onSubmit={handleRequestOtp}
+                onSubmit={handleSignUp}
                 password={password}
                 submitMode={submitMode}
               />
@@ -232,6 +259,7 @@ export default function AuthHome() {
                   setJoinStep('account');
                   setErrorMessage(null);
                   setOtp('');
+                  setPassword('');
                 }}
                 onOtp={(value) => setOtp(normalizeEmailOtp(value))}
                 onResend={() => void handleResendOtp()}
@@ -358,7 +386,7 @@ function AccountForm({
   mode: AuthMode;
   onBack?: () => void;
   onEmail: (value: string) => void;
-  onForgotPassword: () => void;
+  onForgotPassword?: () => void;
   onGoogle: () => void;
   onPassword: (value: string) => void;
   onSubmit: () => void;
@@ -375,7 +403,7 @@ function AccountForm({
       ) : null}
 
       <Text accessibilityRole="header" style={styles.heading}>{login ? 'Đăng nhập' : 'Đăng ký bằng email'}</Text>
-      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Chon.Love.' : 'Nhập email của bạn. Chon.Love sẽ gửi mã OTP gồm 6 số để xác thực tài khoản.'}</Text>
+      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Chon.Love.' : 'Nhập email và tạo mật khẩu tối thiểu 8 ký tự. Sau đó Chon.Love sẽ gửi mã OTP 6 số để xác thực email.'}</Text>
 
       <View style={styles.formFields}>
         <Text style={styles.fieldLabel}>Email</Text>
@@ -391,26 +419,23 @@ function AccountForm({
           value={email}
         />
 
-        {login ? (
-          <>
-            <Text style={styles.fieldLabel}>Mật khẩu</Text>
-            <TextInput
-              accessibilityLabel="Mật khẩu"
-              autoCapitalize="none"
-              autoComplete="current-password"
-              onChangeText={onPassword}
-              onSubmitEditing={onSubmit}
-              placeholder="Nhập mật khẩu"
-              placeholderTextColor={luxyColors.muted}
-              secureTextEntry
-              style={styles.input}
-              value={password}
-            />
-          </>
-        ) : null}
+        <Text style={styles.fieldLabel}>Mật khẩu</Text>
+        <TextInput
+          accessibilityLabel="Mật khẩu"
+          autoCapitalize="none"
+          autoComplete={login ? 'current-password' : 'new-password'}
+          onChangeText={onPassword}
+          onSubmitEditing={onSubmit}
+          placeholder={login ? 'Nhập mật khẩu' : 'Tối thiểu 8 ký tự'}
+          placeholderTextColor={luxyColors.muted}
+          secureTextEntry
+          style={styles.input}
+          value={password}
+        />
+        {!login ? <Text style={styles.passwordHelp}>Mật khẩu cần ít nhất 8 ký tự.</Text> : null}
       </View>
 
-      {login ? (
+      {login && onForgotPassword ? (
         <Pressable accessibilityLabel="Quên mật khẩu" accessibilityRole="link" onPress={onForgotPassword} style={styles.forgotButton}>
           <Text style={styles.linkText}>Quên mật khẩu?</Text>
         </Pressable>
@@ -479,11 +504,11 @@ function OtpForm({
   return (
     <View style={styles.accountForm} testID="signup-email-otp-step">
       <Pressable accessibilityRole="button" onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Thay đổi email</Text>
+        <Text style={styles.backText}>‹ Thay đổi email / mật khẩu</Text>
       </Pressable>
 
       <Text accessibilityRole="header" style={styles.heading}>Xác thực email</Text>
-      <Text style={styles.subheading}>Nhập mã OTP 6 số đã được gửi tới {email}. Nếu chưa thấy email, hãy kiểm tra thư rác hoặc gửi lại mã.</Text>
+      <Text style={styles.subheading}>Tài khoản đã được tạo với mật khẩu của bạn. Nhập mã OTP 6 số đã được gửi tới {email} để xác thực email và tiếp tục.</Text>
 
       <View style={styles.formFields}>
         <Text style={styles.fieldLabel}>Mã xác thực</Text>
@@ -566,6 +591,7 @@ const styles = StyleSheet.create({
     color: luxyColors.ink,
     fontSize: 15,
   },
+  passwordHelp: { color: luxyColors.muted, fontSize: 11, lineHeight: 17 },
   otpInput: { fontSize: 24, fontWeight: '700', letterSpacing: 8, textAlign: 'center' },
   otpHelp: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center' },
   forgotButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
