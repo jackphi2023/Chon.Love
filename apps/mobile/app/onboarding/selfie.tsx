@@ -92,7 +92,7 @@ export default function SelfieVerificationOnboarding() {
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       if (message.includes('profile_photo_required')) {
-        setErrorMessage('Bạn cần upload ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.');
+        setErrorMessage('Bạn cần tải lên ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.');
       } else if (message.includes('signup_profile_details_required')) {
         setErrorMessage('Vui lòng hoàn thành phần Giới thiệu về bạn trước khi xác minh selfie.');
       } else {
@@ -124,7 +124,7 @@ export default function SelfieVerificationOnboarding() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>Đang kiểm tra trạng thái xác minh…</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>Đang kiểm tra trạng thái xác minh…</Text>
       </View>
     );
   }
@@ -137,8 +137,8 @@ export default function SelfieVerificationOnboarding() {
         testID="chon-selfie-approved"
         title="Xác minh thành công"
       >
-        <View style={styles.successCard}>
-          <View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View>
+        <View accessibilityLiveRegion="polite" style={styles.successCard}>
+          <View accessible={false} style={styles.successIcon}><Text accessibilityElementsHidden style={styles.successIconText}>✓</Text></View>
           <View style={styles.successCopy}>
             <Text style={styles.successTitle}>Chào mừng bạn đến Chon.Love</Text>
             <Text style={styles.successText}>
@@ -160,7 +160,7 @@ export default function SelfieVerificationOnboarding() {
         title="Chúng tôi sẽ kiểm tra để xác nhận"
       >
         <View style={styles.warningCard}>
-          <Text accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
+          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
           <Text style={styles.warningText}>{result.message || MEMBER_PHOTO_PENDING_MESSAGE}</Text>
           {typeof result.maxSimilarity === 'number' ? (
             <Text style={styles.scoreText}>Độ tương đồng tự động: {result.maxSimilarity.toFixed(1)}%</Text>
@@ -194,7 +194,7 @@ export default function SelfieVerificationOnboarding() {
 
   return (
     <SignupShell
-      description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
+      description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã tải lên."
       onBack={() => router.replace('/onboarding/about')}
       step={8}
       testID="chon-selfie-verification"
@@ -204,13 +204,20 @@ export default function SelfieVerificationOnboarding() {
         <Text style={styles.ruleTitle}>Điều kiện tự động duyệt</Text>
         <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
         <Text style={styles.ruleText}>• Hệ thống không suy đoán giới tính từ khuôn mặt; chỉ khóa giá trị giới tính bạn đã tự khai báo để tránh thay đổi dữ liệu giữa luồng.</Text>
-        <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng → chuyển Admin review, không tự động khóa vĩnh viễn.</Text>
+        <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng → chuyển sang kiểm tra thủ công, không tự động khóa vĩnh viễn.</Text>
       </View>
 
       {selfie ? (
         <View style={styles.previewWrap}>
           <Image accessibilityLabel="Selfie vừa chụp" source={{ uri: selfie.previewUri }} style={styles.selfiePreview} />
-          <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => setSelfie(null)} style={styles.textButton}>
+          <Pressable
+            accessibilityLabel="Chụp lại selfie"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isSubmitting }}
+            disabled={isSubmitting}
+            onPress={() => setSelfie(null)}
+            style={styles.textButton}
+          >
             <Text style={styles.textButtonLabel}>Chụp lại</Text>
           </Pressable>
         </View>
@@ -254,6 +261,6 @@ const styles = StyleSheet.create({
   scoreText: { color: '#9A3412', fontSize: 12, fontWeight: '700' },
   previewWrap: { alignItems: 'center', gap: spacing.sm },
   selfiePreview: { aspectRatio: 1, borderRadius: 14, maxWidth: 420, width: '100%' },
-  textButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  textButtonLabel: { color: colors.accent, fontSize: 14, fontWeight: '800' },
+  textButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  textButtonLabel: { color: colors.accent, fontSize: 16, fontWeight: '800' },
 });
