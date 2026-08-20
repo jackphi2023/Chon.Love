@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: implementation branch baseline for SU-00 through SU-03.
+Status: integration baseline through SU-04.
 
 ## Source of truth
 
@@ -8,68 +8,60 @@ Status: implementation branch baseline for SU-00 through SU-03.
 - Original SU-00 base commit: `ebab066f4c19efd6f2b9a0a659258d59a97ed3c8`
 - Integration branch: `feature/signup-onboarding-v2`
 - Production database project: `asnydvqsduonyidjyyzq`
-- SU-00/SU-01 contain no database mutation.
-- SU-03 contains an additive migration in the repository, but this implementation session does not apply it directly to the hosted production project.
-
-## Existing flow at baseline
-
-1. Public Homepage had its own `PublicHeader` / `PublicFooter` implementation inside `apps/mobile/app/index.tsx`.
-2. Auth had a separate navy header/footer and two join steps: preferences then email/password account creation, with Google OAuth behind a feature flag.
-3. Minimum onboarding had DOB plus three policy/adult checkboxes.
-4. Profile onboarding combined username, display name, gender, province and a single profile photo.
-5. Selfie onboarding already used the live camera and the existing member photo verification service.
-6. Existing verification threshold remains 60%; SU-01 through SU-03 do not change verification logic.
+- Hosted production data/schema is not directly mutated by these implementation sessions.
 
 ## Safety boundaries
 
 - Do not merge this branch to `main` until the complete Signup / Onboarding V2 release gate is green.
 - Do not reset, recreate, truncate or destructively backfill existing member tables.
-- Do not change existing user IDs, existing usernames, public profile codes, media ownership, membership, balances or verification history.
-- Do not change location persistence or selfie provider behavior before their dedicated SU sessions.
-- Do not make stricter Signup V2 product rules into global constraints that can invalidate historical active profiles.
+- Do not change existing user IDs, usernames, public profile codes, media ownership, membership, balances or verification history.
+- Do not change location persistence or selfie-provider behavior before their dedicated SU sessions.
+- Do not turn stricter new-signup rules into global constraints that can invalidate historical active profiles.
 
-## SU-01 UI foundation contract
+## SU-01 UI foundation
 
-SU-01 introduced reusable presentation primitives only:
+- Shared public Header/Footer extracted from Homepage.
+- `SignupShell` + eight-step `ProfileSetupProgress`.
+- Shared red/pink buttons, form labels/help text, inputs, tags and responsive dropdown primitive.
+- Responsive desktop + mobile-web presentation.
 
-- shared public site header/footer matching the Homepage visual language;
-- `SignupShell` for registration/onboarding screens;
-- `ProfileSetupProgress` for the eight-step profile setup flow;
-- consistent primary/secondary buttons, field labels, help/status text, text inputs and selectable tags;
-- responsive behavior for phone/tablet/desktop without changing business data contracts.
-
-## SU-02 authentication contract
+## SU-02 authentication
 
 - Email registration remains email + password, minimum 8 characters.
-- If confirmation is required, the Confirm signup template emits a 6-digit OTP.
-- OTP verifies the email after the password account is created; it is not passwordless signup.
+- Signup email confirmation uses a 6-digit OTP when confirmation is required.
 - Google OAuth skips the email OTP screen.
-- Password is never persisted in the temporary Signup V2 draft.
+- Password login remains available for existing and new email/password accounts.
+- Step 1 gender/interest is preserved through auth redirects in an expiring session-scoped draft; the password is never stored there.
 
-## SU-03 profile-data contract
+## SU-03/SU-04 personal-info contract
 
-- Reuse existing canonical public profile fields for gender, dating interest, height, weight, education, relationship status, children, drinking and smoking.
-- Keep date of birth in `private.user_identity` and reuse the established versioned 18+ / policy authority.
-- Add only a nullable `marital_status` profile attribute; no existing row backfill is required.
-- Signup V2 requires display name 10–50 and accepts height 120–220, but these are enforced by the staged signup RPC/shared validation rather than tightening legacy global constraints.
-- The staged personal-info RPC is restricted to `profile_status = incomplete`, preserves existing usernames, generates an internal username only when missing, and does not activate discovery, location, media or the profile.
+- Required Step 3 fields: date of birth and display name; Step 1 gender/interest remains required context.
+- Optional: height, weight, education, relationship status, children, drinking, smoking.
+- Every optional dropdown uses `Chọn` → `Không chia sẻ` → actual values.
+- Physical not-shared state persists as `null`; enum not-shared state persists as canonical `prefer_not_to_say`.
+- Public presentation continues to treat these mature values as **Chưa chia sẻ**, and the values remain editable in Profile Edit.
+- `relationship_status` is the only relationship/marital-state field. **No `marital_status` type/column is introduced.**
+- DOB remains in `private.user_identity` and reuses the established versioned 18+ / policy authority.
+- The three old visible adult/Terms/Community checkboxes are removed from Step 3; acceptance remains recorded atomically when Personal Info is saved.
+- Signup V2 display name is 10–50 and signup height is 120–220, enforced only by staged signup validation/RPC rather than by tightening mature global constraints.
+- The staged Personal Info RPC is restricted to `profile_status = incomplete`, preserves existing usernames, generates an internal username only when missing, and does not activate discovery, location, media or the profile.
+- Existing incomplete users who already completed the mature age/policy onboarding contract continue through the existing bridge instead of being forced through the stricter new-registration screen.
 
 ## Visual contract
 
-- Primary action: red with white text; hover/press keeps red and adds a subtle elevation state on web-capable surfaces.
-- Secondary action: pink active surface, red hover/press, gray disabled.
-- Selectable tag: gray border by default; selected state uses gold border/background.
-- Form controls: 48–50 px minimum height with consistent horizontal padding.
-- Field/section labels: 15 px bold.
-- Body copy: 15 px dark text.
-- Help/warning/success copy: 11–12 px gray/red/green.
-- Step page title remains a display heading (roughly 28–32 px) so the Seeking-style information hierarchy is preserved.
+- Primary action: red with white text; hover/press stays red with subtle elevation.
+- Secondary action: pink active, red hover/press, gray disabled.
+- Selected tag: yellow/gold border/background.
+- Inputs/dropdowns: consistent 48–50 px minimum height, 15 px content.
+- Field labels: 15 px bold.
+- Help/warning/success copy: approximately 11–12 px gray/red/green.
+- Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-03
+## Release acceptance through SU-04
 
-- Integration branch remains isolated from `main` until the complete Signup / Onboarding V2 gate passes.
-- Shared public chrome and SignupShell remain reusable.
-- Email/password + signup OTP contract is preserved.
-- SU-03 migration is additive and regression-tested against legacy/profile safety boundaries.
-- Production user data is not mutated as part of this implementation session.
-- Database, typecheck, unit/build and browser regression workflows must be green before moving the integration PR out of Draft.
+- Integration branch remains isolated from `main`.
+- Shared public chrome / SignupShell remain the single registration presentation foundation.
+- Email/password + signup OTP contract remains intact.
+- Personal Info DB contract, validation, optional-dropdown mapping and UI are regression-tested.
+- Production user data remains unchanged by this implementation session.
+- Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
