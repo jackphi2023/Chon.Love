@@ -22,7 +22,7 @@ async function assertNoHorizontalOverflow(page) {
 
 async function openSettingsFromAccountMenu(page) {
   const viewport = page.viewportSize();
-  const accountButtonName = (viewport?.width ?? 0) >= 1024 ? 'Mở menu tài khoản' : 'Mở menu tài khoản Chọn.love';
+  const accountButtonName = (viewport?.width ?? 0) >= 1024 ? 'Mở menu hồ sơ' : 'Mở menu hồ sơ Chọn.love';
   await page.getByRole('button', { name: accountButtonName, exact: true }).click();
   const settingsItem = page.getByRole('menuitem', { name: 'Cài đặt' });
   await expect(settingsItem).toBeVisible();
