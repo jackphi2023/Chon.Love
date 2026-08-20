@@ -27,10 +27,13 @@ Deno.serve(async (request: Request) => {
   if (!/^[0-9a-f]{6}$/u.test(code)) return jsonResponse(400, { error: 'invalid_profile_code' }, request.method === 'HEAD');
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) return jsonResponse(500, { error: 'server_configuration_missing' }, request.method === 'HEAD');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !anonKey) return jsonResponse(500, { error: 'server_configuration_missing' }, request.method === 'HEAD');
 
-  const server = createClient(supabaseUrl, serviceKey, {
+  // This endpoint intentionally uses the anon capability because the underlying
+  // RPC is already the audited public projection. Never elevate SEO crawlers to
+  // service-role privileges merely to read public sharing metadata.
+  const server = createClient(supabaseUrl, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await server.rpc('get_public_chon_profile', { p_code: code });
