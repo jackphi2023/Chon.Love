@@ -37,6 +37,7 @@ const userFacing = [
   'apps/admin/app/(protected)/withdrawals/page.tsx',
   'apps/admin/app/kyc-withdrawal-operations/page.tsx',
   'apps/admin/app/vietqr-reconciliation/page.tsx',
+  'apps/admin/app/runtime-observability/page.tsx',
 ];
 
 for (const path of userFacing) {
