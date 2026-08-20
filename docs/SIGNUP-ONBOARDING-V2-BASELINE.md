@@ -92,8 +92,8 @@ Status: integration baseline through SU-08.
 - `headline` is optional. Blank is valid; when provided it is trimmed and must contain 10–50 characters during Signup V2.
 - `bio` is required during Signup V2 and is trimmed/validated at 50–4000 characters with a live counter.
 - Canonical storage remains `public.profiles.headline` and `public.profiles.bio`; no duplicate onboarding-only profile-copy columns are introduced.
-- The mature/global headline contract remains up to 120 characters. Production audit found an existing active headline over 50 characters, so the stricter 10–50 rule stays signup-only.
-- The mature biography maximum is widened from 500 to 4000 so a valid Signup V2 biography remains fully editable later. No mature minimum is added: production audit found existing active short biographies below 50 characters and these remain valid.
+- The mature/global headline contract remains up to 120 characters. Production compatibility audit found an existing active headline over 50 characters, so the stricter 10–50 rule stays signup-only.
+- The mature biography maximum is widened from 500 to 4000 so a valid Signup V2 biography remains fully editable later. No mature minimum is added: production compatibility audit found nine active profiles with nonblank biographies below 50 characters, and these remain valid.
 - Profile Edit is aligned to the 4000-character biography maximum while retaining the mature blank/short-bio behavior.
 - `save_my_signup_headline_bio_v2(...)` is authenticated and incomplete-profile-only. It requires adult/policy completion, canonical province, valid Looking For data and at least one usable uploaded profile photo.
 - The staged Step 7 RPC writes only headline/bio and never activates profile, discovery or nearby.
