@@ -23,6 +23,7 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const CHON_GOLD = '#FFBB00';
+const NAV_LOGO_SCALE = 1.16;
 
 const primaryItems = [
   { key: 'search', label: 'Kết nối', icon: 'connect' as const, href: '/(tabs)' as const },
@@ -269,7 +270,7 @@ export function LuxyShellNavigation() {
       <View style={styles.shell}>
         <View style={styles.phoneTopRow}>
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.phoneBrandButton, pressed && styles.pressed]}>
-            <ChonLoveLogo height={44} width={width < 430 ? 118 : 137} />
+            <ChonLoveLogo height={38} scale={NAV_LOGO_SCALE} width={width < 430 ? 102 : 118} />
           </Pressable>
           {accountControl('phone')}
           {accountMenu('phone')}
@@ -287,7 +288,7 @@ export function LuxyShellNavigation() {
         <View style={styles.navRow}>
           <View style={styles.tabletInner}>
             <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.tabletBrandButton, pressed && styles.pressed]}>
-              <ChonLoveLogo height={49} width={130} />
+              <ChonLoveLogo height={42} scale={NAV_LOGO_SCALE} width={112} />
             </Pressable>
             <View style={styles.tabletPrimary}>{primaryItems.map((item) => primaryItem(item, 'tablet'))}</View>
             {accountControl('tablet')}
@@ -304,7 +305,7 @@ export function LuxyShellNavigation() {
       <View style={styles.navRow}>
         <View style={styles.desktopInner}>
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.desktopBrandButton, pressed && styles.pressed]}>
-            <ChonLoveLogo height={58} width={174} />
+            <ChonLoveLogo height={50} scale={NAV_LOGO_SCALE} width={150} />
           </Pressable>
           <View style={styles.desktopPrimary}>{primaryItems.map((item) => primaryItem(item, 'desktop'))}</View>
           {accountControl('desktop')}
