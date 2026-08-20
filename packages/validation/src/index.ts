@@ -27,6 +27,7 @@ export const genderIdentitySchema = z.enum([
   'prefer_not_to_say',
 ]);
 
+export const signupGenderSchema = z.enum(['female', 'male']);
 export const datingInterestSchema = z.enum(['female', 'male', 'everyone']);
 
 export const relationshipStatusSchema = z.enum([
@@ -36,6 +37,15 @@ export const relationshipStatusSchema = z.enum([
   'open',
   'complicated',
   'prefer_not_to_say',
+]);
+
+export const maritalStatusSchema = z.enum([
+  'prefer_not_to_say',
+  'never_married',
+  'married',
+  'separated',
+  'divorced',
+  'widowed',
 ]);
 
 export const childrenStatusSchema = z.enum([
@@ -95,6 +105,12 @@ export const heightCmSchema = z
   .int('Chiều cao phải là số nguyên theo cm.')
   .min(120, 'Chiều cao tối thiểu là 120 cm.')
   .max(230, 'Chiều cao tối đa là 230 cm.');
+
+export const signupHeightCmSchema = z
+  .number({ error: 'Chiều cao không hợp lệ.' })
+  .int('Chiều cao phải là số nguyên theo cm.')
+  .min(120, 'Chiều cao tối thiểu là 120 cm.')
+  .max(220, 'Chiều cao tối đa là 220 cm.');
 
 export const weightKgSchema = z
   .number({ error: 'Cân nặng không hợp lệ.' })
@@ -229,8 +245,29 @@ export function isAtLeastAge(dateOfBirth: string, minimumAge = 18, now = new Dat
 
 export const adultDateOfBirthSchema = dateOfBirthSchema.refine(
   (value) => isAtLeastAge(value),
-  'Bạn phải đủ 18 tuổi để sử dụng Luxy.Love.',
+  'Bạn phải đủ 18 tuổi để sử dụng Chon.Love.',
 );
+
+export const signupDisplayNameSchema = z
+  .string()
+  .trim()
+  .min(10, 'Tên hiển thị cần ít nhất 10 ký tự.')
+  .max(50, 'Tên hiển thị tối đa 50 ký tự.');
+
+export const signupPersonalInfoSchema = z.object({
+  dateOfBirth: adultDateOfBirthSchema,
+  displayName: signupDisplayNameSchema,
+  gender: signupGenderSchema,
+  interestedIn: datingInterestSchema,
+  heightCm: signupHeightCmSchema.nullable(),
+  weightKg: weightKgSchema.nullable(),
+  educationLevel: educationLevelSchema,
+  relationshipStatus: relationshipStatusSchema,
+  maritalStatus: maritalStatusSchema.nullable(),
+  childrenStatus: childrenStatusSchema,
+  drinkingStatus: drinkingStatusSchema,
+  smokingStatus: smokingStatusSchema,
+});
 
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
 
@@ -244,6 +281,7 @@ export const minimumOnboardingSchema = z.object({
 });
 
 export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;
+export type SignupPersonalInfoInput = z.infer<typeof signupPersonalInfoSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
 export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
 export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;
