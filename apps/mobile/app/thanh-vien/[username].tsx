@@ -17,6 +17,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import LuxyMemberProfileScreen from '@/screens/luxy-member-profile-screen';
@@ -24,6 +25,7 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const TITLE_SUFFIX = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
+const PRODUCTION_ORIGIN = 'https://www.chon.love';
 
 function normalizeParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
@@ -42,9 +44,9 @@ function upsertMeta(selector: string, attribute: 'name' | 'property', key: strin
 
 function useMemberSeo(profile: PublicChonProfile | null, avatarUrl: string | null) {
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined' || typeof window === 'undefined' || !profile) return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !profile) return;
     const title = `Thành viên ${profile.display_name} | ${TITLE_SUFFIX}`;
-    const canonicalUrl = `${window.location.origin}/thanh-vien/id-${profile.public_profile_code}`;
+    const canonicalUrl = `${PRODUCTION_ORIGIN}/thanh-vien/id-${profile.public_profile_code}`;
     document.title = title;
     upsertMeta('meta[name="description"]', 'name', 'description', CHON_PUBLIC_PROFILE_DESCRIPTION);
     upsertMeta('meta[property="og:title"]', 'property', 'og:title', title);
@@ -75,6 +77,8 @@ export default function CanonicalMemberProfilePage() {
   const client = getMobileSupabaseClient();
   const auth = useAuth();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
 
   const profileQuery = useQuery({
     queryKey: ['public-chon-profile', code],
@@ -104,23 +108,23 @@ export default function CanonicalMemberProfilePage() {
 
   return (
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="public-member-profile-page">
-      <View style={styles.topbar}>
+      <View style={[styles.topbar, isCompact && styles.topbarCompact]}>
         <Pressable accessibilityRole="button" onPress={() => router.push('/')}>
-          <Text style={styles.brand}>Chọn.love</Text>
+          <Text style={[styles.brand, isCompact && styles.brandCompact]}>Chọn.love</Text>
         </Pressable>
         <View style={styles.topActions}>
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={styles.linkButton}>
+          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.linkButton, isCompact && styles.linkButtonCompact]}>
             <Text style={styles.linkButtonText}>Đăng nhập</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={styles.primarySmall}>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primarySmall, isCompact && styles.primarySmallCompact]}>
             <Text style={styles.primarySmallText}>Đăng ký</Text>
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.profileCard}>
-        <View style={styles.photoColumn}>
-          <View style={styles.photoFrame}>
+      <View style={[styles.profileCard, isCompact && styles.profileCardCompact]}>
+        <View style={[styles.photoColumn, isCompact && styles.photoColumnCompact]}>
+          <View style={[styles.photoFrame, isCompact && styles.photoFrameCompact]}>
             {avatarUrl ? (
               <Image accessibilityLabel={`Ảnh đại diện của ${profile.display_name}`} resizeMode="cover" source={{ uri: avatarUrl }} style={styles.photo} />
             ) : (
@@ -133,7 +137,7 @@ export default function CanonicalMemberProfilePage() {
         </View>
 
         <View style={styles.profileCopy}>
-          <Text accessibilityRole="header" style={styles.name}>{profile.display_name}, {profile.age}</Text>
+          <Text accessibilityRole="header" style={[styles.name, isCompact && styles.nameCompact]}>{profile.display_name}, {profile.age}</Text>
           <Text style={styles.location}>{profile.province_name ?? 'Việt Nam'}</Text>
           {profile.headline ? <Text style={styles.headline}>{profile.headline}</Text> : null}
           {profile.bio ? <ProfileSection title="Giới thiệu"><Text style={styles.body}>{profile.bio}</Text></ProfileSection> : null}
@@ -147,8 +151,8 @@ export default function CanonicalMemberProfilePage() {
             <Text style={styles.joinTitle}>Kết nối với những người thật trên Chọn.love</Text>
             <Text style={styles.joinCopy}>{CHON_PUBLIC_PROFILE_DESCRIPTION}</Text>
             <View style={styles.joinActions}>
-              <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={styles.primaryButton}><Text style={styles.primaryButtonText}>Đăng ký miễn phí</Text></Pressable>
-              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={styles.outlineButton}><Text style={styles.outlineButtonText}>Đăng nhập</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primaryButton, isCompact && styles.fullWidthButton]}><Text style={styles.primaryButtonText}>Đăng ký miễn phí</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.outlineButton, isCompact && styles.fullWidthButton]}><Text style={styles.outlineButtonText}>Đăng nhập</Text></Pressable>
             </View>
           </View>
         </View>
@@ -175,22 +179,30 @@ const styles = StyleSheet.create({
   page: { backgroundColor: '#FFF9F8', flex: 1 },
   pageContent: { alignItems: 'center', minHeight: '100%', paddingBottom: 64 },
   topbar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', maxWidth: 1180, paddingHorizontal: 20, paddingVertical: 18, width: '100%' },
+  topbarCompact: { paddingHorizontal: 14, paddingVertical: 13 },
   brand: { color: luxyColors.actionRed, fontFamily: luxyTypography.families.display, fontSize: 28, fontWeight: '700' },
-  topActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  brandCompact: { fontSize: 22 },
+  topActions: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   linkButton: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
+  linkButtonCompact: { paddingHorizontal: 7 },
   linkButtonText: { color: luxyColors.text, fontSize: 13, fontWeight: '600' },
   primarySmall: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 44, paddingHorizontal: 18 },
+  primarySmallCompact: { paddingHorizontal: 13 },
   primarySmallText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   profileCard: { alignItems: 'flex-start', backgroundColor: '#FFFFFF', borderColor: '#F2DEDA', borderRadius: 22, borderWidth: 1, flexDirection: 'row', gap: 30, maxWidth: 1040, padding: 24, width: '94%' },
+  profileCardCompact: { borderRadius: 16, flexDirection: 'column', gap: 20, padding: 14, width: '94%' },
   photoColumn: { maxWidth: 340, width: '38%' },
+  photoColumnCompact: { maxWidth: '100%', width: '100%' },
   photoFrame: { aspectRatio: 0.8, backgroundColor: '#F4E8E5', borderRadius: 18, overflow: 'hidden', width: '100%' },
+  photoFrameCompact: { aspectRatio: 0.92, borderRadius: 14 },
   photo: { height: '100%', width: '100%' },
   photoFallback: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   photoFallbackText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 72 },
   membershipBadge: { alignSelf: 'flex-start', backgroundColor: '#FFF4D6', borderColor: '#F2B51D', borderRadius: luxyRadii.pill, borderWidth: 1, marginTop: 12, paddingHorizontal: 13, paddingVertical: 7 },
   membershipBadgeText: { color: '#8A5A00', fontSize: 12, fontWeight: '700' },
-  profileCopy: { flex: 1, minWidth: 0, paddingVertical: 6 },
+  profileCopy: { flex: 1, minWidth: 0, paddingVertical: 6, width: '100%' },
   name: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 41 },
+  nameCompact: { fontSize: 29, lineHeight: 35 },
   location: { color: luxyColors.text, fontSize: 16, marginTop: 3 },
   headline: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, marginTop: 7 },
   section: { borderTopColor: '#F1E8E6', borderTopWidth: 1, gap: 9, marginTop: 22, paddingTop: 18 },
@@ -207,6 +219,7 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   outlineButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 22 },
   outlineButtonText: { color: luxyColors.text, fontSize: 12, fontWeight: '700' },
+  fullWidthButton: { width: '100%' },
   centered: { alignItems: 'center', backgroundColor: '#FFF9F8', flex: 1, gap: 12, justifyContent: 'center', padding: 24 },
   muted: { color: luxyColors.muted, fontSize: 13 },
 });
