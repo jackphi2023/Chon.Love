@@ -12,11 +12,13 @@ import {
   luxyProfileSetupSchema,
   minimumOnboardingSchema,
   normalizeInterests,
+  profileBioSchema,
   profileEditorSchema,
   profileImageMetadataSchema,
   profileLifestyleTagSchema,
   profileLookingForSchema,
   relationshipStatusSchema,
+  signupHeadlineBioSchema,
   signupHeightCmSchema,
   signupLocationSchema,
   signupLookingForSchema,
@@ -337,6 +339,22 @@ describe('shared validation', () => {
   it('widens mature looking-for validation to preserve Signup V2 4000-character answers', () => {
     expect(profileLookingForSchema.safeParse('A'.repeat(4000)).success).toBe(true);
     expect(profileLookingForSchema.safeParse('A'.repeat(4001)).success).toBe(false);
+  });
+
+  it('validates Signup V2 optional headline and required 50-4000 biography', () => {
+    expect(signupHeadlineBioSchema.safeParse({ headline: '', bio: 'B'.repeat(50) }).success).toBe(true);
+    expect(signupHeadlineBioSchema.safeParse({ headline: 'H'.repeat(10), bio: 'B'.repeat(4000) }).success).toBe(true);
+    expect(signupHeadlineBioSchema.safeParse({ headline: 'H'.repeat(9), bio: 'B'.repeat(80) }).success).toBe(false);
+    expect(signupHeadlineBioSchema.safeParse({ headline: 'H'.repeat(51), bio: 'B'.repeat(80) }).success).toBe(false);
+    expect(signupHeadlineBioSchema.safeParse({ headline: '', bio: 'B'.repeat(49) }).success).toBe(false);
+    expect(signupHeadlineBioSchema.safeParse({ headline: '', bio: 'B'.repeat(4001) }).success).toBe(false);
+  });
+
+  it('widens mature biography validation without imposing Signup V2 minimums on existing profiles', () => {
+    expect(profileBioSchema.safeParse('').success).toBe(true);
+    expect(profileBioSchema.safeParse('Short legacy bio').success).toBe(true);
+    expect(profileBioSchema.safeParse('B'.repeat(4000)).success).toBe(true);
+    expect(profileBioSchema.safeParse('B'.repeat(4001)).success).toBe(false);
   });
 
   it('rejects oversized or mismatched image metadata', () => {
