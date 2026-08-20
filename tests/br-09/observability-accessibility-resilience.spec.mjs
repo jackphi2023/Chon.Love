@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const viewerEmail = 'br06.viewer@example.test';
-const chonWebTitle = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
+const chonWebTitle = 'Đăng nhập | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 
 async function openMobileLogin(browser) {
   const context = await browser.newContext({

@@ -54,7 +54,12 @@ expect(mobileProviders.includes('mutations:') && mobileProviders.includes('retry
 expect(mobileBoundary.includes('accessibilityRole="alert"') && mobileBoundary.includes('route_recovered'), 'Mobile error boundary must be accessible and report recovery.');
 expect(mobileLogin.includes('accessibilityLabel="Email"') && mobileLogin.includes('accessibilityLabel="Mật khẩu"'), 'Mobile login fields require accessible names.');
 expect(mobileHtml.includes('<html lang="vi">') && Boolean(htmlTitle), 'Expo Web export shell must publish Vietnamese language metadata and a non-empty document title.');
-expect(mobileLayout.includes("document.documentElement.lang = 'vi'") && mobileLayout.includes('document.title = WEB_TITLE'), 'Expo Web runtime must restore document language and title in development previews.');
+expect(
+  mobileLayout.includes("document.documentElement.lang = 'vi'")
+    && mobileLayout.includes('staticPublicTitle(pathname)')
+    && mobileLayout.includes('document.title = title'),
+  'Expo Web runtime must restore document language and route-aware title in development previews.',
+);
 expect(ui.includes('minimumTouchTarget: 44') && ui.includes('contrastRatio') && uiTest.includes('WCAG AA'), 'Shared UI must enforce touch and contrast contracts.');
 expect(adminLayout.includes('skipLink') && publicLayout.includes('skipLink'), 'Admin and Public Web need skip links.');
 expect(adminError.includes('tabIndex={-1}') && publicError.includes('tabIndex={-1}'), 'Web error boundaries must move focus to their heading.');

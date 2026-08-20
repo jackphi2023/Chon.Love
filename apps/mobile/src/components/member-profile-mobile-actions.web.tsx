@@ -39,8 +39,8 @@ const safeAreaDockStyle = {
   paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
 } as unknown as ViewStyle;
 
-function getProfileUsername(pathname: string): string | null {
-  const match = pathname.match(/^\/profile\/([^/?#]+)$/u);
+function getProfileIdentifier(pathname: string): string | null {
+  const match = pathname.match(/^\/(?:profile|thanh-vien)\/([^/?#]+)$/u);
   if (!match?.[1]) return null;
   try {
     return decodeURIComponent(match[1]);
@@ -55,20 +55,20 @@ export function MemberProfileMobileActions() {
   const auth = useAuth();
   const client = getMobileSupabaseClient();
   const { width } = useWindowDimensions();
-  const username = getProfileUsername(pathname);
+  const identifier = getProfileIdentifier(pathname);
   const mobileWeb = width < luxyBreakpoints.desktop;
-  const enabled = Boolean(mobileWeb && username && auth.userId && client);
+  const enabled = Boolean(mobileWeb && identifier && auth.userId && client);
   const [giftOpen, setGiftOpen] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const profileQuery = useQuery({
-    queryKey: ['luxy-member-profile', auth.userId, username],
+    queryKey: ['luxy-member-profile', auth.userId, identifier],
     enabled,
     staleTime: 30_000,
     queryFn: async () => {
-      if (!client || !username) throw new Error('profile_not_available');
-      return getLuxyMemberProfile(client, username);
+      if (!client || !identifier) throw new Error('profile_not_available');
+      return getLuxyMemberProfile(client, identifier);
     },
   });
 
@@ -95,7 +95,7 @@ export function MemberProfileMobileActions() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!mobileWeb || !username || typeof document === 'undefined') return undefined;
+    if (!mobileWeb || !identifier || typeof document === 'undefined') return undefined;
     const element = document.createElement('style');
     element.dataset.chonLoveProfileMobileActions = 'true';
     element.textContent = `
@@ -110,7 +110,7 @@ export function MemberProfileMobileActions() {
     `;
     document.head.appendChild(element);
     return () => element.remove();
-  }, [actionsVisible, isFreeMembership, mobileWeb, username]);
+  }, [actionsVisible, identifier, isFreeMembership, mobileWeb]);
 
   if (!actionsVisible || !profile) return null;
 

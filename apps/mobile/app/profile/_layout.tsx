@@ -17,46 +17,50 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/providers/auth-provider';
 
-function normalizeUsername(value: string | string[] | undefined): string {
+function normalizeIdentifier(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
 }
 
-export default function PublicProfileRouteLayout() {
+export default function MemberProfileRouteLayout() {
   const auth = useAuth();
   const params = useLocalSearchParams<{ username?: string | string[] }>();
-  const username = normalizeUsername(params.username).trim();
+  const identifier = normalizeIdentifier(params.username).trim();
   const recordedKey = useRef<string | null>(null);
   const client = getMobileSupabaseClient();
   const [giftOpen, setGiftOpen] = useState(false);
   const { width } = useWindowDimensions();
   const desktop = width >= luxyBreakpoints.desktop;
 
-  useEffect(() => {
-    if (!auth.userId || !username) return;
-    const key = `${auth.userId}:${username.toLowerCase()}`;
-    if (recordedKey.current === key) return;
-    recordedKey.current = key;
-
-    if (!client) return;
-    void recordProfileViewByUsername(client, username).catch((error) => {
-      logger.error('Unable to record Luxy profile view', error);
-    });
-  }, [auth.userId, client, username]);
-
   const profileQuery = useQuery({
-    queryKey: ['luxy-member-profile', auth.userId, username],
-    enabled: Boolean(client && auth.userId && username),
+    queryKey: ['luxy-member-profile', auth.userId, identifier],
+    enabled: Boolean(client && auth.userId && identifier),
     staleTime: 30_000,
     queryFn: async () => {
       if (!client) throw new Error('supabase_not_configured');
-      return getLuxyMemberProfile(client, username);
+      return getLuxyMemberProfile(client, identifier);
     },
   });
 
   const profile = profileQuery.data;
+
+  useEffect(() => {
+    if (!auth.userId || !client || !profile?.id || !profile.username) return;
+    const key = `${auth.userId}:${profile.id}`;
+    if (recordedKey.current === key) return;
+    recordedKey.current = key;
+
+    void recordProfileViewByUsername(client, profile.username).catch((error) => {
+      logger.error('Unable to record Chọn.love profile view', error);
+    });
+  }, [auth.userId, client, profile?.id, profile?.username]);
+
+  // Public /thanh-vien/id-xxxxxx pages stay intentionally clean for guests.
+  // Authenticated members receive the same shell/actions as the legacy profile route.
+  if (!auth.userId) return <Slot />;
+
   const recipientName = profile?.display_name || profile?.username || 'thành viên này';
   const canOfferGift = Boolean(
-    profile && auth.userId && profile.id !== auth.userId && !profile.blocked_by_viewer,
+    profile && profile.id !== auth.userId && !profile.blocked_by_viewer,
   );
 
   return (

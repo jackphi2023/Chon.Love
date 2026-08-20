@@ -76,6 +76,7 @@ export * from './member-verification';
 export * from './membership';
 export * from './private-photo';
 export * from './profile-media';
+export * from './public-profile';
 export * from './search';
 export * from './social-safety';
 export * from './vietqr';

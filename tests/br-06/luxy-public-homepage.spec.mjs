@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const homepageSeoTitle = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
+
 async function assertNoHorizontalOverflow(page) {
   const metrics = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -41,7 +43,7 @@ test('public homepage follows the Chọn.love Seeking-inspired long-form hierarc
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
 
-  await expect(page).toHaveTitle(/Chon\.Love/);
+  await expect(page).toHaveTitle(homepageSeoTitle);
   const home = await assertPrimaryHomepageContent(page);
   await expect(home.getByText('Steven Nguyễn', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Thanh Hiền', { exact: true }).first()).toBeVisible();

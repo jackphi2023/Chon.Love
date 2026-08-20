@@ -11,6 +11,8 @@ const userFacing = [
   'apps/mobile/app/(auth)/index.tsx',
   'apps/mobile/app/chat/[conversationId].tsx',
   'apps/mobile/app/profile/[username].tsx',
+  'apps/mobile/app/thanh-vien/[username].tsx',
+  'apps/mobile/src/screens/luxy-member-profile-screen.tsx',
   'apps/mobile/app/legal/terms.tsx',
   'apps/mobile/app/legal/community-standards.tsx',
   'apps/mobile/app/auth/forgot-password.tsx',
@@ -153,8 +155,8 @@ const ui = read('packages/ui/src/index.ts');
 const rootNetlify = read('netlify.toml');
 const netlifyBuildScript = read('scripts/build-netlify-web.sh');
 const packageJson = JSON.parse(read('package.json'));
-const exactTitle = 'Chon.Love | Chọn đúng người, Yêu đúng Gu';
-expect(mobileHtml.includes(exactTitle), 'Expo Web metadata must use the Chon.Love title contract.');
+const exactTitle = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
+expect(mobileHtml.includes(exactTitle), 'Expo Web metadata must use the current Chọn.love SEO title contract.');
 expect(ui.includes("productName:'Chon.Love'") || ui.includes("productName: 'Chon.Love'"), 'Shared authenticated brand must be Chon.Love.');
 expect(rootNetlify.includes('command = "bash scripts/build-netlify-web.sh"'), 'Root Netlify must use the canonical combined Chon.Love build script.');
 expect(netlifyBuildScript.includes('pnpm --filter @myfan/mobile build:web'), 'Canonical Netlify build script must build the Chon.Love Expo Web app.');
