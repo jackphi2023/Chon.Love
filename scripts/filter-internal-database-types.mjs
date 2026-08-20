@@ -21,6 +21,13 @@ const serverOnlyFunctions = [
   'is_super_admin',
 ];
 
+// Signup V2 is still an integration branch. Keep newly introduced staged RPCs
+// on a runtime-validated structural client boundary until the final SU-11
+// generated-types checkpoint, instead of granting this workflow write access.
+const stagedRuntimeValidatedFunctions = [
+  'save_my_signup_location_v2',
+];
+
 // homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
 // public SEO/member routing and Admin clients consume only narrow, manually validated RPC contracts instead.
 const serverOnlyTables = ['homepage_settings'];
@@ -34,7 +41,7 @@ function removeGeneratedBlocks(names, kind) {
     const marker = `      ${name}: {`;
     const start = source.indexOf(marker);
     if (start < 0) {
-      console.error(`Expected server-only ${kind} missing from generated types: ${name}`);
+      console.error(`Expected ${kind} missing from generated types: ${name}`);
       process.exit(1);
     }
 
@@ -65,8 +72,9 @@ function removeGeneratedBlocks(names, kind) {
   }
 }
 
-removeGeneratedBlocks(serverOnlyFunctions, 'RPC');
-removeGeneratedBlocks(serverOnlyTables, 'table');
+removeGeneratedBlocks(serverOnlyFunctions, 'server-only RPC');
+removeGeneratedBlocks(stagedRuntimeValidatedFunctions, 'staged runtime-validated RPC');
+removeGeneratedBlocks(serverOnlyTables, 'implementation table');
 
 const beforeProfileCodeFilter = source;
 source = source
@@ -81,5 +89,5 @@ if (source === beforeProfileCodeFilter) {
 
 writeFileSync(file, source, 'utf8');
 console.warn(
-  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
+  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${stagedRuntimeValidatedFunctions.length} staged Signup V2 RPC, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
 );
