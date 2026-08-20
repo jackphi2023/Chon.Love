@@ -130,7 +130,7 @@ export default function OnboardingLocation() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={styles.loadingText}>Đang chuẩn bị vị trí…</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.loadingText}>Đang chuẩn bị vị trí…</Text>
       </View>
     );
   }
@@ -143,7 +143,7 @@ export default function OnboardingLocation() {
         testID="chon-location-account-status"
         title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
       >
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+        <Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
           <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
       </SignupShell>
@@ -195,6 +195,7 @@ export default function OnboardingLocation() {
 
       {exactLocation ? (
         <Pressable
+          accessibilityLabel="Chỉ dùng tỉnh hoặc thành phố cho lần lưu này"
           accessibilityRole="button"
           onPress={() => {
             setExactLocation(null);
@@ -242,8 +243,8 @@ const styles = StyleSheet.create({
   },
   privacyTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
   privacyText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  provinceOnlyButton: { alignSelf: 'flex-start', paddingVertical: 3 },
-  provinceOnlyText: { color: '#B42318', fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
+  provinceOnlyButton: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, paddingVertical: 6 },
+  provinceOnlyText: { color: '#B42318', fontSize: 16, fontWeight: '700', textDecorationLine: 'underline' },
   divider: { backgroundColor: colors.border, height: 1, marginVertical: 3 },
   signOutButton: {
     alignItems: 'center',
@@ -253,6 +254,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
-  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   pressed: { opacity: 0.72 },
 });
