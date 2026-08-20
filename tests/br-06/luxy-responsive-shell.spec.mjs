@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const actor = { email: 'br06.outsider@example.test' };
+const navLogoScale = 1.16;
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -37,18 +38,36 @@ async function expectFreeUpgradePrompt(page) {
   await expect(promo.getByText('Nâng cấp ngay', { exact: true })).toBeVisible();
 }
 
-async function expectChonLoveBrand(shellBrand, expectedHeight) {
+async function expectChonLoveBrand(shellBrand, baseHeight) {
   const logo = shellBrand.getByTestId('chon-love-wordmark');
   await expect(logo).toBeVisible();
   await expect(logo).toHaveAttribute('role', 'img');
   await expect(logo).toHaveAttribute('aria-label', 'Chọn.Love');
   const logoBox = await logo.boundingBox();
   expect(logoBox).not.toBeNull();
-  expect(Math.abs(logoBox.height - expectedHeight)).toBeLessThanOrEqual(1);
+  expect(Math.abs(logoBox.height - (baseHeight * navLogoScale))).toBeLessThanOrEqual(1);
   expect(Math.abs(logoBox.width / logoBox.height - (420 / 184))).toBeLessThanOrEqual(0.05);
 }
 
-test('authenticated Free shell keeps connection tabs responsive at 390/430/768 and desktop at 1024', async ({ browser }, testInfo) => {
+async function expectResponsiveAccountMenu(page, viewportWidth) {
+  const accountButton = page.getByRole('button', { name: 'Mở menu hồ sơ Chọn.love' });
+  await expect(accountButton).toBeVisible();
+  await expect(accountButton).not.toContainText(/[⌃⌄v]/u);
+  await accountButton.click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  for (const label of ['Hồ sơ', 'Quà', 'Số dư', 'Cài đặt', 'Đăng xuất']) {
+    await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible();
+  }
+  await expect(menu.locator('img')).toHaveCount(0);
+  const menuBox = await menu.boundingBox();
+  expect(menuBox).not.toBeNull();
+  expect(menuBox.x).toBeGreaterThanOrEqual(0);
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(viewportWidth + 1);
+  await accountButton.click();
+}
+
+test('authenticated Free shell keeps refreshed connection navigation responsive at 390/430/768 and desktop at 1024', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -72,13 +91,7 @@ test('authenticated Free shell keeps connection tabs responsive at 390/430/768 a
     expect(compactConnectBox).not.toBeNull();
     expect(compactBrandBox.y).toBeLessThan(compactConnectBox.y);
 
-    await page.getByRole('button', { name: 'Mở menu tài khoản Chọn.love' }).click();
-    await expect(page.getByRole('menu')).toBeVisible();
-    const phoneMenuBox = await page.getByRole('menu').boundingBox();
-    expect(phoneMenuBox).not.toBeNull();
-    expect(phoneMenuBox.x).toBeGreaterThanOrEqual(0);
-    expect(phoneMenuBox.x + phoneMenuBox.width).toBeLessThanOrEqual(390);
-    await page.getByRole('button', { name: 'Mở menu tài khoản Chọn.love' }).click();
+    await expectResponsiveAccountMenu(page, 390);
 
     await testInfo.attach('free-shell-390', {
       body: await page.screenshot({ fullPage: true }),
@@ -113,6 +126,8 @@ test('authenticated Free shell keeps connection tabs responsive at 390/430/768 a
     expect(tabletBrandBox).not.toBeNull();
     expect(tabletConnectBox).not.toBeNull();
     expect(Math.abs(tabletBrandBox.y - tabletConnectBox.y)).toBeLessThan(24);
+
+    await expectResponsiveAccountMenu(page, 768);
 
     await testInfo.attach('free-shell-768', {
       body: await page.screenshot({ fullPage: true }),
