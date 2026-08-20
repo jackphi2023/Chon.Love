@@ -118,7 +118,7 @@ export default function OnboardingLocation() {
         provinceId: parsedProvinceId,
         location: exactLocation,
       });
-      router.replace('/onboarding/profile');
+      router.replace('/onboarding/looking-for');
     } catch (error) {
       setErrorMessage(getReadableOnboardingError(error));
     } finally {
