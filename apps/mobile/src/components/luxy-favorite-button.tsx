@@ -3,6 +3,7 @@ import { luxyColors } from '@myfan/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 
 export function LuxyFavoriteButton({
@@ -81,7 +82,7 @@ export function LuxyFavoriteButton({
       ]}
       testID={`luxy-favorite-${profileId}`}
     >
-      <Text style={[styles.heart, favorited && styles.heartFavorited, hovered && styles.heartHovered]}>{favorited ? '♥' : '♡'}</Text>
+      <ChonBrandIcon name="favorite" size={22} />
       {match ? <Text style={styles.matchMark}>✓</Text> : null}
     </Pressable>
   );
@@ -107,17 +108,6 @@ const styles = StyleSheet.create({
     backgroundColor: luxyColors.surface,
     borderColor: luxyColors.actionRed,
     transform: [{ scale: 1.04 }],
-  },
-  heart: {
-    color: luxyColors.surface,
-    fontSize: 22,
-    lineHeight: 25,
-  },
-  heartFavorited: {
-    color: luxyColors.actionRed,
-  },
-  heartHovered: {
-    color: luxyColors.actionRed,
   },
   matchMark: {
     backgroundColor: luxyColors.ink,
