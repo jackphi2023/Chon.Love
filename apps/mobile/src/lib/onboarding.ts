@@ -1,7 +1,9 @@
 import {
   minimumOnboardingSchema,
+  signupLocationSchema,
   signupPersonalInfoSchema,
   type MinimumOnboardingInput,
+  type SignupLocationInput,
   type SignupPersonalInfoInput,
 } from '@myfan/validation';
 import {
@@ -115,6 +117,30 @@ export async function saveSignupPersonalInfo(input: SignupPersonalInfoFormInput)
   if (error) throw error;
 }
 
+export async function saveSignupLocation(input: SignupLocationInput): Promise<void> {
+  const parsed = signupLocationSchema.parse(input);
+  const location = parsed.location ?? null;
+  const client = requireAuthClient();
+
+  // SU-05 is intentionally kept on a structural RPC boundary while the full
+  // Signup V2 branch is still staged. The DB migration + pgTAP contract are
+  // authoritative; SU-11 will perform the final generated-types checkpoint.
+  const { error } = await client.rpc(
+    'save_my_signup_location_v2' as never,
+    {
+      p_province_id: parsed.provinceId,
+      ...(location ? {
+        p_latitude: location.latitude,
+        p_longitude: location.longitude,
+        p_accuracy_meters: location.accuracyMeters,
+        p_captured_at: location.capturedAt,
+        p_source: location.source,
+      } : {}),
+    } as never,
+  );
+  if (error) throw error;
+}
+
 export function getReadableOnboardingError(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'issues' in error) {
     const issues = (error as { issues?: Array<{ message?: string }> }).issues;
@@ -131,6 +157,21 @@ export function getReadableOnboardingError(error: unknown): string {
   }
   if (/height_cm|height/iu.test(message)) return 'Chiều cao không hợp lệ. Vui lòng chọn từ 120 đến 220 cm hoặc Không chia sẻ.';
   if (/weight_kg|weight/iu.test(message)) return 'Cân nặng không hợp lệ. Vui lòng chọn một giá trị hợp lệ hoặc Không chia sẻ.';
+  if (/invalid signup province|tỉnh\/thành/iu.test(message)) {
+    return 'Vui lòng chọn một tỉnh/thành phố hợp lệ.';
+  }
+  if (/signup personal info must be completed first/iu.test(message)) {
+    return 'Vui lòng hoàn thành bước Thông tin cá nhân trước khi lưu vị trí.';
+  }
+  if (/location accuracy too low/iu.test(message)) {
+    return 'Vị trí hiện tại chưa đủ chính xác. Bạn có thể thử lại hoặc tiếp tục chỉ với tỉnh/thành phố.';
+  }
+  if (/invalid coordinates|invalid location capture time|invalid location source|location payload must be complete/iu.test(message)) {
+    return 'Vị trí hiện tại không hợp lệ hoặc đã quá cũ. Vui lòng thử lấy lại vị trí.';
+  }
+  if (/location update rate limited/iu.test(message)) {
+    return 'Bạn vừa cập nhật vị trí. Vui lòng chờ khoảng 30 giây rồi thử lại.';
+  }
   if (/terms version|community rules version|policy versions/iu.test(message)) {
     return 'Phiên bản chính sách đã thay đổi. Vui lòng tải lại và thử lại.';
   }
@@ -143,7 +184,7 @@ export function getReadableOnboardingError(error: unknown): string {
   if (/authentication required|not authenticated/iu.test(message)) {
     return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
   }
-  return 'Chưa thể lưu thông tin cá nhân. Vui lòng thử lại.';
+  return 'Chưa thể lưu thông tin. Vui lòng thử lại.';
 }
 
 function requireAuthClient() {
