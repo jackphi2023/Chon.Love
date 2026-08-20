@@ -68,6 +68,8 @@ expect(netlifySeo.includes(description), 'Crawler response must use the approved
 expect(!netlifySeo.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Netlify Edge SEO must never contain or require the Supabase service-role key.');
 
 expect(supabaseSeo.includes("server.rpc('get_public_chon_profile'"), 'Public SEO metadata endpoint must reuse the safe public-profile contract.');
+expect(supabaseSeo.includes("Deno.env.get('SUPABASE_ANON_KEY')"), 'Public SEO metadata endpoint must use the anonymous capability for its already-public RPC.');
+expect(!supabaseSeo.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Public SEO metadata endpoint must not elevate crawlers to service-role privileges.');
 expect(supabaseSeo.includes('display_name') && supabaseSeo.includes('public_profile_code') && supabaseSeo.includes('avatar_url'), 'Public SEO endpoint must return only the minimal member metadata required for sharing.');
 expect(!supabaseSeo.includes(".from('profiles').select"), 'Public SEO endpoint must not bypass the safe public-profile RPC to expose profile rows.');
 expect(supabaseConfig.includes('[functions.public-profile-seo]') && supabaseConfig.includes('verify_jwt = false'), 'Public SEO metadata endpoint must be explicitly configured for crawler access.');
@@ -83,4 +85,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.warn('Chọn.love public profile SEO validation passed: canonical id routes, legacy username redirects, member-specific social images, production-domain canonical metadata, public-page metadata, and guest route protection are present.');
+console.warn('Chọn.love public profile SEO validation passed: canonical id routes, legacy username redirects, member-specific social images, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
