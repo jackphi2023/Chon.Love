@@ -14,6 +14,7 @@ const serverOnlyFunctions = [
   'admin_list_luxy_reports',
   'admin_review_luxy_report',
   'get_public_chon_profile',
+  'resolve_chon_member_route',
   'admin_get_homepage_settings',
   'admin_update_homepage_settings',
   'get_public_homepage_settings',
@@ -21,7 +22,7 @@ const serverOnlyFunctions = [
 ];
 
 // homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
-// the public/mobile and Admin clients consume only the narrow, Zod-validated RPC contract instead.
+// public SEO/member routing and Admin clients consume only narrow, manually validated RPC contracts instead.
 const serverOnlyTables = ['homepage_settings'];
 
 let source = readFileSync(file, 'utf8');
