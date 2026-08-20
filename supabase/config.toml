@@ -51,6 +51,10 @@ double_confirm_changes = true
 enable_confirmations = false
 secure_password_change = true
 
+[auth.email.template.magic_link]
+subject = "Mã xác thực Chọn.Love"
+content_path = "./supabase/templates/magic-link-otp.html"
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"

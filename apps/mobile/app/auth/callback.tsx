@@ -8,6 +8,7 @@ import {
   getSafeAuthCallbackDestination,
 } from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
+import { clearSignupDraft, patchSignupDraft, readSignupDraft } from '@/lib/signup-draft';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -32,7 +33,15 @@ export default function AuthCallback() {
     void completeAuthentication(code)
       .then(async () => safeNext ?? getAuthenticatedDestination())
       .then((destination) => {
-        if (active) router.replace(destination);
+        if (!active) return;
+        // Password recovery is independent from Signup V2. For Google OAuth or
+        // legacy email-link fallback, preserve the Step 1 draft until onboarding
+        // has consumed it; an already-active account does not need that draft.
+        if (!safeNext && readSignupDraft()) {
+          if (destination === '/(tabs)') clearSignupDraft();
+          else patchSignupDraft({ stage: 'verified', updatedAt: Date.now() });
+        }
+        router.replace(destination);
       })
       .catch((error) => {
         if (active) setErrorMessage(getReadableAuthError(error));

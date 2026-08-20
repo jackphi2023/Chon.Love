@@ -12,6 +12,7 @@ import {
   SignupTextField,
 } from '@/components/signup-shell';
 import { getReadableProfileMediaError, pickAndPrepareProfileImage, type PreparedLocalProfileImage } from '@/lib/profile-media';
+import { readSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -45,9 +46,11 @@ export default function ProfileSetupOnboarding() {
       .then(([profile, provinceRows, mediaRows]) => {
         if (!active) return;
         if (profile.profile_status === 'active') { router.replace('/(tabs)'); return; }
+        const signupDraft = readSignupDraft();
         setUsername(profile.username ?? '');
         setDisplayName(profile.display_name ?? '');
         if (GENDERS.some((item) => item.value === profile.gender)) setGender(profile.gender);
+        else if (signupDraft) setGender(signupDraft.gender);
         setProvinceId(profile.province_id ?? provinceRows[0]?.id ?? null);
         setProvinces(provinceRows);
         setHasPhoto(mediaRows.some((item) => (item.visibility === 'avatar' || item.visibility === 'public') && (item.moderation_status === 'pending_review' || item.moderation_status === 'approved')));
