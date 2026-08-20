@@ -19,6 +19,7 @@ const serverOnlyFunctions = [
   'admin_update_homepage_settings',
   'get_public_homepage_settings',
   'is_super_admin',
+  'activate_verified_signup_profile_v2',
 ];
 
 // Signup V2 is still an integration branch. Keep newly introduced staged RPCs
