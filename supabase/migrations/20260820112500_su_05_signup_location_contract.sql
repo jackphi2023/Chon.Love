@@ -29,7 +29,6 @@ declare
   v_expires_at timestamptz;
   v_has_any_location boolean;
   v_has_complete_location boolean;
-  v_existing_location_enabled boolean := false;
 begin
   if v_user_id is null then
     raise exception using errcode = '28000', message = 'authentication required';
@@ -160,35 +159,32 @@ begin
     insert into private.location_events(user_id, event_type, source, accuracy_meters)
     values(v_user_id, 'set', p_source, p_accuracy_meters);
 
+    -- Existing invariant: nearby_enabled implies discovery_enabled. Signup V2
+    -- deliberately keeps discovery disabled until the profile activation gate,
+    -- so Step 4 stores the private consent/location now but does not turn on
+    -- the public nearby flag prematurely.
     update public.profiles
     set
       province_id = p_province_id,
-      nearby_enabled = true,
+      nearby_enabled = false,
       updated_at = v_now
     where id = v_user_id;
 
-    return query select p_province_id, true, true;
+    return query select p_province_id, false, true;
     return;
   end if;
 
-  -- GPS permission is optional. A province-only save must not erase a location
-  -- the user already consented to in a previous attempt/session; it only keeps
-  -- nearby enabled when that private location is still enabled and unexpired.
-  select coalesce(ul.is_enabled and ul.expires_at > v_now, false)
-  into v_existing_location_enabled
-  from private.user_locations as ul
-  where ul.user_id = v_user_id;
-
-  v_existing_location_enabled := coalesce(v_existing_location_enabled, false);
-
+  -- GPS permission is optional. Province-only retries deliberately do not
+  -- delete an exact location already consented to in private.user_locations.
+  -- The public nearby flag still remains off until discovery/profile activation.
   update public.profiles
   set
     province_id = p_province_id,
-    nearby_enabled = v_existing_location_enabled,
+    nearby_enabled = false,
     updated_at = v_now
   where id = v_user_id;
 
-  return query select p_province_id, v_existing_location_enabled, false;
+  return query select p_province_id, false, false;
 end;
 $function$;
 
@@ -203,4 +199,4 @@ grant execute on function public.save_my_signup_location_v2(
 comment on function public.save_my_signup_location_v2(
   bigint,double precision,double precision,integer,timestamptz,text
 ) is
-  'SU-05 staged location write for incomplete adult Signup V2 profiles. Stores only province_id publicly; consented exact coordinates remain in private.user_locations. GPS is optional, existing consent is preserved on province-only retries, and the profile/discovery state is not activated.';
+  'SU-05 staged location write for incomplete adult Signup V2 profiles. Stores only province_id publicly; consented exact coordinates remain in private.user_locations. GPS is optional and province-only retries preserve existing private consent. nearby_enabled stays false while discovery/profile activation is pending.';
