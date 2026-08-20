@@ -1,6 +1,6 @@
 begin;
 
-select plan(16);
+select plan(21);
 
 select ok(
   exists (
@@ -161,6 +161,41 @@ select ok(
       and name = 'br_01_function_lint_reconciliation'
   ),
   'BR-01 function reconciliation migration is recorded in the migration ledger'
+);
+
+select is(
+  private.luxy_member_gifts_enabled(),
+  false,
+  'member gifts remain server-side fail-closed before finance production acceptance'
+);
+
+select ok(
+  private.config_boolean('withdrawal_requests_enabled') = false
+  and private.config_boolean('withdrawal_processing_enabled') = false
+  and private.config_boolean('withdrawal_payout_enabled') = false
+  and private.config_boolean('withdrawal_operational_review_enabled') = false,
+  'all withdrawal release switches remain server-side fail-closed'
+);
+
+select ok(
+  not has_function_privilege('anon','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE')
+  and not has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),
+  'browser app roles cannot execute request_withdrawal while withdrawals are disabled'
+);
+
+select ok(
+  has_function_privilege('service_role','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),
+  'service role retains controlled withdrawal execution for reviewed operations'
+);
+
+select ok(
+  exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '20260820073535'
+      and name = 'chon_financial_surface_server_fail_closed'
+  ),
+  'Chon.Love financial fail-closed migration is recorded in the migration ledger'
 );
 
 select * from finish();
