@@ -3399,33 +3399,33 @@ export type Database = {
       save_my_signup_headline_bio_v2: {
         Args: { p_bio: string; p_headline?: string }
         Returns: {
-bio_length: number
-headline_length: number
+          bio_length: number
+          headline_length: number
         }[]
       }
       save_my_signup_location_v2: {
         Args: {
-p_accuracy_meters?: number
-p_captured_at?: string
-p_latitude?: number
-p_longitude?: number
-p_province_id: number
-p_source?: string
+          p_accuracy_meters?: number
+          p_captured_at?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_province_id: number
+          p_source?: string
         }
         Returns: {
-location_saved: boolean
-nearby_enabled: boolean
-province_id: number
+          location_saved: boolean
+          nearby_enabled: boolean
+          province_id: number
         }[]
       }
       save_my_signup_looking_for_v2: {
         Args: {
-p_lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
-p_looking_for: string
+          p_lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          p_looking_for: string
         }
         Returns: {
-lifestyle_tag_count: number
-looking_for_length: number
+          lifestyle_tag_count: number
+          looking_for_length: number
         }[]
       }
       save_my_signup_personal_info_v2: {

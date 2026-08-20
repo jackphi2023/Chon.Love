@@ -58,11 +58,15 @@ async function readSignupOtp(email) {
   const deadline = Date.now() + 15_000;
 
   while (Date.now() < deadline) {
-    const response = await fetch(url);
-    if (response.ok) {
-      const html = await response.text();
-      const match = html.match(/\b(\d{6})\b/u);
-      if (match) return match[1];
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const html = await response.text();
+        const match = html.match(/\b(\d{6})\b/u);
+        if (match) return match[1];
+      }
+    } catch {
+      // Mailpit can take a moment to become reachable after the local stack starts.
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
