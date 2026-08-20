@@ -55,19 +55,15 @@ export async function startGoogleAuthentication(): Promise<void> {
   }
 }
 
-export async function requestEmailSignupOtp(email: string): Promise<string> {
+export async function resendEmailSignupOtp(email: string): Promise<string> {
   const client = requireAuthClient();
   const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail) throw new Error('email_required');
 
-  const { error } = await client.auth.signInWithOtp({
+  const { error } = await client.auth.resend({
+    type: 'signup',
     email: normalizedEmail,
-    options: {
-      shouldCreateUser: true,
-      // This remains useful as a safe fallback while hosted environments move
-      // from the legacy Magic Link template to the six-digit OTP template.
-      emailRedirectTo: getAuthCallbackUrl(),
-    },
+    options: { emailRedirectTo: getAuthCallbackUrl() },
   });
   if (error) throw error;
   return normalizedEmail;
@@ -99,8 +95,6 @@ export async function signInWithEmailPassword(email: string, password: string): 
   return getAuthenticatedDestination();
 }
 
-// Kept for backward compatibility with existing password-created accounts and
-// source guards. Signup V2 no longer calls this function for new email users.
 export async function signUpWithEmailPassword(email: string, password: string): Promise<EmailSignUpResult> {
   const client = requireAuthClient();
   const normalizedEmail = normalizeAuthEmail(email);
@@ -156,8 +150,8 @@ export async function completeAuthentication(code?: string): Promise<void> {
   if (sessionError) throw sessionError;
   if (sessionData.session) return;
 
-  // Keep compatibility with older PKCE/Magic Link messages that may still be
-  // in inboxes during the rolling transition to Signup V2 email OTP.
+  // Keep compatibility with older PKCE/email-link messages that may still be
+  // in inboxes while Signup V2 moves the password signup confirmation to OTP.
   if (code) {
     const { error } = await client.auth.exchangeCodeForSession(code);
     if (error) throw error;
