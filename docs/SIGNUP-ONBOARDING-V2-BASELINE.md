@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-06.
+Status: integration baseline through SU-07.
 
 ## Source of truth
 
@@ -60,7 +60,6 @@ Status: integration baseline through SU-06.
 - Existing database integrity requires `nearby_enabled` to imply `discovery_enabled`; therefore both GPS and province-only Step 4 saves keep public `nearby_enabled = false` while the profile is incomplete.
 - A province-only resume/retry preserves an already-consented unexpired private location instead of silently deleting it. A later profile-activation gate must enable nearby only when that consent/location is still valid.
 - The existing mature `set_my_location` contract remains unchanged for active adult members.
-- The transitional profile/photo bridge preserves the SU-05 province and staged nearby-off state; it no longer hard-codes nearby true or asks the member to choose province again.
 
 ## SU-06 looking-for contract
 
@@ -73,7 +72,21 @@ Status: integration baseline through SU-06.
 - The mature lifestyle-tag maximum remains 12; only Signup V2 requires 1–7.
 - The staged `save_my_signup_looking_for_v2` accepts only incomplete profiles after SU-04 adult/policy completion and SU-05 canonical province selection.
 - Step 5 writes only relationship-intent fields and never activates profile/discovery/nearby.
-- Resume logic sends users to the earliest missing staged screen: Location first, then Looking For, then the transitional photo bridge.
+- Resume logic sends users to the earliest missing staged screen: Location first, then Looking For, then Photos.
+
+## SU-07 photo contract
+
+- Step 6 is a dedicated responsive `Thêm ảnh của bạn` screen at `/onboarding/photos`.
+- Exactly five photo slots are shown; at least one usable profile photo is required and three are recommended.
+- Existing owner-visible avatar/public media in `pending_review` or `approved` state is reused rather than duplicated.
+- The first new upload is assigned `avatar` when a usable avatar is not already available; additional images are `public`.
+- Multi-select is capped to the remaining slot count and local selections can be removed before upload.
+- The retired combined `/onboarding/profile` bridge is deleted, removing its old username/profile rewrite and premature profile/discovery activation path.
+- Supported JPEG/PNG/WebP images that already fit the existing 10 MB / 12,000 px media contract are preserved byte-for-byte; small images are never upscaled.
+- Unsupported or oversized files alone are re-rendered. The fallback starts at up to 4096 px on the longest edge with JPEG quality 0.96 and steps down only as needed to remain inside 10 MB.
+- No low-resolution thumbnail or blur transform is added to Step 6 previews; local prepared images and existing signed media URLs are rendered directly.
+- Existing media ownership, moderation, storage buckets and signed-URL delivery authority remain unchanged; SU-07 does not require a database migration.
+- SU-08 will insert the dedicated Headline/Bio screen after Photos and before Selfie.
 
 ## Visual contract
 
@@ -85,7 +98,7 @@ Status: integration baseline through SU-06.
 - Help/warning/success copy: approximately 11–12 px gray/red/green.
 - Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-06
+## Release acceptance through SU-07
 
 - Integration branch remains isolated from `main`.
 - Shared public chrome / SignupShell remain the single registration presentation foundation.
@@ -94,6 +107,8 @@ Status: integration baseline through SU-06.
 - Exact GPS remains private; only province/city is public.
 - Looking-for content uses the existing typed profile taxonomy rather than a duplicate schema.
 - Signup, mature validation/server storage and Profile Edit all share the 4000-character looking-for ceiling.
+- Signup photo selection now has one dedicated five-slot screen and no longer runs the old combined profile activation bridge.
+- Supported profile-image files that fit the backend contract are not recompressed or downscaled by the client.
 - Production user data/schema remains unchanged by this implementation session.
 - `save_my_signup_location_v2` and `save_my_signup_looking_for_v2` stay on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
 - Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
