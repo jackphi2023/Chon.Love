@@ -2,8 +2,15 @@ import { getMyProfile, listActiveProvinces, listMyMedia, updateMyProfile, upload
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Screen } from '@/components/screen';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  SignupFieldLabel,
+  SignupHelpText,
+  SignupSecondaryButton,
+  SignupShell,
+  SignupTag,
+  SignupTextField,
+} from '@/components/signup-shell';
 import { getReadableProfileMediaError, pickAndPrepareProfileImage, type PreparedLocalProfileImage } from '@/lib/profile-media';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -72,36 +79,69 @@ export default function ProfileSetupOnboarding() {
     finally { setBusy(false); }
   }
 
-  if (busy || auth.isRestoring) return <View style={styles.loading}><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.muted}>Đang chuẩn bị hồ sơ…</Text></View>;
+  if (busy || auth.isRestoring) return <View style={styles.loading}><ActivityIndicator color={colors.accent} size="large" /><Text style={styles.muted}>Đang chuẩn bị hồ sơ…</Text></View>;
 
   return (
-    <Screen title="Tạo hồ sơ Chon.Love" description="Điền thông tin cơ bản và upload ảnh thật. Bước tiếp theo bắt buộc chụp selfie live bằng camera.">
-      <Text style={styles.label}>Tên người dùng</Text>
-      <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setUsername} style={styles.input} value={username} />
-      <Text style={styles.label}>Tên hiển thị</Text>
-      <TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} />
+    <SignupShell
+      description="Điền thông tin cơ bản và upload ảnh thật. Các phiên SU tiếp theo sẽ tách phần này thành từng màn riêng mà không đổi dữ liệu hiện có."
+      onBack={() => router.replace('/(onboarding)')}
+      step={6}
+      testID="chon-profile-setup-bridge"
+      title="Tạo hồ sơ Chon.Love"
+    >
+      <SignupFieldLabel required>Tên người dùng</SignupFieldLabel>
+      <SignupTextField autoCapitalize="none" autoCorrect={false} onChangeText={setUsername} value={username} />
 
-      <Text style={styles.label}>Giới tính tự khai báo</Text>
-      <View style={styles.row}>{GENDERS.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: gender === item.value }} key={item.value} onPress={() => setGender(item.value)} style={[styles.chip, gender === item.value && styles.active]}><Text style={[styles.chipText, gender === item.value && styles.activeText]}>{item.label}</Text></Pressable>)}</View>
-      <Text style={styles.hint}>Chon.Love khóa dữ liệu giới tính tự khai báo trong lần xác minh; hệ thống không suy đoán giới tính từ khuôn mặt.</Text>
+      <SignupFieldLabel required>Tên hiển thị</SignupFieldLabel>
+      <SignupTextField onChangeText={setDisplayName} value={displayName} />
 
-      <Text style={styles.label}>Tỉnh / thành phố</Text>
-      <ScrollView nestedScrollEnabled style={styles.provinces}><View style={styles.row}>{provinces.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: provinceId === item.id }} key={item.id} onPress={() => setProvinceId(item.id)} style={[styles.chip, provinceId === item.id && styles.active]}><Text style={[styles.chipText, provinceId === item.id && styles.activeText]}>{item.name}</Text></Pressable>)}</View></ScrollView>
+      <SignupFieldLabel>Giới tính tự khai báo</SignupFieldLabel>
+      <View style={styles.row}>
+        {GENDERS.map((item) => (
+          <SignupTag
+            key={item.value}
+            label={item.label}
+            onPress={() => setGender(item.value)}
+            selected={gender === item.value}
+          />
+        ))}
+      </View>
+      <SignupHelpText>Chon.Love khóa dữ liệu giới tính tự khai báo trong lần xác minh; hệ thống không suy đoán giới tính từ khuôn mặt.</SignupHelpText>
 
-      <Text style={styles.label}>Ảnh hồ sơ</Text>
+      <SignupFieldLabel required>Tỉnh / thành phố</SignupFieldLabel>
+      <ScrollView nestedScrollEnabled style={styles.provinces}>
+        <View style={styles.row}>
+          {provinces.map((item) => (
+            <SignupTag
+              key={item.id}
+              label={item.name}
+              onPress={() => setProvinceId(item.id)}
+              selected={provinceId === item.id}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      <SignupFieldLabel required>Ảnh hồ sơ</SignupFieldLabel>
       {photo ? <Image source={{ uri: photo.previewUri }} style={styles.photo} /> : null}
-      {hasPhoto && !photo ? <Text style={styles.success}>✓ Đã có ảnh hồ sơ để đối chiếu.</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => void choosePhoto()} style={styles.secondary}><Text style={styles.secondaryText}>{photo || hasPhoto ? 'Chọn ảnh khác' : 'Upload ảnh hồ sơ'}</Text></Pressable>
-      {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => void continueToSelfie()} style={styles.primary}><Text style={styles.primaryText}>Tiếp tục chụp selfie</Text></Pressable>
-    </Screen>
+      {hasPhoto && !photo ? <SignupHelpText tone="success">✓ Đã có ảnh hồ sơ để đối chiếu.</SignupHelpText> : null}
+      <Pressable accessibilityRole="button" onPress={() => void choosePhoto()} style={({ pressed }) => [styles.photoButton, pressed && styles.pressed]}>
+        <Text style={styles.photoButtonText}>{photo || hasPhoto ? 'Chọn ảnh khác' : 'Upload ảnh hồ sơ'}</Text>
+      </Pressable>
+
+      {error ? <SignupHelpText tone="danger">{error}</SignupHelpText> : null}
+      <SignupSecondaryButton busy={busy} label="Tiếp tục chụp selfie" onPress={() => void continueToSelfie()} />
+    </SignupShell>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center' }, muted: { color: colors.muted },
-  label: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: spacing.md }, input: { borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, minHeight: 50, paddingHorizontal: spacing.md },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }, chip: { borderColor: colors.border, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 }, active: { backgroundColor: colors.primary, borderColor: colors.primary }, chipText: { color: colors.text, fontSize: 13, fontWeight: '700' }, activeText: { color: colors.surface }, hint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  provinces: { borderColor: colors.border, borderRadius: 12, borderWidth: 1, maxHeight: 190, padding: spacing.sm }, photo: { aspectRatio: 1, borderRadius: 16, maxWidth: 360, width: '100%' }, success: { color: '#15803D', fontSize: 13, fontWeight: '700' },
-  secondary: { alignItems: 'center', borderColor: colors.border, borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 48 }, secondaryText: { color: colors.text, fontWeight: '800' }, primary: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52, marginTop: spacing.lg }, primaryText: { color: colors.surface, fontSize: 15, fontWeight: '800' }, error: { color: colors.danger, fontSize: 14, lineHeight: 21 },
+  loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center' },
+  muted: { color: colors.muted },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  provinces: { borderColor: colors.border, borderRadius: 10, borderWidth: 1, maxHeight: 190, padding: spacing.sm },
+  photo: { aspectRatio: 1, borderRadius: 14, maxWidth: 360, width: '100%' },
+  photoButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 18 },
+  photoButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  pressed: { opacity: 0.78 },
 });
