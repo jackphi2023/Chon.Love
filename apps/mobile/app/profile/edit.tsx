@@ -680,7 +680,7 @@ export default function EditProfilePage() {
                   <LongTextSection
                     control={control}
                     helper="Mô tả kiểu mối quan hệ bạn mong muốn, điều quan trọng với bạn và những giới hạn rõ ràng."
-                    maxLength={1000}
+                    maxLength={4000}
                     name="lookingFor"
                     title="Tôi đang tìm kiếm"
                   />
