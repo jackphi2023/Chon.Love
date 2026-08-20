@@ -14,6 +14,20 @@ export const provinceIdSchema = z
   .number({ error: 'Bạn cần chọn tỉnh/thành.' })
   .int('Tỉnh/thành không hợp lệ.')
   .positive('Bạn cần chọn tỉnh/thành.');
+
+export const signupExactLocationSchema = z.object({
+  latitude: z.number().min(-90, 'Vĩ độ không hợp lệ.').max(90, 'Vĩ độ không hợp lệ.'),
+  longitude: z.number().min(-180, 'Kinh độ không hợp lệ.').max(180, 'Kinh độ không hợp lệ.'),
+  accuracyMeters: z.number().int('Độ chính xác vị trí không hợp lệ.').nonnegative('Độ chính xác vị trí không hợp lệ.'),
+  capturedAt: z.iso.datetime({ offset: true }),
+  source: z.enum(['device_foreground', 'device_approximate']),
+});
+
+export const signupLocationSchema = z.object({
+  provinceId: provinceIdSchema,
+  location: signupExactLocationSchema.nullable().optional(),
+});
+
 export const profileBioSchema = z.string().trim().max(500, 'Giới thiệu tối đa 500 ký tự.');
 export const profileHeadlineSchema = z.string().trim().max(120, 'Tiêu đề tối đa 120 ký tự.');
 export const profileOccupationSchema = z.string().trim().max(120, 'Nghề nghiệp tối đa 120 ký tự.');
@@ -276,6 +290,8 @@ export const minimumOnboardingSchema = z.object({
 
 export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;
 export type SignupPersonalInfoInput = z.infer<typeof signupPersonalInfoSchema>;
+export type SignupExactLocationInput = z.infer<typeof signupExactLocationSchema>;
+export type SignupLocationInput = z.infer<typeof signupLocationSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
 export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
 export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;
