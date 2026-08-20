@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { VietqrReconciliationClient } from './vietqr-reconciliation-client';
 
 export const metadata: Metadata = {
-  title: 'Đối soát VietQR — Luxy.Love Admin',
+  title: 'Đối soát VietQR — Chon.Love Admin',
   robots: { index: false, follow: false },
 };
 
