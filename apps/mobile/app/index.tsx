@@ -22,6 +22,7 @@ import {
 import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { HomepageYoutubeHero } from '@/components/homepage-youtube-hero';
 import { luxyPublicArtwork } from '@/components/luxy-public-artwork';
+import { PublicFooter as SharedPublicFooter, PublicHeader as SharedPublicHeader } from '@/components/public-site-chrome';
 import { getAuthenticatedDestination } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -148,7 +149,7 @@ export default function HomeScreen() {
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.heroShade} />
-        <PublicHeader isPhone={isPhone} onJoin={openJoin} onLogin={openLogin} />
+        <SharedPublicHeader compact={isPhone} onJoin={openJoin} onLogin={openLogin} variant="overlay" />
         <View style={[styles.heroContent, isPhone && styles.heroContentPhone]}>
           <ChonLoveLogo height={isPhone ? 104 : 150} width={isPhone ? 236 : 340} />
           <Text accessibilityRole="header" style={[styles.heroSlogan, isPhone && styles.heroSloganPhone]}>
@@ -280,8 +281,8 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <PublicFooter
-        isPhone={isPhone}
+      <SharedPublicFooter
+        compact={isPhone}
         onCommunity={() => router.push('/legal/community-standards')}
         onTerms={() => router.push('/legal/terms')}
       />
