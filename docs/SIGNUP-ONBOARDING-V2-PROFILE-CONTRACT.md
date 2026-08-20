@@ -115,6 +115,10 @@ No second province or coordinate field is added. Signup continues to reuse:
 - `private.user_locations` for consented exact coordinates;
 - existing avatar/public media ownership and moderation tables for Step 6.
 
+## Generated client-type boundary
+
+During the integration branch, `save_my_signup_location_v2`, `save_my_signup_looking_for_v2` and `save_my_signup_headline_bio_v2` remain deliberately filtered from the committed generated client contract. The mobile layer calls these staged functions through narrow structural boundaries while Database pgTAP tests validate the authoritative server behavior. SU-11 must regenerate the final public database types and remove this temporary filter before production release. The Database workflow remains read-only (`contents: read`).
+
 ## Release boundary
 
 - Personal Info migration: `supabase/migrations/20260820095000_su_03_signup_personal_info_contract.sql`
