@@ -18,6 +18,7 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const CHON_GOLD = '#FFBB00';
+const NAV_LOGO_SCALE = 1.16;
 
 const primaryItems = [
   { key: 'search', label: 'Kết nối', icon: 'connect' as const, href: '/(tabs)' as const },
@@ -149,7 +150,7 @@ export function LuxyDesktopNavigation() {
             onPress={navigateHome}
             style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
           >
-            <ChonLoveLogo height={58} width={174} />
+            <ChonLoveLogo height={50} scale={NAV_LOGO_SCALE} width={150} />
           </Pressable>
 
           <View style={styles.primaryNav}>
