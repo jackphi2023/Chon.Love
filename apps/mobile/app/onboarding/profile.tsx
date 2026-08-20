@@ -1,8 +1,8 @@
-import { getMyProfile, listActiveProvinces, listMyMedia, updateMyProfile, uploadProfileImage, type GenderIdentity, type ProvinceOption } from '@myfan/supabase';
+import { getMyProfile, listMyMedia, updateMyProfile, uploadProfileImage, type GenderIdentity } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   SignupFieldLabel,
   SignupHelpText,
@@ -30,7 +30,7 @@ export default function ProfileSetupOnboarding() {
   const [displayName, setDisplayName] = useState('');
   const [gender, setGender] = useState<GenderIdentity>('male');
   const [provinceId, setProvinceId] = useState<number | null>(null);
-  const [provinces, setProvinces] = useState<ProvinceOption[]>([]);
+  const [nearbyEnabled, setNearbyEnabled] = useState(false);
   const [photo, setPhoto] = useState<PreparedLocalProfileImage | null>(null);
   const [hasPhoto, setHasPhoto] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -42,8 +42,8 @@ export default function ProfileSetupOnboarding() {
     const client = getMobileSupabaseClient();
     if (!client) { setError('Kết nối hồ sơ chưa được cấu hình.'); setBusy(false); return; }
     let active = true;
-    void Promise.all([getMyProfile(client), listActiveProvinces(client), listMyMedia(client)])
-      .then(([profile, provinceRows, mediaRows]) => {
+    void Promise.all([getMyProfile(client), listMyMedia(client)])
+      .then(([profile, mediaRows]) => {
         if (!active) return;
         if (profile.profile_status === 'active') { router.replace('/(tabs)'); return; }
         const signupDraft = readSignupDraft();
@@ -51,8 +51,8 @@ export default function ProfileSetupOnboarding() {
         setDisplayName(profile.display_name ?? '');
         if (GENDERS.some((item) => item.value === profile.gender)) setGender(profile.gender);
         else if (signupDraft) setGender(signupDraft.gender);
-        setProvinceId(profile.province_id ?? provinceRows[0]?.id ?? null);
-        setProvinces(provinceRows);
+        setProvinceId(profile.province_id);
+        setNearbyEnabled(profile.nearby_enabled);
         setHasPhoto(mediaRows.some((item) => (item.visibility === 'avatar' || item.visibility === 'public') && (item.moderation_status === 'pending_review' || item.moderation_status === 'approved')));
       })
       .catch((cause) => { if (active) setError(getReadableProfileMediaError(cause)); })
@@ -69,13 +69,29 @@ export default function ProfileSetupOnboarding() {
   }
 
   async function continueToSelfie() {
-    if (username.trim().length < 3 || !displayName.trim() || !provinceId) { setError('Vui lòng nhập tên, tên người dùng và chọn tỉnh/thành phố.'); return; }
+    if (!provinceId) {
+      setError('Vị trí chưa được thiết lập. Vui lòng quay lại bước Vị trí và chọn tỉnh/thành phố.');
+      return;
+    }
+    if (username.trim().length < 3 || !displayName.trim()) {
+      setError('Vui lòng nhập tên và tên người dùng.');
+      return;
+    }
     if (!photo && !hasPhoto) { setError('Vui lòng upload ít nhất một ảnh hồ sơ trước khi chụp selfie.'); return; }
     const client = getMobileSupabaseClient();
     if (!client) return;
     setBusy(true); setError(null);
     try {
-      await updateMyProfile(client, { username: username.trim().toLowerCase(), displayName: displayName.trim(), bio: '', gender, provinceId, interests: [], discoveryEnabled: true, nearbyEnabled: true });
+      await updateMyProfile(client, {
+        username: username.trim().toLowerCase(),
+        displayName: displayName.trim(),
+        bio: '',
+        gender,
+        provinceId,
+        interests: [],
+        discoveryEnabled: true,
+        nearbyEnabled,
+      });
       if (photo) await uploadProfileImage(client, photo);
       router.replace('/onboarding/selfie');
     } catch (cause) { setError(getReadableProfileMediaError(cause)); }
@@ -87,7 +103,7 @@ export default function ProfileSetupOnboarding() {
   return (
     <SignupShell
       description="Điền thông tin cơ bản và upload ảnh thật. Các phiên SU tiếp theo sẽ tách phần này thành từng màn riêng mà không đổi dữ liệu hiện có."
-      onBack={() => router.replace('/(onboarding)')}
+      onBack={() => router.replace('/onboarding/location')}
       step={6}
       testID="chon-profile-setup-bridge"
       title="Tạo hồ sơ Chon.Love"
@@ -111,19 +127,11 @@ export default function ProfileSetupOnboarding() {
       </View>
       <SignupHelpText>Chon.Love khóa dữ liệu giới tính tự khai báo trong lần xác minh; hệ thống không suy đoán giới tính từ khuôn mặt.</SignupHelpText>
 
-      <SignupFieldLabel required>Tỉnh / thành phố</SignupFieldLabel>
-      <ScrollView nestedScrollEnabled style={styles.provinces}>
-        <View style={styles.row}>
-          {provinces.map((item) => (
-            <SignupTag
-              key={item.id}
-              label={item.name}
-              onPress={() => setProvinceId(item.id)}
-              selected={provinceId === item.id}
-            />
-          ))}
-        </View>
-      </ScrollView>
+      <SignupHelpText tone={provinceId ? 'success' : 'danger'}>
+        {provinceId
+          ? `✓ Đã lưu tỉnh/thành phố ở bước Vị trí${nearbyEnabled ? ' và đã bật dữ liệu khoảng cách gần/xa.' : '.'}`
+          : 'Chưa có tỉnh/thành phố. Vui lòng quay lại bước Vị trí.'}
+      </SignupHelpText>
 
       <SignupFieldLabel required>Ảnh hồ sơ</SignupFieldLabel>
       {photo ? <Image source={{ uri: photo.previewUri }} style={styles.photo} /> : null}
@@ -142,7 +150,6 @@ const styles = StyleSheet.create({
   loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center' },
   muted: { color: colors.muted },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  provinces: { borderColor: colors.border, borderRadius: 10, borderWidth: 1, maxHeight: 190, padding: spacing.sm },
   photo: { aspectRatio: 1, borderRadius: 14, maxWidth: 360, width: '100%' },
   photoButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: 18 },
   photoButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
