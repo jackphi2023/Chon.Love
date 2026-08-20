@@ -39,15 +39,6 @@ export const relationshipStatusSchema = z.enum([
   'prefer_not_to_say',
 ]);
 
-export const maritalStatusSchema = z.enum([
-  'prefer_not_to_say',
-  'never_married',
-  'married',
-  'separated',
-  'divorced',
-  'widowed',
-]);
-
 export const childrenStatusSchema = z.enum([
   'no_children',
   'has_children',
@@ -254,19 +245,22 @@ export const signupDisplayNameSchema = z
   .min(10, 'Tên hiển thị cần ít nhất 10 ký tự.')
   .max(50, 'Tên hiển thị tối đa 50 ký tự.');
 
+// SU-04 keeps only DOB + display name + the Step 1 preference pair mandatory.
+// Factual profile attributes may be left on "Chọn" or explicitly set to
+// "Không chia sẻ". The mobile write layer normalizes those states to null for
+// numeric fields and prefer_not_to_say for enum fields.
 export const signupPersonalInfoSchema = z.object({
   dateOfBirth: adultDateOfBirthSchema,
   displayName: signupDisplayNameSchema,
   gender: signupGenderSchema,
   interestedIn: datingInterestSchema,
-  heightCm: signupHeightCmSchema.nullable(),
-  weightKg: weightKgSchema.nullable(),
-  educationLevel: educationLevelSchema,
-  relationshipStatus: relationshipStatusSchema,
-  maritalStatus: maritalStatusSchema.nullable(),
-  childrenStatus: childrenStatusSchema,
-  drinkingStatus: drinkingStatusSchema,
-  smokingStatus: smokingStatusSchema,
+  heightCm: signupHeightCmSchema.nullable().optional(),
+  weightKg: weightKgSchema.nullable().optional(),
+  educationLevel: educationLevelSchema.optional(),
+  relationshipStatus: relationshipStatusSchema.optional(),
+  childrenStatus: childrenStatusSchema.optional(),
+  drinkingStatus: drinkingStatusSchema.optional(),
+  smokingStatus: smokingStatusSchema.optional(),
 });
 
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
