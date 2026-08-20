@@ -204,9 +204,7 @@ export default function OnboardingPhotos() {
         if (visibility === 'avatar') setHasAvatar(true);
       }
 
-      // SU-08 inserts Headline/Bio between Photos and Selfie. Until that dedicated
-      // screen lands, the integration branch keeps the existing verification route.
-      router.replace('/onboarding/selfie');
+      router.replace('/onboarding/about');
     } catch (error) {
       setErrorMessage(getReadableProfileMediaError(error));
     } finally {
