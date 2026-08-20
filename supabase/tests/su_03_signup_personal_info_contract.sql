@@ -1,44 +1,22 @@
 begin;
 
-select plan(23);
+select plan(21);
 
 select ok(
-  exists (
+  not exists (
     select 1
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'profiles'
       and column_name = 'marital_status'
   ),
-  'SU-03 adds profiles.marital_status'
-);
-
-select is(
-  (
-    select is_nullable
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'profiles'
-      and column_name = 'marital_status'
-  ),
-  'YES',
-  'marital_status stays nullable so legacy profiles require no backfill'
-);
-
-select is(
-  (
-    select pg_catalog.string_agg(enumlabel, ',' order by enumsortorder)
-    from pg_catalog.pg_enum
-    where enumtypid = 'public.marital_status'::regtype
-  ),
-  'prefer_not_to_say,never_married,married,separated,divorced,widowed',
-  'marital status taxonomy is stable for Signup V2'
+  'Signup V2 keeps relationship_status as the single relationship/marital-state field'
 );
 
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.save_my_signup_personal_info_v2(date,text,text,text,public.gender_identity,public.dating_interest,smallint,smallint,public.education_level,public.relationship_status,public.marital_status,public.children_status,public.drinking_status,public.smoking_status)',
+    'public.save_my_signup_personal_info_v2(date,text,text,text,public.gender_identity,public.dating_interest,smallint,smallint,public.education_level,public.relationship_status,public.children_status,public.drinking_status,public.smoking_status)',
     'EXECUTE'
   ),
   'authenticated users can execute staged Signup V2 personal-info RPC'
@@ -47,7 +25,7 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.save_my_signup_personal_info_v2(date,text,text,text,public.gender_identity,public.dating_interest,smallint,smallint,public.education_level,public.relationship_status,public.marital_status,public.children_status,public.drinking_status,public.smoking_status)',
+    'public.save_my_signup_personal_info_v2(date,text,text,text,public.gender_identity,public.dating_interest,smallint,smallint,public.education_level,public.relationship_status,public.children_status,public.drinking_status,public.smoking_status)',
     'EXECUTE'
   ),
   'anonymous users cannot execute staged Signup V2 personal-info RPC'
@@ -93,6 +71,12 @@ insert into auth.users(
   '23000000-0000-0000-0000-000000000004',
   'authenticated','authenticated','su03-existing-username@example.test','',
   '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
+),
+(
+  '00000000-0000-0000-0000-000000000000',
+  '23000000-0000-0000-0000-000000000005',
+  'authenticated','authenticated','su03-optional@example.test','',
+  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
 );
 
 update public.profiles
@@ -100,8 +84,7 @@ set username = 'legacyactive2303',
     display_name = 'Legacy Active Member',
     profile_status = 'active',
     discovery_enabled = true,
-    province_id = (select min(id) from public.administrative_areas where country_code = 'VN' and is_active),
-    marital_status = null
+    province_id = (select min(id) from public.administrative_areas where country_code = 'VN' and is_active)
 where id = '23000000-0000-0000-0000-000000000003';
 
 update public.profiles
@@ -127,7 +110,6 @@ select lives_ok(
       p_weight_kg => 52::smallint,
       p_education_level => 'bachelors'::public.education_level,
       p_relationship_status => 'single'::public.relationship_status,
-      p_marital_status => 'never_married'::public.marital_status,
       p_children_status => 'no_children'::public.children_status,
       p_drinking_status => 'socially'::public.drinking_status,
       p_smoking_status => 'never'::public.smoking_status
@@ -174,12 +156,12 @@ select is(
 
 select is(
   (
-    select concat_ws('|', education_level::text, relationship_status::text, marital_status::text, children_status::text, drinking_status::text, smoking_status::text)
+    select concat_ws('|', education_level::text, relationship_status::text, children_status::text, drinking_status::text, smoking_status::text)
     from public.profiles
     where id = '23000000-0000-0000-0000-000000000001'
   ),
-  'bachelors|single|never_married|no_children|socially|never',
-  'education, relationship, marital and lifestyle status fields are persisted'
+  'bachelors|single|no_children|socially|never',
+  'optional factual enum fields are persisted without a duplicate marital status'
 );
 
 select is(
@@ -197,6 +179,49 @@ select ok(
     where user_id = '23000000-0000-0000-0000-000000000001'
   ),
   'existing adult and versioned policy authority is reused by the staged RPC'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"23000000-0000-0000-0000-000000000005","role":"authenticated"}',
+  true
+);
+
+select lives_ok(
+  format(
+    $$select public.save_my_signup_personal_info_v2(
+      p_date_of_birth => (current_date - interval '28 years')::date,
+      p_terms_version => %L,
+      p_community_rules_version => %L,
+      p_display_name => 'Optional Member',
+      p_gender => 'male'::public.gender_identity,
+      p_interested_in => 'female'::public.dating_interest
+    )$$,
+    (select value_json #>> '{}' from private.app_config where key='terms_version_current'),
+    (select value_json #>> '{}' from private.app_config where key='community_rules_version_current')
+  ),
+  'all optional factual fields may be omitted'
+);
+
+select ok(
+  (
+    select height_cm is null
+      and weight_kg is null
+      and education_level = 'prefer_not_to_say'::public.education_level
+      and relationship_status = 'prefer_not_to_say'::public.relationship_status
+      and children_status = 'prefer_not_to_say'::public.children_status
+      and drinking_status = 'prefer_not_to_say'::public.drinking_status
+      and smoking_status = 'prefer_not_to_say'::public.smoking_status
+    from public.profiles
+    where id = '23000000-0000-0000-0000-000000000005'
+  ),
+  'omitted optional fields persist as null physical values and canonical not-shared enums'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"23000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
 );
 
 select throws_ok(
@@ -308,11 +333,11 @@ select throws_ok(
 
 select is(
   (
-    select concat_ws('|', username::text, display_name, profile_status::text, discovery_enabled::text, coalesce(marital_status::text, 'NULL'))
+    select concat_ws('|', username::text, display_name, profile_status::text, discovery_enabled::text)
     from public.profiles
     where id = '23000000-0000-0000-0000-000000000003'
   ),
-  'legacyactive2303|Legacy Active Member|active|true|NULL',
+  'legacyactive2303|Legacy Active Member|active|true',
   'active legacy profile remains unchanged after rejected staged write'
 );
 
