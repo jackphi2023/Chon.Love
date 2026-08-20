@@ -61,6 +61,8 @@ async function expectProfileFactIconSize(page, expectedSize) {
 async function expectCleanProfilePresentation(page) {
   await expect(page.getByText('Kết nối Beta', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Gửi lời mời kết bạn', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Ghi chú thành viên', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('♡', { exact: true })).toHaveCount(0);
   const relationship = page.getByTestId('luxy-profile-fact-relationship');
   await expect(relationship).toBeVisible();
   await expect(relationship.getByText('Tình trạng', { exact: true })).toBeVisible();
