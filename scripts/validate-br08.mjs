@@ -11,6 +11,8 @@ const sharedClient = readText('packages/supabase/src/kyc-withdrawal-operations.t
 const sharedTest = readText('packages/supabase/src/kyc-withdrawal-operations.test.ts');
 const sharedIndex = readText('packages/supabase/src/index.ts');
 const adminPage = readText('apps/admin/app/kyc-withdrawal-operations/kyc-withdrawal-operations-client.tsx');
+const withdrawalsPage = readText('apps/admin/app/(protected)/withdrawals/page.tsx');
+const legacyOperationsPage = readText('apps/admin/app/kyc-withdrawal-operations/page.tsx');
 const adminNavigation = readText('apps/admin/app/(protected)/layout.tsx');
 const applicationCi = readText('.github/workflows/ci.yml');
 const databaseCi = readText('.github/workflows/database.yml');
@@ -84,7 +86,12 @@ for (const token of ['listPayoutOperationalQueue','startPayoutOperationalReview'
 }
 expect(adminPage.includes('COMPLIANCE · FINANCE · BR-08'), 'Admin page must identify BR-08.');
 expect(adminPage.includes('maker–checker') && adminPage.includes('SHA-256'), 'Admin page must explain dual control and payment evidence.');
-expect(adminNavigation.includes("'/kyc-withdrawal-operations'"), 'Protected Admin navigation must link to BR-08 operations.');
+expect(withdrawalsPage.includes('KycWithdrawalOperationsClient'), 'Canonical /withdrawals Admin route must render the real BR-08 operational client instead of a placeholder.');
+expect(withdrawalsPage.includes('Chon.Love Admin'), 'Canonical withdrawal route metadata must use Chon.Love branding.');
+expect(legacyOperationsPage.includes('KycWithdrawalOperationsClient'), 'Legacy BR-08 route must remain a functional compatibility route.');
+expect(!legacyOperationsPage.includes('Luxy.Love Admin'), 'Legacy BR-08 route must not expose stale Luxy.Love branding.');
+expect(adminNavigation.includes("['KYC & rút tiền', '/withdrawals']"), 'Protected Admin navigation must link to canonical /withdrawals operations.');
+expect(!adminNavigation.includes("['Withdrawals', '/withdrawals']") && !adminNavigation.includes("['KYC & rút tiền', '/kyc-withdrawal-operations']"), 'Protected Admin navigation must not expose duplicate withdrawal routes.');
 expect(releaseManifest.financialFeaturesEnabled === false, 'Financial release flag must remain disabled.');
 expect(releaseManifest.mergeAllowed === false, 'BR-08 must not authorize merge.');
 expect(releaseManifest.productionDeployAllowed === false, 'BR-08 must not authorize production deployment.');
@@ -98,4 +105,4 @@ if (errors.length) {
   process.exit(1);
 }
 console.warn('BR-08 KYC and withdrawal operational source validation passed.');
-console.warn('Coverage: disabled-by-default KYC/bank/withdrawal controls, assignment, audited PII access, maker-checker payout, payment evidence, immutable events, and no client payout path.');
+console.warn('Coverage: disabled-by-default KYC/bank/withdrawal controls, canonical Admin routing, assignment, audited PII access, maker-checker payout, payment evidence, immutable events, and no client payout path.');
