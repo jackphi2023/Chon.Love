@@ -207,7 +207,7 @@ select throws_ok(
 
 select ok(
   position(
-    "p.nearby_enabled" in pg_get_functiondef(
+    'p.nearby_enabled' in pg_get_functiondef(
       'public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,integer,integer)'::regprocedure
     )
   ) > 0,
