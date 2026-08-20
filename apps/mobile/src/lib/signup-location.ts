@@ -1,5 +1,5 @@
-import * as Location from 'expo-location';
 import type { SignupExactLocationInput } from '@myfan/validation';
+import * as Location from 'expo-location';
 
 export const SIGNUP_LOCATION_MAX_ACCURACY_METERS = 5000;
 
@@ -26,7 +26,7 @@ export async function captureSignupCurrentLocation(): Promise<SignupLocationCapt
     if (!servicesEnabled) return { status: 'unavailable', reason: 'services_unavailable' };
 
     const permission = await Location.requestForegroundPermissionsAsync();
-    if (permission.status !== Location.PermissionStatus.GRANTED) {
+    if (permission.status !== 'granted') {
       return { status: 'denied', canAskAgain: permission.canAskAgain };
     }
 
