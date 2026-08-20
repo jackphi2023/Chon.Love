@@ -4,7 +4,11 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LiveSelfieCamera } from '@/components/live-selfie-camera';
-import { Screen } from '@/components/screen';
+import {
+  SignupHelpText,
+  SignupSecondaryButton,
+  SignupShell,
+} from '@/components/signup-shell';
 import {
   getMemberPhotoVerificationStatus,
   MEMBER_PHOTO_PENDING_MESSAGE,
@@ -82,7 +86,7 @@ export default function SelfieVerificationOnboarding() {
   if (auth.isRestoring || isChecking) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
         <Text style={styles.muted}>Đang kiểm tra trạng thái xác minh…</Text>
       </View>
     );
@@ -90,9 +94,11 @@ export default function SelfieVerificationOnboarding() {
 
   if (result?.state === 'pending_review') {
     return (
-      <Screen
-        title="Tài khoản đang chờ xác minh"
+      <SignupShell
         description="Bạn chưa thể đăng nhập vào khu vực thành viên hoặc xem hồ sơ người dùng cho đến khi quá trình xem xét hoàn tất."
+        step={8}
+        testID="chon-selfie-pending"
+        title="Tài khoản đang chờ xác minh"
       >
         <View style={styles.warningCard}>
           <Text accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
@@ -101,30 +107,35 @@ export default function SelfieVerificationOnboarding() {
             <Text style={styles.scoreText}>Độ tương đồng tự động: {result.maxSimilarity.toFixed(1)}%</Text>
           ) : null}
         </View>
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Đăng xuất</Text>
+        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+          <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
-      </Screen>
+      </SignupShell>
     );
   }
 
   if (result?.state === 'hidden') {
     return (
-      <Screen
-        title="Tài khoản chưa được kích hoạt"
+      <SignupShell
         description="Hồ sơ đang bị vô hiệu sau quá trình xác minh. Liên hệ hỗ trợ nếu bạn cho rằng đây là nhầm lẫn."
+        step={8}
+        testID="chon-selfie-hidden"
+        title="Tài khoản chưa được kích hoạt"
       >
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Đăng xuất</Text>
+        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+          <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
-      </Screen>
+      </SignupShell>
     );
   }
 
   return (
-    <Screen
-      title="Chụp selfie xác minh"
+    <SignupShell
       description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
+      onBack={() => router.replace('/onboarding/profile')}
+      step={8}
+      testID="chon-selfie-verification"
+      title="Chụp selfie xác minh"
     >
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Điều kiện tự động duyệt</Text>
@@ -151,39 +162,31 @@ export default function SelfieVerificationOnboarding() {
         />
       )}
 
-      {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={!selfie || isSubmitting}
+      {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
+      <SignupSecondaryButton
+        busy={isSubmitting}
+        disabled={!selfie}
+        label="Xác minh và kích hoạt tài khoản"
         onPress={() => void handleSubmit()}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, (!selfie || isSubmitting) && styles.disabled]}
-      >
-        {isSubmitting ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>Xác minh và kích hoạt tài khoản</Text>}
-      </Pressable>
-    </Screen>
+      />
+    </SignupShell>
   );
 }
 
 const styles = StyleSheet.create({
   loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   muted: { color: colors.muted, fontSize: 14 },
-  ruleCard: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 14, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
+  ruleCard: { backgroundColor: '#FFF9EA', borderColor: '#E8D391', borderRadius: 12, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
   ruleTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  ruleText: { color: colors.muted, fontSize: 13, lineHeight: 20 },
-  warningCard: { backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderRadius: 14, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
+  ruleText: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  warningCard: { backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderRadius: 12, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
   warningTitle: { color: '#9A3412', fontSize: 16, fontWeight: '900' },
   warningText: { color: '#7C2D12', fontSize: 14, lineHeight: 22 },
-  scoreText: { color: '#9A3412', fontSize: 13, fontWeight: '700' },
+  scoreText: { color: '#9A3412', fontSize: 12, fontWeight: '700' },
   previewWrap: { alignItems: 'center', gap: spacing.sm },
-  selfiePreview: { aspectRatio: 1, borderRadius: 16, maxWidth: 420, width: '100%' },
+  selfiePreview: { aspectRatio: 1, borderRadius: 14, maxWidth: 420, width: '100%' },
   textButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  textButtonLabel: { color: colors.primary, fontSize: 14, fontWeight: '800' },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52, marginTop: spacing.lg, paddingHorizontal: spacing.lg },
-  primaryButtonText: { color: colors.surface, fontSize: 15, fontWeight: '800' },
-  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 50, marginTop: spacing.lg },
-  secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  error: { color: colors.danger, fontSize: 14, lineHeight: 21, marginTop: spacing.md },
-  pressed: { opacity: 0.82 },
-  disabled: { opacity: 0.5 },
+  textButtonLabel: { color: colors.accent, fontSize: 14, fontWeight: '800' },
+  signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48 },
+  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
 });
