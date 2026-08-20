@@ -1,3 +1,11 @@
+import type { Metadata } from 'next';
+import { KycWithdrawalOperationsClient } from '../../kyc-withdrawal-operations/kyc-withdrawal-operations-client';
+
+export const metadata: Metadata = {
+  title: 'KYC và rút tiền — Chon.Love Admin',
+  robots: { index: false, follow: false },
+};
+
 export default function Page() {
-  return <section className="card"><h1>Withdrawals</h1><p>Foundation KYC, payout review và chuyển khoản thủ công.</p></section>;
+  return <KycWithdrawalOperationsClient />;
 }
