@@ -10,12 +10,15 @@ import {
   isAtLeastAge,
   luxyProfileEditorSchema,
   luxyProfileSetupSchema,
+  maritalStatusSchema,
   minimumOnboardingSchema,
   normalizeInterests,
   profileEditorSchema,
   profileImageMetadataSchema,
   profileLifestyleTagSchema,
   relationshipStatusSchema,
+  signupHeightCmSchema,
+  signupPersonalInfoSchema,
   smokingStatusSchema,
   usernameSchema,
   weightKgSchema,
@@ -225,6 +228,63 @@ describe('shared validation', () => {
     expect(luxyProfileSetupSchema.safeParse(setup).success).toBe(true);
     expect(luxyProfileSetupSchema.safeParse({ ...setup, heightCm: null }).success).toBe(false);
     expect(luxyProfileSetupSchema.safeParse({ ...setup, provinceId: null }).success).toBe(false);
+  });
+
+  it('locks the SU-03 marital-status taxonomy', () => {
+    expect(maritalStatusSchema.options).toEqual([
+      'prefer_not_to_say',
+      'never_married',
+      'married',
+      'separated',
+      'divorced',
+      'widowed',
+    ]);
+  });
+
+  it('validates the staged Signup V2 personal-info contract', () => {
+    const valid = {
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female' as const,
+      interestedIn: 'male' as const,
+      heightCm: 165,
+      weightKg: 52,
+      educationLevel: 'bachelors' as const,
+      relationshipStatus: 'single' as const,
+      maritalStatus: 'never_married' as const,
+      childrenStatus: 'no_children' as const,
+      drinkingStatus: 'socially' as const,
+      smokingStatus: 'never' as const,
+    };
+
+    expect(signupPersonalInfoSchema.safeParse(valid).success).toBe(true);
+    expect(signupPersonalInfoSchema.safeParse({ ...valid, heightCm: null, weightKg: null, maritalStatus: null }).success).toBe(true);
+  });
+
+  it('keeps Signup V2 validation stricter than the legacy profile editor without changing legacy ranges', () => {
+    expect(heightCmSchema.safeParse(230).success).toBe(true);
+    expect(signupHeightCmSchema.safeParse(220).success).toBe(true);
+    expect(signupHeightCmSchema.safeParse(221).success).toBe(false);
+
+    const valid = {
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female' as const,
+      interestedIn: 'male' as const,
+      heightCm: 165,
+      weightKg: null,
+      educationLevel: 'prefer_not_to_say' as const,
+      relationshipStatus: 'prefer_not_to_say' as const,
+      maritalStatus: null,
+      childrenStatus: 'prefer_not_to_say' as const,
+      drinkingStatus: 'prefer_not_to_say' as const,
+      smokingStatus: 'prefer_not_to_say' as const,
+    };
+
+    expect(signupPersonalInfoSchema.safeParse({ ...valid, displayName: 'Short' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...valid, displayName: 'A'.repeat(51) }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...valid, gender: 'non_binary' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...valid, dateOfBirth: '2015-01-01' }).success).toBe(false);
   });
 
   it('rejects oversized or mismatched image metadata', () => {
