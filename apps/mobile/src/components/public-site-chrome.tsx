@@ -57,6 +57,7 @@ export function PublicHeader({
       {onJoin && onLogin ? (
         <View style={styles.headerActions}>
           <Pressable
+            accessibilityLabel="Đăng nhập"
             accessibilityRole="button"
             onPress={onLogin}
             style={({ pressed }) => [styles.loginButton, pressed && styles.pressed]}
@@ -64,6 +65,7 @@ export function PublicHeader({
             <Text style={styles.loginText}>Đăng nhập</Text>
           </Pressable>
           <Pressable
+            accessibilityLabel="Đăng ký"
             accessibilityRole="button"
             onHoverIn={() => setJoinHovered(true)}
             onHoverOut={() => setJoinHovered(false)}
@@ -81,6 +83,7 @@ export function PublicHeader({
         <View style={styles.headerActions}>
           {prompt && !compact ? <Text style={styles.headerPrompt}>{prompt}</Text> : null}
           <Pressable
+            accessibilityLabel={actionLabel}
             accessibilityRole="button"
             onHoverIn={() => setActionHovered(true)}
             onHoverOut={() => setActionHovered(false)}
@@ -108,14 +111,16 @@ export function PublicFooter({ compact, onTerms, onCommunity }: PublicFooterProp
       </View>
       <View style={styles.footerLinks}>
         <Pressable
+          accessibilityLabel="Điều khoản"
           accessibilityRole="link"
           onPress={onTerms}
           style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}
         >
           <Text style={styles.footerLinkText}>Điều khoản</Text>
         </Pressable>
-        <View style={styles.footerDot} />
+        <View accessible={false} style={styles.footerDot} />
         <Pressable
+          accessibilityLabel="Tiêu chuẩn cộng đồng"
           accessibilityRole="link"
           onPress={onCommunity}
           style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}
@@ -142,11 +147,11 @@ const styles = StyleSheet.create({
   },
   headerCompact: { height: 62, paddingHorizontal: 14 },
   headerSolid: { backgroundColor: '#090909', maxWidth: undefined },
-  logoButton: { justifyContent: 'center', minHeight: 44 },
-  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  logoButton: { justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   headerPrompt: { color: '#E5E7EB', fontSize: 13 },
-  loginButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  loginText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  loginButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 10 },
+  loginText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   registerButton: {
     alignItems: 'center',
     backgroundColor: '#D92D2A',
@@ -154,8 +159,8 @@ const styles = StyleSheet.create({
     borderRadius: luxyRadii.pill,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 42,
-    paddingHorizontal: 20,
+    minHeight: 44,
+    paddingHorizontal: 18,
   },
   registerButtonHovered: {
     backgroundColor: luxyColors.actionRed,
@@ -165,19 +170,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  registerText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  registerText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   authAction: {
     alignItems: 'center',
     borderColor: '#FFFFFF',
     borderRadius: luxyRadii.pill,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 44,
     minWidth: 92,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
   authActionHovered: { backgroundColor: luxyColors.actionRed, borderColor: luxyColors.actionRed },
-  authActionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  authActionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   footer: {
     alignItems: 'center',
     backgroundColor: '#070707',
@@ -195,7 +200,7 @@ const styles = StyleSheet.create({
   footerTagline: { color: '#CFC6C1', fontSize: 12, lineHeight: 18 },
   footerLinks: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   footerLinkButton: { justifyContent: 'center', minHeight: 44 },
-  footerLinkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  footerLinkText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   footerDot: { backgroundColor: '#F2B51D', borderRadius: 999, height: 4, width: 4 },
   pressed: { opacity: 0.78 },
 });
