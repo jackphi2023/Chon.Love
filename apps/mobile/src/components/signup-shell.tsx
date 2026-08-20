@@ -1,8 +1,9 @@
 import { luxyBreakpoints, luxyColors, luxyRadii, luxyTypography } from '@myfan/ui';
 import { useRouter } from 'expo-router';
-import { useState, type PropsWithChildren, type ReactNode } from 'react';
+import { useMemo, useState, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -31,6 +32,11 @@ type ButtonProps = {
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
+};
+
+export type SignupSelectOption = {
+  value: string;
+  label: string;
 };
 
 export function SignupShell({
@@ -200,6 +206,77 @@ export function SignupTextField(props: TextInputProps) {
   );
 }
 
+export function SignupSelect({
+  value,
+  options,
+  onChange,
+  disabled = false,
+  accessibilityLabel,
+  testID,
+}: {
+  value: string;
+  options: readonly SignupSelectOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  testID?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = useMemo(
+    () => options.find((option) => option.value === value)?.label ?? options[0]?.label ?? 'Chọn',
+    [options, value],
+  );
+
+  return (
+    <>
+      <Pressable
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        accessibilityState={{ disabled, expanded: open }}
+        disabled={disabled}
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [styles.select, pressed && !disabled && styles.selectPressed, disabled && styles.selectDisabled]}
+        testID={testID}
+      >
+        <Text numberOfLines={1} style={[styles.selectText, !value && styles.selectPlaceholder]}>{selectedLabel}</Text>
+        <Text style={styles.selectChevron}>⌄</Text>
+      </Pressable>
+      <Modal animationType="fade" transparent visible={open} onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.selectModal} onPress={(event) => event.stopPropagation()}>
+            <View style={styles.selectModalHeader}>
+              <Text style={styles.selectModalTitle}>{accessibilityLabel ?? 'Chọn giá trị'}</Text>
+              <Pressable accessibilityLabel="Đóng danh sách" accessibilityRole="button" onPress={() => setOpen(false)} style={styles.selectCloseButton}>
+                <Text style={styles.selectCloseText}>×</Text>
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.selectOptionsScroll}>
+              {options.map((option) => {
+                const selected = option.value === value;
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    key={`${option.value}:${option.label}`}
+                    onPress={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    style={({ pressed }) => [styles.selectOption, selected && styles.selectOptionSelected, pressed && styles.selectOptionPressed]}
+                  >
+                    <Text style={[styles.selectOptionText, selected && styles.selectOptionTextSelected]}>{option.label}</Text>
+                    {selected ? <Text style={styles.selectCheck}>✓</Text> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 export function SignupTag({
   label,
   selected,
@@ -324,6 +401,35 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   multilineInput: { minHeight: 132, textAlignVertical: 'top' },
+  select: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#AEB5BB',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 50,
+    paddingHorizontal: 14,
+  },
+  selectPressed: { borderColor: luxyColors.actionRed },
+  selectDisabled: { backgroundColor: '#F3F4F6', opacity: 0.72 },
+  selectText: { color: luxyColors.ink, flex: 1, fontSize: 15, lineHeight: 21 },
+  selectPlaceholder: { color: luxyColors.softMuted },
+  selectChevron: { color: '#6B7280', fontSize: 20, marginLeft: 10, marginTop: -5 },
+  modalBackdrop: { alignItems: 'center', backgroundColor: 'rgba(17,24,39,0.42)', flex: 1, justifyContent: 'center', padding: 18 },
+  selectModal: { backgroundColor: '#FFFFFF', borderRadius: 16, maxHeight: '78%', maxWidth: 520, overflow: 'hidden', width: '100%' },
+  selectModalHeader: { alignItems: 'center', borderBottomColor: '#E5E7EB', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: 16 },
+  selectModalTitle: { color: luxyColors.ink, flex: 1, fontSize: 15, fontWeight: '800' },
+  selectCloseButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  selectCloseText: { color: '#4B5563', fontSize: 28, lineHeight: 30 },
+  selectOptionsScroll: { maxHeight: 480 },
+  selectOption: { alignItems: 'center', borderBottomColor: '#F0F1F3', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 16, paddingVertical: 10 },
+  selectOptionSelected: { backgroundColor: '#FFF7D6' },
+  selectOptionPressed: { backgroundColor: '#FFF1F1' },
+  selectOptionText: { color: luxyColors.ink, flex: 1, fontSize: 15, lineHeight: 21 },
+  selectOptionTextSelected: { color: '#6F4B00', fontWeight: '800' },
+  selectCheck: { color: '#C68A00', fontSize: 17, fontWeight: '800', marginLeft: 10 },
   tag: {
     backgroundColor: '#FFFFFF',
     borderColor: '#C9CDD2',
