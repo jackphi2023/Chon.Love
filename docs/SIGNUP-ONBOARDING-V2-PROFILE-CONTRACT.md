@@ -2,7 +2,7 @@
 
 ## Purpose
 
-SU-03 freezes the data/write contract, SU-04 implements Personal Info, and SU-08 extends the same compatibility principle to the public profile copy fields. Stricter registration rules apply only to the staged new-signup path and never retroactively invalidate active profiles.
+SU-03 freezes the data/write contract, SU-04 implements Personal Info, SU-08 extends the same compatibility principle to the public profile copy fields, and SU-10 hardens only the presentation/accessibility layer. Stricter registration rules apply only to the staged new-signup path and never retroactively invalidate active profiles.
 
 Production schema/data has been inspected before each contract expansion. Hosted production data/schema is not mutated directly by these integration sessions.
 
@@ -115,9 +115,17 @@ No second province or coordinate field is added. Signup continues to reuse:
 - `private.user_locations` for consented exact coordinates;
 - existing avatar/public media ownership and moderation tables for Step 6.
 
+## SU-10 presentation-only boundary
+
+SU-10 does not add, remove, rename or reinterpret any profile/database field. It keeps the authoritative eight-step signup flow and changes only responsive presentation, accessible semantics, touch/control sizing, copy cleanup and browser regression coverage.
+
+The progress label is now explicit as `Thiết lập hồ sơ · Bước X/8`. Shared interactive/input text is at least 16 px, compact owned controls target about 44 px, danger/success feedback has live semantics and dropdown dialogs expose their modal/selected state. This layer must not alter the adult/policy, location, photo, profile-copy or selfie activation authorities established by prior sessions.
+
 ## Generated client-type boundary
 
 During the integration branch, `save_my_signup_location_v2`, `save_my_signup_looking_for_v2` and `save_my_signup_headline_bio_v2` remain deliberately filtered from the committed generated client contract. The mobile layer calls these staged functions through narrow structural boundaries while Database pgTAP tests validate the authoritative server behavior. SU-11 must regenerate the final public database types and remove this temporary filter before production release. The Database workflow remains read-only (`contents: read`).
+
+SU-10 deliberately does **not** perform that SU-11 checkpoint and does not modify the generated client-type contract.
 
 ## Release boundary
 
@@ -129,5 +137,7 @@ During the integration branch, `save_my_signup_location_v2`, `save_my_signup_loo
 - Personal Info UI: `apps/mobile/app/(onboarding)/index.tsx`
 - Step 7 UI: `apps/mobile/app/onboarding/about.tsx`
 - Canonical dropdown mapping: `apps/mobile/src/lib/signup-profile-contract.ts`
+- SU-10 shell/accessibility foundation: `apps/mobile/src/components/signup-shell.tsx`, `apps/mobile/src/components/public-site-chrome.tsx`
+- SU-10 responsive browser regression: `tests/br-06/luxy-auth.spec.mjs`
 - Production Supabase has not been directly mutated by this implementation session.
 - Keep PR #73 Draft; do not merge to `main` until the complete Signup / Onboarding V2 release gate is green.
