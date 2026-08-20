@@ -12,10 +12,17 @@ import {
   luxyProfileSetupSchema,
   minimumOnboardingSchema,
   normalizeInterests,
+  profileBioSchema,
   profileEditorSchema,
   profileImageMetadataSchema,
   profileLifestyleTagSchema,
+  profileLookingForSchema,
   relationshipStatusSchema,
+  signupHeadlineBioSchema,
+  signupHeightCmSchema,
+  signupLocationSchema,
+  signupLookingForSchema,
+  signupPersonalInfoSchema,
   smokingStatusSchema,
   usernameSchema,
   weightKgSchema,
@@ -37,7 +44,7 @@ describe('shared validation', () => {
     expect(adultDateOfBirthSchema.safeParse('2010-01-01').success).toBe(false);
   });
 
-  it('requires every minimum onboarding acceptance', () => {
+  it('requires every legacy minimum onboarding acceptance', () => {
     const valid = {
       dateOfBirth: '1990-01-01',
       confirmedAdult: true,
@@ -87,7 +94,7 @@ describe('shared validation', () => {
     expect(profileEditorSchema.safeParse({ ...base, provinceId: 0 }).success).toBe(false);
   });
 
-  it('locks the Seeking-derived Luxy enum vocabularies', () => {
+  it('locks the Seeking-derived profile enum vocabularies', () => {
     expect(datingInterestSchema.options).toEqual(['female', 'male', 'everyone']);
     expect(relationshipStatusSchema.options).toEqual([
       'single',
@@ -121,7 +128,7 @@ describe('shared validation', () => {
     expect(profileLifestyleTagSchema.options).toContain('fine_dining');
   });
 
-  it('validates Luxy physical fields at database boundary ranges', () => {
+  it('validates mature physical fields at database boundary ranges', () => {
     expect(heightCmSchema.safeParse(120).success).toBe(true);
     expect(heightCmSchema.safeParse(178).success).toBe(true);
     expect(heightCmSchema.safeParse(230).success).toBe(true);
@@ -136,7 +143,7 @@ describe('shared validation', () => {
     expect(weightKgSchema.safeParse(251).success).toBe(false);
   });
 
-  it('validates the full LX-07 profile editor contract while keeping optional physical data nullable', () => {
+  it('validates the full profile editor contract while keeping physical data nullable', () => {
     const base = {
       username: 'luxy_member',
       displayName: 'Luxy Member',
@@ -161,18 +168,11 @@ describe('shared validation', () => {
       languages: ['Tiếng Việt', 'English'],
     };
 
-    const result = luxyProfileEditorSchema.safeParse({ ...base, heightCm: 178, weightKg: 72 });
-    expect(result.success).toBe(true);
-
-    const legacyCompatible = luxyProfileEditorSchema.safeParse({
-      ...base,
-      heightCm: null,
-      weightKg: null,
-    });
-    expect(legacyCompatible.success).toBe(true);
+    expect(luxyProfileEditorSchema.safeParse({ ...base, heightCm: 178, weightKg: 72 }).success).toBe(true);
+    expect(luxyProfileEditorSchema.safeParse({ ...base, heightCm: null, weightKg: null }).success).toBe(true);
   });
 
-  it('normalizes Luxy tags/languages and rejects inverted age preference', () => {
+  it('normalizes profile tags/languages and rejects inverted age preference', () => {
     const base = {
       username: 'luxy_member',
       displayName: 'Luxy Member',
@@ -197,24 +197,13 @@ describe('shared validation', () => {
       languages: [' Tiếng Việt ', 'tiếng việt', 'English'],
     };
 
-    const parsed = luxyProfileEditorSchema.parse({
-      ...base,
-      agePreferenceMin: 25,
-      agePreferenceMax: 40,
-    });
+    const parsed = luxyProfileEditorSchema.parse({ ...base, agePreferenceMin: 25, agePreferenceMax: 40 });
     expect(parsed.lifestyleTags).toEqual(['romantic', 'fine_dining']);
     expect(parsed.languages).toEqual(['Tiếng Việt', 'English']);
-
-    expect(
-      luxyProfileEditorSchema.safeParse({
-        ...base,
-        agePreferenceMin: 45,
-        agePreferenceMax: 30,
-      }).success,
-    ).toBe(false);
+    expect(luxyProfileEditorSchema.safeParse({ ...base, agePreferenceMin: 45, agePreferenceMax: 30 }).success).toBe(false);
   });
 
-  it('requires the Seeking-derived core fields for Luxy profile setup', () => {
+  it('keeps the mature setup schema unchanged', () => {
     const setup = {
       gender: 'female' as const,
       interestedIn: 'male' as const,
@@ -227,24 +216,153 @@ describe('shared validation', () => {
     expect(luxyProfileSetupSchema.safeParse({ ...setup, provinceId: null }).success).toBe(false);
   });
 
+  it('validates a fully populated Signup V2 Personal Info payload without marital duplication', () => {
+    const valid = {
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female' as const,
+      interestedIn: 'male' as const,
+      heightCm: 165,
+      weightKg: 52,
+      educationLevel: 'bachelors' as const,
+      relationshipStatus: 'single' as const,
+      childrenStatus: 'no_children' as const,
+      drinkingStatus: 'socially' as const,
+      smokingStatus: 'never' as const,
+    };
+    expect(signupPersonalInfoSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('allows every factual SU-04 field to remain unselected', () => {
+    expect(signupPersonalInfoSchema.safeParse({
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female',
+      interestedIn: 'male',
+    }).success).toBe(true);
+  });
+
+  it('accepts explicit not-shared values and null physical values', () => {
+    expect(signupPersonalInfoSchema.safeParse({
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female',
+      interestedIn: 'male',
+      heightCm: null,
+      weightKg: null,
+      educationLevel: 'prefer_not_to_say',
+      relationshipStatus: 'prefer_not_to_say',
+      childrenStatus: 'prefer_not_to_say',
+      drinkingStatus: 'prefer_not_to_say',
+      smokingStatus: 'prefer_not_to_say',
+    }).success).toBe(true);
+  });
+
+  it('keeps Signup V2 validation stricter than legacy profile ranges without changing legacy validation', () => {
+    expect(heightCmSchema.safeParse(230).success).toBe(true);
+    expect(signupHeightCmSchema.safeParse(220).success).toBe(true);
+    expect(signupHeightCmSchema.safeParse(221).success).toBe(false);
+
+    const base = {
+      dateOfBirth: '1990-01-01',
+      displayName: 'Nguyen Minh Anh',
+      gender: 'female' as const,
+      interestedIn: 'male' as const,
+    };
+    expect(signupPersonalInfoSchema.safeParse({ ...base, displayName: 'Short' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, displayName: 'A'.repeat(51) }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, gender: 'non_binary' }).success).toBe(false);
+    expect(signupPersonalInfoSchema.safeParse({ ...base, dateOfBirth: '2015-01-01' }).success).toBe(false);
+  });
+
+  it('accepts Signup V2 province-only location when GPS permission is not granted', () => {
+    expect(signupLocationSchema.safeParse({ provinceId: 79, location: null }).success).toBe(true);
+  });
+
+  it('validates a complete consented Signup V2 current-location payload', () => {
+    expect(signupLocationSchema.safeParse({
+      provinceId: 79,
+      location: {
+        latitude: 10.7769,
+        longitude: 106.7009,
+        accuracyMeters: 25,
+        capturedAt: '2026-08-20T10:00:00.000Z',
+        source: 'device_foreground',
+      },
+    }).success).toBe(true);
+  });
+
+  it('rejects invalid Signup V2 province, coordinates and partial location objects', () => {
+    expect(signupLocationSchema.safeParse({ provinceId: 0, location: null }).success).toBe(false);
+    expect(signupLocationSchema.safeParse({
+      provinceId: 79,
+      location: {
+        latitude: 91,
+        longitude: 106.7,
+        accuracyMeters: 20,
+        capturedAt: '2026-08-20T10:00:00.000Z',
+        source: 'device_foreground',
+      },
+    }).success).toBe(false);
+    expect(signupLocationSchema.safeParse({
+      provinceId: 79,
+      location: { latitude: 10.7, longitude: 106.7 },
+    }).success).toBe(false);
+  });
+
+  it('validates Signup V2 looking-for text and 1-7 selected tags', () => {
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'Tôi mong muốn một mối quan hệ nghiêm túc, chân thành và tôn trọng lẫn nhau.',
+      lifestyleTags: ['long_term', 'marriage_minded', 'ready_to_travel'],
+    }).success).toBe(true);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'Ngắn hơn năm mươi ký tự.',
+      lifestyleTags: ['long_term'],
+    }).success).toBe(false);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'A'.repeat(4001),
+      lifestyleTags: ['long_term'],
+    }).success).toBe(false);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'A'.repeat(80),
+      lifestyleTags: [],
+    }).success).toBe(false);
+    expect(signupLookingForSchema.safeParse({
+      lookingFor: 'A'.repeat(80),
+      lifestyleTags: [
+        'true_love', 'luxury_lifestyle', 'active_lifestyle', 'flexible_schedule',
+        'emotional_connection', 'refined', 'fine_dining', 'friendship',
+      ],
+    }).success).toBe(false);
+  });
+
+  it('widens mature looking-for validation to preserve Signup V2 4000-character answers', () => {
+    expect(profileLookingForSchema.safeParse('A'.repeat(4000)).success).toBe(true);
+    expect(profileLookingForSchema.safeParse('A'.repeat(4001)).success).toBe(false);
+  });
+
+  it('validates Signup V2 optional headline and required 50-4000 biography', () => {
+    expect(signupHeadlineBioSchema.safeParse({ headline: '', bio: 'B'.repeat(50) }).success).toBe(true);
+    expect(signupHeadlineBioSchema.safeParse({ headline: 'H'.repeat(10), bio: 'B'.repeat(4000) }).success).toBe(true);
+    expect(signupHeadlineBioSchema.safeParse({ headline: 'H'.repeat(9), bio: 'B'.repeat(80) }).success).toBe(false);
+    expect(signupHeadlineBioSchema.safeParse({ headline: 'H'.repeat(51), bio: 'B'.repeat(80) }).success).toBe(false);
+    expect(signupHeadlineBioSchema.safeParse({ headline: '', bio: 'B'.repeat(49) }).success).toBe(false);
+    expect(signupHeadlineBioSchema.safeParse({ headline: '', bio: 'B'.repeat(4001) }).success).toBe(false);
+  });
+
+  it('widens mature biography validation without imposing Signup V2 minimums on existing profiles', () => {
+    expect(profileBioSchema.safeParse('').success).toBe(true);
+    expect(profileBioSchema.safeParse('Short legacy bio').success).toBe(true);
+    expect(profileBioSchema.safeParse('B'.repeat(4000)).success).toBe(true);
+    expect(profileBioSchema.safeParse('B'.repeat(4001)).success).toBe(false);
+  });
+
   it('rejects oversized or mismatched image metadata', () => {
-    expect(
-      profileImageMetadataSchema.safeParse({
-        mimeType: 'image/jpeg',
-        fileSizeBytes: 1024,
-        width: 1080,
-        height: 1080,
-        extension: 'png',
-      }).success,
-    ).toBe(false);
-    expect(
-      profileImageMetadataSchema.safeParse({
-        mimeType: 'image/jpeg',
-        fileSizeBytes: 11 * 1024 * 1024,
-        width: 1080,
-        height: 1080,
-        extension: 'jpg',
-      }).success,
-    ).toBe(false);
+    expect(profileImageMetadataSchema.safeParse({
+      mimeType: 'image/jpeg', fileSizeBytes: 1024, width: 1080, height: 1080, extension: 'png',
+    }).success).toBe(false);
+    expect(profileImageMetadataSchema.safeParse({
+      mimeType: 'image/jpeg', fileSizeBytes: 11 * 1024 * 1024, width: 1080, height: 1080, extension: 'jpg',
+    }).success).toBe(false);
   });
 });

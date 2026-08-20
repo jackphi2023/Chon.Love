@@ -23,4 +23,13 @@ describe('onboarding policy contract', () => {
       'Tài khoản hiện không hoạt động. Vui lòng liên hệ hỗ trợ.',
     );
   });
+
+  it('maps staged Step 7 validation errors to member-facing copy', () => {
+    expect(getReadableOnboardingError(new Error('signup headline must be blank or 10 to 50 characters'))).toBe(
+      'Tiêu đề có thể để trống; nếu nhập cần từ 10 đến 50 ký tự.',
+    );
+    expect(getReadableOnboardingError(new Error('signup bio must be 50 to 4000 characters'))).toBe(
+      'Hãy giới thiệu bản thân từ 50 đến 4000 ký tự.',
+    );
+  });
 });

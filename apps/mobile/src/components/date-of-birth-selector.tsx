@@ -116,6 +116,7 @@ function DateSelectField({
       <Pressable
         accessibilityLabel={`Chọn ${label.toLowerCase()} sinh`}
         accessibilityRole="button"
+        accessibilityState={{ expanded: false }}
         onPress={onPress}
         style={({ pressed }) => [styles.dateField, pressed && styles.dateFieldPressed]}
       >
@@ -161,7 +162,7 @@ function DatePickerModal({
               onPress={onClose}
               style={styles.modalCloseButton}
             >
-              <Text style={styles.modalCloseText}>✕</Text>
+              <Text accessibilityElementsHidden style={styles.modalCloseText}>✕</Text>
             </Pressable>
           </View>
           <Text style={styles.modalHint}>Cuộn danh sách và chạm để chọn.</Text>
@@ -174,6 +175,7 @@ function DatePickerModal({
               const selected = option.value === selectedValue;
               return (
                 <Pressable
+                  accessibilityLabel={option.label}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
                   key={option.value}
@@ -187,7 +189,7 @@ function DatePickerModal({
                   <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
                     {option.label}
                   </Text>
-                  {selected ? <Text style={styles.optionCheck}>✓</Text> : null}
+                  {selected ? <Text accessibilityElementsHidden style={styles.optionCheck}>✓</Text> : null}
                 </Pressable>
               );
             })}
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
   dateField: { minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: spacing.sm, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dateFieldPressed: { borderColor: colors.primary, backgroundColor: '#F7F4FF' },
   dateFieldValue: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  dateFieldPlaceholder: { color: colors.muted, fontSize: 15 },
+  dateFieldPlaceholder: { color: colors.muted, fontSize: 16 },
   dateFieldChevron: { color: colors.primary, fontSize: 18, fontWeight: '900' },
   modalRoot: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
   modalBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(18, 15, 31, 0.56)' },

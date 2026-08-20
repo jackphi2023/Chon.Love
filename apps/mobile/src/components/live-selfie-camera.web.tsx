@@ -165,16 +165,18 @@ export function LiveSelfieCamera({ disabled = false, onCapture, onError }: Props
         />
         {!isReady ? (
           <View style={styles.previewOverlay}>
-            <Text style={styles.icon}>◉</Text>
+            <Text accessibilityElementsHidden style={styles.icon}>◉</Text>
             <Text style={styles.title}>Camera selfie trực tiếp</Text>
-            <Text style={styles.description}>Bật camera để hiển thị preview live trên desktop hoặc mobile web.</Text>
+            <Text style={styles.description}>Bật camera để xem hình ảnh trực tiếp trước khi chụp selfie.</Text>
           </View>
         ) : null}
       </View>
 
       {!isReady ? (
         <Pressable
+          accessibilityLabel="Bật camera"
           accessibilityRole="button"
+          accessibilityState={{ disabled: disabled || isStarting, busy: isStarting }}
           disabled={disabled || isStarting}
           onPress={() => void startCamera()}
           style={({ pressed }) => [styles.button, pressed && styles.pressed, (disabled || isStarting) && styles.disabled]}
@@ -183,7 +185,9 @@ export function LiveSelfieCamera({ disabled = false, onCapture, onError }: Props
         </Pressable>
       ) : (
         <Pressable
+          accessibilityLabel="Chụp selfie"
           accessibilityRole="button"
+          accessibilityState={{ disabled: disabled || isCapturing, busy: isCapturing }}
           disabled={disabled || isCapturing}
           onPress={() => void capture()}
           style={({ pressed }) => [styles.button, pressed && styles.pressed, (disabled || isCapturing) && styles.disabled]}
@@ -229,7 +233,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 18, fontWeight: '800' },
   description: { color: colors.muted, fontSize: 14, lineHeight: 21, maxWidth: 440, textAlign: 'center' },
   button: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52, paddingHorizontal: spacing.lg },
-  buttonText: { color: colors.surface, fontSize: 15, fontWeight: '800' },
+  buttonText: { color: colors.surface, fontSize: 16, fontWeight: '800' },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.5 },
 });

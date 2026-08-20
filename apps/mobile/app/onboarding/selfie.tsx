@@ -1,10 +1,15 @@
-import { getMyProfile, type GenderIdentity } from '@myfan/supabase';
+import { getMyProfile, listMyMedia, type GenderIdentity } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LiveSelfieCamera } from '@/components/live-selfie-camera';
-import { Screen } from '@/components/screen';
+import {
+  SignupHelpText,
+  SignupPrimaryButton,
+  SignupSecondaryButton,
+  SignupShell,
+} from '@/components/signup-shell';
 import {
   getMemberPhotoVerificationStatus,
   MEMBER_PHOTO_PENDING_MESSAGE,
@@ -13,6 +18,8 @@ import {
   type MemberPhotoVerificationResult,
 } from '@/lib/member-photo-verification';
 import type { PreparedLocalProfileImage } from '@/lib/profile-media';
+import { isUsableSignupProfilePhoto } from '@/lib/signup-photo-contract';
+import { clearSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -24,6 +31,7 @@ export default function SelfieVerificationOnboarding() {
   const [result, setResult] = useState<MemberPhotoVerificationResult | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,12 +48,26 @@ export default function SelfieVerificationOnboarding() {
       return;
     }
 
-    void Promise.all([getMyProfile(client), getMemberPhotoVerificationStatus(client)])
-      .then(([profile, status]) => {
+    void Promise.all([getMyProfile(client), listMyMedia(client), getMemberPhotoVerificationStatus(client)])
+      .then(([profile, mediaRows, status]) => {
         if (!active) return;
         setDeclaredGender(profile.gender);
         setResult(status);
-        if (status.state === 'approved') router.replace('/(tabs)');
+
+        if (status.state !== 'not_started') return;
+
+        const usablePhotoCount = mediaRows.filter(isUsableSignupProfilePhoto).length;
+        if (usablePhotoCount < 1) {
+          router.replace('/onboarding/photos');
+          return;
+        }
+
+        const headlineLength = profile.headline?.trim().length ?? 0;
+        const bioLength = profile.bio?.trim().length ?? 0;
+        const headlineValid = headlineLength === 0 || (headlineLength >= 10 && headlineLength <= 50);
+        if (!headlineValid || bioLength < 50 || bioLength > 4000) {
+          router.replace('/onboarding/about');
+        }
       })
       .catch(() => {
         if (active) setErrorMessage('Không thể tải trạng thái xác minh ảnh. Hãy thử lại.');
@@ -66,11 +88,13 @@ export default function SelfieVerificationOnboarding() {
     try {
       const verification = await submitMemberPhotoVerification(selfie, declaredGender);
       setResult(verification);
-      if (verification.state === 'approved') router.replace('/(tabs)');
+      setSelfie(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       if (message.includes('profile_photo_required')) {
-        setErrorMessage('Bạn cần upload ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.');
+        setErrorMessage('Bạn cần tải lên ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.');
+      } else if (message.includes('signup_profile_details_required')) {
+        setErrorMessage('Vui lòng hoàn thành phần Giới thiệu về bạn trước khi xác minh selfie.');
       } else {
         setErrorMessage('Không thể hoàn tất xác minh ảnh. Hãy kiểm tra kết nối và thử lại.');
       }
@@ -79,64 +103,121 @@ export default function SelfieVerificationOnboarding() {
     }
   }
 
+  function completeSignup() {
+    clearSignupDraft();
+    router.replace('/(tabs)');
+  }
+
+  async function leaveToHomepage() {
+    if (isLeaving) return;
+    setIsLeaving(true);
+    clearSignupDraft();
+    try {
+      await auth.signOut();
+      router.replace('/');
+    } finally {
+      setIsLeaving(false);
+    }
+  }
+
   if (auth.isRestoring || isChecking) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.muted}>Đang kiểm tra trạng thái xác minh…</Text>
+        <ActivityIndicator color={colors.accent} size="large" />
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>Đang kiểm tra trạng thái xác minh…</Text>
       </View>
+    );
+  }
+
+  if (result?.state === 'approved') {
+    return (
+      <SignupShell
+        description="Ảnh selfie đã được xác minh. Hồ sơ của bạn đã được kích hoạt và sẵn sàng xuất hiện trong cộng đồng Chon.Love."
+        step={8}
+        testID="chon-selfie-approved"
+        title="Xác minh thành công"
+      >
+        <View accessibilityLiveRegion="polite" style={styles.successCard}>
+          <View accessible={false} style={styles.successIcon}><Text accessibilityElementsHidden style={styles.successIconText}>✓</Text></View>
+          <View style={styles.successCopy}>
+            <Text style={styles.successTitle}>Chào mừng bạn đến Chon.Love</Text>
+            <Text style={styles.successText}>
+              Chọn Hoàn tất để đến Kết nối. Danh sách mặc định ưu tiên thành viên gần → xa khi vị trí hiện tại của bạn còn hiệu lực; nếu bạn chỉ chọn tỉnh/thành, hệ thống vẫn hiển thị thành viên phù hợp mà không công khai tọa độ.
+            </Text>
+          </View>
+        </View>
+        <SignupPrimaryButton label="Hoàn tất" onPress={completeSignup} />
+      </SignupShell>
     );
   }
 
   if (result?.state === 'pending_review') {
     return (
-      <Screen
-        title="Tài khoản đang chờ xác minh"
-        description="Bạn chưa thể đăng nhập vào khu vực thành viên hoặc xem hồ sơ người dùng cho đến khi quá trình xem xét hoàn tất."
+      <SignupShell
+        description="Hồ sơ tạm thời chưa được kích hoạt trong khi Chon.Love kiểm tra ảnh xác minh."
+        step={8}
+        testID="chon-selfie-pending"
+        title="Chúng tôi sẽ kiểm tra để xác nhận"
       >
         <View style={styles.warningCard}>
-          <Text accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
+          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
           <Text style={styles.warningText}>{result.message || MEMBER_PHOTO_PENDING_MESSAGE}</Text>
           {typeof result.maxSimilarity === 'number' ? (
             <Text style={styles.scoreText}>Độ tương đồng tự động: {result.maxSimilarity.toFixed(1)}%</Text>
           ) : null}
         </View>
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Đăng xuất</Text>
-        </Pressable>
-      </Screen>
+        <SignupPrimaryButton
+          busy={isLeaving}
+          label="Về trang chủ"
+          onPress={() => void leaveToHomepage()}
+        />
+      </SignupShell>
     );
   }
 
   if (result?.state === 'hidden') {
     return (
-      <Screen
-        title="Tài khoản chưa được kích hoạt"
+      <SignupShell
         description="Hồ sơ đang bị vô hiệu sau quá trình xác minh. Liên hệ hỗ trợ nếu bạn cho rằng đây là nhầm lẫn."
+        step={8}
+        testID="chon-selfie-hidden"
+        title="Tài khoản chưa được kích hoạt"
       >
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Đăng xuất</Text>
-        </Pressable>
-      </Screen>
+        <SignupPrimaryButton
+          busy={isLeaving}
+          label="Về trang chủ"
+          onPress={() => void leaveToHomepage()}
+        />
+      </SignupShell>
     );
   }
 
   return (
-    <Screen
+    <SignupShell
+      description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã tải lên."
+      onBack={() => router.replace('/onboarding/about')}
+      step={8}
+      testID="chon-selfie-verification"
       title="Chụp selfie xác minh"
-      description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
     >
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Điều kiện tự động duyệt</Text>
         <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
-        <Text style={styles.ruleText}>• Giới tính tự khai báo được khóa theo hồ sơ trong lần xác minh này để tránh thay đổi dữ liệu giữa luồng.</Text>
-        <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng → chuyển Admin review, không tự động khóa vĩnh viễn.</Text>
+        <Text style={styles.ruleText}>• Hệ thống không suy đoán giới tính từ khuôn mặt; chỉ khóa giá trị giới tính bạn đã tự khai báo để tránh thay đổi dữ liệu giữa luồng.</Text>
+        <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng → chuyển sang kiểm tra thủ công, không tự động khóa vĩnh viễn.</Text>
       </View>
 
       {selfie ? (
         <View style={styles.previewWrap}>
           <Image accessibilityLabel="Selfie vừa chụp" source={{ uri: selfie.previewUri }} style={styles.selfiePreview} />
-          <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => setSelfie(null)} style={styles.textButton}>
+          <Pressable
+            accessibilityLabel="Chụp lại selfie"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isSubmitting }}
+            disabled={isSubmitting}
+            onPress={() => setSelfie(null)}
+            style={styles.textButton}
+          >
             <Text style={styles.textButtonLabel}>Chụp lại</Text>
           </Pressable>
         </View>
@@ -151,39 +232,35 @@ export default function SelfieVerificationOnboarding() {
         />
       )}
 
-      {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={!selfie || isSubmitting}
+      {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
+      <SignupSecondaryButton
+        busy={isSubmitting}
+        disabled={!selfie}
+        label="Xác minh và kích hoạt tài khoản"
         onPress={() => void handleSubmit()}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, (!selfie || isSubmitting) && styles.disabled]}
-      >
-        {isSubmitting ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>Xác minh và kích hoạt tài khoản</Text>}
-      </Pressable>
-    </Screen>
+      />
+    </SignupShell>
   );
 }
 
 const styles = StyleSheet.create({
   loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   muted: { color: colors.muted, fontSize: 14 },
-  ruleCard: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 14, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
+  ruleCard: { backgroundColor: '#FFF9EA', borderColor: '#E8D391', borderRadius: 12, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
   ruleTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  ruleText: { color: colors.muted, fontSize: 13, lineHeight: 20 },
-  warningCard: { backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderRadius: 14, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
+  ruleText: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  successCard: { alignItems: 'center', backgroundColor: '#F0FDF4', borderColor: '#86EFAC', borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
+  successIcon: { alignItems: 'center', backgroundColor: '#15803D', borderRadius: 999, height: 48, justifyContent: 'center', width: 48 },
+  successIconText: { color: '#FFFFFF', fontSize: 25, fontWeight: '900' },
+  successCopy: { flex: 1, gap: 5 },
+  successTitle: { color: '#166534', fontSize: 16, fontWeight: '900' },
+  successText: { color: '#166534', fontSize: 12.5, lineHeight: 20 },
+  warningCard: { backgroundColor: '#FFF7ED', borderColor: '#FDBA74', borderRadius: 12, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
   warningTitle: { color: '#9A3412', fontSize: 16, fontWeight: '900' },
   warningText: { color: '#7C2D12', fontSize: 14, lineHeight: 22 },
-  scoreText: { color: '#9A3412', fontSize: 13, fontWeight: '700' },
+  scoreText: { color: '#9A3412', fontSize: 12, fontWeight: '700' },
   previewWrap: { alignItems: 'center', gap: spacing.sm },
-  selfiePreview: { aspectRatio: 1, borderRadius: 16, maxWidth: 420, width: '100%' },
-  textButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  textButtonLabel: { color: colors.primary, fontSize: 14, fontWeight: '800' },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52, marginTop: spacing.lg, paddingHorizontal: spacing.lg },
-  primaryButtonText: { color: colors.surface, fontSize: 15, fontWeight: '800' },
-  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 50, marginTop: spacing.lg },
-  secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  error: { color: colors.danger, fontSize: 14, lineHeight: 21, marginTop: spacing.md },
-  pressed: { opacity: 0.82 },
-  disabled: { opacity: 0.5 },
+  selfiePreview: { aspectRatio: 1, borderRadius: 14, maxWidth: 420, width: '100%' },
+  textButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  textButtonLabel: { color: colors.accent, fontSize: 16, fontWeight: '800' },
 });

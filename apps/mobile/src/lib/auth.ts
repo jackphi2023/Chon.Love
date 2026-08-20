@@ -1,7 +1,8 @@
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
-import { getMobileSupabaseClient } from './supabase';
 import { resolveAuthenticatedRoute, type AuthenticatedRoute } from './auth-routing';
+import { isCompleteEmailOtp, normalizeEmailOtp } from './signup-draft';
+import { getMobileSupabaseClient } from './supabase';
 
 export type AuthSignOutScope = 'local' | 'global' | 'others';
 export type EmailSignUpResult = {
@@ -54,9 +55,40 @@ export async function startGoogleAuthentication(): Promise<void> {
   }
 }
 
+export async function resendEmailSignupOtp(email: string): Promise<string> {
+  const client = requireAuthClient();
+  const normalizedEmail = normalizeAuthEmail(email);
+  if (!normalizedEmail) throw new Error('email_required');
+
+  const { error } = await client.auth.resend({
+    type: 'signup',
+    email: normalizedEmail,
+    options: { emailRedirectTo: getAuthCallbackUrl() },
+  });
+  if (error) throw error;
+  return normalizedEmail;
+}
+
+export async function verifyEmailSignupOtp(email: string, token: string): Promise<AuthenticatedRoute> {
+  const client = requireAuthClient();
+  const normalizedEmail = normalizeAuthEmail(email);
+  const normalizedToken = normalizeEmailOtp(token);
+  if (!normalizedEmail) throw new Error('email_required');
+  if (!isCompleteEmailOtp(normalizedToken)) throw new Error('invalid_otp_format');
+
+  const { data, error } = await client.auth.verifyOtp({
+    email: normalizedEmail,
+    token: normalizedToken,
+    type: 'email',
+  });
+  if (error) throw error;
+  if (!data.session) throw new Error('otp_session_missing');
+  return getAuthenticatedDestination();
+}
+
 export async function signInWithEmailPassword(email: string, password: string): Promise<AuthenticatedRoute> {
   const client = requireAuthClient();
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail || !password) throw new Error('email_and_password_required');
   const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
   if (error) throw error;
@@ -65,7 +97,7 @@ export async function signInWithEmailPassword(email: string, password: string): 
 
 export async function signUpWithEmailPassword(email: string, password: string): Promise<EmailSignUpResult> {
   const client = requireAuthClient();
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail || !password) throw new Error('email_and_password_required');
   if (password.length < MIN_PASSWORD_LENGTH) throw new Error('password_too_short');
 
@@ -84,7 +116,7 @@ export async function signUpWithEmailPassword(email: string, password: string): 
 
 export async function requestPasswordReset(email: string): Promise<void> {
   const client = requireAuthClient();
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail) throw new Error('email_required');
   if (isControlledBetaEmail(normalizedEmail)) throw new Error('beta_password_managed');
   const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, {
@@ -118,8 +150,8 @@ export async function completeAuthentication(code?: string): Promise<void> {
   if (sessionError) throw sessionError;
   if (sessionData.session) return;
 
-  // Keep compatibility with older PKCE links that may still be in inboxes
-  // during the rollout from the previous Web configuration.
+  // Keep compatibility with older PKCE/email-link messages that may still be
+  // in inboxes while Signup V2 moves the password signup confirmation to OTP.
   if (code) {
     const { error } = await client.auth.exchangeCodeForSession(code);
     if (error) throw error;
@@ -140,6 +172,10 @@ export async function getAuthenticatedDestination(): Promise<AuthenticatedRoute>
 
 export function getSafeAuthCallbackDestination(next: string | undefined): '/auth/reset-password' | null {
   return next === '/auth/reset-password' ? next : null;
+}
+
+function normalizeAuthEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 function requireAuthClient() {

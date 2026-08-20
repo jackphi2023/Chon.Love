@@ -1,12 +1,9 @@
-import {
-  luxyBrand,
-  luxyColors,
-  luxyTypography,
-} from '@myfan/ui';
+import { luxyColors } from '@myfan/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -16,55 +13,100 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
+import { SignupSecondaryButton } from '@/components/signup-shell';
 import {
+  resendEmailSignupOtp,
   signInWithEmailPassword,
   signUpWithEmailPassword,
   startGoogleAuthentication,
+  verifyEmailSignupOtp,
 } from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
+import {
+  clearSignupDraft,
+  isCompleteEmailOtp,
+  normalizeEmailOtp,
+  patchSignupDraft,
+  readSignupDraft,
+  writeSignupDraft,
+  type SignupGender,
+  type SignupInterest,
+} from '@/lib/signup-draft';
 import { useAuth } from '@/providers/auth-provider';
 
 type AuthMode = 'join' | 'login';
-type JoinStep = 'preferences' | 'account';
-type Gender = 'male' | 'female';
-type Interest = 'female' | 'male' | 'everyone';
-type SubmitMode = 'email' | 'google' | null;
+type JoinStep = 'preferences' | 'account' | 'otp';
+type SubmitMode = 'email' | 'otp' | 'google' | 'resend' | null;
+type WebKeyboardEvent = {
+  key?: string;
+  nativeEvent?: { key?: string };
+  preventDefault?: () => void;
+};
 
 const googleAuthEnabled = process.env.EXPO_PUBLIC_FEATURE_GOOGLE_AUTH === 'true';
+const AUTH_COMPACT_BREAKPOINT = 768;
 
 export default function AuthHome() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const auth = useAuth();
   const { width } = useWindowDimensions();
+  const [initialDraft] = useState(() => readSignupDraft());
   const [mode, setMode] = useState<AuthMode>(params.mode === 'login' ? 'login' : 'join');
-  const [joinStep, setJoinStep] = useState<JoinStep>('preferences');
-  const [gender, setGender] = useState<Gender | null>(null);
-  const [interest, setInterest] = useState<Interest | null>(null);
-  const [email, setEmail] = useState('');
+  const [joinStep, setJoinStep] = useState<JoinStep>(() => {
+    if (params.mode === 'login' || !initialDraft) return 'preferences';
+    return initialDraft.stage === 'otp' ? 'otp' : 'account';
+  });
+  const [gender, setGender] = useState<SignupGender | null>(initialDraft?.gender ?? null);
+  const [interest, setInterest] = useState<SignupInterest | null>(initialDraft?.interest ?? null);
+  const [email, setEmail] = useState(initialDraft?.email ?? '');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [submitMode, setSubmitMode] = useState<SubmitMode>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const compact = width < 768;
+  const compact = width < AUTH_COMPACT_BREAKPOINT;
   const disabled = !auth.isConfigured || submitMode !== null;
   const googleDisabled = disabled || !googleAuthEnabled;
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
-    setJoinStep('preferences');
     setErrorMessage(null);
-    setSuccessMessage(null);
+    setOtp('');
+    setPassword('');
+    if (nextMode === 'join') {
+      const draft = readSignupDraft();
+      if (draft) {
+        setGender(draft.gender);
+        setInterest(draft.interest);
+        setEmail(draft.email ?? '');
+        setJoinStep(draft.stage === 'otp' ? 'otp' : 'account');
+      } else {
+        setJoinStep('preferences');
+      }
+    } else {
+      setJoinStep('preferences');
+    }
     router.setParams({ mode: nextMode });
+  }
+
+  function continueFromPreferences() {
+    setErrorMessage(null);
+    if (!gender || !interest) {
+      setErrorMessage('Hãy chọn đầy đủ giới tính của bạn và đối tượng bạn quan tâm.');
+      return;
+    }
+    writeSignupDraft({ gender, interest, email: null, stage: 'account', updatedAt: Date.now() });
+    setJoinStep('account');
   }
 
   async function handleLogin() {
     setErrorMessage(null);
-    setSuccessMessage(null);
     setSubmitMode('email');
     try {
       const destination = await signInWithEmailPassword(email, password);
+      clearSignupDraft();
       router.replace(destination);
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
@@ -75,17 +117,72 @@ export default function AuthHome() {
 
   async function handleSignUp() {
     setErrorMessage(null);
-    setSuccessMessage(null);
+    if (!gender || !interest) {
+      setJoinStep('preferences');
+      setErrorMessage('Hãy chọn đầy đủ giới tính của bạn và đối tượng bạn quan tâm.');
+      return;
+    }
     setSubmitMode('email');
     try {
       const result = await signUpWithEmailPassword(email, password);
+      const normalizedEmail = email.trim().toLowerCase();
+      setEmail(normalizedEmail);
+
       if (result.destination) {
+        if (result.destination === '/(tabs)') clearSignupDraft();
+        else {
+          writeSignupDraft({
+            gender,
+            interest,
+            email: normalizedEmail,
+            stage: 'verified',
+            updatedAt: Date.now(),
+          });
+        }
         router.replace(result.destination);
         return;
       }
+
       if (result.requiresEmailConfirmation) {
-        setSuccessMessage('Tài khoản đã được tạo. Hãy kiểm tra email và bấm liên kết xác nhận để tiếp tục hoàn tất hồ sơ trên Chon.Love.');
+        setOtp('');
+        writeSignupDraft({
+          gender,
+          interest,
+          email: normalizedEmail,
+          stage: 'otp',
+          updatedAt: Date.now(),
+        });
+        setJoinStep('otp');
       }
+    } catch (error) {
+      setErrorMessage(getReadableAuthError(error));
+    } finally {
+      setSubmitMode(null);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    setErrorMessage(null);
+    setSubmitMode('otp');
+    try {
+      const destination = await verifyEmailSignupOtp(email, otp);
+      if (destination === '/(tabs)') clearSignupDraft();
+      else patchSignupDraft({ stage: 'verified', updatedAt: Date.now() });
+      router.replace(destination);
+    } catch (error) {
+      setErrorMessage(getReadableAuthError(error));
+    } finally {
+      setSubmitMode(null);
+    }
+  }
+
+  async function handleResendOtp() {
+    setErrorMessage(null);
+    setSubmitMode('resend');
+    try {
+      const normalizedEmail = await resendEmailSignupOtp(email);
+      setEmail(normalizedEmail);
+      patchSignupDraft({ email: normalizedEmail, stage: 'otp', updatedAt: Date.now() });
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
     } finally {
@@ -96,7 +193,14 @@ export default function AuthHome() {
   async function handleGoogle() {
     if (!googleAuthEnabled) return;
     setErrorMessage(null);
-    setSuccessMessage(null);
+    if (mode === 'join') {
+      if (!gender || !interest) {
+        setJoinStep('preferences');
+        setErrorMessage('Hãy chọn đầy đủ giới tính của bạn và đối tượng bạn quan tâm.');
+        return;
+      }
+      writeSignupDraft({ gender, interest, email: null, stage: 'account', updatedAt: Date.now() });
+    }
     setSubmitMode('google');
     try {
       await startGoogleAuthentication();
@@ -108,53 +212,32 @@ export default function AuthHome() {
 
   return (
     <SafeAreaView style={styles.safeArea} testID="luxy-auth-screen">
-      <View style={[styles.header, compact && styles.headerCompact]}>
-        <Pressable
-          accessibilityLabel="Chon.Love — về trang chủ"
-          accessibilityRole="button"
-          onPress={() => router.replace('/')}
-          style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
-        >
-          <Text style={[styles.brand, compact && styles.brandCompact]}>{luxyBrand.productName}</Text>
-        </Pressable>
-        <View style={styles.headerActions}>
-          <Text style={[styles.headerPrompt, compact && styles.headerPromptCompact]}>
-            {mode === 'join' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => switchMode(mode === 'join' ? 'login' : 'join')}
-            style={({ pressed }) => [styles.headerActionButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.headerActionText}>{mode === 'join' ? 'Đăng nhập' : 'Tham gia'}</Text>
-          </Pressable>
-        </View>
-      </View>
+      <PublicHeader
+        actionLabel={mode === 'join' ? 'Đăng nhập' : 'Đăng ký'}
+        compact={compact}
+        onAction={() => switchMode(mode === 'join' ? 'login' : 'join')}
+        onHome={() => router.replace('/')}
+        prompt={mode === 'join' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
+        variant="solid"
+      />
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, compact && styles.scrollContentCompact]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.authPanel, compact && styles.authPanelCompact]}>
+        <View style={[styles.authPanel, compact && styles.authPanelCompact]} testID="signup-auth-panel">
           {mode === 'join' ? (
             joinStep === 'preferences' ? (
               <JoinPreferences
                 errorMessage={errorMessage}
                 gender={gender}
                 interest={interest}
+                onContinue={continueFromPreferences}
                 onGender={setGender}
                 onInterest={setInterest}
-                onContinue={() => {
-                  setErrorMessage(null);
-                  if (!gender || !interest) {
-                    setErrorMessage('Hãy chọn đầy đủ giới tính của bạn và đối tượng bạn quan tâm.');
-                    return;
-                  }
-                  setJoinStep('account');
-                }}
               />
-            ) : (
+            ) : joinStep === 'account' ? (
               <AccountForm
                 disabled={disabled}
                 email={email}
@@ -164,7 +247,7 @@ export default function AuthHome() {
                 onBack={() => {
                   setJoinStep('preferences');
                   setErrorMessage(null);
-                  setSuccessMessage(null);
+                  setPassword('');
                 }}
                 onEmail={setEmail}
                 onGoogle={handleGoogle}
@@ -172,7 +255,24 @@ export default function AuthHome() {
                 onSubmit={handleSignUp}
                 password={password}
                 submitMode={submitMode}
-                successMessage={successMessage}
+              />
+            ) : (
+              <OtpForm
+                disabled={disabled}
+                email={email}
+                errorMessage={errorMessage}
+                onBack={() => {
+                  patchSignupDraft({ stage: 'account', updatedAt: Date.now() });
+                  setJoinStep('account');
+                  setErrorMessage(null);
+                  setOtp('');
+                  setPassword('');
+                }}
+                onOtp={(value) => setOtp(normalizeEmailOtp(value))}
+                onResend={() => void handleResendOtp()}
+                onSubmit={() => void handleVerifyOtp()}
+                otp={otp}
+                submitMode={submitMode}
               />
             )
           ) : (
@@ -189,12 +289,15 @@ export default function AuthHome() {
               onSubmit={handleLogin}
               password={password}
               submitMode={submitMode}
-              successMessage={successMessage}
             />
           )}
         </View>
 
-        <AuthFooter compact={compact} />
+        <PublicFooter
+          compact={compact}
+          onCommunity={() => router.push('/legal/community-standards')}
+          onTerms={() => router.push('/legal/terms')}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -209,10 +312,10 @@ function JoinPreferences({
   onContinue,
 }: {
   errorMessage: string | null;
-  gender: Gender | null;
-  interest: Interest | null;
-  onGender: (value: Gender) => void;
-  onInterest: (value: Interest) => void;
+  gender: SignupGender | null;
+  interest: SignupInterest | null;
+  onGender: (value: SignupGender) => void;
+  onInterest: (value: SignupInterest) => void;
   onContinue: () => void;
 }) {
   return (
@@ -250,14 +353,29 @@ function ChoiceGroup({ label, children }: { label: string; children: ReactNode }
   return (
     <View style={styles.choiceGroup}>
       <Text style={styles.choiceLabel}>{label}</Text>
-      <View style={styles.choiceRow}>{children}</View>
+      <View accessibilityRole="radiogroup" style={styles.choiceRow}>{children}</View>
     </View>
   );
 }
 
 function ChoiceButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const webKeyboardProps = Platform.OS === 'web'
+    ? {
+        'aria-checked': selected,
+        onKeyDown: (event: WebKeyboardEvent) => {
+          const key = event.nativeEvent?.key ?? event.key;
+          if (key === ' ' || key === 'Space' || key === 'Spacebar') {
+            event.preventDefault?.();
+            onPress();
+          }
+        },
+      }
+    : {};
+
   return (
     <Pressable
+      {...webKeyboardProps}
+      accessibilityLabel={label}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
@@ -282,7 +400,6 @@ function AccountForm({
   onSubmit,
   password,
   submitMode,
-  successMessage,
 }: {
   disabled: boolean;
   email: string;
@@ -297,19 +414,18 @@ function AccountForm({
   onSubmit: () => void;
   password: string;
   submitMode: SubmitMode;
-  successMessage: string | null;
 }) {
   const login = mode === 'login';
   return (
     <View style={styles.accountForm}>
       {onBack ? (
-        <Pressable accessibilityRole="button" onPress={onBack} style={styles.backButton}>
+        <Pressable accessibilityLabel="Quay lại bước chọn giới tính và đối tượng quan tâm" accessibilityRole="button" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>‹ Quay lại</Text>
         </Pressable>
       ) : null}
 
-      <Text accessibilityRole="header" style={styles.heading}>{login ? 'Đăng nhập' : 'Đăng ký'}</Text>
-      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Chon.Love.' : 'Tạo thông tin đăng nhập cho tài khoản Chon.Love của bạn.'}</Text>
+      <Text accessibilityRole="header" style={styles.heading}>{login ? 'Đăng nhập' : 'Đăng ký bằng email'}</Text>
+      <Text style={styles.subheading}>{login ? 'Đăng nhập để tiếp tục trên Chon.Love.' : 'Nhập email và tạo mật khẩu tối thiểu 8 ký tự. Sau đó Chon.Love sẽ gửi mã OTP 6 số để xác thực email.'}</Text>
 
       <View style={styles.formFields}>
         <Text style={styles.fieldLabel}>Email</Text>
@@ -338,6 +454,7 @@ function AccountForm({
           style={styles.input}
           value={password}
         />
+        {!login ? <Text style={styles.passwordHelp}>Mật khẩu cần ít nhất 8 ký tự.</Text> : null}
       </View>
 
       {login && onForgotPassword ? (
@@ -347,7 +464,6 @@ function AccountForm({
       ) : null}
 
       {errorMessage ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
-      {successMessage ? <Text accessibilityLiveRegion="polite" style={styles.success}>{successMessage}</Text> : null}
 
       <Pressable
         accessibilityLabel={login ? 'Đăng nhập bằng email' : 'Tạo tài khoản bằng email'}
@@ -374,66 +490,95 @@ function AccountForm({
         onPress={onGoogle}
         style={({ pressed }) => [styles.googleButton, pressed && styles.pressed, googleDisabled && styles.disabled]}
       >
-        <View style={styles.googleMark}><Text style={styles.googleMarkText}>G</Text></View>
+        <View accessible={false} style={styles.googleMark}><Text accessibilityElementsHidden style={styles.googleMarkText}>G</Text></View>
         {submitMode === 'google' ? <ActivityIndicator color={luxyColors.ink} /> : <Text style={styles.googleButtonText}>Tiếp tục với Gmail</Text>}
       </Pressable>
 
       {!login ? (
-        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý hoàn tất thông tin tài khoản và chấp nhận Điều khoản cùng Tiêu chuẩn cộng đồng trước khi sử dụng Chon.Love.</Text>
+        <Text style={styles.termsText}>Bằng cách tạo tài khoản, bạn đồng ý với Điều khoản sử dụng và Tiêu chuẩn cộng đồng của Chon.Love.</Text>
       ) : null}
     </View>
   );
 }
 
-function AuthFooter({ compact }: { compact: boolean }) {
+function OtpForm({
+  disabled,
+  email,
+  errorMessage,
+  onBack,
+  onOtp,
+  onResend,
+  onSubmit,
+  otp,
+  submitMode,
+}: {
+  disabled: boolean;
+  email: string;
+  errorMessage: string | null;
+  onBack: () => void;
+  onOtp: (value: string) => void;
+  onResend: () => void;
+  onSubmit: () => void;
+  otp: string;
+  submitMode: SubmitMode;
+}) {
+  const verifyDisabled = disabled || !isCompleteEmailOtp(otp);
   return (
-    <View style={[styles.footer, compact && styles.footerCompact]}>
-      <Text style={styles.footerLanguage}>Tiếng Việt</Text>
-      <View style={styles.footerLinks}>
-        <Text style={styles.footerLink}>Blog</Text>
-        <Text style={styles.footerLink}>Quyền riêng tư</Text>
-        <Text style={styles.footerLink}>Điều khoản</Text>
-        <Text style={styles.footerLink}>Hẹn hò an toàn</Text>
-        <Text style={styles.footerLink}>Hỗ trợ</Text>
+    <View style={styles.accountForm} testID="signup-email-otp-step">
+      <Pressable accessibilityLabel="Thay đổi email hoặc mật khẩu" accessibilityRole="button" onPress={onBack} style={styles.backButton}>
+        <Text style={styles.backText}>‹ Thay đổi email / mật khẩu</Text>
+      </Pressable>
+
+      <Text accessibilityRole="header" style={styles.heading}>Xác thực email</Text>
+      <Text style={styles.subheading}>Tài khoản đã được tạo với mật khẩu của bạn. Nhập mã OTP 6 số đã được gửi tới {email} để xác thực email và tiếp tục.</Text>
+
+      <View style={styles.formFields}>
+        <Text style={styles.fieldLabel}>Mã xác thực</Text>
+        <TextInput
+          accessibilityLabel="Mã OTP"
+          autoComplete="one-time-code"
+          autoFocus
+          keyboardType="number-pad"
+          maxLength={6}
+          onChangeText={onOtp}
+          onSubmitEditing={onSubmit}
+          placeholder="000000"
+          placeholderTextColor={luxyColors.softMuted}
+          style={[styles.input, styles.otpInput]}
+          value={otp}
+        />
+        <Text style={styles.otpHelp}>Mã gồm 6 chữ số và chỉ sử dụng một lần.</Text>
       </View>
-      <Text style={styles.footerNotice}>Thành viên Chon.Love không mặc nhiên được coi là đã qua kiểm tra lý lịch. Các dấu xác thực chỉ phản ánh đúng loại xác thực đã hoàn tất.</Text>
-      <Text style={styles.footerCopyright}>© 2026 Chon.Love. Bảo lưu mọi quyền.</Text>
+
+      {errorMessage ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
+
+      <SignupSecondaryButton
+        busy={submitMode === 'otp'}
+        disabled={verifyDisabled}
+        label="Tiếp tục"
+        onPress={onSubmit}
+      />
+
+      <Pressable
+        accessibilityLabel="Gửi lại mã OTP"
+        accessibilityRole="button"
+        accessibilityState={{ disabled, busy: submitMode === 'resend' }}
+        disabled={disabled}
+        onPress={onResend}
+        style={({ pressed }) => [styles.resendButton, pressed && styles.pressed, disabled && styles.disabled]}
+      >
+        {submitMode === 'resend' ? <ActivityIndicator color={luxyColors.actionRed} /> : <Text style={styles.linkText}>Gửi lại mã OTP</Text>}
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 34,
-    backgroundColor: luxyColors.ink,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerCompact: { minHeight: 60, paddingHorizontal: 16 },
-  brandButton: { minHeight: 44, justifyContent: 'center' },
-  brand: { color: '#FFFFFF', fontFamily: luxyTypography.families.brand, fontSize: 28, letterSpacing: -1.1 },
-  brandCompact: { fontSize: 24 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerPrompt: { color: '#DDE3E8', fontSize: 14 },
-  headerPromptCompact: { display: 'none' },
-  headerActionButton: {
-    minHeight: 44,
-    minWidth: 88,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   scrollContent: { flexGrow: 1, alignItems: 'center', paddingTop: 48, backgroundColor: '#FFFFFF' },
   scrollContentCompact: { paddingTop: 28 },
-  authPanel: { width: '100%', maxWidth: 456, paddingHorizontal: 8, paddingVertical: 0 },
-  authPanelCompact: { paddingHorizontal: 24 },
+  authPanel: { width: '100%', maxWidth: 456, paddingHorizontal: 8, paddingBottom: 54, paddingVertical: 0 },
+  authPanelCompact: { paddingHorizontal: 24, paddingBottom: 38 },
   preferenceForm: { gap: 0 },
   heading: { color: luxyColors.ink, fontSize: 26, lineHeight: 34, fontWeight: '500', textAlign: 'center', marginBottom: 30 },
   subheading: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: -18, marginBottom: 22 },
@@ -445,43 +590,52 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#AEB5BB',
-    borderRadius: 2,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
   },
-  choiceButtonSelected: { borderWidth: 2, borderColor: luxyColors.actionRed, backgroundColor: '#FFF8F7' },
-  choiceButtonText: { color: luxyColors.ink, fontSize: 15, fontWeight: '500' },
-  choiceButtonTextSelected: { color: luxyColors.actionRed, fontWeight: '600' },
+  choiceButtonSelected: { borderWidth: 2, borderColor: '#F2B51D', backgroundColor: '#FFF1B8' },
+  choiceButtonText: { color: luxyColors.ink, fontSize: 16, fontWeight: '500' },
+  choiceButtonTextSelected: { color: '#6F4B00', fontWeight: '700' },
   ageNote: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 14 },
   accountForm: { gap: 0 },
-  backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 2 },
-  backText: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
+  backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 2, paddingHorizontal: 2 },
+  backText: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
   formFields: { gap: 8 },
-  fieldLabel: { color: luxyColors.ink, fontSize: 14, fontWeight: '500', marginTop: 8 },
+  fieldLabel: { color: luxyColors.ink, fontSize: 15, fontWeight: '700', marginTop: 8 },
   input: {
     minHeight: 50,
     borderWidth: 1,
     borderColor: '#AEB5BB',
-    borderRadius: 2,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     color: luxyColors.ink,
     fontSize: 16,
   },
+  passwordHelp: { color: luxyColors.muted, fontSize: 11, lineHeight: 17 },
+  otpInput: { fontSize: 24, fontWeight: '700', letterSpacing: 8, textAlign: 'center' },
+  otpHelp: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center' },
   forgotButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
-  linkText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '600' },
+  linkText: { color: luxyColors.actionRed, fontSize: 16, fontWeight: '700' },
   primaryButton: {
     minHeight: 50,
     marginTop: 8,
     backgroundColor: luxyColors.actionRed,
-    borderRadius: 2,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
+    shadowColor: '#C81C1D',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+    width: '100%',
   },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22 },
   divider: { flex: 1, height: 1, backgroundColor: '#D9D9D9' },
   dividerText: { color: luxyColors.muted, fontSize: 12 },
@@ -490,34 +644,20 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderWidth: 1,
     borderColor: '#AEB5BB',
-    borderRadius: 2,
+    borderRadius: 999,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   googleMark: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#F3F5F6', alignItems: 'center', justifyContent: 'center' },
   googleMarkText: { color: '#4285F4', fontSize: 16, fontWeight: '800' },
-  googleButtonText: { color: luxyColors.ink, fontSize: 14, fontWeight: '600' },
+  googleButtonText: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
   termsText: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 16 },
-  error: { color: luxyColors.danger, fontSize: 12, lineHeight: 18, marginBottom: 10, textAlign: 'center' },
-  success: { color: '#17653A', fontSize: 12, lineHeight: 18, marginBottom: 10, textAlign: 'center' },
-  footer: {
-    width: '100%',
-    maxWidth: 920,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 28,
-    gap: 12,
-  },
-  footerCompact: { paddingTop: 38, paddingBottom: 24 },
-  footerLanguage: { color: luxyColors.ink, fontSize: 12, fontWeight: '600' },
-  footerLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14 },
-  footerLink: { color: luxyColors.muted, fontSize: 11 },
-  footerNotice: { color: luxyColors.muted, fontSize: 9, lineHeight: 14, maxWidth: 720, textAlign: 'center', textTransform: 'uppercase' },
-  footerCopyright: { color: luxyColors.muted, fontSize: 10 },
+  error: { color: luxyColors.danger, fontSize: 11, lineHeight: 17, marginBottom: 10, textAlign: 'center' },
+  resendButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 8 },
   pressed: { opacity: 0.76 },
   disabled: { opacity: 0.48 },
 });

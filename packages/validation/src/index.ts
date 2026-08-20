@@ -14,10 +14,24 @@ export const provinceIdSchema = z
   .number({ error: 'Bạn cần chọn tỉnh/thành.' })
   .int('Tỉnh/thành không hợp lệ.')
   .positive('Bạn cần chọn tỉnh/thành.');
-export const profileBioSchema = z.string().trim().max(500, 'Giới thiệu tối đa 500 ký tự.');
+
+export const signupExactLocationSchema = z.object({
+  latitude: z.number().min(-90, 'Vĩ độ không hợp lệ.').max(90, 'Vĩ độ không hợp lệ.'),
+  longitude: z.number().min(-180, 'Kinh độ không hợp lệ.').max(180, 'Kinh độ không hợp lệ.'),
+  accuracyMeters: z.number().int('Độ chính xác vị trí không hợp lệ.').nonnegative('Độ chính xác vị trí không hợp lệ.'),
+  capturedAt: z.iso.datetime({ offset: true }),
+  source: z.enum(['device_foreground', 'device_approximate']),
+});
+
+export const signupLocationSchema = z.object({
+  provinceId: provinceIdSchema,
+  location: signupExactLocationSchema.nullable().optional(),
+});
+
+export const profileBioSchema = z.string().trim().max(4000, 'Giới thiệu tối đa 4000 ký tự.');
 export const profileHeadlineSchema = z.string().trim().max(120, 'Tiêu đề tối đa 120 ký tự.');
 export const profileOccupationSchema = z.string().trim().max(120, 'Nghề nghiệp tối đa 120 ký tự.');
-export const profileLookingForSchema = z.string().trim().max(1000, 'Nội dung tìm kiếm tối đa 1000 ký tự.');
+export const profileLookingForSchema = z.string().trim().max(4000, 'Nội dung tìm kiếm tối đa 4000 ký tự.');
 
 export const genderIdentitySchema = z.enum([
   'female',
@@ -27,6 +41,7 @@ export const genderIdentitySchema = z.enum([
   'prefer_not_to_say',
 ]);
 
+export const signupGenderSchema = z.enum(['female', 'male']);
 export const datingInterestSchema = z.enum(['female', 'male', 'everyone']);
 
 export const relationshipStatusSchema = z.enum([
@@ -95,6 +110,12 @@ export const heightCmSchema = z
   .int('Chiều cao phải là số nguyên theo cm.')
   .min(120, 'Chiều cao tối thiểu là 120 cm.')
   .max(230, 'Chiều cao tối đa là 230 cm.');
+
+export const signupHeightCmSchema = z
+  .number({ error: 'Chiều cao không hợp lệ.' })
+  .int('Chiều cao phải là số nguyên theo cm.')
+  .min(120, 'Chiều cao tối thiểu là 120 cm.')
+  .max(220, 'Chiều cao tối đa là 220 cm.');
 
 export const weightKgSchema = z
   .number({ error: 'Cân nặng không hợp lệ.' })
@@ -229,8 +250,69 @@ export function isAtLeastAge(dateOfBirth: string, minimumAge = 18, now = new Dat
 
 export const adultDateOfBirthSchema = dateOfBirthSchema.refine(
   (value) => isAtLeastAge(value),
-  'Bạn phải đủ 18 tuổi để sử dụng Luxy.Love.',
+  'Bạn phải đủ 18 tuổi để sử dụng Chon.Love.',
 );
+
+export const signupDisplayNameSchema = z
+  .string()
+  .trim()
+  .min(10, 'Tên hiển thị cần ít nhất 10 ký tự.')
+  .max(50, 'Tên hiển thị tối đa 50 ký tự.');
+
+// SU-04 keeps only DOB + display name + the Step 1 preference pair mandatory.
+// Factual profile attributes may be left on "Chọn" or explicitly set to
+// "Không chia sẻ". The mobile write layer normalizes those states to null for
+// numeric fields and prefer_not_to_say for enum fields.
+export const signupPersonalInfoSchema = z.object({
+  dateOfBirth: adultDateOfBirthSchema,
+  displayName: signupDisplayNameSchema,
+  gender: signupGenderSchema,
+  interestedIn: datingInterestSchema,
+  heightCm: signupHeightCmSchema.nullable().optional(),
+  weightKg: weightKgSchema.nullable().optional(),
+  educationLevel: educationLevelSchema.optional(),
+  relationshipStatus: relationshipStatusSchema.optional(),
+  childrenStatus: childrenStatusSchema.optional(),
+  drinkingStatus: drinkingStatusSchema.optional(),
+  smokingStatus: smokingStatusSchema.optional(),
+});
+
+export const signupLookingForTextSchema = z
+  .string()
+  .trim()
+  .min(50, 'Hãy chia sẻ ít nhất 50 ký tự về người hoặc mối quan hệ bạn đang tìm kiếm.')
+  .max(4000, 'Nội dung tìm kiếm tối đa 4000 ký tự.');
+
+export const signupLifestyleTagsSchema = z
+  .array(profileLifestyleTagSchema)
+  .min(1, 'Chọn ít nhất 1 mục tiêu / phong cách phù hợp.')
+  .max(7, 'Chọn tối đa 7 mục tiêu / phong cách.')
+  .transform((values) => [...new Set(values)]);
+
+export const signupLookingForSchema = z.object({
+  lookingFor: signupLookingForTextSchema,
+  lifestyleTags: signupLifestyleTagsSchema,
+});
+
+export const signupHeadlineSchema = z
+  .string()
+  .trim()
+  .max(50, 'Tiêu đề hồ sơ tối đa 50 ký tự.')
+  .refine(
+    (value) => value.length === 0 || value.length >= 10,
+    'Tiêu đề hồ sơ có thể để trống; nếu nhập cần từ 10 đến 50 ký tự.',
+  );
+
+export const signupBioSchema = z
+  .string()
+  .trim()
+  .min(50, 'Hãy giới thiệu bản thân bằng ít nhất 50 ký tự.')
+  .max(4000, 'Giới thiệu bản thân tối đa 4000 ký tự.');
+
+export const signupHeadlineBioSchema = z.object({
+  headline: signupHeadlineSchema,
+  bio: signupBioSchema,
+});
 
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
 
@@ -244,6 +326,11 @@ export const minimumOnboardingSchema = z.object({
 });
 
 export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;
+export type SignupPersonalInfoInput = z.infer<typeof signupPersonalInfoSchema>;
+export type SignupExactLocationInput = z.infer<typeof signupExactLocationSchema>;
+export type SignupLocationInput = z.infer<typeof signupLocationSchema>;
+export type SignupLookingForInput = z.infer<typeof signupLookingForSchema>;
+export type SignupHeadlineBioInput = z.infer<typeof signupHeadlineBioSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
 export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
 export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;

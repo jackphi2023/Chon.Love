@@ -2,15 +2,25 @@ import { SaveFormat, ImageManipulator } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 import {
+  MAX_PROFILE_IMAGE_BYTES,
+  MAX_PROFILE_IMAGE_DIMENSION,
   profileImageMetadataSchema,
   type ProfileImageMetadata,
 } from '@myfan/validation';
 import type { PreparedImageUpload } from '@myfan/supabase';
 
-const MAX_RENDER_DIMENSION = 2048;
-// Profile photos are visual identity assets. Keep a high JPEG quality while capping the
-// longest edge at 2048 px so uploads remain practical on mobile connections.
-const JPEG_COMPRESSION = 0.92;
+// Preserve supported JPEG/PNG/WebP uploads byte-for-byte whenever they already fit
+// the server contract. Only unsupported/oversized images are re-rendered. The fallback
+// starts at 4096 px / 96% JPEG quality and steps down only when necessary to remain
+// below the existing 10 MB media limit, avoiding the blurry 2048px/92% legacy path.
+export const PROFILE_PHOTO_FALLBACK_MAX_DIMENSION = 4096;
+export const PROFILE_PHOTO_FALLBACK_JPEG_QUALITY = 0.96;
+
+const JPEG_FALLBACK_ATTEMPTS = [
+  { maxDimension: PROFILE_PHOTO_FALLBACK_MAX_DIMENSION, compression: PROFILE_PHOTO_FALLBACK_JPEG_QUALITY },
+  { maxDimension: 3072, compression: 0.94 },
+  { maxDimension: 2560, compression: 0.92 },
+] as const;
 
 export type ProfileImageSource = 'library' | 'camera';
 
@@ -19,11 +29,109 @@ export type PreparedLocalProfileImage = PreparedImageUpload & {
   metadata: ProfileImageMetadata;
 };
 
-function getResizeTarget(width: number, height: number): { width: number | null; height: number | null } | null {
+type SupportedOriginalFormat = {
+  mimeType: PreparedLocalProfileImage['mimeType'];
+  extension: PreparedLocalProfileImage['extension'];
+};
+
+function getResizeTarget(
+  width: number,
+  height: number,
+  maxDimension: number,
+): { width: number | null; height: number | null } | null {
   const longest = Math.max(width, height);
-  if (longest <= MAX_RENDER_DIMENSION) return null;
-  if (width >= height) return { width: MAX_RENDER_DIMENSION, height: null };
-  return { width: null, height: MAX_RENDER_DIMENSION };
+  if (longest <= maxDimension) return null;
+  if (width >= height) return { width: maxDimension, height: null };
+  return { width: null, height: maxDimension };
+}
+
+function supportedOriginalFormat(asset: ImagePicker.ImagePickerAsset): SupportedOriginalFormat | null {
+  const mimeType = asset.mimeType?.toLowerCase();
+  const fileName = asset.fileName?.toLowerCase() ?? '';
+  if (mimeType === 'image/jpeg' || mimeType === 'image/jpg' || /\.jpe?g$/u.test(fileName)) {
+    return { mimeType: 'image/jpeg', extension: 'jpg' };
+  }
+  if (mimeType === 'image/png' || /\.png$/u.test(fileName)) {
+    return { mimeType: 'image/png', extension: 'png' };
+  }
+  if (mimeType === 'image/webp' || /\.webp$/u.test(fileName)) {
+    return { mimeType: 'image/webp', extension: 'webp' };
+  }
+  return null;
+}
+
+async function readImageBytes(uri: string): Promise<ArrayBuffer> {
+  const response = await fetch(uri);
+  if (!response.ok) throw new Error('image_read_failed');
+  return response.arrayBuffer();
+}
+
+function buildPreparedImage(
+  visibility: PreparedImageUpload['visibility'],
+  format: SupportedOriginalFormat,
+  width: number,
+  height: number,
+  bytes: ArrayBuffer,
+  previewUri: string,
+): PreparedLocalProfileImage {
+  const metadata = profileImageMetadataSchema.parse({
+    mimeType: format.mimeType,
+    fileSizeBytes: bytes.byteLength,
+    width,
+    height,
+    extension: format.extension,
+  });
+  return {
+    visibility,
+    mimeType: metadata.mimeType,
+    extension: metadata.extension,
+    width: metadata.width,
+    height: metadata.height,
+    bytes,
+    previewUri,
+    metadata,
+  };
+}
+
+async function preserveOriginalImage(
+  asset: ImagePicker.ImagePickerAsset,
+  visibility: PreparedImageUpload['visibility'],
+): Promise<PreparedLocalProfileImage | null> {
+  const format = supportedOriginalFormat(asset);
+  if (!format || !asset.width || !asset.height) return null;
+  if (asset.width > MAX_PROFILE_IMAGE_DIMENSION || asset.height > MAX_PROFILE_IMAGE_DIMENSION) return null;
+
+  const bytes = await readImageBytes(asset.uri);
+  if (bytes.byteLength > MAX_PROFILE_IMAGE_BYTES) return null;
+  return buildPreparedImage(visibility, format, asset.width, asset.height, bytes, asset.uri);
+}
+
+async function renderHighQualityJpeg(
+  asset: ImagePicker.ImagePickerAsset,
+  visibility: PreparedImageUpload['visibility'],
+): Promise<PreparedLocalProfileImage> {
+  for (const attempt of JPEG_FALLBACK_ATTEMPTS) {
+    const context = ImageManipulator.manipulate(asset.uri);
+    const resizeTarget = getResizeTarget(asset.width, asset.height, attempt.maxDimension);
+    if (resizeTarget) context.resize(resizeTarget);
+    const rendered = await context.renderAsync();
+    const saved = await rendered.saveAsync({
+      compress: attempt.compression,
+      format: SaveFormat.JPEG,
+    });
+    const bytes = await readImageBytes(saved.uri);
+    if (bytes.byteLength <= MAX_PROFILE_IMAGE_BYTES) {
+      return buildPreparedImage(
+        visibility,
+        { mimeType: 'image/jpeg', extension: 'jpg' },
+        saved.width,
+        saved.height,
+        bytes,
+        saved.uri,
+      );
+    }
+  }
+  throw new Error('invalid_media_file_size');
 }
 
 async function selectImages(
@@ -60,36 +168,9 @@ async function prepareSelectedImage(
   if (asset.type && asset.type !== 'image') throw new Error('unsupported_media_type');
   if (!asset.width || !asset.height) throw new Error('invalid_media_dimensions');
 
-  const context = ImageManipulator.manipulate(asset.uri);
-  const resizeTarget = getResizeTarget(asset.width, asset.height);
-  if (resizeTarget) context.resize(resizeTarget);
-  const rendered = await context.renderAsync();
-  const saved = await rendered.saveAsync({
-    compress: JPEG_COMPRESSION,
-    format: SaveFormat.JPEG,
-  });
-
-  const response = await fetch(saved.uri);
-  if (!response.ok) throw new Error('image_read_failed');
-  const bytes = await response.arrayBuffer();
-  const metadata = profileImageMetadataSchema.parse({
-    mimeType: 'image/jpeg',
-    fileSizeBytes: bytes.byteLength,
-    width: saved.width,
-    height: saved.height,
-    extension: 'jpg',
-  });
-
-  return {
-    visibility,
-    mimeType: metadata.mimeType,
-    extension: metadata.extension,
-    width: metadata.width,
-    height: metadata.height,
-    bytes,
-    previewUri: saved.uri,
-    metadata,
-  };
+  const original = await preserveOriginalImage(asset, visibility);
+  if (original) return original;
+  return renderHighQualityJpeg(asset, visibility);
 }
 
 export async function pickAndPrepareProfileImage(
@@ -103,10 +184,12 @@ export async function pickAndPrepareProfileImage(
 
 export async function pickAndPrepareProfileImages(
   visibility: PreparedImageUpload['visibility'],
+  maxCount?: number,
 ): Promise<PreparedLocalProfileImage[]> {
   const assets = await selectImages('library', true);
+  const selected = typeof maxCount === 'number' ? assets.slice(0, Math.max(0, maxCount)) : assets;
   const prepared: PreparedLocalProfileImage[] = [];
-  for (const asset of assets) {
+  for (const asset of selected) {
     prepared.push(await prepareSelectedImage(asset, visibility));
   }
   return prepared;
@@ -115,17 +198,17 @@ export async function pickAndPrepareProfileImages(
 export function getReadableProfileMediaError(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('camera_permission_denied')) {
-    return 'Luxy.Love chỉ dùng camera khi bạn chủ động chụp ảnh. Hãy cấp quyền camera để tiếp tục.';
+    return 'Chon.Love chỉ dùng camera khi bạn chủ động chụp ảnh. Hãy cấp quyền camera để tiếp tục.';
   }
   if (message.includes('invalid_media_file_size') || message.includes('too large')) {
-    return 'Ảnh vượt quá dung lượng cho phép. Hãy chọn ảnh nhỏ hơn.';
+    return 'Ảnh vượt quá dung lượng 10 MB sau khi tối ưu chất lượng. Hãy chọn ảnh khác.';
   }
   if (
     message.includes('unsupported_media') ||
     message.includes('mime') ||
     message.includes('extension')
   ) {
-    return 'Luxy.Love chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP.';
+    return 'Chon.Love hỗ trợ JPEG, PNG, WebP và sẽ tự chuyển các định dạng ảnh phổ biến khác sang JPEG chất lượng cao.';
   }
   if (message.includes('username_change_cooldown')) {
     return 'Tên người dùng chỉ có thể thay đổi một lần trong 30 ngày.';

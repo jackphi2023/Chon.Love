@@ -22,6 +22,7 @@ import {
 import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { HomepageYoutubeHero } from '@/components/homepage-youtube-hero';
 import { luxyPublicArtwork } from '@/components/luxy-public-artwork';
+import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { getAuthenticatedDestination } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -148,7 +149,7 @@ export default function HomeScreen() {
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.heroShade} />
-        <PublicHeader isPhone={isPhone} onJoin={openJoin} onLogin={openLogin} />
+        <PublicHeader compact={isPhone} onJoin={openJoin} onLogin={openLogin} variant="overlay" />
         <View style={[styles.heroContent, isPhone && styles.heroContentPhone]}>
           <ChonLoveLogo height={isPhone ? 104 : 150} width={isPhone ? 236 : 340} />
           <Text accessibilityRole="header" style={[styles.heroSlogan, isPhone && styles.heroSloganPhone]}>
@@ -281,27 +282,11 @@ export default function HomeScreen() {
       </View>
 
       <PublicFooter
-        isPhone={isPhone}
+        compact={isPhone}
         onCommunity={() => router.push('/legal/community-standards')}
         onTerms={() => router.push('/legal/terms')}
       />
     </ScrollView>
-  );
-}
-
-function PublicHeader({ isPhone, onJoin, onLogin }: { isPhone: boolean; onJoin: () => void; onLogin: () => void }) {
-  return (
-    <View style={[styles.header, isPhone && styles.headerPhone]}>
-      <ChonLoveLogo height={isPhone ? 42 : 54} width={isPhone ? 96 : 126} />
-      <View style={styles.headerActions}>
-        <Pressable accessibilityRole="button" onPress={onLogin} style={({ pressed }) => [styles.loginButton, pressed && styles.pressed]}>
-          <Text style={styles.loginText}>Đăng nhập</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={onJoin} style={({ pressed }) => [styles.registerButton, pressed && styles.pressed]}>
-          <Text style={styles.registerText}>Đăng ký</Text>
-        </Pressable>
-      </View>
-    </View>
   );
 }
 
@@ -354,26 +339,6 @@ function BenefitsArtwork({ source, isPhone }: { source: ImageSourcePropType; isP
   );
 }
 
-export function PublicFooter({ isPhone, onCommunity, onTerms }: { isPhone: boolean; onCommunity: () => void; onTerms: () => void }) {
-  return (
-    <View style={[styles.footer, isPhone && styles.footerPhone]}>
-      <View style={styles.footerBrandBlock}>
-        <ChonLoveLogo height={54} width={132} />
-        <Text style={styles.footerTagline}>Chọn đúng người, Yêu đúng Gu © 2026 Chon.Love</Text>
-      </View>
-      <View style={styles.footerLinks}>
-        <Pressable accessibilityRole="link" onPress={onTerms} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
-          <Text style={styles.footerLinkText}>Điều khoản</Text>
-        </Pressable>
-        <View style={styles.footerDot} />
-        <Pressable accessibilityRole="link" onPress={onCommunity} style={({ pressed }) => [styles.footerLinkButton, pressed && styles.pressed]}>
-          <Text style={styles.footerLinkText}>Tiêu chuẩn cộng đồng</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   page: { backgroundColor: '#FFF8F5', flexGrow: 1 },
   loadingContainer: { alignItems: 'center', backgroundColor: '#FFF8F5', flex: 1, gap: 18, justifyContent: 'center', padding: 32 },
@@ -381,13 +346,6 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: '#090909', minHeight: 740, overflow: 'hidden', position: 'relative', width: '100%' },
   heroPhone: { minHeight: 660 },
   heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.34)' },
-  header: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', height: 78, justifyContent: 'space-between', maxWidth: 1440, paddingHorizontal: 42, position: 'relative', width: '100%', zIndex: 10 },
-  headerPhone: { height: 62, paddingHorizontal: 14 },
-  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  loginButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
-  loginText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  registerButton: { alignItems: 'center', backgroundColor: '#D92D2A', borderColor: 'rgba(255,255,255,0.35)', borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 42, paddingHorizontal: 20 },
-  registerText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   heroContent: { alignItems: 'center', alignSelf: 'center', justifyContent: 'center', minHeight: 650, paddingBottom: 70, paddingHorizontal: 24, position: 'relative', width: '100%', zIndex: 2 },
   heroContentPhone: { minHeight: 580, paddingBottom: 44 },
   heroSlogan: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 44, marginTop: -12, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
@@ -470,13 +428,5 @@ const styles = StyleSheet.create({
   cultureCopyWrap: { flex: 1 },
   cultureIndex: { color: '#C81C1D', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
   cultureCopy: { color: '#201B19', fontFamily: luxyTypography.families.display, fontSize: 17, lineHeight: 23, marginTop: 3 },
-  footer: { alignItems: 'center', backgroundColor: '#070707', flexDirection: 'row', flexWrap: 'wrap', gap: 22, justifyContent: 'space-between', minHeight: 150, paddingHorizontal: 42, paddingVertical: 28 },
-  footerPhone: { alignItems: 'flex-start', flexDirection: 'column', gap: 14, paddingHorizontal: 18 },
-  footerBrandBlock: { alignItems: 'flex-start', flexGrow: 1, maxWidth: 430, minWidth: 230 },
-  footerTagline: { color: '#CFC6C1', fontSize: 12, lineHeight: 18 },
-  footerLinks: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  footerLinkButton: { justifyContent: 'center', minHeight: 44 },
-  footerLinkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  footerDot: { backgroundColor: '#F2B51D', borderRadius: 999, height: 4, width: 4 },
   pressed: { opacity: 0.78 },
 });

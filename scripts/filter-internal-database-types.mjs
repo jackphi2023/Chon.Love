@@ -19,6 +19,7 @@ const serverOnlyFunctions = [
   'admin_update_homepage_settings',
   'get_public_homepage_settings',
   'is_super_admin',
+  'activate_verified_signup_profile_v2',
 ];
 
 // homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
@@ -34,7 +35,7 @@ function removeGeneratedBlocks(names, kind) {
     const marker = `      ${name}: {`;
     const start = source.indexOf(marker);
     if (start < 0) {
-      console.error(`Expected server-only ${kind} missing from generated types: ${name}`);
+      console.error(`Expected ${kind} missing from generated types: ${name}`);
       process.exit(1);
     }
 
@@ -65,8 +66,8 @@ function removeGeneratedBlocks(names, kind) {
   }
 }
 
-removeGeneratedBlocks(serverOnlyFunctions, 'RPC');
-removeGeneratedBlocks(serverOnlyTables, 'table');
+removeGeneratedBlocks(serverOnlyFunctions, 'server-only RPC');
+removeGeneratedBlocks(serverOnlyTables, 'implementation table');
 
 const beforeProfileCodeFilter = source;
 source = source

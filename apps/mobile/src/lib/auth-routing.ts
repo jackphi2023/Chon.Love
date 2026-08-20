@@ -13,7 +13,7 @@ export function resolveAuthenticatedRoute(
   if (!status) return '/(onboarding)';
   if (!status.age_verified || !status.policies_accepted) return '/(onboarding)';
   if (status.account_status !== 'active') return '/(onboarding)';
-  // Luxy member surfaces are available only after profile setup + selfie
+  // Chon.Love member surfaces are available only after profile setup + selfie
   // verification. pending_review/incomplete users stay inside onboarding even
   // when they already hold an authenticated Supabase session.
   if (status.profile_status !== 'active') return '/(onboarding)';
@@ -25,8 +25,20 @@ export function getReadableAuthError(error: unknown): string {
   if (/beta_password_managed/iu.test(message)) {
     return 'Mật khẩu của tài khoản Beta thử nghiệm được quản lý cố định. Vui lòng dùng thông tin đăng nhập đã được cấp.';
   }
-  if (/email_and_password_required|email_required/iu.test(message)) {
+  if (/email_and_password_required/iu.test(message)) {
     return 'Vui lòng nhập đầy đủ email và mật khẩu.';
+  }
+  if (/email_required/iu.test(message)) {
+    return 'Vui lòng nhập email.';
+  }
+  if (/invalid email|email address.*invalid|email.*format/iu.test(message)) {
+    return 'Email chưa đúng định dạng.';
+  }
+  if (/invalid_otp_format|otp_required/iu.test(message)) {
+    return 'Mã OTP gồm 6 chữ số.';
+  }
+  if (/otp_session_missing/iu.test(message)) {
+    return 'Mã OTP chưa tạo được phiên đăng nhập. Vui lòng yêu cầu mã mới và thử lại.';
   }
   if (/invalid login credentials|invalid_credentials/iu.test(message)) {
     return 'Email hoặc mật khẩu không đúng.';
@@ -46,8 +58,8 @@ export function getReadableAuthError(error: unknown): string {
   if (/auth_callback_session_missing/iu.test(message)) {
     return 'Liên kết xác thực chưa tạo được phiên đăng nhập. Vui lòng mở lại liên kết mới nhất trong email hoặc quay lại đăng nhập.';
   }
-  if (/expired|invalid.*token|otp.*expired/iu.test(message)) {
-    return 'Liên kết xác thực đã hết hạn hoặc không còn hợp lệ.';
+  if (/expired|invalid.*token|otp.*expired|token.*invalid|invalid.*otp/iu.test(message)) {
+    return 'Mã OTP đã hết hạn hoặc không còn hợp lệ. Vui lòng yêu cầu mã mới.';
   }
   if (/rate limit|too many requests|over_email_send_rate_limit/iu.test(message)) {
     return 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.';
