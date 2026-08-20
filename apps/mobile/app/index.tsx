@@ -28,6 +28,11 @@ import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
+const CHON_RED = '#D92D2A';
+const CHON_GOLD = '#FFBB00';
+const CHON_PINK = '#F6D8DF';
+const CHON_BLUE = '#1E73BE';
+
 const testimonials = [
   {
     quote:
@@ -90,6 +95,7 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { userId, isRestoring } = useAuth();
   const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const [hoveredControl, setHoveredControl] = useState<string | null>(null);
   const isPhone = width < 768;
   const isDesktop = width >= 1024;
 
@@ -159,8 +165,14 @@ export default function HomeScreen() {
           <Pressable
             accessibilityLabel="Tham gia Chọn.love ngay"
             accessibilityRole="button"
+            onHoverIn={() => setHoveredControl('hero-join')}
+            onHoverOut={() => setHoveredControl(null)}
             onPress={openJoin}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              hoveredControl === 'hero-join' && styles.primaryButtonHovered,
+              pressed && styles.pressed,
+            ]}
           >
             <Text style={styles.primaryButtonText}>Tham gia ngay</Text>
           </Pressable>
@@ -168,16 +180,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={[styles.positioningSection, isPhone && styles.positioningSectionPhone]}>
-        {isPhone ? (
-          <View style={styles.positioningPhoneArtRow}>
-            <View style={[styles.positioningPhoneArtwork, styles.positioningPhoneArtworkLeft]}>
-              <Image accessibilityLabel="Minh họa kết nối Chọn.love" resizeMode="cover" source={section2Left} style={styles.fillImage} />
-            </View>
-            <View style={[styles.positioningPhoneArtwork, styles.positioningPhoneArtworkRight]}>
-              <Image accessibilityLabel="Minh họa hẹn hò Chọn.love" resizeMode="cover" source={section2Right} style={styles.fillImage} />
-            </View>
-          </View>
-        ) : (
+        {!isPhone ? (
           <>
             <View style={[styles.sideArtwork, styles.sideArtworkLeft]}>
               <Image accessibilityLabel="Minh họa kết nối Chọn.love" resizeMode="cover" source={section2Left} style={styles.fillImage} />
@@ -186,15 +189,25 @@ export default function HomeScreen() {
               <Image accessibilityLabel="Minh họa hẹn hò Chọn.love" resizeMode="cover" source={section2Right} style={styles.fillImage} />
             </View>
           </>
-        )}
+        ) : null}
         <View style={[styles.positioningCopy, isPhone && styles.positioningCopyPhone]}>
           <SectionEyebrow>CHỌN.LOVE</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>
-            NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ
+          <Text accessibilityRole="header" style={[styles.sectionHeading, styles.goldSectionHeading, isPhone && styles.sectionHeadingPhone]}>
+            NỀN TẢNG HẸN HÒ THỰC CHẤT VÀ THÚ VỊ
           </Text>
           <Text style={styles.centerBody}>Chọn.love là nền tảng hẹn hò, kết nối người dùng thật gần bạn với một cộng đồng kết nối văn minh và thú vị.</Text>
           <Text style={styles.centerBody}>Chọn.love được thiết kế nhằm thúc đẩy sự kết nối chân thực giữa các thành viên, hướng tới những mối quan hệ bền vững và tình yêu được xây dựng trên nền tảng mong muốn chung: một cuộc sống đầy khát vọng và trọn vẹn.</Text>
-          <Pressable accessibilityRole="button" onPress={openJoin} style={({ pressed }) => [styles.textCta, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityRole="button"
+            onHoverIn={() => setHoveredControl('connect-cta')}
+            onHoverOut={() => setHoveredControl(null)}
+            onPress={openJoin}
+            style={({ pressed }) => [
+              styles.textCta,
+              hoveredControl === 'connect-cta' && styles.textCtaHovered,
+              pressed && styles.pressed,
+            ]}
+          >
             <Text style={styles.textCtaText}>Bắt đầu kết nối</Text>
             <Text style={styles.textCtaArrow}>→</Text>
           </Pressable>
@@ -209,7 +222,7 @@ export default function HomeScreen() {
         <View style={styles.testimonialShade} />
         <View style={styles.testimonialInner}>
           <SectionEyebrow light>THÀNH VIÊN NÓI GÌ</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.testimonialHeading, isPhone && styles.sectionHeadingPhone]}>CHIA SẼ TỪ THÀNH VIÊN:</Text>
+          <Text accessibilityRole="header" style={[styles.testimonialHeading, isPhone && styles.sectionHeadingPhone]}>CHIA SẺ TỪ THÀNH VIÊN:</Text>
           {isDesktop ? (
             <View style={styles.testimonialGrid}>
               {testimonials.map((item) => <TestimonialCard item={item} key={item.name} />)}
@@ -221,8 +234,14 @@ export default function HomeScreen() {
                 <Pressable
                   accessibilityLabel="Chia sẻ trước"
                   accessibilityRole="button"
+                  onHoverIn={() => setHoveredControl('testimonial-prev')}
+                  onHoverOut={() => setHoveredControl(null)}
                   onPress={() => setTestimonialIndex((value) => (value + testimonials.length - 1) % testimonials.length)}
-                  style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.carouselButton,
+                    hoveredControl === 'testimonial-prev' && styles.carouselButtonHovered,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.carouselArrow}>‹</Text>
                 </Pressable>
@@ -230,8 +249,14 @@ export default function HomeScreen() {
                 <Pressable
                   accessibilityLabel="Chia sẻ tiếp theo"
                   accessibilityRole="button"
+                  onHoverIn={() => setHoveredControl('testimonial-next')}
+                  onHoverOut={() => setHoveredControl(null)}
                   onPress={() => setTestimonialIndex((value) => (value + 1) % testimonials.length)}
-                  style={({ pressed }) => [styles.carouselButton, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.carouselButton,
+                    hoveredControl === 'testimonial-next' && styles.carouselButtonHovered,
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.carouselArrow}>›</Text>
                 </Pressable>
@@ -257,7 +282,17 @@ export default function HomeScreen() {
           <Text style={styles.missionBody}>Sứ mệnh của chúng tôi là kiến tạo một không gian nơi tình yêu thật, thú vị và sự sang trọng hòa quyện. Chúng tôi đặt mục tiêu nâng tầm trải nghiệm — không chỉ cho các thành viên của mình mà còn cho cả cộng đồng hẹn hò nghiêm túc tại Việt Nam.</Text>
           <Text style={styles.missionBody}>Chọn.love không đi theo những quy chuẩn thông thường; chúng tôi thiết lập nên những chuẩn mực hoàn toàn mới. Từ vấn đề thành viên thật, tính cộng đồng cho đến các kết nối giá trị, mọi khía cạnh trải nghiệm đều được nâng cấp để xứng tầm với đẳng cấp của người sử dụng.</Text>
           <Text style={styles.missionBody}>Trải nghiệm hẹn hò sang trọng mà Chọn.love mang lại không chỉ bao hàm các yếu tố an toàn, tính cộng đồng và kết nối, mà còn đưa tất cả những giá trị đó lên một tầm cao mới.</Text>
-          <Pressable accessibilityRole="button" onPress={openJoin} style={({ pressed }) => [styles.missionButton, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityRole="button"
+            onHoverIn={() => setHoveredControl('mission-join')}
+            onHoverOut={() => setHoveredControl(null)}
+            onPress={openJoin}
+            style={({ pressed }) => [
+              styles.missionButton,
+              hoveredControl === 'mission-join' && styles.missionButtonHovered,
+              pressed && styles.pressed,
+            ]}
+          >
             <Text style={styles.missionButtonText}>Tham gia Chọn.love</Text>
           </Pressable>
         </View>
@@ -266,7 +301,7 @@ export default function HomeScreen() {
       <View style={[styles.cultureSection, isPhone && styles.cultureSectionPhone]}>
         <View style={styles.cultureInner}>
           <SectionEyebrow>VĂN HOÁ</SectionEyebrow>
-          <Text accessibilityRole="header" style={[styles.sectionHeading, isPhone && styles.sectionHeadingPhone]}>VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE</Text>
+          <Text accessibilityRole="header" style={[styles.sectionHeading, styles.goldSectionHeading, isPhone && styles.sectionHeadingPhone]}>VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE</Text>
           <View style={[styles.cultureGrid, isDesktop && styles.cultureGridDesktop]}>
             {cultureItems.map((item, index) => (
               <View key={item} style={[styles.cultureItem, isDesktop && styles.cultureItemDesktop]}>
@@ -316,7 +351,7 @@ function BenefitsCopy({ isPhone }: { isPhone: boolean }) {
   return (
     <View style={styles.benefitsCopy}>
       <SectionEyebrow>TRẢI NGHIỆM KHÁC BIỆT</SectionEyebrow>
-      <Text accessibilityRole="header" style={[styles.sectionHeading, styles.alignLeft, isPhone && styles.sectionHeadingPhone]}>QUYỀN LỢI THÀNH VIÊN:</Text>
+      <Text accessibilityRole="header" style={[styles.sectionHeading, styles.goldSectionHeading, styles.alignLeft, isPhone && styles.sectionHeadingPhone]}>QUYỀN LỢI THÀNH VIÊN</Text>
       {benefits.map((item, index) => (
         <View key={item.title} style={styles.benefitItem}>
           <View style={styles.benefitNumber}><Text style={styles.benefitNumberText}>{String(index + 1).padStart(2, '0')}</Text></View>
@@ -340,8 +375,8 @@ function BenefitsArtwork({ source, isPhone }: { source: ImageSourcePropType; isP
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: '#FFF8F5', flexGrow: 1 },
-  loadingContainer: { alignItems: 'center', backgroundColor: '#FFF8F5', flex: 1, gap: 18, justifyContent: 'center', padding: 32 },
+  page: { backgroundColor: CHON_PINK, flexGrow: 1 },
+  loadingContainer: { alignItems: 'center', backgroundColor: CHON_PINK, flex: 1, gap: 18, justifyContent: 'center', padding: 32 },
   loadingCopy: { color: '#5A4C48', fontSize: 14 },
   hero: { backgroundColor: '#090909', minHeight: 740, overflow: 'hidden', position: 'relative', width: '100%' },
   heroPhone: { minHeight: 660 },
@@ -350,32 +385,31 @@ const styles = StyleSheet.create({
   heroContentPhone: { minHeight: 580, paddingBottom: 44 },
   heroSlogan: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 44, marginTop: -12, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   heroSloganPhone: { fontSize: 25, lineHeight: 34, marginTop: -5 },
-  goldRule: { backgroundColor: '#F2B51D', height: 2, marginBottom: 22, marginTop: 16, width: 74 },
-  primaryButton: { alignItems: 'center', backgroundColor: '#D92D2A', borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 48, minWidth: 150, paddingHorizontal: 24 },
+  goldRule: { backgroundColor: CHON_GOLD, height: 2, marginBottom: 22, marginTop: 16, width: 74 },
+  primaryButton: { alignItems: 'center', backgroundColor: CHON_RED, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 48, minWidth: 150, paddingHorizontal: 24 },
+  primaryButtonHovered: { backgroundColor: '#E24A47', shadowColor: '#C81C1D', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.24, shadowRadius: 6, elevation: 3 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  positioningSection: { alignItems: 'center', backgroundColor: '#FFF8F5', justifyContent: 'center', minHeight: 560, overflow: 'hidden', paddingHorizontal: 24, paddingVertical: 88, position: 'relative' },
+  positioningSection: { alignItems: 'center', backgroundColor: CHON_PINK, justifyContent: 'center', minHeight: 560, overflow: 'hidden', paddingHorizontal: 24, paddingVertical: 88, position: 'relative' },
   positioningSectionPhone: { minHeight: 0, paddingHorizontal: 18, paddingVertical: 58 },
   positioningCopy: { alignItems: 'center', maxWidth: 720, width: '58%', zIndex: 2 },
   positioningCopyPhone: { width: '100%' },
-  sideArtwork: { borderColor: '#F2B51D', borderRadius: 140, borderWidth: 2, height: 250, overflow: 'hidden', position: 'absolute', top: 155, width: 190 },
+  sideArtwork: { borderColor: CHON_GOLD, borderRadius: 140, borderWidth: 2, height: 250, overflow: 'hidden', position: 'absolute', top: 155, width: 190 },
   sideArtworkLeft: { left: -38, transform: [{ rotate: '-5deg' }] },
   sideArtworkRight: { right: -38, transform: [{ rotate: '5deg' }] },
-  positioningPhoneArtRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28, maxWidth: 420, paddingHorizontal: 4, width: '100%' },
-  positioningPhoneArtwork: { borderColor: '#F2B51D', borderRadius: 64, borderWidth: 1.5, height: 92, overflow: 'hidden', width: 132 },
-  positioningPhoneArtworkLeft: { transform: [{ rotate: '-5deg' }] },
-  positioningPhoneArtworkRight: { transform: [{ rotate: '5deg' }] },
   fillImage: { height: '100%', width: '100%' },
   eyebrowRow: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 14 },
-  eyebrowRule: { backgroundColor: '#F2B51D', height: 1, width: 30 },
-  eyebrowRuleLight: { backgroundColor: '#F6C843' },
-  eyebrowText: { color: '#A66A00', fontSize: 11, fontWeight: '800', letterSpacing: 1.8 },
-  eyebrowTextLight: { color: '#F6C843' },
+  eyebrowRule: { backgroundColor: CHON_GOLD, height: 1, width: 30 },
+  eyebrowRuleLight: { backgroundColor: CHON_GOLD },
+  eyebrowText: { color: CHON_RED, fontSize: 11, fontWeight: '800', letterSpacing: 1.8 },
+  eyebrowTextLight: { color: CHON_RED },
   sectionHeading: { color: '#171312', fontFamily: luxyTypography.families.display, fontSize: 34, fontWeight: '500', letterSpacing: -0.5, lineHeight: 43, marginBottom: 22, textAlign: 'center' },
+  goldSectionHeading: { color: CHON_GOLD },
   sectionHeadingPhone: { fontSize: 26, lineHeight: 34 },
   centerBody: { color: '#514844', fontSize: 15, lineHeight: 25, marginBottom: 13, maxWidth: 680, textAlign: 'center' },
-  textCta: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 14, minHeight: 44 },
-  textCtaText: { color: '#C81C1D', fontSize: 14, fontWeight: '800' },
-  textCtaArrow: { color: '#F2B51D', fontSize: 20, fontWeight: '700' },
+  textCta: { alignItems: 'center', borderRadius: luxyRadii.pill, flexDirection: 'row', gap: 8, marginTop: 14, minHeight: 44, paddingHorizontal: 12 },
+  textCtaHovered: { backgroundColor: 'rgba(255,187,0,0.16)', shadowColor: '#000000', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 2 },
+  textCtaText: { color: CHON_RED, fontSize: 14, fontWeight: '800' },
+  textCtaArrow: { color: CHON_GOLD, fontSize: 20, fontWeight: '700' },
   testimonialSection: { minHeight: 720, paddingHorizontal: 24, paddingVertical: 78, position: 'relative' },
   testimonialSectionPhone: { minHeight: 650, paddingHorizontal: 16, paddingVertical: 58 },
   testimonialShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(5,7,8,0.56)' },
@@ -383,50 +417,52 @@ const styles = StyleSheet.create({
   testimonialHeading: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 36, fontWeight: '500', lineHeight: 46, marginBottom: 34, textAlign: 'center' },
   testimonialGrid: { flexDirection: 'row', gap: 18 },
   testimonialMobileWrap: { alignItems: 'center', gap: 18 },
-  testimonialCard: { backgroundColor: 'rgba(8,10,12,0.84)', borderColor: 'rgba(242,181,29,0.45)', borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 370, paddingHorizontal: 25, paddingVertical: 28 },
-  quoteMark: { color: '#F2B51D', fontFamily: luxyTypography.families.display, fontSize: 48, lineHeight: 48 },
+  testimonialCard: { backgroundColor: 'rgba(8,10,12,0.84)', borderColor: 'rgba(255,187,0,0.45)', borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 370, paddingHorizontal: 25, paddingVertical: 28 },
+  quoteMark: { color: CHON_GOLD, fontFamily: luxyTypography.families.display, fontSize: 48, lineHeight: 48 },
   testimonialQuote: { color: '#F6F0EC', fontSize: 13.5, lineHeight: 22, marginTop: 4 },
-  testimonialAuthorRule: { backgroundColor: '#D92D2A', height: 2, marginTop: 22, width: 38 },
+  testimonialAuthorRule: { backgroundColor: CHON_RED, height: 2, marginTop: 22, width: 38 },
   testimonialAuthor: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', marginTop: 12 },
   testimonialPlace: { color: '#D7CEC9', fontSize: 12, marginTop: 3 },
   carouselControls: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'center' },
-  carouselButton: { alignItems: 'center', borderColor: '#F2B51D', borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
+  carouselButton: { alignItems: 'center', borderColor: CHON_GOLD, borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
+  carouselButtonHovered: { backgroundColor: 'rgba(255,187,0,0.18)', shadowColor: '#000000', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.18, shadowRadius: 4, elevation: 2 },
   carouselArrow: { color: '#FFFFFF', fontSize: 28, lineHeight: 30 },
   carouselCount: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  benefitsSection: { backgroundColor: '#FFF8F5', paddingHorizontal: 32, paddingVertical: 88 },
+  benefitsSection: { backgroundColor: CHON_PINK, paddingHorizontal: 32, paddingVertical: 88 },
   benefitsSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
   benefitsInner: { alignSelf: 'center', gap: 36, maxWidth: 1220, width: '100%' },
   benefitsInnerDesktop: { alignItems: 'flex-start', flexDirection: 'row', gap: 70 },
   benefitsCopy: { flex: 1, minWidth: 0 },
   alignLeft: { textAlign: 'left' },
-  benefitItem: { borderTopColor: '#E7DCD5', borderTopWidth: 1, flexDirection: 'row', gap: 16, paddingVertical: 18 },
-  benefitNumber: { alignItems: 'center', borderColor: '#F2B51D', borderRadius: 999, borderWidth: 1, height: 34, justifyContent: 'center', width: 34 },
-  benefitNumberText: { color: '#A66A00', fontSize: 10, fontWeight: '800' },
+  benefitItem: { borderTopColor: 'rgba(217,45,42,0.18)', borderTopWidth: 1, flexDirection: 'row', gap: 16, paddingVertical: 18 },
+  benefitNumber: { alignItems: 'center', borderColor: CHON_GOLD, borderRadius: 999, borderWidth: 1, height: 34, justifyContent: 'center', width: 34 },
+  benefitNumberText: { color: CHON_BLUE, fontSize: 10, fontWeight: '800' },
   benefitContent: { flex: 1 },
   benefitTitle: { color: '#191514', fontFamily: luxyTypography.families.display, fontSize: 20, fontStyle: 'italic', lineHeight: 26 },
   benefitCopyText: { color: '#584E49', fontSize: 13.5, lineHeight: 21, marginTop: 6 },
   benefitsArtwork: { borderBottomLeftRadius: 180, borderBottomRightRadius: 180, borderTopLeftRadius: 180, borderTopRightRadius: 180, height: 720, marginTop: 58, maxWidth: 430, overflow: 'hidden', position: 'relative', width: '38%' },
   benefitsArtworkPhone: { alignSelf: 'center', borderBottomLeftRadius: 110, borderBottomRightRadius: 110, borderTopLeftRadius: 110, borderTopRightRadius: 110, height: 430, marginBottom: 10, marginTop: 0, maxWidth: 360, width: '100%' },
-  artworkGoldFrame: { ...StyleSheet.absoluteFillObject, borderColor: 'rgba(242,181,29,0.72)', borderRadius: 180, borderWidth: 2 },
+  artworkGoldFrame: { ...StyleSheet.absoluteFillObject, borderColor: 'rgba(255,187,0,0.72)', borderRadius: 180, borderWidth: 2 },
   missionSection: { alignItems: 'center', backgroundColor: '#080B0D', minHeight: 660, overflow: 'hidden', paddingHorizontal: 24, paddingVertical: 92, position: 'relative' },
   missionSectionPhone: { minHeight: 0, paddingHorizontal: 18, paddingVertical: 64 },
-  missionGlow: { backgroundColor: 'rgba(200,28,29,0.16)', borderRadius: 999, height: 520, position: 'absolute', right: -180, top: -160, width: 520 },
+  missionGlow: { backgroundColor: 'rgba(217,45,42,0.16)', borderRadius: 999, height: 520, position: 'absolute', right: -180, top: -160, width: 520 },
   missionInner: { alignItems: 'center', maxWidth: 780, zIndex: 2 },
   missionHeading: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 36, fontWeight: '500', lineHeight: 46, marginBottom: 22, textAlign: 'center' },
   missionBody: { color: '#D8D1CD', fontSize: 14, lineHeight: 23, marginBottom: 14, textAlign: 'center' },
-  missionButton: { alignItems: 'center', borderColor: '#F2B51D', borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 48, paddingHorizontal: 24 },
+  missionButton: { alignItems: 'center', borderColor: CHON_GOLD, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', marginTop: 16, minHeight: 48, paddingHorizontal: 24 },
+  missionButtonHovered: { backgroundColor: 'rgba(255,187,0,0.16)', shadowColor: '#000000', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.22, shadowRadius: 5, elevation: 3 },
   missionButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  cultureSection: { backgroundColor: '#FCEFEB', paddingHorizontal: 24, paddingVertical: 84 },
+  cultureSection: { backgroundColor: CHON_PINK, paddingHorizontal: 24, paddingVertical: 84 },
   cultureSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
   cultureInner: { alignSelf: 'center', maxWidth: 1120, width: '100%' },
   cultureGrid: { gap: 12, marginTop: 10 },
   cultureGridDesktop: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  cultureItem: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.64)', borderColor: '#E6D7D0', borderRadius: 10, borderWidth: 1, flexDirection: 'row', gap: 14, minHeight: 94, padding: 16, width: '100%' },
+  cultureItem: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.64)', borderColor: 'rgba(217,45,42,0.18)', borderRadius: 10, borderWidth: 1, flexDirection: 'row', gap: 14, minHeight: 94, padding: 16, width: '100%' },
   cultureItemDesktop: { width: '31.5%' },
-  cultureIcon: { alignItems: 'center', backgroundColor: '#111111', borderRadius: 999, height: 44, justifyContent: 'center', width: 44 },
-  cultureIconText: { color: '#F2B51D', fontSize: 19 },
+  cultureIcon: { alignItems: 'center', backgroundColor: CHON_RED, borderRadius: 999, height: 44, justifyContent: 'center', width: 44 },
+  cultureIconText: { color: CHON_GOLD, fontSize: 19 },
   cultureCopyWrap: { flex: 1 },
-  cultureIndex: { color: '#C81C1D', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
+  cultureIndex: { color: CHON_RED, fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
   cultureCopy: { color: '#201B19', fontFamily: luxyTypography.families.display, fontSize: 17, lineHeight: 23, marginTop: 3 },
   pressed: { opacity: 0.78 },
 });
