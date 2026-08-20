@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-09.
+Status: integration baseline through SU-10.
 
 ## Source of truth
 
@@ -115,28 +115,45 @@ Status: integration baseline through SU-09.
 - Pending-review profiles remain undiscoverable and cannot browse member profiles until Admin approval.
 - The transient signup draft is cleared only when the user explicitly completes an approved signup or leaves a pending/hidden flow to the public Homepage.
 
+## SU-10 responsive shell + accessibility contract
+
+- Signup/auth and onboarding continue to share the Homepage public Header/Footer language, with centered desktop content and safe full-width mobile stacking.
+- The breakpoint contract is verified at **390 px mobile, 768 px tablet and 1440 px desktop**, including no horizontal overflow on the signup account form.
+- The authoritative onboarding flow remains **8 steps**. Progress now exposes the explicit Vietnamese label `Thiết lập hồ sơ · Bước X/8` and native accessibility progress values instead of the old English-only `Profile Setup` label.
+- Shared primary/secondary actions, inputs, selects, select options and signup tags use at least **16 px** interactive text. Supporting labels/help copy retain their smaller established hierarchy.
+- Back, close, tag and other compact interactive controls use a practical minimum touch target of about **44 px** where the component owns the control.
+- Shared danger help is announced as an assertive alert; success feedback is announced politely. Dropdown dialogs identify their heading/modal boundary and expose selected state.
+- Auth preference controls expose radio semantics, inputs keep explicit accessible names and email/password/OTP actions retain deterministic keyboard activation on web.
+- Step 6 user-facing copy uses `tải lên` instead of implementation-oriented `upload`; the photo remove affordance is expanded to a 44 px target.
+- Step 8 camera copy uses natural Vietnamese instead of `preview live`/`Admin review`; camera and retake actions expose labels, busy/disabled state and 16 px action text.
+- SU-10 changes presentation, semantics, copy and browser regression coverage only. It introduces **no database migration, no production data change and no generated-type checkpoint change**.
+- The temporary generated-types integration boundary remains intact for SU-11; SU-10 must not remove staged-RPC filters or publish generated client types.
+
 ## Visual contract
 
 - Primary action: red with white text; hover/press stays red with subtle elevation.
 - Secondary action: pink active, red hover/press, gray disabled.
 - Selected tag: yellow/gold border/background.
-- Inputs/dropdowns: consistent 48–50 px minimum height, 15 px content.
+- Inputs/dropdowns: consistent 48–50 px minimum height, **16 px control content**.
 - Field labels: 15 px bold.
 - Help/warning/success copy: approximately 11–12 px gray/red/green.
 - Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-09
+## Release acceptance through SU-10
 
 - Integration branch remains isolated from `main` and PR #73 remains Draft until the entire Signup V2 roadmap is accepted.
 - Shared public chrome / SignupShell remain the single registration presentation foundation.
+- The current source of truth stays eight registration/onboarding steps; SU-10 does not regress the product back to an obsolete four-step progress model.
 - Email/password + signup OTP contract remains intact.
 - Personal Info, Location, Looking For and Headline/Bio DB contracts remain least-privilege and existing-user compatible.
 - Exact GPS remains private; only province/city and rounded distance derivation are public-facing.
 - Signup photo selection remains five-slot and preserves qualifying source image bytes without unnecessary recompression/downscaling.
 - Signup-only display-name/height/headline/bio minimums do not invalidate mature historical profiles.
-- Automatic and manual selfie approval now converge on one final server activation contract rather than two subtly different profile-update paths.
+- Automatic and manual selfie approval converge on one final server activation contract rather than two subtly different profile-update paths.
 - Kết nối is the explicit post-success destination and its existing default sort is near → far when both members have valid nearby location consent.
 - Manual review does not expose protected member browsing and has a deterministic public-Homepage exit.
+- Signup/auth controls and shared onboarding primitives meet the SU-10 16 px interactive-copy / practical touch-target contract and expose stronger progress, error, modal and keyboard semantics.
+- Browser regression coverage includes the 390/768/1440 signup shell and corrects stale auth-copy expectations from the older join UI.
 - Production user data/schema remains unchanged by this integration implementation session.
 - `activate_verified_signup_profile_v2` is service-role-only and removed from the generated consumer client contract; the three staged signup RPCs remain on their temporary structural/runtime-validated boundary until SU-11.
 - Database, typecheck, unit/build, Browser E2E and LX-15 gates must be green before the integration PR leaves Draft.
