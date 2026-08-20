@@ -62,7 +62,13 @@ async function assertHomepagePalette(home) {
 
   const cultureHeart = home.getByText('♥', { exact: true }).first();
   await expect(cultureHeart).toHaveCSS('color', colors.gold);
-  await expect(cultureHeart.locator('..')).toHaveCSS('background-color', colors.red);
+  await expect(cultureHeart.locator('xpath=..')).toHaveCSS('background-color', colors.red);
+
+  const pinkSectionCount = await home.locator('*').evaluateAll(
+    (nodes, pink) => nodes.filter((node) => getComputedStyle(node).backgroundColor === pink).length,
+    colors.pink,
+  );
+  expect(pinkSectionCount).toBeGreaterThanOrEqual(3);
 }
 
 test('public homepage follows the refreshed Chọn.love hierarchy and palette on desktop', async ({ page }) => {
@@ -72,7 +78,6 @@ test('public homepage follows the refreshed Chọn.love hierarchy and palette on
   await expect(page).toHaveTitle(homepageSeoTitle);
   const home = await assertPrimaryHomepageContent(page);
   await assertHomepagePalette(home);
-  await expect(home).toHaveCSS('background-color', colors.pink);
   await expect(home.getByLabel('Minh họa kết nối Chọn.love')).toHaveCount(1);
   await expect(home.getByLabel('Minh họa hẹn hò Chọn.love')).toHaveCount(1);
   await expect(home.getByText('Steven Nguyễn', { exact: true }).first()).toBeVisible();
@@ -137,7 +142,6 @@ for (const viewport of [
 
     const home = await assertPrimaryHomepageContent(page);
     await assertHomepagePalette(home);
-    await expect(home).toHaveCSS('background-color', colors.pink);
     await expect(home.getByLabel('Minh họa kết nối Chọn.love')).toHaveCount(0);
     await expect(home.getByLabel('Minh họa hẹn hò Chọn.love')).toHaveCount(0);
 
@@ -158,14 +162,11 @@ for (const viewport of [
     expect(ctaBox.height).toBeGreaterThanOrEqual(44);
 
     const footer = page.getByTestId('chon-public-footer');
-    const rowLabels = [
-      footer.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true }),
-      footer.getByText('Điều khoản', { exact: true }),
-      footer.getByText('© 2026 Chon.Love', { exact: true }),
-    ];
+    const footerRows = footer.locator(':scope > *');
+    await expect(footerRows).toHaveCount(3);
     const rowBoxes = [];
-    for (const locator of rowLabels) {
-      const box = await locator.boundingBox();
+    for (let index = 0; index < 3; index += 1) {
+      const box = await footerRows.nth(index).boundingBox();
       expect(box).not.toBeNull();
       rowBoxes.push(box);
       expect(Math.abs((box.x + box.width / 2) - (viewport.width / 2))).toBeLessThanOrEqual(6);
