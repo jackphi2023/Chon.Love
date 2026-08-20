@@ -18,8 +18,12 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
+import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
+
+const CHON_GOLD = '#FFBB00';
+const NAV_LOGO_SCALE = 1.16;
 
 const primaryItems = [
   { key: 'search', label: 'Kết nối', icon: 'connect' as const, href: '/(tabs)' as const },
@@ -29,8 +33,8 @@ const primaryItems = [
 ] as const;
 
 const accountItems = [
-  { label: 'Hồ sơ', icon: 'profile' as const, href: '/(tabs)/profile' as const },
-  { label: 'Quà', icon: 'gift' as const, href: '/(tabs)/gifts' as const },
+  { label: 'Hồ sơ', href: '/(tabs)/profile' as const },
+  { label: 'Quà', href: '/(tabs)/gifts' as const },
   { label: 'Số dư', href: '/(tabs)/balance' as const },
   { label: 'Cài đặt', href: '/settings' as const },
 ] as const;
@@ -58,6 +62,7 @@ export function LuxyShellNavigation() {
   const auth = useAuth();
   const client = getMobileSupabaseClient();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const shellMode = resolveLuxyResponsiveShellMode(width);
 
   const membershipQuery = useQuery({
@@ -109,6 +114,15 @@ export function LuxyShellNavigation() {
     router.replace('/(tabs)');
   };
 
+  const handleLogout = async () => {
+    setAccountOpen(false);
+    try {
+      await auth.signOut();
+    } catch (error) {
+      logger.error('Unable to sign out from Chon.Love navigation', error, { feature: 'navigation_sign_out' });
+    }
+  };
+
   const upgradePromo = isFreeMembership ? (
     <Pressable
       accessibilityLabel="Nâng cấp ngay để gửi tin nhắn"
@@ -129,12 +143,15 @@ export function LuxyShellNavigation() {
     const phone = variant === 'phone';
     const tablet = variant === 'tablet';
     const badge = badgeFor(item.key);
+    const hovered = hoveredKey === `nav:${item.key}`;
     return (
       <Pressable
         accessibilityLabel={item.label}
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
         key={item.key}
+        onHoverIn={() => setHoveredKey(`nav:${item.key}`)}
+        onHoverOut={() => setHoveredKey(null)}
         onPress={() => {
           setAccountOpen(false);
           router.push(item.href);
@@ -145,9 +162,11 @@ export function LuxyShellNavigation() {
           tablet && styles.tabletNavItem,
           active && styles.navActive,
           phone && active && !upgrade && styles.phoneNavActive,
+          hovered && !phone && styles.navHover,
           upgrade && styles.upgrade,
           phone && upgrade && styles.phoneUpgrade,
           tablet && upgrade && styles.tabletUpgrade,
+          upgrade && hovered && !phone && styles.upgradeHover,
           pressed && styles.pressed,
         ]}
       >
@@ -175,7 +194,7 @@ export function LuxyShellNavigation() {
     const tablet = variant === 'tablet';
     return (
       <Pressable
-        accessibilityLabel="Mở menu tài khoản Chọn.love"
+        accessibilityLabel="Mở menu hồ sơ Chọn.love"
         accessibilityRole="button"
         accessibilityState={{ expanded: accountOpen, selected: isAccountRoute(pathname) }}
         onPress={() => setAccountOpen((value) => !value)}
@@ -191,7 +210,6 @@ export function LuxyShellNavigation() {
           <ChonUserAvatar size={phone ? 36 : 42} />
         </View>
         {variant === 'desktop' ? <Text style={styles.accountLabel}>Tài khoản</Text> : null}
-        <Text accessibilityElementsHidden style={styles.chevron}>{accountOpen ? '⌃' : '⌄'}</Text>
       </Pressable>
     );
   };
@@ -206,22 +224,43 @@ export function LuxyShellNavigation() {
         variant === 'tablet' && styles.tabletMenu,
       ]}
     >
-      {accountItems.map((item) => (
-        <Pressable
-          accessibilityRole="menuitem"
-          key={item.label}
-          onPress={() => {
-            setAccountOpen(false);
-            router.push(item.href);
-          }}
-          style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-        >
-          {'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_MOBILE} /> : <View style={styles.menuIconSpacer} />}
-          <Text style={styles.menuLabel}>{item.label}</Text>
-        </Pressable>
-      ))}
+      {accountItems.map((item) => {
+        const menuKey = `account:${item.label}`;
+        return (
+          <Pressable
+            accessibilityRole="menuitem"
+            key={item.label}
+            onHoverIn={() => setHoveredKey(menuKey)}
+            onHoverOut={() => setHoveredKey(null)}
+            onPress={() => {
+              setAccountOpen(false);
+              router.push(item.href);
+            }}
+            style={({ pressed }) => [
+              styles.menuItem,
+              hoveredKey === menuKey && styles.menuItemHover,
+              pressed && styles.menuItemPressed,
+            ]}
+          >
+            <Text style={styles.menuLabel}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
       <View style={styles.menuDivider} />
-      <Text style={styles.menuNote}>Chọn.love · hồ sơ & cài đặt</Text>
+      <Pressable
+        accessibilityRole="menuitem"
+        onHoverIn={() => setHoveredKey('logout')}
+        onHoverOut={() => setHoveredKey(null)}
+        onPress={() => void handleLogout()}
+        style={({ pressed }) => [
+          styles.menuItem,
+          hoveredKey === 'logout' && styles.menuItemHover,
+          pressed && styles.menuItemPressed,
+        ]}
+        testID="chon-navigation-logout"
+      >
+        <Text style={styles.menuLabel}>Đăng xuất</Text>
+      </Pressable>
     </View>
   ) : null;
 
@@ -230,7 +269,7 @@ export function LuxyShellNavigation() {
       <View style={styles.shell}>
         <View style={styles.phoneTopRow}>
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.phoneBrandButton, pressed && styles.pressed]}>
-            <ChonLoveLogo height={38} width={width < 430 ? 102 : 118} />
+            <ChonLoveLogo height={38} scale={NAV_LOGO_SCALE} width={width < 430 ? 102 : 118} />
           </Pressable>
           {accountControl('phone')}
           {accountMenu('phone')}
@@ -248,7 +287,7 @@ export function LuxyShellNavigation() {
         <View style={styles.navRow}>
           <View style={styles.tabletInner}>
             <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.tabletBrandButton, pressed && styles.pressed]}>
-              <ChonLoveLogo height={42} width={112} />
+              <ChonLoveLogo height={42} scale={NAV_LOGO_SCALE} width={112} />
             </Pressable>
             <View style={styles.tabletPrimary}>{primaryItems.map((item) => primaryItem(item, 'tablet'))}</View>
             {accountControl('tablet')}
@@ -265,7 +304,7 @@ export function LuxyShellNavigation() {
       <View style={styles.navRow}>
         <View style={styles.desktopInner}>
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.brandButton, styles.desktopBrandButton, pressed && styles.pressed]}>
-            <ChonLoveLogo height={50} width={150} />
+            <ChonLoveLogo height={50} scale={NAV_LOGO_SCALE} width={150} />
           </Pressable>
           <View style={styles.desktopPrimary}>{primaryItems.map((item) => primaryItem(item, 'desktop'))}</View>
           {accountControl('desktop')}
@@ -286,9 +325,9 @@ const styles = StyleSheet.create({
   desktopInner: { alignSelf: 'center', flex: 1, flexDirection: 'row', maxWidth: luxyLayout.contentMaxWidth, position: 'relative', width: '100%' },
   tabletInner: { flex: 1, flexDirection: 'row', minWidth: 0, position: 'relative', width: '100%' },
   brandButton: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: luxySpacing.lg },
-  desktopBrandButton: { minWidth: 188, paddingHorizontal: luxySpacing.xl },
-  tabletBrandButton: { minWidth: 112, paddingHorizontal: luxySpacing.sm },
-  phoneBrandButton: { alignItems: 'center', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', minWidth: 104, paddingHorizontal: luxySpacing.sm },
+  desktopBrandButton: { minWidth: 204, paddingHorizontal: luxySpacing.xl },
+  tabletBrandButton: { minWidth: 130, paddingHorizontal: luxySpacing.xs },
+  phoneBrandButton: { alignItems: 'center', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', minWidth: 118, paddingHorizontal: luxySpacing.xs },
   desktopPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row' },
   tabletPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row', minWidth: 0 },
   phoneTopRow: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'space-between', position: 'relative', zIndex: 110 },
@@ -298,6 +337,14 @@ const styles = StyleSheet.create({
   phoneNavItem: { flex: 1, minHeight: luxyLayout.authenticatedPhoneNavHeight, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
   navActive: { backgroundColor: luxyColors.subtleSurface, borderBottomColor: luxyColors.ink },
   phoneNavActive: { backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.actionRed },
+  navHover: {
+    backgroundColor: 'rgba(255,187,0,0.10)',
+    shadowColor: '#000000',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   navStack: { alignItems: 'center', gap: 1, justifyContent: 'center' },
   phoneNavStack: { gap: 0 },
   symbolWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 21, minWidth: 24, position: 'relative' },
@@ -309,24 +356,30 @@ const styles = StyleSheet.create({
   upgrade: { alignSelf: 'center', backgroundColor: luxyColors.actionRed, borderBottomWidth: 0, borderRadius: luxyRadii.pill, marginHorizontal: luxySpacing.sm, minHeight: 36, minWidth: 100, paddingHorizontal: luxySpacing.lg },
   tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.sm },
   phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
+  upgradeHover: {
+    backgroundColor: '#E24A47',
+    shadowColor: '#C81C1D',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 3,
+  },
   upgradeText: { color: luxyColors.surface, fontWeight: '700' },
-  accountButton: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.sm, justifyContent: 'center', minWidth: 164, paddingHorizontal: luxySpacing.xl },
-  tabletAccountButton: { minWidth: 64, paddingHorizontal: luxySpacing.sm },
-  phoneAccountButton: { height: luxyLayout.authenticatedPhoneTopHeight, minWidth: 60, paddingHorizontal: luxySpacing.md },
+  accountButton: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.sm, justifyContent: 'center', minWidth: 148, paddingHorizontal: luxySpacing.lg },
+  tabletAccountButton: { minWidth: 56, paddingHorizontal: luxySpacing.sm },
+  phoneAccountButton: { height: luxyLayout.authenticatedPhoneTopHeight, minWidth: 52, paddingHorizontal: luxySpacing.sm },
   accountActive: { backgroundColor: luxyColors.subtleSurface },
   avatar: { alignItems: 'center', height: 42, justifyContent: 'center', width: 42 },
   phoneAvatar: { height: 36, width: 36 },
   accountLabel: { color: luxyColors.text, fontSize: 16, fontWeight: '500', maxWidth: 110 },
-  chevron: { color: luxyColors.text, fontSize: 15 },
-  accountMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 224, paddingVertical: luxySpacing.sm, position: 'absolute', right: luxySpacing.md, top: luxyLayout.authenticatedNavHeight - 2, zIndex: 140, ...luxyShadows.navigation },
+  accountMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 216, paddingVertical: luxySpacing.sm, position: 'absolute', right: luxySpacing.md, top: luxyLayout.authenticatedNavHeight - 2, zIndex: 140, ...luxyShadows.navigation },
   phoneMenu: { maxWidth: 280, minWidth: 216, right: luxySpacing.sm, top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight - 2 },
   phoneMenuWithPromo: { top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight + luxyLayout.authenticatedPromoHeight - 2 },
   tabletMenu: { right: luxySpacing.sm },
-  menuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingHorizontal: luxySpacing.lg },
-  menuIconSpacer: { height: CHON_ICON_SIZE_MOBILE, width: CHON_ICON_SIZE_MOBILE },
-  menuItemPressed: { backgroundColor: luxyColors.subtleSurface },
-  menuLabel: { color: luxyColors.text, fontSize: 15 },
+  menuItem: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg },
+  menuItemHover: { backgroundColor: CHON_GOLD },
+  menuItemPressed: { backgroundColor: 'rgba(255,187,0,0.82)' },
+  menuLabel: { color: luxyColors.text, fontSize: 15, fontWeight: '600' },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },
-  menuNote: { color: luxyColors.softMuted, fontSize: 11, lineHeight: 15, paddingHorizontal: luxySpacing.lg, paddingVertical: luxySpacing.xs },
-  pressed: { opacity: 0.72 },
+  pressed: { opacity: 0.78 },
 });

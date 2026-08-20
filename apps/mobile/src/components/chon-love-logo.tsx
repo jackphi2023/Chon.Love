@@ -9,23 +9,24 @@ const DEFAULT_LOGO_HEIGHT = 50;
 type ChonLoveLogoProps = {
   width?: number;
   height?: number;
+  scale?: number;
   style?: StyleProp<ImageStyle>;
 };
 
-function resolveLogoSize(width?: number, height?: number) {
+function resolveLogoSize(width?: number, height?: number, scale = 1) {
   if (width && height) {
     const requestedAspectRatio = width / height;
     if (requestedAspectRatio > LOGO_ASPECT_RATIO) {
-      return { height, width: height * LOGO_ASPECT_RATIO };
+      return { height: height * scale, width: height * LOGO_ASPECT_RATIO * scale };
     }
-    return { height: width / LOGO_ASPECT_RATIO, width };
+    return { height: (width / LOGO_ASPECT_RATIO) * scale, width: width * scale };
   }
-  if (width) return { height: width / LOGO_ASPECT_RATIO, width };
-  const resolvedHeight = height ?? DEFAULT_LOGO_HEIGHT;
+  if (width) return { height: (width / LOGO_ASPECT_RATIO) * scale, width: width * scale };
+  const resolvedHeight = (height ?? DEFAULT_LOGO_HEIGHT) * scale;
   return { height: resolvedHeight, width: resolvedHeight * LOGO_ASPECT_RATIO };
 }
 
-export function ChonLoveLogo({ width, height, style }: ChonLoveLogoProps) {
+export function ChonLoveLogo({ width, height, scale = 1, style }: ChonLoveLogoProps) {
   return (
     <Image
       accessibilityIgnoresInvertColors
@@ -33,7 +34,7 @@ export function ChonLoveLogo({ width, height, style }: ChonLoveLogoProps) {
       accessibilityRole="image"
       resizeMode="contain"
       source={CHON_LOVE_LOGO}
-      style={[resolveLogoSize(width, height), style]}
+      style={[resolveLogoSize(width, height, scale), style]}
     />
   );
 }

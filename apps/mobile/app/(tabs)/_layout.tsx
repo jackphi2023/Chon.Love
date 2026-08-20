@@ -1,7 +1,7 @@
 import { colors, luxyBreakpoints, luxyColors, spacing } from '@myfan/ui';
 import { Redirect, Slot, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
 import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
 import { LuxyShellNavigation } from '@/components/luxy-shell-navigation';
@@ -42,7 +42,7 @@ export default function AuthenticatedLuxyLayout() {
   }, [auth.isRestoring, auth.userId]);
 
   if (auth.isRestoring) return <RouteLoading />;
-  if (!auth.userId) return <Redirect href="/"/>;
+  if (!auth.userId) return Platform.OS === 'web' ? <PublicHomepageReload /> : <Redirect href="/" />;
   if (destination === null) return <RouteLoading />;
   if (destination !== '/(tabs)') return <Redirect href="/(onboarding)" />;
 
@@ -53,6 +53,13 @@ export default function AuthenticatedLuxyLayout() {
       {desktop && shouldShowDesktopFooter(pathname) ? <LuxyDesktopFooter /> : null}
     </View>
   );
+}
+
+function PublicHomepageReload() {
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.location.replace('/');
+  }, []);
+  return <RouteLoading />;
 }
 
 function RouteLoading() {

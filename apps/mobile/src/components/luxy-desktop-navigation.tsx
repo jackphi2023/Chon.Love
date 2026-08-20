@@ -13,8 +13,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';
+import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
+
+const CHON_GOLD = '#FFBB00';
+const NAV_LOGO_SCALE = 1.16;
 
 const primaryItems = [
   { key: 'search', label: 'Kết nối', icon: 'connect' as const, href: '/(tabs)' as const },
@@ -24,8 +28,8 @@ const primaryItems = [
 ] as const;
 
 const accountItems = [
-  { label: 'Hồ sơ của tôi', icon: 'profile' as const, href: '/(tabs)/profile' as const },
-  { label: 'Quà', icon: 'gift' as const, href: '/(tabs)/gifts' as const },
+  { label: 'Hồ sơ', href: '/(tabs)/profile' as const },
+  { label: 'Quà', href: '/(tabs)/gifts' as const },
   { label: 'Số dư', href: '/(tabs)/balance' as const },
   { label: 'Cài đặt', href: '/settings' as const },
 ] as const;
@@ -113,6 +117,15 @@ export function LuxyDesktopNavigation() {
     router.replace('/(tabs)');
   };
 
+  const handleLogout = async () => {
+    setAccountOpen(false);
+    try {
+      await auth.signOut();
+    } catch (error) {
+      logger.error('Unable to sign out from Chon.Love navigation', error, { feature: 'navigation_sign_out' });
+    }
+  };
+
   const isFreeMembership = membershipQuery.data?.tier === 'free';
 
   return (
@@ -133,12 +146,10 @@ export function LuxyDesktopNavigation() {
           <Pressable
             accessibilityLabel="Chon.Love — về Kết nối"
             accessibilityRole="button"
-            onPointerEnter={() => setHoveredKey('brand')}
-            onPointerLeave={() => setHoveredKey(null)}
             onPress={navigateHome}
-            style={({ pressed }) => [styles.brandButton, hoveredKey === 'brand' && styles.brandButtonHover, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
           >
-            <ChonLoveLogo height={50} width={150} />
+            <ChonLoveLogo height={50} scale={NAV_LOGO_SCALE} width={150} />
           </Pressable>
 
           <View style={styles.primaryNav}>
@@ -186,7 +197,7 @@ export function LuxyDesktopNavigation() {
           {auth.userId ? (
             <View style={styles.accountWrap}>
               <Pressable
-                accessibilityLabel="Mở menu tài khoản"
+                accessibilityLabel="Mở menu hồ sơ"
                 accessibilityRole="button"
                 accessibilityState={{ expanded: accountOpen, selected: isAccountRoute(pathname) }}
                 onPointerEnter={() => setHoveredKey('account')}
@@ -201,7 +212,6 @@ export function LuxyDesktopNavigation() {
               >
                 <View style={styles.accountAvatar}><ChonUserAvatar size={34} /></View>
                 <Text style={styles.accountLabel}>Tài khoản</Text>
-                <Text accessibilityElementsHidden style={styles.chevron}>{accountOpen ? '⌃' : '⌄'}</Text>
               </Pressable>
 
               {accountOpen ? (
@@ -221,16 +231,28 @@ export function LuxyDesktopNavigation() {
                         style={({ pressed }) => [
                           styles.menuItem,
                           hoveredKey === menuKey && styles.menuItemHover,
-                          pressed && styles.pressed,
+                          pressed && styles.menuItemPressed,
                         ]}
                       >
-                        {'icon' in item ? <ChonBrandIcon name={item.icon} size={CHON_ICON_SIZE_DESKTOP} /> : <View style={styles.menuIconSpacer} />}
                         <Text style={styles.menuLabel}>{item.label}</Text>
                       </Pressable>
                     );
                   })}
                   <View style={styles.menuDivider} />
-                  <Text style={styles.menuNote}>Hồ sơ & cài đặt tài khoản</Text>
+                  <Pressable
+                    accessibilityRole="menuitem"
+                    onPointerEnter={() => setHoveredKey('logout')}
+                    onPointerLeave={() => setHoveredKey(null)}
+                    onPress={() => void handleLogout()}
+                    style={({ pressed }) => [
+                      styles.menuItem,
+                      hoveredKey === 'logout' && styles.menuItemHover,
+                      pressed && styles.menuItemPressed,
+                    ]}
+                    testID="chon-navigation-logout"
+                  >
+                    <Text style={styles.menuLabel}>Đăng xuất</Text>
+                  </Pressable>
                 </View>
               ) : null}
             </View>
@@ -281,13 +303,11 @@ const styles = StyleSheet.create({
   },
   brandButton: {
     alignItems: 'center',
-    borderRadius: luxyRadii.sm,
     justifyContent: 'center',
-    marginVertical: 6,
-    minWidth: 178,
-    paddingHorizontal: 12,
+    marginVertical: 4,
+    minWidth: 196,
+    paddingHorizontal: 10,
   },
-  brandButtonHover: { backgroundColor: luxyColors.brandWarmSurface },
   primaryNav: { alignItems: 'stretch', flex: 1, flexDirection: 'row', justifyContent: 'center' },
   navItem: {
     alignItems: 'center',
@@ -300,9 +320,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   navItemActive: { backgroundColor: luxyColors.brandRedSurface, borderBottomColor: luxyColors.actionRed },
-  navItemHover: { backgroundColor: luxyColors.brandWarmSurface },
+  navItemHover: {
+    backgroundColor: 'rgba(255,187,0,0.10)',
+    shadowColor: '#000000',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   iconWrap: { alignItems: 'center', justifyContent: 'center', minHeight: CHON_ICON_SIZE_DESKTOP, minWidth: CHON_ICON_SIZE_DESKTOP, position: 'relative' },
-  navIcon: { color: luxyColors.brandGoldStrong, fontSize: 20, fontWeight: '700', lineHeight: 22, textAlign: 'center' },
+  navIcon: { color: CHON_GOLD, fontSize: 20, fontWeight: '700', lineHeight: 22, textAlign: 'center' },
   navLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600', lineHeight: 19 },
   navLabelActive: { color: luxyColors.actionRed, fontWeight: '700' },
   badge: {
@@ -329,10 +356,17 @@ const styles = StyleSheet.create({
     minHeight: 42,
     minWidth: 126,
   },
-  upgradeItemHover: { backgroundColor: '#A81415' },
-  upgradeIcon: { color: luxyColors.brandGold },
+  upgradeItemHover: {
+    backgroundColor: '#E24A47',
+    shadowColor: '#C81C1D',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  upgradeIcon: { color: CHON_GOLD },
   upgradeLabel: { color: luxyColors.surface, fontWeight: '700' },
-  accountWrap: { justifyContent: 'center', minWidth: 174, position: 'relative' },
+  accountWrap: { justifyContent: 'center', minWidth: 162, position: 'relative' },
   accountButton: {
     alignItems: 'center',
     borderRadius: luxyRadii.pill,
@@ -343,7 +377,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   accountButtonActive: { backgroundColor: luxyColors.subtleSurface },
-  accountButtonHover: { backgroundColor: luxyColors.brandWarmSurface },
+  accountButtonHover: {
+    backgroundColor: 'rgba(255,187,0,0.10)',
+    shadowColor: '#000000',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   accountAvatar: {
     alignItems: 'center',
     height: 34,
@@ -351,13 +392,12 @@ const styles = StyleSheet.create({
     width: 34,
   },
   accountLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600' },
-  chevron: { color: luxyColors.muted, fontSize: 13 },
   accountMenu: {
     backgroundColor: luxyColors.surface,
     borderColor: luxyColors.border,
     borderRadius: luxyRadii.md,
     borderWidth: 1,
-    minWidth: 230,
+    minWidth: 220,
     paddingVertical: luxySpacing.sm,
     position: 'absolute',
     right: 0,
@@ -365,12 +405,11 @@ const styles = StyleSheet.create({
     zIndex: 160,
     ...luxyShadows.navigation,
   },
-  menuItem: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingHorizontal: luxySpacing.lg },
-  menuIconSpacer: { height: CHON_ICON_SIZE_DESKTOP, width: CHON_ICON_SIZE_DESKTOP },
-  menuItemHover: { backgroundColor: luxyColors.brandWarmSurface },
-  menuLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '500' },
+  menuItem: { alignItems: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg, justifyContent: 'center' },
+  menuItemHover: { backgroundColor: CHON_GOLD },
+  menuItemPressed: { backgroundColor: 'rgba(255,187,0,0.82)' },
+  menuLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600' },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },
-  menuNote: { color: luxyColors.softMuted, fontSize: 11, lineHeight: 15, paddingHorizontal: luxySpacing.lg, paddingVertical: 4 },
   loginButton: {
     alignItems: 'center',
     alignSelf: 'center',
@@ -382,7 +421,14 @@ const styles = StyleSheet.create({
     minWidth: 118,
     paddingHorizontal: 18,
   },
-  loginButtonHover: { backgroundColor: luxyColors.brandRedSurface },
+  loginButtonHover: {
+    backgroundColor: luxyColors.brandRedSurface,
+    shadowColor: '#C81C1D',
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   loginText: { color: luxyColors.actionRed, fontSize: 14, fontWeight: '700' },
-  pressed: { opacity: 0.72 },
+  pressed: { opacity: 0.78 },
 });

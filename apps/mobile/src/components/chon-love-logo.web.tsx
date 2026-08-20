@@ -12,15 +12,17 @@ const DESKTOP_BREAKPOINT = 768;
 type ChonLoveLogoProps = {
   width?: number;
   height?: number;
+  scale?: number;
   testID?: string;
   style?: StyleProp<ImageStyle>;
 };
 
-export function ChonLoveLogo({ style, testID = 'chon-love-wordmark' }: ChonLoveLogoProps) {
+export function ChonLoveLogo({ scale = 1, style, testID = 'chon-love-wordmark' }: ChonLoveLogoProps) {
   const { width: viewportWidth } = useWindowDimensions();
-  const resolvedHeight = viewportWidth < DESKTOP_BREAKPOINT
+  const baseHeight = viewportWidth < DESKTOP_BREAKPOINT
     ? CHON_LOGO_HEIGHT_MOBILE
     : CHON_LOGO_HEIGHT_DESKTOP;
+  const resolvedHeight = baseHeight * scale;
   const resolvedWidth = resolvedHeight * LOGO_ASPECT_RATIO;
 
   return (
