@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-05.
+Status: integration baseline through SU-06.
 
 ## Source of truth
 
@@ -15,7 +15,8 @@ Status: integration baseline through SU-05.
 - Do not merge this branch to `main` until the complete Signup / Onboarding V2 release gate is green.
 - Do not reset, recreate, truncate or destructively backfill existing member tables.
 - Do not change existing user IDs, usernames, public profile codes, media ownership, membership, balances or verification history.
-- SU-05 may add a signup-only staged location contract, but must not weaken or replace the mature active-member `set_my_location` authorization/privacy behavior.
+- Signup-only staged contracts must not weaken mature active-member authorization/privacy behavior.
+- Widening a mature content maximum is allowed only when it is backwards-compatible and needed so valid Signup V2 data remains editable later.
 - Do not change selfie-provider behavior before its dedicated SU session.
 - Do not turn stricter new-signup rules into global constraints that can invalidate historical active profiles.
 
@@ -61,6 +62,19 @@ Status: integration baseline through SU-05.
 - The existing mature `set_my_location` contract remains unchanged for active adult members.
 - The transitional profile/photo bridge preserves the SU-05 province and staged nearby-off state; it no longer hard-codes nearby true or asks the member to choose province again.
 
+## SU-06 looking-for contract
+
+- Step 5 is a dedicated responsive `Bạn đang tìm kiếm điều gì?` screen using the same SignupShell/progress/chrome.
+- Relationship-intent text is required, trimmed and validated at 50–4000 characters with a live counter.
+- Members must select 1–7 tags from the existing typed `profile_lifestyle_tag` vocabulary; no parallel free-text taxonomy is introduced.
+- Selected tags use the shared yellow/gold state. When seven are selected, other tags are disabled until one is removed.
+- Canonical storage remains `profiles.looking_for` and `profiles.lifestyle_tags`.
+- The shared `looking_for` database/server maximum is widened from 1000 to 4000 as a backwards-compatible relaxation so valid Signup V2 content remains representable later. The mature lifestyle-tag maximum remains 12; only Signup V2 requires 1–7.
+- The staged `save_my_signup_looking_for_v2` accepts only incomplete profiles after SU-04 adult/policy completion and SU-05 canonical province selection.
+- Step 5 writes only relationship-intent fields and never activates profile/discovery/nearby.
+- Resume logic sends users to the earliest missing staged screen: Location first, then Looking For, then the transitional photo bridge.
+- The existing Profile Edit text input still carries the legacy 1000-character UI cap and must be aligned when later profile-content UI work updates headline/bio/editor limits; this does not narrow the database/server Signup V2 contract.
+
 ## Visual contract
 
 - Primary action: red with white text; hover/press stays red with subtle elevation.
@@ -71,13 +85,14 @@ Status: integration baseline through SU-05.
 - Help/warning/success copy: approximately 11–12 px gray/red/green.
 - Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-05
+## Release acceptance through SU-06
 
 - Integration branch remains isolated from `main`.
 - Shared public chrome / SignupShell remain the single registration presentation foundation.
 - Email/password + signup OTP contract remains intact.
-- Personal Info and Location DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
+- Personal Info, Location and Looking For DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
 - Exact GPS remains private; only province/city is public.
+- Looking-for content uses the existing typed profile taxonomy rather than a duplicate schema.
 - Production user data/schema remains unchanged by this implementation session.
-- `save_my_signup_location_v2` stays on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
+- `save_my_signup_location_v2` and `save_my_signup_looking_for_v2` stay on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
 - Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
