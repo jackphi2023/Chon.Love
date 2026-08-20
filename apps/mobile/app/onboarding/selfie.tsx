@@ -132,7 +132,7 @@ export default function SelfieVerificationOnboarding() {
   return (
     <SignupShell
       description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã upload."
-      onBack={() => router.replace('/onboarding/profile')}
+      onBack={() => router.replace('/onboarding/photos')}
       step={8}
       testID="chon-selfie-verification"
       title="Chụp selfie xác minh"
