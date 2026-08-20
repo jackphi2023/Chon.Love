@@ -1,9 +1,11 @@
 import {
   minimumOnboardingSchema,
   signupLocationSchema,
+  signupLookingForSchema,
   signupPersonalInfoSchema,
   type MinimumOnboardingInput,
   type SignupLocationInput,
+  type SignupLookingForInput,
   type SignupPersonalInfoInput,
 } from '@myfan/validation';
 import {
@@ -141,6 +143,23 @@ export async function saveSignupLocation(input: SignupLocationInput): Promise<vo
   if (error) throw error;
 }
 
+export async function saveSignupLookingFor(input: SignupLookingForInput): Promise<void> {
+  const parsed = signupLookingForSchema.parse(input);
+  const client = requireAuthClient();
+
+  // Keep the staged SU-06 RPC on the same temporary generated-type boundary as
+  // SU-05. Database migration + pgTAP own the authoritative contract until the
+  // final SU-11 contract generation checkpoint.
+  const { error } = await client.rpc(
+    'save_my_signup_looking_for_v2' as never,
+    {
+      p_looking_for: parsed.lookingFor,
+      p_lifestyle_tags: parsed.lifestyleTags,
+    } as never,
+  );
+  if (error) throw error;
+}
+
 export function getReadableOnboardingError(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'issues' in error) {
     const issues = (error as { issues?: Array<{ message?: string }> }).issues;
@@ -161,7 +180,16 @@ export function getReadableOnboardingError(error: unknown): string {
     return 'Vui lòng chọn một tỉnh/thành phố hợp lệ.';
   }
   if (/signup personal info must be completed first/iu.test(message)) {
-    return 'Vui lòng hoàn thành bước Thông tin cá nhân trước khi lưu vị trí.';
+    return 'Vui lòng hoàn thành bước Thông tin cá nhân trước khi tiếp tục.';
+  }
+  if (/signup location must be completed first/iu.test(message)) {
+    return 'Vui lòng hoàn thành bước Vị trí trước khi mô tả điều bạn đang tìm kiếm.';
+  }
+  if (/signup looking for must be 50 to 4000 characters|looking.?for/iu.test(message)) {
+    return 'Hãy chia sẻ từ 50 đến 4000 ký tự về người hoặc mối quan hệ bạn đang tìm kiếm.';
+  }
+  if (/signup lifestyle tags must contain 1 to 7 values|lifestyle tags/iu.test(message)) {
+    return 'Vui lòng chọn từ 1 đến 7 mục tiêu / phong cách phù hợp.';
   }
   if (/location accuracy too low/iu.test(message)) {
     return 'Vị trí hiện tại chưa đủ chính xác. Bạn có thể thử lại hoặc tiếp tục chỉ với tỉnh/thành phố.';
