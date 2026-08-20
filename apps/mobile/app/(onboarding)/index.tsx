@@ -96,7 +96,7 @@ export default function OnboardingPersonalInfo() {
 
         // Resume staged Signup V2 at the earliest incomplete screen. Existing
         // mature incomplete users are not forced through Personal Info again;
-        // they only fill missing province/intent data before the photo bridge.
+        // they only fill missing province/intent data before the dedicated photo step.
         if (status.age_verified && status.policies_accepted) {
           if (profile?.province_id == null) {
             router.replace('/onboarding/location');
@@ -108,7 +108,7 @@ export default function OnboardingPersonalInfo() {
             router.replace('/onboarding/looking-for');
             return;
           }
-          router.replace('/onboarding/profile');
+          router.replace('/onboarding/photos');
           return;
         }
 
