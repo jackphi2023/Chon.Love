@@ -31,7 +31,7 @@ export const signupLocationSchema = z.object({
 export const profileBioSchema = z.string().trim().max(500, 'Giới thiệu tối đa 500 ký tự.');
 export const profileHeadlineSchema = z.string().trim().max(120, 'Tiêu đề tối đa 120 ký tự.');
 export const profileOccupationSchema = z.string().trim().max(120, 'Nghề nghiệp tối đa 120 ký tự.');
-export const profileLookingForSchema = z.string().trim().max(1000, 'Nội dung tìm kiếm tối đa 1000 ký tự.');
+export const profileLookingForSchema = z.string().trim().max(4000, 'Nội dung tìm kiếm tối đa 4000 ký tự.');
 
 export const genderIdentitySchema = z.enum([
   'female',
@@ -277,6 +277,23 @@ export const signupPersonalInfoSchema = z.object({
   smokingStatus: smokingStatusSchema.optional(),
 });
 
+export const signupLookingForTextSchema = z
+  .string()
+  .trim()
+  .min(50, 'Hãy chia sẻ ít nhất 50 ký tự về người hoặc mối quan hệ bạn đang tìm kiếm.')
+  .max(4000, 'Nội dung tìm kiếm tối đa 4000 ký tự.');
+
+export const signupLifestyleTagsSchema = z
+  .array(profileLifestyleTagSchema)
+  .min(1, 'Chọn ít nhất 1 mục tiêu / phong cách phù hợp.')
+  .max(7, 'Chọn tối đa 7 mục tiêu / phong cách.')
+  .transform((values) => [...new Set(values)]);
+
+export const signupLookingForSchema = z.object({
+  lookingFor: signupLookingForTextSchema,
+  lifestyleTags: signupLifestyleTagsSchema,
+});
+
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
 
 export const minimumOnboardingSchema = z.object({
@@ -292,6 +309,7 @@ export type MinimumOnboardingInput = z.infer<typeof minimumOnboardingSchema>;
 export type SignupPersonalInfoInput = z.infer<typeof signupPersonalInfoSchema>;
 export type SignupExactLocationInput = z.infer<typeof signupExactLocationSchema>;
 export type SignupLocationInput = z.infer<typeof signupLocationSchema>;
+export type SignupLookingForInput = z.infer<typeof signupLookingForSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
 export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
 export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;
