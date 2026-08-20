@@ -39,7 +39,7 @@ const RULE_CODE = 'member_photo_verification';
 const FACE_SIMILARITY_THRESHOLD = 60;
 const MAX_PROFILE_IMAGES = 5;
 const MAX_SELFIE_BYTES = 5 * 1024 * 1024;
-const PENDING_MESSAGE = 'Ảnh chụp và ảnh upload chưa hợp lệ, chúng tôi cần xác minh để xem xét kích hoạt tài khoản hoặc vô hiệu';
+const PENDING_MESSAGE = 'Chúng tôi thấy ảnh chụp chưa giống trên 60% ảnh bạn upload, chúng tôi sẽ kiểm tra để xác nhận.';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -433,11 +433,12 @@ Deno.serve(async (request: Request) => {
         notes: `Auto-approved: face similarity ${maxSimilarity.toFixed(2)}% > ${FACE_SIMILARITY_THRESHOLD}%`,
         score,
       });
-      const { error: activateError } = await server
-        .from('profiles')
-        .update({ profile_status: 'active', discovery_enabled: true })
-        .eq('id', actorId);
-      if (activateError) throw new Error(`profile_activation_failed:${activateError.code}`);
+      const { data: activationRows, error: activateError } = await server.rpc('activate_verified_signup_profile_v2', {
+        p_user_id: actorId,
+      });
+      if (activateError || !activationRows?.[0]) {
+        throw new Error(`profile_activation_failed:${activateError?.code ?? 'no_result'}`);
+      }
       return respond(200, {
         state: 'approved',
         caseId: approvedCase.id,
