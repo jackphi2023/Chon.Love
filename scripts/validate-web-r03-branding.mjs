@@ -33,6 +33,10 @@ const userFacing = [
   'apps/mobile/src/lib/onboarding.ts',
   'apps/admin/app/layout.tsx',
   'apps/admin/app/admin-login.tsx',
+  'apps/admin/app/(protected)/layout.tsx',
+  'apps/admin/app/(protected)/withdrawals/page.tsx',
+  'apps/admin/app/kyc-withdrawal-operations/page.tsx',
+  'apps/admin/app/vietqr-reconciliation/page.tsx',
 ];
 
 for (const path of userFacing) {
@@ -42,6 +46,13 @@ for (const path of userFacing) {
   if (/Social Creator/.test(text)) failures.push(`${path}: legacy Social Creator positioning remains`);
   if (/Album Fan/.test(text)) failures.push(`${path}: legacy Album Fan copy remains`);
 }
+
+const adminNavigation = read('apps/admin/app/(protected)/layout.tsx');
+expect(adminNavigation.includes("['Gói thành viên', '/memberships']"), 'Admin navigation must retain the real membership approval workflow.');
+expect(adminNavigation.includes("['Đối soát VietQR', '/vietqr-reconciliation']"), 'Admin navigation must retain the real VietQR reconciliation workflow.');
+expect(adminNavigation.includes("['KYC & rút tiền', '/withdrawals']"), 'Admin navigation must retain the real BR-08 KYC/withdrawal workflow.');
+expect(!adminNavigation.includes("['Gifts', '/gifts']"), 'Unreleased Gift Admin placeholder must not be linked from production navigation.');
+expect(!adminNavigation.includes("['Payments', '/payments']"), 'Unreleased Payments Admin placeholder must not be linked from production navigation.');
 
 const activityRoutes = [
   'apps/mobile/app/(tabs)/activity.tsx',
@@ -169,4 +180,4 @@ if (failures.length) {
   console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
   process.exit(1);
 }
-console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, membership PNGs are intact, native/Web badge renderers preserve 16:11, and legacy Activity/Creator routes are retired.');
+console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, unreleased Admin finance placeholders stay out of navigation, membership PNGs are intact, native/Web badge renderers preserve 16:11, and legacy Activity/Creator routes are retired.');
