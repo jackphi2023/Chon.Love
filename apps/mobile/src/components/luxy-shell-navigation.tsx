@@ -118,7 +118,6 @@ export function LuxyShellNavigation() {
     setAccountOpen(false);
     try {
       await auth.signOut();
-      router.replace('/');
     } catch (error) {
       logger.error('Unable to sign out from Chon.Love navigation', error, { feature: 'navigation_sign_out' });
     }
