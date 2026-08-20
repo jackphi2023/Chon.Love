@@ -35,9 +35,7 @@ export async function submitMemberPhotoVerification(
 ): Promise<MemberPhotoVerificationResult> {
   if (!client) throw new Error('supabase_not_configured');
   if (selfie.mimeType !== 'image/jpeg') throw new Error('jpeg_selfie_required');
-  const response = await fetch(selfie.uploadUri);
-  if (!response.ok) throw new Error('selfie_read_failed');
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  const bytes = new Uint8Array(selfie.bytes);
   if (!bytes.length || bytes.length > 5 * 1024 * 1024) throw new Error('invalid_selfie_size');
   const base64 = bytesToBase64(bytes);
   const { data, error } = await client.functions.invoke('member-photo-verification', {
@@ -62,9 +60,9 @@ function normalizeResult(value: unknown): MemberPhotoVerificationResult {
   return {
     state,
     threshold: typeof record.threshold === 'number' ? record.threshold : MEMBER_PHOTO_SIMILARITY_THRESHOLD,
-    profileStatus: typeof record.profileStatus === 'string' ? record.profileStatus : undefined,
+    ...(typeof record.profileStatus === 'string' ? { profileStatus: record.profileStatus } : {}),
     maxSimilarity: typeof record.maxSimilarity === 'number' ? record.maxSimilarity : null,
-    caseId: typeof record.caseId === 'string' ? record.caseId : undefined,
+    ...(typeof record.caseId === 'string' ? { caseId: record.caseId } : {}),
     message: typeof record.message === 'string' ? record.message : null,
   };
 }
