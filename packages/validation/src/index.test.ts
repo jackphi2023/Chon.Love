@@ -17,6 +17,7 @@ import {
   profileLifestyleTagSchema,
   relationshipStatusSchema,
   signupHeightCmSchema,
+  signupLocationSchema,
   signupPersonalInfoSchema,
   smokingStatusSchema,
   usernameSchema,
@@ -268,6 +269,41 @@ describe('shared validation', () => {
     expect(signupPersonalInfoSchema.safeParse({ ...base, displayName: 'A'.repeat(51) }).success).toBe(false);
     expect(signupPersonalInfoSchema.safeParse({ ...base, gender: 'non_binary' }).success).toBe(false);
     expect(signupPersonalInfoSchema.safeParse({ ...base, dateOfBirth: '2015-01-01' }).success).toBe(false);
+  });
+
+  it('accepts Signup V2 province-only location when GPS permission is not granted', () => {
+    expect(signupLocationSchema.safeParse({ provinceId: 79, location: null }).success).toBe(true);
+  });
+
+  it('validates a complete consented Signup V2 current-location payload', () => {
+    expect(signupLocationSchema.safeParse({
+      provinceId: 79,
+      location: {
+        latitude: 10.7769,
+        longitude: 106.7009,
+        accuracyMeters: 25,
+        capturedAt: '2026-08-20T10:00:00.000Z',
+        source: 'device_foreground',
+      },
+    }).success).toBe(true);
+  });
+
+  it('rejects invalid Signup V2 province, coordinates and partial location objects', () => {
+    expect(signupLocationSchema.safeParse({ provinceId: 0, location: null }).success).toBe(false);
+    expect(signupLocationSchema.safeParse({
+      provinceId: 79,
+      location: {
+        latitude: 91,
+        longitude: 106.7,
+        accuracyMeters: 20,
+        capturedAt: '2026-08-20T10:00:00.000Z',
+        source: 'device_foreground',
+      },
+    }).success).toBe(false);
+    expect(signupLocationSchema.safeParse({
+      provinceId: 79,
+      location: { latitude: 10.7, longitude: 106.7 },
+    }).success).toBe(false);
   });
 
   it('rejects oversized or mismatched image metadata', () => {
