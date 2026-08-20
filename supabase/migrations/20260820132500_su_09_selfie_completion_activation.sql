@@ -82,7 +82,7 @@ begin
     from public.media_assets as media
     where media.owner_id = p_user_id
       and media.visibility in ('avatar'::public.media_visibility, 'public'::public.media_visibility)
-      and media.moderation_status in ('pending_review'::public.moderation_status, 'approved'::public.moderation_status)
+      and media.moderation_status in ('pending_review'::public.media_moderation_status, 'approved'::public.media_moderation_status)
       and media.deleted_at is null
       and media.uploaded_at is not null
   ) then
@@ -140,7 +140,6 @@ grant execute on function public.activate_verified_signup_profile_v2(uuid)
 comment on function public.activate_verified_signup_profile_v2(uuid) is
   'SU-09 service-role-only completion gate shared by automated and Admin selfie approval. Activates a fully staged adult Signup V2 profile, enables discovery, and enables nearby only when private foreground location consent is still fresh/usable under Search V2 rules.';
 
--- Reconcile the existing trusted Admin review path with the same activation gate.
 create or replace function public.admin_review_member_photo_verification(
   p_actor_user_id uuid,
   p_case_id uuid,
