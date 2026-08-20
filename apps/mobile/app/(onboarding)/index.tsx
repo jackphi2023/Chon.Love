@@ -94,11 +94,21 @@ export default function OnboardingPersonalInfo() {
         const profile = client ? await getMyProfile(client) : null;
         if (!active) return;
 
-        // Resume new Signup V2 at Location once Personal Info was completed.
-        // Mature incomplete users that already have a province keep using the
-        // legacy bridge until the later SU screens retire it.
+        // Resume staged Signup V2 at the earliest incomplete screen. Existing
+        // mature incomplete users are not forced through Personal Info again;
+        // they only fill missing province/intent data before the photo bridge.
         if (status.age_verified && status.policies_accepted) {
-          router.replace(profile?.province_id == null ? '/onboarding/location' : '/onboarding/profile');
+          if (profile?.province_id == null) {
+            router.replace('/onboarding/location');
+            return;
+          }
+          const lookingForLength = profile.looking_for?.trim().length ?? 0;
+          const lifestyleTagCount = profile.lifestyle_tags?.length ?? 0;
+          if (lookingForLength < 50 || lookingForLength > 4000 || lifestyleTagCount < 1) {
+            router.replace('/onboarding/looking-for');
+            return;
+          }
+          router.replace('/onboarding/profile');
           return;
         }
 
