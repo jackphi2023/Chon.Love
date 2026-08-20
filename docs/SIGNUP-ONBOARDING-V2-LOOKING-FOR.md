@@ -25,9 +25,7 @@ The canonical fields remain:
 
 SU-06 widens the shared `looking_for` storage constraint from 1000 to **4000** characters. This is a backwards-compatible relaxation: no historical value becomes invalid and no existing profile is rewritten.
 
-The mature `update_my_luxy_profile(...)` server validation is widened to the same 4000-character maximum so a member who enters a valid Signup V2 answer is not rejected later merely because the mature server contract still had the old 1000-character ceiling. Mature lifestyle tags remain compatible at up to 12; the stricter **1–7** rule applies only to new Signup V2 Step 5.
-
-The existing Profile Edit screen still has a legacy 1000-character input presentation limit. It does not alter the stored Signup V2 value or the server/database contract. That UI limit should be aligned when the later profile-content UI work touches headline/bio/editor limits; it is intentionally not used to weaken the SU-06 4000-character signup contract.
+The mature `update_my_luxy_profile(...)` server validation and the existing Profile Edit multiline control are both aligned to the same 4000-character maximum, so a member who enters a valid Signup V2 answer can later view, edit and re-save it without being forced back to the legacy 1000-character ceiling. Mature lifestyle tags remain compatible at up to 12; the stricter **1–7** rule applies only to new Signup V2 Step 5.
 
 ## Signup-safe server contract
 
@@ -81,7 +79,8 @@ Database pgTAP verifies:
 
 - Migration: `supabase/migrations/20260820113500_su_06_signup_looking_for_contract.sql`
 - Database contract: `supabase/tests/su_06_signup_looking_for_contract.sql`
-- UI: `apps/mobile/app/onboarding/looking-for.tsx`
+- Signup UI: `apps/mobile/app/onboarding/looking-for.tsx`
+- Mature editor compatibility: `apps/mobile/app/profile/edit.tsx`
 - Validation: `packages/validation/src/index.ts`
 - Production Supabase is not directly mutated in SU-06.
 - PR #73 remains Draft; do not merge to `main` until the complete Signup / Onboarding V2 release gate is green.
