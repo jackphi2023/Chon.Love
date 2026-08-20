@@ -17,35 +17,60 @@ jobs:
           ref: feature/signup-onboarding-v2
           fetch-depth: 0
 
-      - name: Apply SU-11 release cleanup
+      - name: Normalize SU-11 generated database types
         shell: bash
         run: |
-          python3 - <<'BOOT'
+          python3 - <<'PY'
           from pathlib import Path
 
-          source = Path('.github/workflows/su11-finalize.yml').read_text()
-          marker = "          python3 - <<'PY'\n"
-          start = source.index(marker) + len(marker)
-          end = source.index("\n          PY\n", start)
-          raw = source[start:end].splitlines()
-          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in raw)
-          exec(compile(script, 'su11-finalize.py', 'exec'), {'__name__': '__main__'})
-          BOOT
+          path = Path('packages/supabase/src/database.types.ts')
+          text = path.read_text()
+          start_marker = '      save_my_signup_headline_bio_v2: {\n'
+          end_marker = '      save_my_signup_personal_info_v2: {\n'
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
+          block = '''      save_my_signup_headline_bio_v2: {
+        Args: { p_bio: string; p_headline?: string }
+        Returns: {
+          bio_length: number
+          headline_length: number
+        }[]
+      }
+      save_my_signup_location_v2: {
+        Args: {
+          p_accuracy_meters?: number
+          p_captured_at?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_province_id: number
+          p_source?: string
+        }
+        Returns: {
+          location_saved: boolean
+          nearby_enabled: boolean
+          province_id: number
+        }[]
+      }
+      save_my_signup_looking_for_v2: {
+        Args: {
+          p_lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          p_looking_for: string
+        }
+        Returns: {
+          lifestyle_tag_count: number
+          looking_for_length: number
+        }[]
+      }
+'''
+          path.write_text(text[:start] + block + text[end:])
+          PY
 
-      - name: Commit SU-11 finalization
+      - name: Commit generated-types normalization
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- \
-            'apps/mobile/app/(auth)/index.tsx' \
-            'apps/mobile/src/lib/onboarding.ts' \
-            'packages/supabase/src/database.types.ts' \
-            'scripts/filter-internal-database-types.mjs' \
-            'tests/br-06/web-r02-final-ui-qa.spec.mjs' \
-            'docs/SIGNUP-ONBOARDING-V2-LOCATION.md' \
-            'docs/SIGNUP-ONBOARDING-V2-LOOKING-FOR.md' \
-            'docs/SIGNUP-ONBOARDING-V2-BASELINE.md'
+          git add -- packages/supabase/src/database.types.ts
           git diff --cached --check
-          git commit -m "fix(signup): finalize SU-11 release contract"
+          git commit -m "chore(signup): normalize SU-11 generated types"
           git push origin HEAD:feature/signup-onboarding-v2
