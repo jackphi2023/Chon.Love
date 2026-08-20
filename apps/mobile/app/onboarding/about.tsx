@@ -120,7 +120,7 @@ export default function OnboardingAbout() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>Đang chuẩn bị phần giới thiệu…</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>Đang chuẩn bị phần giới thiệu…</Text>
       </View>
     );
   }
@@ -133,7 +133,7 @@ export default function OnboardingAbout() {
         testID="chon-about-account-status"
         title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
       >
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+        <Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
           <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
       </SignupShell>
@@ -216,5 +216,5 @@ const styles = StyleSheet.create({
   noteTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
   noteText: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48 },
-  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });
