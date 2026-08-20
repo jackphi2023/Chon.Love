@@ -134,7 +134,7 @@ export default function OnboardingLookingFor() {
         lookingFor,
         lifestyleTags: selectedTags,
       });
-      router.replace('/onboarding/profile');
+      router.replace('/onboarding/photos');
     } catch (error) {
       setErrorMessage(getReadableOnboardingError(error));
     } finally {
