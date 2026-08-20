@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-08.
+Status: integration baseline through SU-09.
 
 ## Source of truth
 
@@ -57,7 +57,7 @@ Status: integration baseline through SU-08.
 - Consented exact location remains only in `private.user_locations`, with the existing configuration bounds for accuracy/capture age and private location-event auditing.
 - The staged `save_my_signup_location_v2` accepts only incomplete profiles that already satisfy the SU-04 adult/policy authority and never activates the profile or discovery.
 - Existing database integrity requires `nearby_enabled` to imply `discovery_enabled`; therefore both GPS and province-only Step 4 saves keep public `nearby_enabled = false` while the profile is incomplete.
-- A province-only resume/retry preserves an already-consented unexpired private location instead of silently deleting it. A later profile-activation gate must enable nearby only when that consent/location is still valid.
+- A province-only resume/retry preserves an already-consented unexpired private location instead of silently deleting it.
 - The existing mature `set_my_location` contract remains unchanged for active adult members.
 
 ## SU-06 looking-for contract
@@ -71,7 +71,6 @@ Status: integration baseline through SU-08.
 - The mature lifestyle-tag maximum remains 12; only Signup V2 requires 1–7.
 - The staged `save_my_signup_looking_for_v2` accepts only incomplete profiles after SU-04 adult/policy completion and SU-05 canonical province selection.
 - Step 5 writes only relationship-intent fields and never activates profile/discovery/nearby.
-- Resume logic sends users to the earliest missing staged screen: Location first, then Looking For, then Photos.
 
 ## SU-07 photo contract
 
@@ -97,9 +96,24 @@ Status: integration baseline through SU-08.
 - Profile Edit is aligned to the 4000-character biography maximum while retaining the mature blank/short-bio behavior.
 - `save_my_signup_headline_bio_v2(...)` is authenticated and incomplete-profile-only. It requires adult/policy completion, canonical province, valid Looking For data and at least one usable uploaded profile photo.
 - The staged Step 7 RPC writes only headline/bio and never activates profile, discovery or nearby.
-- Resume logic now advances through the earliest missing stage: Location → Looking For → Photos → About → Selfie.
+- Resume logic advances through the earliest missing stage: Location → Looking For → Photos → About → Selfie.
 - The selfie Edge Function independently rejects a new verification submit when Step 7 profile copy is incomplete, so a client route cannot bypass the server-side activation gate.
-- The existing 60% face-similarity threshold, maximum five reference photos and declared-gender consistency-only behavior remain unchanged.
+
+## SU-09 selfie verification + completion contract
+
+- Step 8 keeps AWS Rekognition `CompareFaces` with a strict **greater than 60%** automatic-approval threshold and at most five avatar/public reference photos.
+- The system does **not** infer gender from a face. It only checks that the submitted declared-gender snapshot has not changed during verification.
+- A successful automatic comparison no longer jumps directly into the member UI. Step 8 renders an explicit `Xác minh thành công` state and the member chooses **Hoàn tất** before entering `Kết nối`.
+- `Hoàn tất` routes to the canonical `/(tabs)` Kết nối member list. Desktop and mobile Kết nối already default to the `distance` sort, so members with usable private location rank near → far.
+- `public.activate_verified_signup_profile_v2(uuid)` is the service-role-only final activation gate shared by automatic approval and trusted Admin approval. Ordinary authenticated/anonymous users cannot call it.
+- The activation gate rechecks the staged adult/profile-copy/photo prerequisites, then atomically sets `profile_status = active` and `discovery_enabled = true`.
+- `nearby_enabled` becomes true only when `private.user_locations` still contains explicit enabled consent, unexpired coordinates, acceptable accuracy and a capture time inside the same Search V2 freshness window. Province-only or stale GPS signups activate normally with nearby off.
+- Exact coordinates never leave `private.user_locations`; Kết nối continues returning only rounded `distance_km` and never raw latitude/longitude.
+- Trusted Admin `approve` now uses the same activation gate. Trusted Admin `hide` explicitly sets both discovery and nearby false while preserving the existing immutable Admin audit path.
+- A below-threshold/manual-review state uses the required copy: **“Chúng tôi thấy ảnh chụp chưa giống trên 60% ảnh bạn upload, chúng tôi sẽ kiểm tra để xác nhận.”**
+- Pending/manual-review and hidden states show **Về trang chủ**. The action clears the transient signup draft, signs the user out first, then navigates Home so the authenticated Homepage redirect cannot send an unapproved account back into protected member routes.
+- Pending-review profiles remain undiscoverable and cannot browse member profiles until Admin approval.
+- The transient signup draft is cleared only when the user explicitly completes an approved signup or leaves a pending/hidden flow to the public Homepage.
 
 ## Visual contract
 
@@ -111,20 +125,18 @@ Status: integration baseline through SU-08.
 - Help/warning/success copy: approximately 11–12 px gray/red/green.
 - Step title remains a 28–32 px display heading.
 
-## Release acceptance through SU-08
+## Release acceptance through SU-09
 
-- Integration branch remains isolated from `main`.
+- Integration branch remains isolated from `main` and PR #73 remains Draft until the entire Signup V2 roadmap is accepted.
 - Shared public chrome / SignupShell remain the single registration presentation foundation.
 - Email/password + signup OTP contract remains intact.
-- Personal Info, Location, Looking For and Headline/Bio DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
-- Exact GPS remains private; only province/city is public.
-- Looking-for content uses the existing typed profile taxonomy rather than a duplicate schema.
-- Signup, mature validation/server storage and Profile Edit share the 4000-character looking-for ceiling.
-- Signup photo selection has one dedicated five-slot screen and no longer runs the old combined profile activation bridge.
-- Supported profile-image files that fit the backend contract are not recompressed or downscaled by the client.
-- Signup V2 headline/bio minimums remain staged-only; mature existing short bios and >50-character headlines are not invalidated.
-- Mature biography storage, validation, server RPC and Profile Edit are aligned to a 4000-character maximum.
-- New selfie submissions require completed Step 7 profile copy before the verification/activation path can proceed.
-- Production user data/schema remains unchanged by this implementation session.
-- `save_my_signup_location_v2`, `save_my_signup_looking_for_v2` and `save_my_signup_headline_bio_v2` stay on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
-- Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
+- Personal Info, Location, Looking For and Headline/Bio DB contracts remain least-privilege and existing-user compatible.
+- Exact GPS remains private; only province/city and rounded distance derivation are public-facing.
+- Signup photo selection remains five-slot and preserves qualifying source image bytes without unnecessary recompression/downscaling.
+- Signup-only display-name/height/headline/bio minimums do not invalidate mature historical profiles.
+- Automatic and manual selfie approval now converge on one final server activation contract rather than two subtly different profile-update paths.
+- Kết nối is the explicit post-success destination and its existing default sort is near → far when both members have valid nearby location consent.
+- Manual review does not expose protected member browsing and has a deterministic public-Homepage exit.
+- Production user data/schema remains unchanged by this integration implementation session.
+- `activate_verified_signup_profile_v2` is service-role-only and removed from the generated consumer client contract; the three staged signup RPCs remain on their temporary structural/runtime-validated boundary until SU-11.
+- Database, typecheck, unit/build, Browser E2E and LX-15 gates must be green before the integration PR leaves Draft.
