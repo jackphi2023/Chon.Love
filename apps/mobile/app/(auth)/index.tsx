@@ -1,8 +1,4 @@
-import {
-  luxyBrand,
-  luxyColors,
-  luxyTypography,
-} from '@myfan/ui';
+import { luxyColors } from '@myfan/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import {
@@ -16,6 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import {
   signInWithEmailPassword,
   signUpWithEmailPassword,
@@ -108,28 +105,14 @@ export default function AuthHome() {
 
   return (
     <SafeAreaView style={styles.safeArea} testID="luxy-auth-screen">
-      <View style={[styles.header, compact && styles.headerCompact]}>
-        <Pressable
-          accessibilityLabel="Chon.Love — về trang chủ"
-          accessibilityRole="button"
-          onPress={() => router.replace('/')}
-          style={({ pressed }) => [styles.brandButton, pressed && styles.pressed]}
-        >
-          <Text style={[styles.brand, compact && styles.brandCompact]}>{luxyBrand.productName}</Text>
-        </Pressable>
-        <View style={styles.headerActions}>
-          <Text style={[styles.headerPrompt, compact && styles.headerPromptCompact]}>
-            {mode === 'join' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => switchMode(mode === 'join' ? 'login' : 'join')}
-            style={({ pressed }) => [styles.headerActionButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.headerActionText}>{mode === 'join' ? 'Đăng nhập' : 'Tham gia'}</Text>
-          </Pressable>
-        </View>
-      </View>
+      <PublicHeader
+        actionLabel={mode === 'join' ? 'Đăng nhập' : 'Đăng ký'}
+        compact={compact}
+        onAction={() => switchMode(mode === 'join' ? 'login' : 'join')}
+        onHome={() => router.replace('/')}
+        prompt={mode === 'join' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
+        variant="solid"
+      />
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, compact && styles.scrollContentCompact]}
@@ -194,7 +177,11 @@ export default function AuthHome() {
           )}
         </View>
 
-        <AuthFooter compact={compact} />
+        <PublicFooter
+          compact={compact}
+          onCommunity={() => router.push('/legal/community-standards')}
+          onTerms={() => router.push('/legal/terms')}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -385,55 +372,12 @@ function AccountForm({
   );
 }
 
-function AuthFooter({ compact }: { compact: boolean }) {
-  return (
-    <View style={[styles.footer, compact && styles.footerCompact]}>
-      <Text style={styles.footerLanguage}>Tiếng Việt</Text>
-      <View style={styles.footerLinks}>
-        <Text style={styles.footerLink}>Blog</Text>
-        <Text style={styles.footerLink}>Quyền riêng tư</Text>
-        <Text style={styles.footerLink}>Điều khoản</Text>
-        <Text style={styles.footerLink}>Hẹn hò an toàn</Text>
-        <Text style={styles.footerLink}>Hỗ trợ</Text>
-      </View>
-      <Text style={styles.footerNotice}>Thành viên Chon.Love không mặc nhiên được coi là đã qua kiểm tra lý lịch. Các dấu xác thực chỉ phản ánh đúng loại xác thực đã hoàn tất.</Text>
-      <Text style={styles.footerCopyright}>© 2026 Chon.Love. Bảo lưu mọi quyền.</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    minHeight: 64,
-    paddingHorizontal: 34,
-    backgroundColor: luxyColors.ink,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerCompact: { minHeight: 60, paddingHorizontal: 16 },
-  brandButton: { minHeight: 44, justifyContent: 'center' },
-  brand: { color: '#FFFFFF', fontFamily: luxyTypography.families.brand, fontSize: 28, letterSpacing: -1.1 },
-  brandCompact: { fontSize: 24 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerPrompt: { color: '#DDE3E8', fontSize: 14 },
-  headerPromptCompact: { display: 'none' },
-  headerActionButton: {
-    minHeight: 44,
-    minWidth: 88,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   scrollContent: { flexGrow: 1, alignItems: 'center', paddingTop: 48, backgroundColor: '#FFFFFF' },
   scrollContentCompact: { paddingTop: 28 },
-  authPanel: { width: '100%', maxWidth: 456, paddingHorizontal: 8, paddingVertical: 0 },
-  authPanelCompact: { paddingHorizontal: 24 },
+  authPanel: { width: '100%', maxWidth: 456, paddingHorizontal: 8, paddingBottom: 54, paddingVertical: 0 },
+  authPanelCompact: { paddingHorizontal: 24, paddingBottom: 38 },
   preferenceForm: { gap: 0 },
   heading: { color: luxyColors.ink, fontSize: 26, lineHeight: 34, fontWeight: '500', textAlign: 'center', marginBottom: 30 },
   subheading: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: -18, marginBottom: 22 },
@@ -445,41 +389,46 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#AEB5BB',
-    borderRadius: 2,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
   },
-  choiceButtonSelected: { borderWidth: 2, borderColor: luxyColors.actionRed, backgroundColor: '#FFF8F7' },
+  choiceButtonSelected: { borderWidth: 2, borderColor: '#F2B51D', backgroundColor: '#FFF1B8' },
   choiceButtonText: { color: luxyColors.ink, fontSize: 15, fontWeight: '500' },
-  choiceButtonTextSelected: { color: luxyColors.actionRed, fontWeight: '600' },
+  choiceButtonTextSelected: { color: '#6F4B00', fontWeight: '700' },
   ageNote: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 14 },
   accountForm: { gap: 0 },
   backButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: 2 },
   backText: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
   formFields: { gap: 8 },
-  fieldLabel: { color: luxyColors.ink, fontSize: 14, fontWeight: '500', marginTop: 8 },
+  fieldLabel: { color: luxyColors.ink, fontSize: 15, fontWeight: '700', marginTop: 8 },
   input: {
     minHeight: 50,
     borderWidth: 1,
     borderColor: '#AEB5BB',
-    borderRadius: 2,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     color: luxyColors.ink,
-    fontSize: 16,
+    fontSize: 15,
   },
   forgotButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
   linkText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '600' },
   primaryButton: {
     minHeight: 50,
     marginTop: 8,
-    backgroundColor: luxyColors.actionRed,
-    borderRadius: 2,
+    backgroundColor: '#D92D2A',
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
+    shadowColor: '#C81C1D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.16,
+    shadowRadius: 6,
+    elevation: 2,
   },
   primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22 },
@@ -490,7 +439,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderWidth: 1,
     borderColor: '#AEB5BB',
-    borderRadius: 2,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     gap: 10,
@@ -503,21 +452,6 @@ const styles = StyleSheet.create({
   termsText: { color: luxyColors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 16 },
   error: { color: luxyColors.danger, fontSize: 12, lineHeight: 18, marginBottom: 10, textAlign: 'center' },
   success: { color: '#17653A', fontSize: 12, lineHeight: 18, marginBottom: 10, textAlign: 'center' },
-  footer: {
-    width: '100%',
-    maxWidth: 920,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 28,
-    gap: 12,
-  },
-  footerCompact: { paddingTop: 38, paddingBottom: 24 },
-  footerLanguage: { color: luxyColors.ink, fontSize: 12, fontWeight: '600' },
-  footerLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14 },
-  footerLink: { color: luxyColors.muted, fontSize: 11 },
-  footerNotice: { color: luxyColors.muted, fontSize: 9, lineHeight: 14, maxWidth: 720, textAlign: 'center', textTransform: 'uppercase' },
-  footerCopyright: { color: luxyColors.muted, fontSize: 10 },
   pressed: { opacity: 0.76 },
   disabled: { opacity: 0.48 },
 });
