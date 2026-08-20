@@ -146,7 +146,7 @@ export default function OnboardingLookingFor() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={styles.loadingText}>Đang chuẩn bị bước tiếp theo…</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.loadingText}>Đang chuẩn bị bước tiếp theo…</Text>
       </View>
     );
   }
@@ -159,7 +159,7 @@ export default function OnboardingLookingFor() {
         testID="chon-looking-for-account-status"
         title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
       >
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+        <Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
           <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
       </SignupShell>
@@ -200,7 +200,7 @@ export default function OnboardingLookingFor() {
       <SignupFieldLabel required>Mục tiêu / phong cách phù hợp</SignupFieldLabel>
       <View style={styles.tagHeaderRow}>
         <SignupHelpText>Chọn từ 1 đến 7 thẻ phù hợp nhất với điều bạn đang tìm kiếm.</SignupHelpText>
-        <Text style={[styles.selectedCount, tagsValid && styles.selectedCountValid]}>{selectedSummary}</Text>
+        <Text accessibilityLiveRegion="polite" style={[styles.selectedCount, tagsValid && styles.selectedCountValid]}>{selectedSummary}</Text>
       </View>
       <View style={styles.tagsWrap} testID="signup-looking-for-tags">
         {TAG_OPTIONS.map((option) => {
@@ -256,5 +256,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
-  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });
