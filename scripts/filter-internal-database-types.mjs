@@ -27,6 +27,7 @@ const serverOnlyFunctions = [
 const stagedRuntimeValidatedFunctions = [
   'save_my_signup_location_v2',
   'save_my_signup_looking_for_v2',
+  'save_my_signup_headline_bio_v2',
 ];
 
 // homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
