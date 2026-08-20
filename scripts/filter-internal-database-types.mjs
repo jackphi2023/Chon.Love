@@ -26,6 +26,7 @@ const serverOnlyFunctions = [
 // generated-types checkpoint, instead of granting this workflow write access.
 const stagedRuntimeValidatedFunctions = [
   'save_my_signup_location_v2',
+  'save_my_signup_looking_for_v2',
 ];
 
 // homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
@@ -89,5 +90,5 @@ if (source === beforeProfileCodeFilter) {
 
 writeFileSync(file, source, 'utf8');
 console.warn(
-  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${stagedRuntimeValidatedFunctions.length} staged Signup V2 RPC, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
+  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${stagedRuntimeValidatedFunctions.length} staged Signup V2 RPCs, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
 );
