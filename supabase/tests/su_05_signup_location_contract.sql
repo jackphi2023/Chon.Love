@@ -107,7 +107,7 @@ select ok(
   (
     select p.profile_status = 'incomplete'::public.profile_status
       and p.discovery_enabled = false
-      and p.nearby_enabled = true
+      and p.nearby_enabled = false
       and p.province_id = (
         select min(id) from public.administrative_areas
         where country_code='VN' and is_active and parent_id is null
@@ -115,7 +115,7 @@ select ok(
     from public.profiles as p
     where p.id = '24000000-0000-0000-0000-000000000001'
   ),
-  'Step 4 stores public province and nearby consent without activating profile/discovery'
+  'Step 4 stores public province while nearby/discovery remain disabled until profile activation'
 );
 
 select ok(
@@ -123,12 +123,13 @@ select ok(
     select ul.is_enabled
       and ul.source = 'device_foreground'
       and ul.accuracy_meters = 50
+      and ul.expires_at > now()
       and abs(extensions.st_y(ul.location::extensions.geometry) - 10.7769) < 0.00001
       and abs(extensions.st_x(ul.location::extensions.geometry) - 106.7009) < 0.00001
     from private.user_locations as ul
     where ul.user_id = '24000000-0000-0000-0000-000000000001'
   ),
-  'exact GPS coordinates are stored only in the private location table'
+  'exact GPS consent and coordinates are stored only in the private location table'
 );
 
 select set_config(
@@ -192,14 +193,15 @@ select lives_ok(
 
 select ok(
   (
-    select p.nearby_enabled
+    select not p.nearby_enabled
+      and not p.discovery_enabled
       and ul.is_enabled
       and ul.expires_at > now()
     from public.profiles as p
     join private.user_locations as ul on ul.user_id = p.id
     where p.id = '24000000-0000-0000-0000-000000000001'
   ),
-  'province-only retry preserves an existing enabled unexpired private location'
+  'province-only retry preserves private location while public nearby stays off until activation'
 );
 
 select throws_ok(
