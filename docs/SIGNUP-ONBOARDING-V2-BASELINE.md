@@ -69,11 +69,11 @@ Status: integration baseline through SU-06.
 - Members must select 1–7 tags from the existing typed `profile_lifestyle_tag` vocabulary; no parallel free-text taxonomy is introduced.
 - Selected tags use the shared yellow/gold state. When seven are selected, other tags are disabled until one is removed.
 - Canonical storage remains `profiles.looking_for` and `profiles.lifestyle_tags`.
-- The shared `looking_for` database/server maximum is widened from 1000 to 4000 as a backwards-compatible relaxation so valid Signup V2 content remains representable later. The mature lifestyle-tag maximum remains 12; only Signup V2 requires 1–7.
+- The shared `looking_for` database/server maximum is widened from 1000 to 4000 as a backwards-compatible relaxation so valid Signup V2 content remains representable later. The existing Profile Edit multiline control is aligned to the same 4000-character maximum.
+- The mature lifestyle-tag maximum remains 12; only Signup V2 requires 1–7.
 - The staged `save_my_signup_looking_for_v2` accepts only incomplete profiles after SU-04 adult/policy completion and SU-05 canonical province selection.
 - Step 5 writes only relationship-intent fields and never activates profile/discovery/nearby.
 - Resume logic sends users to the earliest missing staged screen: Location first, then Looking For, then the transitional photo bridge.
-- The existing Profile Edit text input still carries the legacy 1000-character UI cap and must be aligned when later profile-content UI work updates headline/bio/editor limits; this does not narrow the database/server Signup V2 contract.
 
 ## Visual contract
 
@@ -93,6 +93,7 @@ Status: integration baseline through SU-06.
 - Personal Info, Location and Looking For DB contracts are staged, least-privilege and regression-tested without backfilling existing users.
 - Exact GPS remains private; only province/city is public.
 - Looking-for content uses the existing typed profile taxonomy rather than a duplicate schema.
+- Signup, mature validation/server storage and Profile Edit all share the 4000-character looking-for ceiling.
 - Production user data/schema remains unchanged by this implementation session.
 - `save_my_signup_location_v2` and `save_my_signup_looking_for_v2` stay on a temporary structural/runtime-validated client boundary until the final SU-11 generated-types checkpoint.
 - Database, typecheck, unit/build and browser regression workflows must be green before the integration PR leaves Draft.
