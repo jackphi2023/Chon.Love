@@ -1195,7 +1195,6 @@ export type Database = {
           last_active_at: string | null
           lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for: string | null
-          marital_status: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled: boolean
           occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
@@ -1230,7 +1229,6 @@ export type Database = {
           last_active_at?: string | null
           lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for?: string | null
-          marital_status?: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled?: boolean
           occupation?: string | null
           profile_status?: Database["public"]["Enums"]["profile_status"]
@@ -1265,7 +1263,6 @@ export type Database = {
           last_active_at?: string | null
           lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for?: string | null
-          marital_status?: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled?: boolean
           occupation?: string | null
           profile_status?: Database["public"]["Enums"]["profile_status"]
@@ -2179,7 +2176,6 @@ export type Database = {
           last_active_at: string | null
           lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for: string | null
-          marital_status: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled: boolean
           occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
@@ -3411,7 +3407,6 @@ export type Database = {
           p_gender: Database["public"]["Enums"]["gender_identity"]
           p_height_cm?: number
           p_interested_in: Database["public"]["Enums"]["dating_interest"]
-          p_marital_status?: Database["public"]["Enums"]["marital_status"]
           p_relationship_status?: Database["public"]["Enums"]["relationship_status"]
           p_smoking_status?: Database["public"]["Enums"]["smoking_status"]
           p_terms_version: string
@@ -3440,7 +3435,6 @@ export type Database = {
           last_active_at: string | null
           lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for: string | null
-          marital_status: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled: boolean
           occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
@@ -3915,7 +3909,6 @@ export type Database = {
           last_active_at: string | null
           lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for: string | null
-          marital_status: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled: boolean
           occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
@@ -3968,7 +3961,6 @@ export type Database = {
           last_active_at: string | null
           lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
           looking_for: string | null
-          marital_status: Database["public"]["Enums"]["marital_status"] | null
           nearby_enabled: boolean
           occupation: string | null
           profile_status: Database["public"]["Enums"]["profile_status"]
@@ -4031,13 +4023,6 @@ export type Database = {
         | "prefer_not_to_say"
       gift_transaction_status: "completed" | "partially_reversed" | "reversed"
       luxy_membership_tier: "free" | "premium" | "diamond"
-      marital_status:
-        | "prefer_not_to_say"
-        | "never_married"
-        | "married"
-        | "separated"
-        | "divorced"
-        | "widowed"
       media_moderation_status:
         | "pending_upload"
         | "pending_review"
@@ -4290,14 +4275,6 @@ export const Constants = {
       ],
       gift_transaction_status: ["completed", "partially_reversed", "reversed"],
       luxy_membership_tier: ["free", "premium", "diamond"],
-      marital_status: [
-        "prefer_not_to_say",
-        "never_married",
-        "married",
-        "separated",
-        "divorced",
-        "widowed",
-      ],
       media_moderation_status: [
         "pending_upload",
         "pending_review",
