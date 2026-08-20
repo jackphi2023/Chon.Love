@@ -216,7 +216,7 @@ export default function OnboardingPhotos() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>Đang tải ảnh hồ sơ…</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>Đang tải ảnh hồ sơ…</Text>
       </View>
     );
   }
@@ -229,7 +229,7 @@ export default function OnboardingPhotos() {
         testID="chon-photos-account-status"
         title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
       >
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+        <Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
           <Text style={styles.signOutText}>Đăng xuất</Text>
         </Pressable>
       </SignupShell>
@@ -247,13 +247,13 @@ export default function OnboardingPhotos() {
       <View style={styles.qualityCard}>
         <Text style={styles.qualityTitle}>Ảnh rõ nét, không giảm chất lượng không cần thiết</Text>
         <Text style={styles.qualityText}>
-          JPEG, PNG và WebP hợp lệ dưới 10 MB được giữ nguyên dữ liệu ảnh khi upload. Ảnh quá lớn hoặc định dạng khác chỉ được chuyển đổi ở chất lượng cao để đáp ứng giới hạn lưu trữ; hệ thống không phóng to ảnh nhỏ.
+          JPEG, PNG và WebP hợp lệ dưới 10 MB được giữ nguyên dữ liệu ảnh khi tải lên. Ảnh quá lớn hoặc định dạng khác chỉ được chuyển đổi ở chất lượng cao để đáp ứng giới hạn lưu trữ; hệ thống không phóng to ảnh nhỏ.
         </Text>
       </View>
 
       <View style={styles.summaryRow}>
         <Text style={styles.countText}>{totalCount}/{SIGNUP_PROFILE_PHOTO_LIMIT} ảnh</Text>
-        <Text style={[styles.recommendation, recommendedReached && styles.recommendationDone]}>
+        <Text accessibilityLiveRegion="polite" style={[styles.recommendation, recommendedReached && styles.recommendationDone]}>
           {recommendedReached ? '✓ Đã đạt khuyến nghị 3 ảnh' : `Khuyến nghị ${SIGNUP_RECOMMENDED_PHOTO_COUNT} ảnh`}
         </Text>
       </View>
@@ -274,12 +274,12 @@ export default function OnboardingPhotos() {
                 />
               ) : slot ? (
                 <View style={styles.savedPlaceholder}>
-                  <Text style={styles.savedIcon}>✓</Text>
+                  <Text accessibilityElementsHidden style={styles.savedIcon}>✓</Text>
                   <Text style={styles.savedText}>Ảnh đã lưu</Text>
                 </View>
               ) : (
                 <View style={styles.emptySlot}>
-                  <Text style={styles.plus}>＋</Text>
+                  <Text accessibilityElementsHidden style={styles.plus}>＋</Text>
                   <Text style={styles.emptyText}>Ảnh {index + 1}</Text>
                 </View>
               )}
@@ -288,11 +288,12 @@ export default function OnboardingPhotos() {
                 <Pressable
                   accessibilityLabel={`Bỏ ảnh ${index + 1}`}
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: isUploading }}
                   disabled={isUploading}
                   onPress={() => removePending(slot.pendingIndex)}
                   style={styles.removeButton}
                 >
-                  <Text style={styles.removeText}>×</Text>
+                  <Text accessibilityElementsHidden style={styles.removeText}>×</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -319,7 +320,7 @@ export default function OnboardingPhotos() {
       <SignupPrimaryButton
         busy={isUploading}
         disabled={!hasRequiredPhoto || isSelecting}
-        label={pendingPhotos.length > 0 ? `Upload ${pendingPhotos.length} ảnh và tiếp tục` : 'Tiếp tục'}
+        label={pendingPhotos.length > 0 ? `Tải ${pendingPhotos.length} ảnh lên và tiếp tục` : 'Tiếp tục'}
         onPress={() => void continueNext()}
       />
     </SignupShell>
@@ -346,8 +347,8 @@ const styles = StyleSheet.create({
   savedIcon: { color: '#15803D', fontSize: 24, fontWeight: '900' },
   savedText: { color: '#15803D', fontSize: 11, fontWeight: '700' },
   avatarBadge: { backgroundColor: 'rgba(17,17,17,0.78)', borderRadius: 999, color: '#FFFFFF', fontSize: 10, fontWeight: '800', left: 6, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 6 },
-  removeButton: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 999, height: 28, justifyContent: 'center', position: 'absolute', right: 6, top: 6, width: 28 },
-  removeText: { color: colors.text, fontSize: 20, fontWeight: '800', lineHeight: 22 },
+  removeButton: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 999, height: 44, justifyContent: 'center', position: 'absolute', right: 4, top: 4, width: 44 },
+  removeText: { color: colors.text, fontSize: 22, fontWeight: '800', lineHeight: 24 },
   signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48 },
-  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });
