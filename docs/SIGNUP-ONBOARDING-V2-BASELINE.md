@@ -56,9 +56,10 @@ Status: integration baseline through SU-05.
 - Public profile storage remains `profiles.province_id`; no public latitude/longitude/location columns are introduced.
 - Consented exact location remains only in `private.user_locations`, with the existing configuration bounds for accuracy/capture age and private location-event auditing.
 - The staged `save_my_signup_location_v2` accepts only incomplete profiles that already satisfy the SU-04 adult/policy authority and never activates the profile or discovery.
-- Province-only saves keep nearby disabled when no private location exists. A resume/retry preserves an already-consented unexpired private location instead of silently deleting it.
+- Existing database integrity requires `nearby_enabled` to imply `discovery_enabled`; therefore both GPS and province-only Step 4 saves keep public `nearby_enabled = false` while the profile is incomplete.
+- A province-only resume/retry preserves an already-consented unexpired private location instead of silently deleting it. A later profile-activation gate must enable nearby only when that consent/location is still valid.
 - The existing mature `set_my_location` contract remains unchanged for active adult members.
-- The transitional profile/photo bridge now preserves the SU-05 province/nearby state and no longer hard-codes nearby true or asks the member to choose province again.
+- The transitional profile/photo bridge preserves the SU-05 province and staged nearby-off state; it no longer hard-codes nearby true or asks the member to choose province again.
 
 ## Visual contract
 
