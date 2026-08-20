@@ -58,7 +58,7 @@ on:
       - 'pnpm-lock.yaml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: database-${{ github.ref }}
@@ -236,24 +236,6 @@ jobs:
           path: /tmp/database.types.ts
           if-no-files-found: error
           retention-days: 7
-
-      - name: Sync generated public contract on integration PR
-        if: github.event_name == 'pull_request' && github.head_ref == 'feature/signup-onboarding-v2'
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          git fetch origin "${HEAD_REF}"
-          git checkout -B "${HEAD_REF}" "origin/${HEAD_REF}"
-          cp /tmp/database.types.ts packages/supabase/src/database.types.ts
-          if git diff --quiet -- packages/supabase/src/database.types.ts; then
-            echo "Generated database contract is already current."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/supabase/src/database.types.ts
-          git commit -m "SU-03: sync generated database types"
-          git push origin "HEAD:${HEAD_REF}"
 
       - name: Verify generated public contract
         run: cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts
