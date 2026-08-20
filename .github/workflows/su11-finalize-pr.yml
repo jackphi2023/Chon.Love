@@ -22,13 +22,13 @@ jobs:
         run: |
           python3 - <<'BOOT'
           from pathlib import Path
-          import textwrap
 
           source = Path('.github/workflows/su11-finalize.yml').read_text()
           marker = "          python3 - <<'PY'\n"
           start = source.index(marker) + len(marker)
           end = source.index("\n          PY\n", start)
-          script = textwrap.dedent(source[start:end])
+          raw = source[start:end].splitlines()
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in raw)
           exec(compile(script, 'su11-finalize.py', 'exec'), {'__name__': '__main__'})
           BOOT
 
