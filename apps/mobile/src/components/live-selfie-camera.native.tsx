@@ -31,14 +31,16 @@ export function LiveSelfieCamera({ disabled = false, onCapture, onError }: Props
   return (
     <View style={styles.wrap}>
       <View style={styles.placeholder}>
-        <Text style={styles.icon}>◉</Text>
+        <Text accessibilityElementsHidden style={styles.icon}>◉</Text>
         <Text style={styles.title}>Chụp selfie trực tiếp</Text>
         <Text style={styles.description}>
           Camera hệ thống sẽ mở ở chế độ chụp ảnh. Không chọn ảnh có sẵn từ thư viện ở bước này.
         </Text>
       </View>
       <Pressable
+        accessibilityLabel="Bật camera và chụp selfie"
         accessibilityRole="button"
+        accessibilityState={{ disabled: disabled || isOpening, busy: isOpening }}
         disabled={disabled || isOpening}
         onPress={() => void handleOpenCamera()}
         style={({ pressed }) => [styles.button, pressed && styles.pressed, (disabled || isOpening) && styles.disabled]}
@@ -66,7 +68,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 18, fontWeight: '800' },
   description: { color: colors.muted, fontSize: 14, lineHeight: 21, maxWidth: 420, textAlign: 'center' },
   button: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52, paddingHorizontal: spacing.lg },
-  buttonText: { color: colors.surface, fontSize: 15, fontWeight: '800' },
+  buttonText: { color: colors.surface, fontSize: 16, fontWeight: '800' },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.5 },
 });
