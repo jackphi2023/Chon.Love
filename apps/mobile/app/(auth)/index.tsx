@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -37,6 +38,11 @@ import { useAuth } from '@/providers/auth-provider';
 type AuthMode = 'join' | 'login';
 type JoinStep = 'preferences' | 'account' | 'otp';
 type SubmitMode = 'email' | 'otp' | 'google' | 'resend' | null;
+type WebKeyboardEvent = {
+  key?: string;
+  nativeEvent?: { key?: string };
+  preventDefault?: () => void;
+};
 
 const googleAuthEnabled = process.env.EXPO_PUBLIC_FEATURE_GOOGLE_AUTH === 'true';
 const AUTH_COMPACT_BREAKPOINT = 768;
@@ -353,8 +359,21 @@ function ChoiceGroup({ label, children }: { label: string; children: ReactNode }
 }
 
 function ChoiceButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const webKeyboardProps = Platform.OS === 'web'
+    ? {
+        onKeyDown: (event: WebKeyboardEvent) => {
+          const key = event.nativeEvent?.key ?? event.key;
+          if (key === ' ' || key === 'Space' || key === 'Spacebar') {
+            event.preventDefault?.();
+            onPress();
+          }
+        },
+      }
+    : {};
+
   return (
     <Pressable
+      {...webKeyboardProps}
       accessibilityLabel={label}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}

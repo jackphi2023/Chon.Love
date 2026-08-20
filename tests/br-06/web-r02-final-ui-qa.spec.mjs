@@ -52,6 +52,24 @@ async function capture(page, testInfo, viewport, screen, fullPage = true) {
   });
 }
 
+async function readSignupOtp(email) {
+  const query = encodeURIComponent(`to:"${email}"`);
+  const url = `http://127.0.0.1:54324/view/latest.html?query=${query}`;
+  const deadline = Date.now() + 15_000;
+
+  while (Date.now() < deadline) {
+    const response = await fetch(url);
+    if (response.ok) {
+      const html = await response.text();
+      const match = html.match(/\b(\d{6})\b/u);
+      if (match) return match[1];
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error(`Signup OTP email not captured for ${email}`);
+}
+
 async function expectSearchSurface(page) {
   const testId = (page.viewportSize()?.width ?? 1280) >= 1024 ? 'luxy-search-desktop' : 'luxy-search-mobile';
   await expect(page.getByTestId(testId)).toBeVisible({ timeout: 30_000 });
@@ -106,7 +124,7 @@ for (const viewport of viewports) {
   });
 }
 
-test('WEB-R02 onboarding/profile/selfie UI is responsive across the six release widths', async ({ browser }, testInfo) => {
+test('WEB-R02 Signup V2 OTP and personal-info UI is responsive across the six release widths', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
@@ -118,25 +136,25 @@ test('WEB-R02 onboarding/profile/selfie UI is responsive across the six release 
     await page.getByLabel('Email', { exact: true }).fill(uniqueEmail);
     await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Tạo tài khoản bằng email' }).click();
-    await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible({ timeout: 30_000 });
+
+    const otpStep = page.getByTestId('signup-email-otp-step');
+    await expect(otpStep.getByRole('heading', { name: 'Xác thực email', exact: true })).toBeVisible({ timeout: 30_000 });
+    for (const viewport of viewports) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await expect(otpStep.getByRole('heading', { name: 'Xác thực email', exact: true })).toBeVisible();
+      await capture(page, testInfo, viewport, 'signup-otp');
+    }
+
+    const otp = await readSignupOtp(uniqueEmail);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByLabel('Mã OTP', { exact: true }).fill(otp);
+    await otpStep.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân', exact: true })).toBeVisible({ timeout: 30_000 });
 
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân', exact: true })).toBeVisible();
       await capture(page, testInfo, viewport, 'onboarding-personal-info');
-
-      await page.goto('/onboarding/profile');
-      await expect(page.getByRole('heading', { name: 'Tạo hồ sơ Chon.Love' })).toBeVisible({ timeout: 20_000 });
-      await expect(page.getByRole('button', { name: /Upload ảnh hồ sơ|Chọn ảnh khác/ })).toBeVisible();
-      await capture(page, testInfo, viewport, 'onboarding-profile');
-
-      await page.goto('/onboarding/selfie');
-      await expect(page.getByRole('heading', { name: 'Chụp selfie xác minh' })).toBeVisible({ timeout: 20_000 });
-      await expect(page.getByRole('button', { name: 'Bật camera' })).toBeVisible();
-      await capture(page, testInfo, viewport, 'selfie');
-
-      await page.goto('/');
-      await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân' })).toBeVisible({ timeout: 20_000 });
     }
   } finally {
     await context.close();

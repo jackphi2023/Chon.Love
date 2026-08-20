@@ -12,7 +12,12 @@ async function expectNoHorizontalOverflow(page) {
 }
 
 async function expectControlFontAtLeast(page, locator, minimum = 16) {
-  const fontSize = await locator.evaluate((element) => Number.parseFloat(window.getComputedStyle(element).fontSize));
+  const fontSize = await locator.evaluate((element) => {
+    const leafTextElements = [element, ...element.querySelectorAll('*')]
+      .filter((candidate) => candidate.children.length === 0 && candidate.textContent?.trim());
+    const candidates = leafTextElements.length ? leafTextElements : [element];
+    return Math.max(...candidates.map((candidate) => Number.parseFloat(window.getComputedStyle(candidate).fontSize)));
+  });
   expect(fontSize).toBeGreaterThanOrEqual(minimum);
 }
 

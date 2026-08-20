@@ -46,7 +46,7 @@ begin
     raise exception using errcode='42501', message='verified signup profile must be incomplete or pending review';
   end if;
 
-  if not private.is_active_adult(p_user_id) then
+  if not private.is_profile_setup_adult(p_user_id) then
     raise exception using errcode='42501', message='verified signup adult onboarding required';
   end if;
 
