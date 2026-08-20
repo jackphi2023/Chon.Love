@@ -74,6 +74,9 @@ jobs:
       - name: Validate public profile SEO and sharing
         run: pnpm validate:seo-public-profile
 
+      - name: Validate Netlify SEO Edge runtime
+        run: node scripts/validate-netlify-edge-runtime.mjs
+
       - name: Lint
         run: pnpm lint
 
