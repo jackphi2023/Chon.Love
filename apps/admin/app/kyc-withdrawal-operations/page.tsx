@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { KycWithdrawalOperationsClient } from './kyc-withdrawal-operations-client';
 
 export const metadata: Metadata = {
-  title: 'KYC và rút tiền — Luxy.Love Admin',
+  title: 'KYC và rút tiền — Chon.Love Admin',
   robots: { index: false, follow: false },
 };
 
