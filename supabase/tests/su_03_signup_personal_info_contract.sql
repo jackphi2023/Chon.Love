@@ -1,6 +1,6 @@
 begin;
 
-select plan(22);
+select plan(23);
 
 select ok(
   exists (
@@ -108,7 +108,6 @@ update public.profiles
 set username = 'keepme2304'
 where id = '23000000-0000-0000-0000-000000000004';
 
-set local role authenticated;
 select set_config(
   'request.jwt.claims',
   '{"sub":"23000000-0000-0000-0000-000000000001","role":"authenticated"}',
@@ -341,7 +340,6 @@ select is(
   'existing username is preserved rather than regenerated'
 );
 
-reset role;
 select set_config('request.jwt.claims','',true);
 
 select * from finish();
