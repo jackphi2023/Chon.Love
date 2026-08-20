@@ -3,7 +3,13 @@ import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DateOfBirthSelector } from '@/components/date-of-birth-selector';
-import { Screen } from '@/components/screen';
+import {
+  SignupFieldLabel,
+  SignupHelpText,
+  SignupPrimaryButton,
+  SignupSecondaryButton,
+  SignupShell,
+} from '@/components/signup-shell';
 import { completeMinimumOnboarding, getMyOnboardingStatus, getReadableOnboardingError } from '@/lib/onboarding';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -57,43 +63,71 @@ export default function OnboardingHome() {
   }
 
   if (isChecking || auth.isRestoring) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Đang kiểm tra điều kiện tài khoản…</Text></View>;
+    return <View style={styles.loading}><ActivityIndicator size="large" color={colors.accent} /><Text style={styles.loadingText}>Đang kiểm tra điều kiện tài khoản…</Text></View>;
   }
 
   if (accountStatus) {
     const deletionRequested = accountStatus === 'deletion_requested';
     return (
-      <Screen title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'} description={deletionRequested ? 'Hồ sơ và tính năng xã hội đang tắt. Bạn có thể xem trạng thái hoặc hủy yêu cầu nếu vẫn còn trong thời gian cho phép.' : 'Tài khoản đang bị đình chỉ hoặc vô hiệu hóa. Gửi lại onboarding không thể tự mở khóa tài khoản.'}>
-        {deletionRequested ? <Pressable accessibilityRole="button" onPress={() => router.push('/settings/account-deletion')} style={styles.primaryButton}><Text style={styles.primaryButtonText}>Xem hoặc hủy yêu cầu xóa</Text></Pressable> : null}
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Đăng xuất</Text></Pressable>
-      </Screen>
+      <SignupShell
+        description={deletionRequested ? 'Hồ sơ và tính năng xã hội đang tắt. Bạn có thể xem trạng thái hoặc hủy yêu cầu nếu vẫn còn trong thời gian cho phép.' : 'Tài khoản đang bị đình chỉ hoặc vô hiệu hóa. Gửi lại onboarding không thể tự mở khóa tài khoản.'}
+        testID="chon-account-status-screen"
+        title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
+      >
+        {deletionRequested ? (
+          <SignupPrimaryButton label="Xem hoặc hủy yêu cầu xóa" onPress={() => router.push('/settings/account-deletion')} />
+        ) : null}
+        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
+          <Text style={styles.signOutText}>Đăng xuất</Text>
+        </Pressable>
+      </SignupShell>
     );
   }
 
   return (
-    <Screen title="Xác nhận thông tin cá nhân" description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai.">
-      <Text style={styles.label}>Ngày sinh</Text>
+    <SignupShell
+      description="Ngày sinh là dữ liệu riêng tư, không hiển thị trên hồ sơ công khai."
+      step={3}
+      testID="chon-onboarding-minimum"
+      title="Xác nhận thông tin cá nhân"
+    >
+      <SignupFieldLabel required>Ngày sinh</SignupFieldLabel>
       <DateOfBirthSelector onChange={setDateOfBirth} />
-      <Text style={styles.hint}>Chạm vào từng ô và cuộn để chọn Ngày – Tháng – Năm. Thông tin này giúp Chon.Love xác nhận điều kiện sử dụng và luôn được giữ riêng tư.</Text>
-      <PolicyCheck checked={confirmedAdult} label="Tôi xác nhận thông tin ngày sinh là chính xác và tôi đủ điều kiện sử dụng Chon.Love." onPress={() => setConfirmedAdult((value) => !value)} />
-      <PolicyCheck checked={acceptedTerms} label="Tôi đã đọc và chấp nhận Điều khoản sử dụng hiện hành." onPress={() => setAcceptedTerms((value) => !value)} />
-      <Link href="/legal/terms" style={styles.link}>Xem Điều khoản sử dụng</Link>
-      <PolicyCheck checked={acceptedCommunityStandards} label="Tôi đã đọc và chấp nhận Tiêu chuẩn cộng đồng hiện hành." onPress={() => setAcceptedCommunityStandards((value) => !value)} />
-      <Link href="/legal/community-standards" style={styles.link}>Xem Tiêu chuẩn cộng đồng</Link>
-      {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
-      <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => void handleSubmit()} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, isSubmitting && styles.disabled]}>
-        {isSubmitting ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>Tiếp tục tạo hồ sơ</Text>}
-      </Pressable>
-    </Screen>
+      <SignupHelpText>Chạm vào từng ô và cuộn để chọn Ngày – Tháng – Năm. Thông tin này giúp Chon.Love xác nhận điều kiện sử dụng và luôn được giữ riêng tư.</SignupHelpText>
+
+      <View style={styles.policyBlock}>
+        <PolicyCheck checked={confirmedAdult} label="Tôi xác nhận thông tin ngày sinh là chính xác và tôi đủ điều kiện sử dụng Chon.Love." onPress={() => setConfirmedAdult((value) => !value)} />
+        <PolicyCheck checked={acceptedTerms} label="Tôi đã đọc và chấp nhận Điều khoản sử dụng hiện hành." onPress={() => setAcceptedTerms((value) => !value)} />
+        <Link href="/legal/terms" style={styles.link}>Xem Điều khoản sử dụng</Link>
+        <PolicyCheck checked={acceptedCommunityStandards} label="Tôi đã đọc và chấp nhận Tiêu chuẩn cộng đồng hiện hành." onPress={() => setAcceptedCommunityStandards((value) => !value)} />
+        <Link href="/legal/community-standards" style={styles.link}>Xem Tiêu chuẩn cộng đồng</Link>
+      </View>
+
+      {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
+      <SignupSecondaryButton busy={isSubmitting} label="Tiếp tục tạo hồ sơ" onPress={() => void handleSubmit()} />
+    </SignupShell>
   );
 }
 
 function PolicyCheck({ checked, label, onPress }: { checked: boolean; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={styles.checkRow}><View style={[styles.checkbox, checked && styles.checkboxChecked]}><Text style={styles.checkmark}>{checked ? '✓' : ''}</Text></View><Text style={styles.checkLabel}>{label}</Text></Pressable>;
+  return (
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={styles.checkRow}>
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}><Text style={styles.checkmark}>{checked ? '✓' : ''}</Text></View>
+      <Text style={styles.checkLabel}>{label}</Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.background }, loadingText: { color: colors.muted, fontSize: 15 }, label: { color: colors.text, fontSize: 15, fontWeight: '800' }, hint: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: spacing.sm, marginBottom: spacing.md },
-  checkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm }, checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }, checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary }, checkmark: { color: colors.surface, fontSize: 16, fontWeight: '900' }, checkLabel: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 21 }, link: { color: colors.primary, fontSize: 14, fontWeight: '700', marginLeft: 32, marginBottom: spacing.sm }, error: { color: colors.danger, fontSize: 14, lineHeight: 21, marginTop: spacing.md },
-  primaryButton: { minHeight: 52, marginTop: spacing.lg, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingHorizontal: spacing.lg }, primaryButtonText: { color: colors.surface, fontSize: 16, fontWeight: '800' }, secondaryButton: { minHeight: 50, marginTop: spacing.md, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }, secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' }, pressed: { opacity: 0.8 }, disabled: { opacity: 0.55 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.background },
+  loadingText: { color: colors.muted, fontSize: 15 },
+  policyBlock: { gap: 2, marginTop: 4 },
+  checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: 8 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  checkboxChecked: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkmark: { color: colors.surface, fontSize: 14, fontWeight: '900' },
+  checkLabel: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 21 },
+  link: { color: colors.accent, fontSize: 12, fontWeight: '700', marginLeft: 30, marginBottom: 4 },
+  signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48, marginTop: 8 },
+  signOutText: { color: colors.text, fontSize: 14, fontWeight: '700' },
 });
