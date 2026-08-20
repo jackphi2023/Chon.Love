@@ -1,0 +1,52 @@
+name: Fix Signup OTP Parser
+
+on:
+  push:
+    branches:
+      - feature/signup-onboarding-v2
+    paths:
+      - scripts/.fix-signup-otp-parser
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/signup-onboarding-v2
+          fetch-depth: 0
+
+      - name: Fix deterministic Signup V2 OTP extraction
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/br-06/web-r02-final-ui-qa.spec.mjs')
+          text = path.read_text()
+          old = """        const match = html.match(/\\b(\\d{6})\\b/u);\n        if (match) return match[1];\n"""
+          new = """        const match = html.match(/letter-spacing:\\s*8px[^>]*>\\s*(\\d{6})\\s*<\\/div>/u);\n        if (match) return match[1];\n"""
+          if old not in text:
+              raise SystemExit('Expected broad OTP matcher not found')
+          text = text.replace(old, new, 1)
+          text = text.replace(
+              '// Mailpit can take a moment to become reachable after the local stack starts.',
+              '// The local mail-capture service can take a moment to become reachable after startup.',
+              1,
+          )
+          path.write_text(text)
+          PY
+
+      - name: Remove one-shot tooling and commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-signup-otp-parser.yml scripts/.fix-signup-otp-parser
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- tests/br-06/web-r02-final-ui-qa.spec.mjs .github/workflows/fix-signup-otp-parser.yml scripts/.fix-signup-otp-parser
+          git diff --cached --check
+          git commit -m "fix(signup): extract OTP from confirmation block"
+          git push origin HEAD:feature/signup-onboarding-v2
