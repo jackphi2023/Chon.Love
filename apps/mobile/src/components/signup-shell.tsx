@@ -91,8 +91,8 @@ export function ProfileSetupProgress({
   compact: boolean;
   step: number;
   totalSteps: number;
-  onBack?: () => void;
-  rightAction?: ReactNode;
+  onBack?: (() => void) | undefined;
+  rightAction?: ReactNode | undefined;
 }) {
   const safeTotal = Math.max(1, totalSteps);
   const safeStep = Math.min(Math.max(1, step), safeTotal);
