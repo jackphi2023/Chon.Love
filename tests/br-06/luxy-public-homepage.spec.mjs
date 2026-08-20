@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 const homepageSeoTitle = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
+const colors = {
+  red: 'rgb(217, 45, 42)',
+  gold: 'rgb(255, 187, 0)',
+  pink: 'rgb(246, 216, 223)',
+};
+const navLogoScale = 1.16;
 
 async function assertNoHorizontalOverflow(page) {
   const metrics = await page.evaluate(() => ({
@@ -10,50 +16,90 @@ async function assertNoHorizontalOverflow(page) {
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
 }
 
-async function assertLogoRendered(page) {
-  const logo = page.getByTestId('chon-love-wordmark').first();
+async function assertNavigationLogoRendered(page) {
+  const header = page.getByTestId('chon-public-header');
+  const logo = header.getByTestId('chon-love-wordmark');
   await expect(logo).toBeVisible();
   await expect(logo).toHaveAttribute('role', 'img');
   await expect(logo).toHaveAttribute('aria-label', 'Chọn.Love');
 
   const box = await logo.boundingBox();
   expect(box).not.toBeNull();
-  const expectedHeight = (page.viewportSize()?.width ?? 1280) < 768 ? 22 : 26;
-  expect(Math.abs(box.height - expectedHeight)).toBeLessThanOrEqual(1);
+  const baseHeight = (page.viewportSize()?.width ?? 1280) < 768 ? 22 : 26;
+  expect(Math.abs(box.height - (baseHeight * navLogoScale))).toBeLessThanOrEqual(1);
   expect(Math.abs(box.width / box.height - (420 / 184))).toBeLessThanOrEqual(0.05);
 }
 
 async function assertPrimaryHomepageContent(page) {
   const home = page.getByTestId('chon-love-public-homepage');
   await expect(home).toBeVisible();
-  await assertLogoRendered(page);
+  await assertNavigationLogoRendered(page);
   await expect(home.getByText('Chọn đúng Người, Yêu đúng Gu', { exact: true }).first()).toBeVisible();
-  await expect(home.getByText('NỀN TẢNG HẸN HỌ THỰC CHẤT VÀ THÚ VỊ', { exact: true }).first()).toBeVisible();
-  await expect(home.getByText('CHIA SẼ TỪ THÀNH VIÊN:', { exact: true }).first()).toBeVisible();
-  await expect(home.getByText('QUYỀN LỢI THÀNH VIÊN:', { exact: true }).first()).toBeVisible();
+  await expect(home.getByText('NỀN TẢNG HẸN HÒ THỰC CHẤT VÀ THÚ VỊ', { exact: true }).first()).toBeVisible();
+  await expect(home.getByText('CHIA SẺ TỪ THÀNH VIÊN:', { exact: true }).first()).toBeVisible();
+  await expect(home.getByText('QUYỀN LỢI THÀNH VIÊN', { exact: true }).first()).toBeVisible();
+  await expect(home.getByText('QUYỀN LỢI THÀNH VIÊN:', { exact: true })).toHaveCount(0);
   await expect(home.getByText('SỨ MỆNH CỦA CHÚNG TÔI', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE', { exact: true }).first()).toBeVisible();
-  await expect(home.getByText('Chọn đúng người, Yêu đúng Gu © 2026 Chon.Love', { exact: true }).first()).toBeVisible();
+  await expect(home.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true }).last()).toBeVisible();
+  await expect(home.getByText('© 2026 Chon.Love', { exact: true })).toBeVisible();
   await expect(home.getByText('Điều khoản', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Tiêu chuẩn cộng đồng', { exact: true }).first()).toBeVisible();
   return home;
 }
 
-test('public homepage follows the Chọn.love Seeking-inspired long-form hierarchy on desktop', async ({ page }) => {
+async function assertHomepagePalette(home) {
+  for (const label of ['CHỌN.LOVE', 'THÀNH VIÊN NÓI GÌ', 'TRẢI NGHIỆM KHÁC BIỆT', 'SỨ MỆNH', 'VĂN HOÁ']) {
+    await expect(home.getByText(label, { exact: true }).first()).toHaveCSS('color', colors.red);
+  }
+  for (const heading of [
+    'NỀN TẢNG HẸN HÒ THỰC CHẤT VÀ THÚ VỊ',
+    'QUYỀN LỢI THÀNH VIÊN',
+    'VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE',
+  ]) {
+    await expect(home.getByText(heading, { exact: true }).first()).toHaveCSS('color', colors.gold);
+  }
+
+  const cultureHeart = home.getByText('♥', { exact: true }).first();
+  await expect(cultureHeart).toHaveCSS('color', colors.gold);
+  await expect(cultureHeart.locator('..')).toHaveCSS('background-color', colors.red);
+}
+
+test('public homepage follows the refreshed Chọn.love hierarchy and palette on desktop', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
 
   await expect(page).toHaveTitle(homepageSeoTitle);
   const home = await assertPrimaryHomepageContent(page);
+  await assertHomepagePalette(home);
+  await expect(home).toHaveCSS('background-color', colors.pink);
+  await expect(home.getByLabel('Minh họa kết nối Chọn.love')).toHaveCount(1);
+  await expect(home.getByLabel('Minh họa hẹn hò Chọn.love')).toHaveCount(1);
   await expect(home.getByText('Steven Nguyễn', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Thanh Hiền', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Hải Yến', { exact: true }).first()).toBeVisible();
 
   await expect(home.getByRole('button', { name: 'Đăng nhập', exact: true }).first()).toBeVisible();
-  await expect(home.getByRole('button', { name: 'Đăng ký', exact: true }).first()).toBeVisible();
+  const register = home.getByRole('button', { name: 'Đăng ký', exact: true }).first();
+  await expect(register).toBeVisible();
+  const registerBefore = await register.evaluate((node) => getComputedStyle(node).backgroundColor);
+  await register.hover();
+  await expect(register).not.toHaveCSS('background-color', registerBefore);
+  const registerShadow = await register.evaluate((node) => getComputedStyle(node).boxShadow);
+  expect(registerShadow).not.toBe('none');
+
   await expect(home.getByText('Cách hoạt động', { exact: true })).toHaveCount(0);
   await expect(home.getByText('Giá trị Luxy', { exact: true })).toHaveCount(0);
   await assertNoHorizontalOverflow(page);
+
+  const footer = page.getByTestId('chon-public-footer');
+  const footerCopyright = footer.getByText('© 2026 Chon.Love', { exact: true });
+  const footerLinks = footer.getByRole('link');
+  const copyrightBox = await footerCopyright.boundingBox();
+  const lastLinkBox = await footerLinks.last().boundingBox();
+  expect(copyrightBox).not.toBeNull();
+  expect(lastLinkBox).not.toBeNull();
+  expect(copyrightBox.x).toBeGreaterThan(lastLinkBox.x);
 
   await test.info().attach('chon-love-home-desktop-1280', {
     body: await page.screenshot({ fullPage: true }),
@@ -85,13 +131,17 @@ for (const viewport of [
   { width: 390, height: 844, name: '390' },
   { width: 430, height: 932, name: '430' },
 ]) {
-  test(`public homepage fits mobile ${viewport.name}px without horizontal overflow`, async ({ page }) => {
+  test(`public homepage fits mobile ${viewport.name}px with compact three-row footer`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto('/');
 
     const home = await assertPrimaryHomepageContent(page);
+    await assertHomepagePalette(home);
+    await expect(home).toHaveCSS('background-color', colors.pink);
+    await expect(home.getByLabel('Minh họa kết nối Chọn.love')).toHaveCount(0);
+    await expect(home.getByLabel('Minh họa hẹn hò Chọn.love')).toHaveCount(0);
+
     // React Native Web can expose Pressable text before its final accessibility role settles at small viewports.
-    // Verify the mobile header actions are visibly present; desktop and auth-routing tests still assert button semantics.
     await expect(home.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
     await expect(home.getByText('Đăng ký', { exact: true }).first()).toBeVisible();
     await expect(home.getByRole('button', { name: 'Mở menu' })).toHaveCount(0);
@@ -106,6 +156,25 @@ for (const viewport of [
     const ctaBox = await cta.boundingBox();
     expect(ctaBox).not.toBeNull();
     expect(ctaBox.height).toBeGreaterThanOrEqual(44);
+
+    const footer = page.getByTestId('chon-public-footer');
+    const rowLabels = [
+      footer.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true }),
+      footer.getByText('Điều khoản', { exact: true }),
+      footer.getByText('© 2026 Chon.Love', { exact: true }),
+    ];
+    const rowBoxes = [];
+    for (const locator of rowLabels) {
+      const box = await locator.boundingBox();
+      expect(box).not.toBeNull();
+      rowBoxes.push(box);
+      expect(Math.abs((box.x + box.width / 2) - (viewport.width / 2))).toBeLessThanOrEqual(6);
+    }
+    expect(rowBoxes[1].y).toBeGreaterThan(rowBoxes[0].y);
+    expect(rowBoxes[2].y).toBeGreaterThan(rowBoxes[1].y);
+    const footerBox = await footer.boundingBox();
+    expect(footerBox).not.toBeNull();
+    expect(footerBox.height).toBeLessThan(130);
 
     await assertNoHorizontalOverflow(page);
     await test.info().attach(`chon-love-home-mobile-${viewport.name}`, {
