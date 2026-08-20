@@ -23,7 +23,7 @@ enabled = true
 enabled = false
 port = 54323
 
-# Required by local Browser E2E to capture Signup V2 confirmation OTP emails.
+# Required by local Browser E2E; Signup V2 reads its confirmation OTP from this captured email.
 [local_smtp]
 enabled = true
 port = 54324
