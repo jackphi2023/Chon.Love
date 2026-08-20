@@ -1,4 +1,4 @@
-import { luxyBreakpoints, luxyColors, luxyRadii, luxyTypography } from '@myfan/ui';
+import { luxyColors, luxyRadii, luxyTypography } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useMemo, useState, type PropsWithChildren, type ReactNode } from 'react';
 import {
@@ -39,6 +39,14 @@ export type SignupSelectOption = {
   label: string;
 };
 
+const SIGNUP_COMPACT_BREAKPOINT = 768;
+
+export function formatSignupProgressLabel(step: number, totalSteps: number): string {
+  const safeTotal = Math.max(1, Math.floor(totalSteps));
+  const safeStep = Math.min(Math.max(1, Math.floor(step)), safeTotal);
+  return `Thiết lập hồ sơ · Bước ${safeStep}/${safeTotal}`;
+}
+
 export function SignupShell({
   title,
   description,
@@ -51,7 +59,7 @@ export function SignupShell({
 }: SignupShellProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const compact = width < luxyBreakpoints.mobile;
+  const compact = width < SIGNUP_COMPACT_BREAKPOINT;
 
   return (
     <SafeAreaView style={styles.safeArea} testID={testID}>
@@ -100,9 +108,10 @@ export function ProfileSetupProgress({
   onBack?: (() => void) | undefined;
   rightAction?: ReactNode | undefined;
 }) {
-  const safeTotal = Math.max(1, totalSteps);
-  const safeStep = Math.min(Math.max(1, step), safeTotal);
+  const safeTotal = Math.max(1, Math.floor(totalSteps));
+  const safeStep = Math.min(Math.max(1, Math.floor(step)), safeTotal);
   const progress = `${Math.round((safeStep / safeTotal) * 100)}%` as `${number}%`;
+  const progressLabel = formatSignupProgressLabel(safeStep, safeTotal);
 
   return (
     <View style={styles.progressWrap} testID="profile-setup-progress">
@@ -114,17 +123,24 @@ export function ProfileSetupProgress({
             onPress={onBack}
             style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Text accessibilityElementsHidden style={styles.backArrow}>←</Text>
           </Pressable>
         ) : <View style={styles.progressSideSpacer} />}
-        <Text style={styles.progressLabel}>Profile Setup</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.progressLabel}>{progressLabel}</Text>
         <View style={styles.progressRight}>{rightAction ?? <View style={styles.progressSideSpacer} />}</View>
       </View>
       <View style={styles.progressBarRow}>
-        <View style={styles.progressTrack}>
+        <View
+          accessibilityLabel={progressLabel}
+          accessibilityRole="progressbar"
+          accessibilityValue={{ min: 1, max: safeTotal, now: safeStep, text: `Bước ${safeStep}/${safeTotal}` }}
+          style={styles.progressTrack}
+        >
           <View style={[styles.progressFill, { width: progress }]} />
         </View>
-        <ChonBrandIcon name="favorite" size={compact ? 18 : 20} />
+        <View accessible={false} importantForAccessibility="no">
+          <ChonBrandIcon name="favorite" size={compact ? 18 : 20} />
+        </View>
       </View>
     </View>
   );
@@ -135,6 +151,7 @@ export function SignupPrimaryButton({ label, onPress, disabled = false, busy = f
   const inactive = disabled || busy;
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
       accessibilityState={{ busy, disabled: inactive }}
       disabled={inactive}
@@ -158,6 +175,7 @@ export function SignupSecondaryButton({ label, onPress, disabled = false, busy =
   const inactive = disabled || busy;
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
       accessibilityState={{ busy, disabled: inactive }}
       disabled={inactive}
@@ -193,7 +211,17 @@ export function SignupHelpText({
   children: ReactNode;
   tone?: 'muted' | 'danger' | 'success';
 }) {
-  return <Text style={[styles.helpText, tone === 'danger' && styles.helpDanger, tone === 'success' && styles.helpSuccess]}>{children}</Text>;
+  const danger = tone === 'danger';
+  const success = tone === 'success';
+  return (
+    <Text
+      accessibilityLiveRegion={danger ? 'assertive' : success ? 'polite' : 'none'}
+      accessibilityRole={danger ? 'alert' : undefined}
+      style={[styles.helpText, danger && styles.helpDanger, success && styles.helpSuccess]}
+    >
+      {children}
+    </Text>
+  );
 }
 
 export function SignupTextField(props: TextInputProps) {
@@ -239,22 +267,29 @@ export function SignupSelect({
         testID={testID}
       >
         <Text numberOfLines={1} style={[styles.selectText, !value && styles.selectPlaceholder]}>{selectedLabel}</Text>
-        <Text style={styles.selectChevron}>⌄</Text>
+        <Text accessibilityElementsHidden style={styles.selectChevron}>⌄</Text>
       </Pressable>
       <Modal animationType="fade" transparent visible={open} onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.selectModal} onPress={(event) => event.stopPropagation()}>
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            accessibilityLabel="Đóng danh sách lựa chọn"
+            accessibilityRole="button"
+            onPress={() => setOpen(false)}
+            style={styles.modalDismissLayer}
+          />
+          <View accessibilityViewIsModal style={styles.selectModal}>
             <View style={styles.selectModalHeader}>
-              <Text style={styles.selectModalTitle}>{accessibilityLabel ?? 'Chọn giá trị'}</Text>
+              <Text accessibilityRole="header" style={styles.selectModalTitle}>{accessibilityLabel ?? 'Chọn giá trị'}</Text>
               <Pressable accessibilityLabel="Đóng danh sách" accessibilityRole="button" onPress={() => setOpen(false)} style={styles.selectCloseButton}>
-                <Text style={styles.selectCloseText}>×</Text>
+                <Text accessibilityElementsHidden style={styles.selectCloseText}>×</Text>
               </Pressable>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.selectOptionsScroll}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.selectOptionsScroll}>
               {options.map((option) => {
                 const selected = option.value === value;
                 return (
                   <Pressable
+                    accessibilityLabel={option.label}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     key={`${option.value}:${option.label}`}
@@ -265,13 +300,13 @@ export function SignupSelect({
                     style={({ pressed }) => [styles.selectOption, selected && styles.selectOptionSelected, pressed && styles.selectOptionPressed]}
                   >
                     <Text style={[styles.selectOptionText, selected && styles.selectOptionTextSelected]}>{option.label}</Text>
-                    {selected ? <Text style={styles.selectCheck}>✓</Text> : null}
+                    {selected ? <Text accessibilityElementsHidden style={styles.selectCheck}>✓</Text> : null}
                   </Pressable>
                 );
               })}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -290,6 +325,7 @@ export function SignupTag({
 }) {
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected, disabled }}
       disabled={disabled}
@@ -308,7 +344,7 @@ export function SignupTag({
 
 export function SignupCharacterCount({ current, max, valid }: { current: number; max: number; valid?: boolean }) {
   return (
-    <Text style={[styles.characterCount, valid === true && styles.helpSuccess, valid === false && styles.helpDanger]}>
+    <Text accessibilityLiveRegion="polite" style={[styles.characterCount, valid === true && styles.helpSuccess, valid === false && styles.helpDanger]}>
       {current}/{max} ký tự
     </Text>
   );
@@ -326,17 +362,17 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     width: '100%',
   },
-  contentCompact: { minHeight: 560, paddingBottom: 48, paddingHorizontal: 16, paddingTop: 16 },
+  contentCompact: { minHeight: 560, paddingBottom: 48, paddingHorizontal: 18, paddingTop: 18 },
   progressWrap: { marginBottom: 22 },
-  progressTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 38 },
-  backButton: { alignItems: 'center', height: 38, justifyContent: 'center', width: 44 },
+  progressTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 44 },
+  backButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   backArrow: { color: luxyColors.ink, fontSize: 27, fontWeight: '400', lineHeight: 30 },
   progressSideSpacer: { width: 44 },
   progressRight: { alignItems: 'flex-end', minWidth: 44 },
-  progressLabel: { color: luxyColors.actionRed, fontSize: 12, fontWeight: '600' },
+  progressLabel: { color: luxyColors.actionRed, flex: 1, fontSize: 13, fontWeight: '700', textAlign: 'center' },
   progressBarRow: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 4 },
-  progressTrack: { backgroundColor: '#F5D8D8', borderRadius: 999, flex: 1, height: 5, overflow: 'hidden' },
-  progressFill: { backgroundColor: '#FF4A4A', borderRadius: 999, height: 5 },
+  progressTrack: { backgroundColor: '#F5D8D8', borderRadius: 999, flex: 1, height: 6, overflow: 'hidden' },
+  progressFill: { backgroundColor: '#FF4A4A', borderRadius: 999, height: 6 },
   headingBlock: { marginBottom: 22 },
   title: {
     color: luxyColors.ink,
@@ -356,6 +392,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50,
     paddingHorizontal: 22,
+    width: '100%',
   },
   primaryButtonHovered: {
     backgroundColor: luxyColors.actionRed,
@@ -366,7 +403,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryButtonPressed: { backgroundColor: luxyColors.actionRed, transform: [{ scale: 0.995 }] },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   secondaryButton: {
     alignItems: 'center',
     backgroundColor: '#F8C9D4',
@@ -376,10 +413,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50,
     paddingHorizontal: 22,
+    width: '100%',
   },
   secondaryButtonHovered: { backgroundColor: luxyColors.actionRed, borderColor: luxyColors.actionRed },
   secondaryButtonPressed: { backgroundColor: luxyColors.actionRed },
-  secondaryButtonText: { color: '#7A2437', fontSize: 15, fontWeight: '800' },
+  secondaryButtonText: { color: '#7A2437', fontSize: 16, fontWeight: '800' },
   secondaryButtonTextHovered: { color: '#FFFFFF' },
   secondaryButtonDisabled: { backgroundColor: '#E5E7EB', borderColor: '#D1D5DB' },
   secondaryButtonTextDisabled: { color: '#8B929B' },
@@ -395,7 +433,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     color: luxyColors.ink,
-    fontSize: 15,
+    fontSize: 16,
     minHeight: 50,
     paddingHorizontal: 14,
     paddingVertical: 11,
@@ -414,20 +452,21 @@ const styles = StyleSheet.create({
   },
   selectPressed: { borderColor: luxyColors.actionRed },
   selectDisabled: { backgroundColor: '#F3F4F6', opacity: 0.72 },
-  selectText: { color: luxyColors.ink, flex: 1, fontSize: 15, lineHeight: 21 },
+  selectText: { color: luxyColors.ink, flex: 1, fontSize: 16, lineHeight: 22 },
   selectPlaceholder: { color: luxyColors.softMuted },
   selectChevron: { color: '#6B7280', fontSize: 20, marginLeft: 10, marginTop: -5 },
-  modalBackdrop: { alignItems: 'center', backgroundColor: 'rgba(17,24,39,0.42)', flex: 1, justifyContent: 'center', padding: 18 },
+  modalBackdrop: { alignItems: 'center', backgroundColor: 'rgba(17,24,39,0.42)', flex: 1, justifyContent: 'center', padding: 18, position: 'relative' },
+  modalDismissLayer: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
   selectModal: { backgroundColor: '#FFFFFF', borderRadius: 16, maxHeight: '78%', maxWidth: 520, overflow: 'hidden', width: '100%' },
-  selectModalHeader: { alignItems: 'center', borderBottomColor: '#E5E7EB', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: 16 },
-  selectModalTitle: { color: luxyColors.ink, flex: 1, fontSize: 15, fontWeight: '800' },
-  selectCloseButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  selectModalHeader: { alignItems: 'center', borderBottomColor: '#E5E7EB', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: 16 },
+  selectModalTitle: { color: luxyColors.ink, flex: 1, fontSize: 16, fontWeight: '800' },
+  selectCloseButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   selectCloseText: { color: '#4B5563', fontSize: 28, lineHeight: 30 },
   selectOptionsScroll: { maxHeight: 480 },
   selectOption: { alignItems: 'center', borderBottomColor: '#F0F1F3', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 16, paddingVertical: 10 },
   selectOptionSelected: { backgroundColor: '#FFF7D6' },
   selectOptionPressed: { backgroundColor: '#FFF1F1' },
-  selectOptionText: { color: luxyColors.ink, flex: 1, fontSize: 15, lineHeight: 21 },
+  selectOptionText: { color: luxyColors.ink, flex: 1, fontSize: 16, lineHeight: 22 },
   selectOptionTextSelected: { color: '#6F4B00', fontWeight: '800' },
   selectCheck: { color: '#C68A00', fontSize: 17, fontWeight: '800', marginLeft: 10 },
   tag: {
@@ -436,14 +475,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   tagSelected: { backgroundColor: '#FFF1B8', borderColor: '#F2B51D', borderWidth: 1.5 },
   tagPressed: { borderColor: luxyColors.actionRed },
   tagDisabled: { backgroundColor: '#F3F4F6', opacity: 0.7 },
-  tagText: { color: luxyColors.ink, fontSize: 13, fontWeight: '600' },
+  tagText: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
   tagTextSelected: { color: '#6F4B00', fontWeight: '800' },
   tagTextDisabled: { color: '#8B929B' },
   characterCount: { color: luxyColors.muted, fontSize: 11, lineHeight: 16, textAlign: 'right' },
