@@ -46,6 +46,11 @@ export default function ProfileSetupOnboarding() {
       .then(([profile, mediaRows]) => {
         if (!active) return;
         if (profile.profile_status === 'active') { router.replace('/(tabs)'); return; }
+        if (profile.province_id == null) { router.replace('/onboarding/location'); return; }
+        if ((profile.looking_for?.trim().length ?? 0) < 50 || (profile.lifestyle_tags?.length ?? 0) < 1) {
+          router.replace('/onboarding/looking-for');
+          return;
+        }
         const signupDraft = readSignupDraft();
         setUsername(profile.username ?? '');
         setDisplayName(profile.display_name ?? '');
@@ -102,8 +107,8 @@ export default function ProfileSetupOnboarding() {
 
   return (
     <SignupShell
-      description="Điền thông tin cơ bản và upload ảnh thật. Các phiên SU tiếp theo sẽ tách phần này thành từng màn riêng mà không đổi dữ liệu hiện có."
-      onBack={() => router.replace('/onboarding/location')}
+      description="Điền thông tin cơ bản và upload ảnh thật. SU-07 sẽ thay màn chuyển tiếp này bằng bước upload ảnh chuyên biệt."
+      onBack={() => router.replace('/onboarding/looking-for')}
       step={6}
       testID="chon-profile-setup-bridge"
       title="Tạo hồ sơ Chon.Love"
