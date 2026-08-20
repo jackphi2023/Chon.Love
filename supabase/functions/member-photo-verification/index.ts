@@ -316,7 +316,7 @@ Deno.serve(async (request: Request) => {
 
     const { data: profile, error: profileError } = await server
       .from('profiles')
-      .select('id,gender,profile_status,discovery_enabled,deleted_at')
+      .select('id,gender,profile_status,discovery_enabled,deleted_at,province_id,looking_for,lifestyle_tags,headline,bio')
       .eq('id', actorId)
       .single();
     if (profileError || !profile || profile.deleted_at) return respond(404, { error: 'profile_not_found' });
@@ -347,6 +347,24 @@ Deno.serve(async (request: Request) => {
     if (profile.profile_status !== 'pending_review' && profile.profile_status !== 'incomplete') {
       return respond(403, { error: 'profile_not_eligible_for_selfie_verification' });
     }
+
+    const headlineLength = typeof profile.headline === 'string' ? profile.headline.trim().length : 0;
+    const bioLength = typeof profile.bio === 'string' ? profile.bio.trim().length : 0;
+    const lookingForLength = typeof profile.looking_for === 'string' ? profile.looking_for.trim().length : 0;
+    const lifestyleTagCount = Array.isArray(profile.lifestyle_tags) ? profile.lifestyle_tags.length : 0;
+    const headlineValid = headlineLength === 0 || (headlineLength >= 10 && headlineLength <= 50);
+    const profileCopyComplete = profile.province_id != null
+      && lookingForLength >= 50
+      && lookingForLength <= 4000
+      && lifestyleTagCount >= 1
+      && lifestyleTagCount <= 7
+      && headlineValid
+      && bioLength >= 50
+      && bioLength <= 4000;
+    if (!profileCopyComplete) {
+      return respond(422, { error: 'signup_profile_details_required' });
+    }
+
     if (typeof body.selfieBase64 !== 'string' || body.mimeType !== 'image/jpeg') {
       return respond(400, { error: 'jpeg_selfie_required' });
     }
