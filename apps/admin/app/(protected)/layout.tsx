@@ -6,8 +6,6 @@ const links = [
   ['Users', '/users'],
   ['Xác minh ảnh', '/member-verifications'],
   ['Gói thành viên', '/memberships'],
-  ['Gifts', '/gifts'],
-  ['Payments', '/payments'],
   ['Đối soát VietQR', '/vietqr-reconciliation'],
   ['KYC & rút tiền', '/withdrawals'],
   ['Moderation', '/moderation'],
