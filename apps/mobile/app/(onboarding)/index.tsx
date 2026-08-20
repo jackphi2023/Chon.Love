@@ -89,8 +89,6 @@ export default function OnboardingPersonalInfo() {
           return;
         }
 
-        // Existing users who already completed the mature minimum-onboarding
-        // contract keep their prior route and are not forced through new SU-04 rules.
         if (status.age_verified && status.policies_accepted) {
           router.replace('/onboarding/profile');
           return;
@@ -112,9 +110,6 @@ export default function OnboardingPersonalInfo() {
         setInterestedIn(draftInterest ?? profileInterest);
         if (profile?.display_name) setDisplayName(profile.display_name);
 
-        // Preserve explicit existing factual values when an incomplete member
-        // resumes. Canonical prefer_not_to_say/default values are shown as
-        // unselected so a new SU-04 screen starts at "Chọn" as requested.
         if (profile?.height_cm != null) setHeightCm(String(profile.height_cm));
         if (profile?.weight_kg != null) setWeightKg(String(profile.weight_kg));
         if (profile?.education_level && profile.education_level !== 'prefer_not_to_say') setEducationLevel(profile.education_level);
@@ -215,8 +210,10 @@ export default function OnboardingPersonalInfo() {
         testID="signup-display-name"
         value={displayName}
       />
-      <SignupCharacterCount current={displayNameLength} max={50} valid={displayNameLength === 0 ? undefined : displayNameValid} />
-      <SignupHelpText>Từ 10–50 ký tự. Đây là tên thành viên khác sẽ nhìn thấy.</SignupHelpText>
+      <SignupCharacterCount current={displayNameLength} max={50} />
+      <SignupHelpText tone={displayNameLength > 0 && !displayNameValid ? 'danger' : 'muted'}>
+        Từ 10–50 ký tự. Đây là tên thành viên khác sẽ nhìn thấy.
+      </SignupHelpText>
 
       <View style={[styles.grid, compact && styles.gridCompact]}>
         <FieldSelect label="Chiều cao" value={heightCm} options={SIGNUP_HEIGHT_OPTIONS} onChange={setHeightCm} testID="signup-height" />
