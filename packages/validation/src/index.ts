@@ -28,7 +28,7 @@ export const signupLocationSchema = z.object({
   location: signupExactLocationSchema.nullable().optional(),
 });
 
-export const profileBioSchema = z.string().trim().max(500, 'Giới thiệu tối đa 500 ký tự.');
+export const profileBioSchema = z.string().trim().max(4000, 'Giới thiệu tối đa 4000 ký tự.');
 export const profileHeadlineSchema = z.string().trim().max(120, 'Tiêu đề tối đa 120 ký tự.');
 export const profileOccupationSchema = z.string().trim().max(120, 'Nghề nghiệp tối đa 120 ký tự.');
 export const profileLookingForSchema = z.string().trim().max(4000, 'Nội dung tìm kiếm tối đa 4000 ký tự.');
@@ -294,6 +294,26 @@ export const signupLookingForSchema = z.object({
   lifestyleTags: signupLifestyleTagsSchema,
 });
 
+export const signupHeadlineSchema = z
+  .string()
+  .trim()
+  .max(50, 'Tiêu đề hồ sơ tối đa 50 ký tự.')
+  .refine(
+    (value) => value.length === 0 || value.length >= 10,
+    'Tiêu đề hồ sơ có thể để trống; nếu nhập cần từ 10 đến 50 ký tự.',
+  );
+
+export const signupBioSchema = z
+  .string()
+  .trim()
+  .min(50, 'Hãy giới thiệu bản thân bằng ít nhất 50 ký tự.')
+  .max(4000, 'Giới thiệu bản thân tối đa 4000 ký tự.');
+
+export const signupHeadlineBioSchema = z.object({
+  headline: signupHeadlineSchema,
+  bio: signupBioSchema,
+});
+
 const requiredAcceptance = (message: string) => z.boolean().refine((value) => value, message);
 
 export const minimumOnboardingSchema = z.object({
@@ -310,6 +330,7 @@ export type SignupPersonalInfoInput = z.infer<typeof signupPersonalInfoSchema>;
 export type SignupExactLocationInput = z.infer<typeof signupExactLocationSchema>;
 export type SignupLocationInput = z.infer<typeof signupLocationSchema>;
 export type SignupLookingForInput = z.infer<typeof signupLookingForSchema>;
+export type SignupHeadlineBioInput = z.infer<typeof signupHeadlineBioSchema>;
 export type ProfileEditorInput = z.infer<typeof profileEditorSchema>;
 export type LuxyProfileEditorInput = z.infer<typeof luxyProfileEditorSchema>;
 export type LuxyProfileSetupInput = z.infer<typeof luxyProfileSetupSchema>;
