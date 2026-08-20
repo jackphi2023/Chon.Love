@@ -22,15 +22,6 @@ const serverOnlyFunctions = [
   'activate_verified_signup_profile_v2',
 ];
 
-// Signup V2 is still an integration branch. Keep newly introduced staged RPCs
-// on a runtime-validated structural client boundary until the final SU-11
-// generated-types checkpoint, instead of granting this workflow write access.
-const stagedRuntimeValidatedFunctions = [
-  'save_my_signup_location_v2',
-  'save_my_signup_looking_for_v2',
-  'save_my_signup_headline_bio_v2',
-];
-
 // homepage_settings is an implementation table. Direct anon/authenticated table access is revoked;
 // public SEO/member routing and Admin clients consume only narrow, manually validated RPC contracts instead.
 const serverOnlyTables = ['homepage_settings'];
@@ -76,7 +67,6 @@ function removeGeneratedBlocks(names, kind) {
 }
 
 removeGeneratedBlocks(serverOnlyFunctions, 'server-only RPC');
-removeGeneratedBlocks(stagedRuntimeValidatedFunctions, 'staged runtime-validated RPC');
 removeGeneratedBlocks(serverOnlyTables, 'implementation table');
 
 const beforeProfileCodeFilter = source;
@@ -92,5 +82,5 @@ if (source === beforeProfileCodeFilter) {
 
 writeFileSync(file, source, 'utf8');
 console.warn(
-  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${stagedRuntimeValidatedFunctions.length} staged Signup V2 RPCs, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
+  `Filtered ${serverOnlyFunctions.length} server-only RPCs, ${serverOnlyTables.length} implementation table, plus profiles.public_profile_code from the client database contract.`,
 );

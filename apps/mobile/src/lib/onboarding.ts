@@ -1,10 +1,8 @@
 import {
-  minimumOnboardingSchema,
   signupHeadlineBioSchema,
   signupLocationSchema,
   signupLookingForSchema,
   signupPersonalInfoSchema,
-  type MinimumOnboardingInput,
   type SignupHeadlineBioInput,
   type SignupLocationInput,
   type SignupLookingForInput,
@@ -73,19 +71,6 @@ async function getCurrentPolicyVersions(): Promise<PolicyVersions> {
   return parsePolicyVersions(config ?? []);
 }
 
-export async function completeMinimumOnboarding(input: MinimumOnboardingInput): Promise<void> {
-  const parsed = minimumOnboardingSchema.parse(input);
-  const client = requireAuthClient();
-  const versions = await getCurrentPolicyVersions();
-  const { error } = await client.rpc('complete_my_onboarding', {
-    p_date_of_birth: parsed.dateOfBirth,
-    p_terms_version: versions.terms,
-    p_community_rules_version: versions.communityRules,
-    p_age_verification_method: 'self_declared',
-  });
-  if (error) throw error;
-}
-
 export async function saveSignupPersonalInfo(input: SignupPersonalInfoFormInput): Promise<void> {
   const normalized: SignupPersonalInfoInput = signupPersonalInfoSchema.parse({
     dateOfBirth: input.dateOfBirth,
@@ -126,22 +111,16 @@ export async function saveSignupLocation(input: SignupLocationInput): Promise<vo
   const location = parsed.location ?? null;
   const client = requireAuthClient();
 
-  // SU-05 is intentionally kept on a structural RPC boundary while the full
-  // Signup V2 branch is still staged. The DB migration + pgTAP contract are
-  // authoritative; SU-11 will perform the final generated-types checkpoint.
-  const { error } = await client.rpc(
-    'save_my_signup_location_v2' as never,
-    {
-      p_province_id: parsed.provinceId,
-      ...(location ? {
-        p_latitude: location.latitude,
-        p_longitude: location.longitude,
-        p_accuracy_meters: location.accuracyMeters,
-        p_captured_at: location.capturedAt,
-        p_source: location.source,
-      } : {}),
-    } as never,
-  );
+  const { error } = await client.rpc('save_my_signup_location_v2', {
+    p_province_id: parsed.provinceId,
+    ...(location ? {
+      p_latitude: location.latitude,
+      p_longitude: location.longitude,
+      p_accuracy_meters: location.accuracyMeters,
+      p_captured_at: location.capturedAt,
+      p_source: location.source,
+    } : {}),
+  });
   if (error) throw error;
 }
 
@@ -149,16 +128,10 @@ export async function saveSignupLookingFor(input: SignupLookingForInput): Promis
   const parsed = signupLookingForSchema.parse(input);
   const client = requireAuthClient();
 
-  // Keep the staged SU-06 RPC on the same temporary generated-type boundary as
-  // SU-05. Database migration + pgTAP own the authoritative contract until the
-  // final SU-11 contract generation checkpoint.
-  const { error } = await client.rpc(
-    'save_my_signup_looking_for_v2' as never,
-    {
-      p_looking_for: parsed.lookingFor,
-      p_lifestyle_tags: parsed.lifestyleTags,
-    } as never,
-  );
+  const { error } = await client.rpc('save_my_signup_looking_for_v2', {
+    p_looking_for: parsed.lookingFor,
+    p_lifestyle_tags: parsed.lifestyleTags,
+  });
   if (error) throw error;
 }
 
@@ -166,16 +139,10 @@ export async function saveSignupHeadlineBio(input: SignupHeadlineBioInput): Prom
   const parsed = signupHeadlineBioSchema.parse(input);
   const client = requireAuthClient();
 
-  // SU-08 stays on the integration-only structural boundary until SU-11 emits
-  // the final generated database contract. The staged RPC itself remains
-  // authenticated/incomplete-profile-only and never activates discovery.
-  const { error } = await client.rpc(
-    'save_my_signup_headline_bio_v2' as never,
-    {
-      p_bio: parsed.bio,
-      ...(parsed.headline ? { p_headline: parsed.headline } : {}),
-    } as never,
-  );
+  const { error } = await client.rpc('save_my_signup_headline_bio_v2', {
+    p_bio: parsed.bio,
+    ...(parsed.headline ? { p_headline: parsed.headline } : {}),
+  });
   if (error) throw error;
 }
 

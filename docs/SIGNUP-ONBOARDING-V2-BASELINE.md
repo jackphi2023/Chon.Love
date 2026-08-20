@@ -1,6 +1,6 @@
 # Chon.Love Signup / Onboarding V2 — SU-00 Baseline
 
-Status: integration baseline through SU-10.
+Status: release baseline through SU-11.
 
 ## Source of truth
 

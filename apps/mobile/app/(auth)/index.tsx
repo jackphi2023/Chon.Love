@@ -361,6 +361,7 @@ function ChoiceGroup({ label, children }: { label: string; children: ReactNode }
 function ChoiceButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const webKeyboardProps = Platform.OS === 'web'
     ? {
+        'aria-checked': selected,
         onKeyDown: (event: WebKeyboardEvent) => {
           const key = event.nativeEvent?.key ?? event.key;
           if (key === ' ' || key === 'Space' || key === 'Spacebar') {

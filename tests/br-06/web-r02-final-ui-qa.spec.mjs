@@ -149,11 +149,11 @@ test('WEB-R02 Signup V2 OTP and personal-info UI is responsive across the six re
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByLabel('Mã OTP', { exact: true }).fill(otp);
     await otpStep.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân', exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Thông tin cá nhân', exact: true })).toBeVisible({ timeout: 30_000 });
 
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await expect(page.getByRole('heading', { name: 'Xác nhận thông tin cá nhân', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Thông tin cá nhân', exact: true })).toBeVisible();
       await capture(page, testInfo, viewport, 'onboarding-personal-info');
     }
   } finally {
