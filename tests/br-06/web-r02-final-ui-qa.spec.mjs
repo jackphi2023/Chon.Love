@@ -62,11 +62,11 @@ async function readSignupOtp(email) {
       const response = await fetch(url);
       if (response.ok) {
         const html = await response.text();
-        const match = html.match(/\b(\d{6})\b/u);
+        const match = html.match(/letter-spacing:\s*8px[^>]*>\s*(\d{6})\s*<\/div>/u);
         if (match) return match[1];
       }
     } catch {
-      // Mailpit can take a moment to become reachable after the local stack starts.
+      // The local mail-capture service can take a moment to become reachable after startup.
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
