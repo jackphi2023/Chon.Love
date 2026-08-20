@@ -89,15 +89,18 @@ export default function OnboardingPersonalInfo() {
           return;
         }
 
-        if (status.age_verified && status.policies_accepted) {
-          router.replace('/onboarding/profile');
-          return;
-        }
-
         const draft = readSignupDraft();
         const client = getMobileSupabaseClient();
         const profile = client ? await getMyProfile(client) : null;
         if (!active) return;
+
+        // Resume new Signup V2 at Location once Personal Info was completed.
+        // Mature incomplete users that already have a province keep using the
+        // legacy bridge until the later SU screens retire it.
+        if (status.age_verified && status.policies_accepted) {
+          router.replace(profile?.province_id == null ? '/onboarding/location' : '/onboarding/profile');
+          return;
+        }
 
         const draftGender = draft?.gender;
         const profileGender = profile?.gender === 'male' || profile?.gender === 'female' ? profile.gender : null;
@@ -152,7 +155,7 @@ export default function OnboardingPersonalInfo() {
         drinkingStatus,
         smokingStatus,
       });
-      router.replace('/onboarding/profile');
+      router.replace('/onboarding/location');
     } catch (error) {
       setErrorMessage(getReadableOnboardingError(error));
     } finally {
