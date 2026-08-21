@@ -6,6 +6,7 @@ import {
   completeAuthentication,
   getAuthenticatedDestination,
   getSafeAuthCallbackDestination,
+  restoreSignupDraftFromAuthenticatedUser,
 } from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
 import { clearSignupDraft, patchSignupDraft, readSignupDraft } from '@/lib/signup-draft';
@@ -31,7 +32,10 @@ export default function AuthCallback() {
     const safeNext = getSafeAuthCallbackDestination(first(params.next));
     let active = true;
     void completeAuthentication(code)
-      .then(async () => safeNext ?? getAuthenticatedDestination())
+      .then(async () => {
+        if (!safeNext) await restoreSignupDraftFromAuthenticatedUser();
+        return safeNext ?? getAuthenticatedDestination();
+      })
       .then((destination) => {
         if (!active) return;
         // Password recovery is independent from Signup V2. For Google OAuth or
