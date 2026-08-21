@@ -193,14 +193,14 @@ select lives_ok(
       p_date_of_birth => (current_date - interval '28 years')::date,
       p_terms_version => %L,
       p_community_rules_version => %L,
-      p_display_name => 'Optional Member',
+      p_display_name => 'Member',
       p_gender => 'male'::public.gender_identity,
       p_interested_in => 'female'::public.dating_interest
     )$$,
     (select value_json #>> '{}' from private.app_config where key='terms_version_current'),
     (select value_json #>> '{}' from private.app_config where key='community_rules_version_current')
   ),
-  'all optional factual fields may be omitted'
+  'all optional factual fields may be omitted with a six-character display name'
 );
 
 select ok(
@@ -227,15 +227,15 @@ select set_config(
 select throws_ok(
   format(
     $$select public.save_my_signup_personal_info_v2(
-      (current_date - interval '30 years')::date, %L, %L, 'Too short',
+      (current_date - interval '30 years')::date, %L, %L, 'Short',
       'female'::public.gender_identity, 'male'::public.dating_interest
     )$$,
     (select value_json #>> '{}' from private.app_config where key='terms_version_current'),
     (select value_json #>> '{}' from private.app_config where key='community_rules_version_current')
   ),
   '22023',
-  'signup display_name must be between 10 and 50 characters',
-  'Signup V2 rejects display names shorter than 10 characters'
+  'signup display_name must be between 6 and 50 characters',
+  'Signup V2 rejects display names shorter than 6 characters'
 );
 
 select throws_ok(
@@ -248,7 +248,7 @@ select throws_ok(
     (select value_json #>> '{}' from private.app_config where key='community_rules_version_current')
   ),
   '22023',
-  'signup display_name must be between 10 and 50 characters',
+  'signup display_name must be between 6 and 50 characters',
   'Signup V2 rejects display names longer than 50 characters'
 );
 

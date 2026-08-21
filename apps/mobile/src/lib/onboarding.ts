@@ -158,7 +158,7 @@ export function getReadableOnboardingError(error: unknown): string {
     return 'Ngày sinh không hợp lệ. Vui lòng chọn đầy đủ Ngày – Tháng – Năm.';
   }
   if (/display_name|display name/iu.test(message)) {
-    return 'Tên hiển thị cần từ 10 đến 50 ký tự.';
+    return 'Tên hiển thị cần từ 6 đến 50 ký tự.';
   }
   if (/height_cm|height/iu.test(message)) return 'Chiều cao không hợp lệ. Vui lòng chọn từ 120 đến 220 cm hoặc Không chia sẻ.';
   if (/weight_kg|weight/iu.test(message)) return 'Cân nặng không hợp lệ. Vui lòng chọn một giá trị hợp lệ hoặc Không chia sẻ.';

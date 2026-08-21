@@ -1,7 +1,7 @@
 import { getMyProfile, listMyMedia } from '@myfan/supabase';
-import { colors, luxyBreakpoints, spacing } from '@myfan/ui';
+import { colors, spacing } from '@myfan/ui';
 import { Link, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { DateOfBirthSelector } from '@/components/date-of-birth-selector';
 import {
@@ -13,6 +13,7 @@ import {
   SignupShell,
   SignupTextField,
 } from '@/components/signup-shell';
+import { restoreSignupDraftFromAuthenticatedUser } from '@/lib/auth';
 import { getMyOnboardingStatus, getReadableOnboardingError, saveSignupPersonalInfo } from '@/lib/onboarding';
 import {
   SIGNUP_CHILDREN_OPTIONS,
@@ -25,7 +26,7 @@ import {
   SIGNUP_WEIGHT_OPTIONS,
 } from '@/lib/signup-profile-contract';
 import { isUsableSignupProfilePhoto } from '@/lib/signup-photo-contract';
-import { readSignupDraft } from '@/lib/signup-draft';
+import { clearSignupDraft, readSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -36,7 +37,7 @@ export default function OnboardingPersonalInfo() {
   const router = useRouter();
   const auth = useAuth();
   const { width } = useWindowDimensions();
-  const compact = width < luxyBreakpoints.mobile;
+  const compact = width < 768;
 
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -55,15 +56,8 @@ export default function OnboardingPersonalInfo() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const displayNameLength = displayName.trim().length;
-  const displayNameValid = displayNameLength >= 10 && displayNameLength <= 50;
+  const displayNameValid = displayNameLength >= 6 && displayNameLength <= 50;
   const canSubmit = Boolean(dateOfBirth && displayNameValid && gender && interestedIn) && !isSubmitting;
-
-  const preferenceDescription = useMemo(() => {
-    if (!gender || !interestedIn) return null;
-    const genderLabel = gender === 'female' ? 'Nữ' : 'Nam';
-    const interestLabel = interestedIn === 'female' ? 'Nữ' : interestedIn === 'male' ? 'Nam' : 'Tất cả';
-    return `${genderLabel} · Đang tìm ${interestLabel}`;
-  }, [gender, interestedIn]);
 
   useEffect(() => {
     if (auth.isRestoring) return;
@@ -90,7 +84,7 @@ export default function OnboardingPersonalInfo() {
           return;
         }
 
-        const draft = readSignupDraft();
+        const draft = readSignupDraft() ?? await restoreSignupDraftFromAuthenticatedUser();
         const client = getMobileSupabaseClient();
         const profile = client ? await getMyProfile(client) : null;
         const mediaRows = client ? await listMyMedia(client) : [];
@@ -143,7 +137,7 @@ export default function OnboardingPersonalInfo() {
         if (profile?.smoking_status && profile.smoking_status !== 'prefer_not_to_say') setSmokingStatus(profile.smoking_status);
 
         if (!(draftGender ?? profileGender) || !(draftInterest ?? profileInterest)) {
-          setErrorMessage('Không tìm thấy lựa chọn giới tính / đối tượng kết nối từ bước đầu. Vui lòng đăng ký lại để bảo đảm hồ sơ chính xác.');
+          setErrorMessage('Không thể khôi phục lựa chọn ở bước đầu. Vui lòng đăng xuất và bắt đầu đăng ký lại.');
         }
       } catch (error) {
         if (active) setErrorMessage(getReadableOnboardingError(error));
@@ -176,6 +170,7 @@ export default function OnboardingPersonalInfo() {
         drinkingStatus,
         smokingStatus,
       });
+      clearSignupDraft();
       router.replace('/onboarding/location');
     } catch (error) {
       setErrorMessage(getReadableOnboardingError(error));
@@ -213,17 +208,13 @@ export default function OnboardingPersonalInfo() {
 
   return (
     <SignupShell
-      description="Thông tin có dấu * là bắt buộc. Các thông tin còn lại có thể để Chọn hoặc chọn Không chia sẻ."
       onBack={() => router.replace('/(auth)')}
       step={3}
       testID="chon-onboarding-personal-info"
       title="Thông tin cá nhân"
     >
-      {preferenceDescription ? <Text style={styles.preferenceSummary}>{preferenceDescription}</Text> : null}
-
       <SignupFieldLabel required>Ngày sinh</SignupFieldLabel>
       <DateOfBirthSelector onChange={setDateOfBirth} />
-      <SignupHelpText>Ngày sinh được giữ riêng tư và dùng để xác nhận bạn từ đủ 18 tuổi.</SignupHelpText>
 
       <SignupFieldLabel required>Tên hiển thị</SignupFieldLabel>
       <SignupTextField
@@ -236,23 +227,19 @@ export default function OnboardingPersonalInfo() {
         value={displayName}
       />
       <SignupCharacterCount current={displayNameLength} max={50} />
-      <SignupHelpText tone={displayNameLength > 0 && !displayNameValid ? 'danger' : 'muted'}>
-        Từ 10–50 ký tự. Đây là tên thành viên khác sẽ nhìn thấy.
-      </SignupHelpText>
+      {displayNameLength > 0 && !displayNameValid ? (
+        <SignupHelpText tone="danger">Tên hiển thị cần từ 6 đến 50 ký tự.</SignupHelpText>
+      ) : null}
 
       <View style={[styles.grid, compact && styles.gridCompact]}>
-        <FieldSelect label="Chiều cao" value={heightCm} options={SIGNUP_HEIGHT_OPTIONS} onChange={setHeightCm} testID="signup-height" />
-        <FieldSelect label="Cân nặng" value={weightKg} options={SIGNUP_WEIGHT_OPTIONS} onChange={setWeightKg} testID="signup-weight" />
-        <FieldSelect label="Học vấn" value={educationLevel} options={SIGNUP_EDUCATION_OPTIONS} onChange={setEducationLevel} testID="signup-education" />
-        <FieldSelect label="Tình trạng mối quan hệ" value={relationshipStatus} options={SIGNUP_RELATIONSHIP_OPTIONS} onChange={setRelationshipStatus} testID="signup-relationship" />
-        <FieldSelect label="Con cái" value={childrenStatus} options={SIGNUP_CHILDREN_OPTIONS} onChange={setChildrenStatus} testID="signup-children" />
-        <FieldSelect label="Uống rượu bia" value={drinkingStatus} options={SIGNUP_DRINKING_OPTIONS} onChange={setDrinkingStatus} testID="signup-drinking" />
-        <FieldSelect label="Hút thuốc lá" value={smokingStatus} options={SIGNUP_SMOKING_OPTIONS} onChange={setSmokingStatus} testID="signup-smoking" />
+        <FieldSelect compact={compact} label="Chiều cao" value={heightCm} options={SIGNUP_HEIGHT_OPTIONS} onChange={setHeightCm} testID="signup-height" />
+        <FieldSelect compact={compact} label="Cân nặng" value={weightKg} options={SIGNUP_WEIGHT_OPTIONS} onChange={setWeightKg} testID="signup-weight" />
+        <FieldSelect compact={compact} label="Học vấn" value={educationLevel} options={SIGNUP_EDUCATION_OPTIONS} onChange={setEducationLevel} testID="signup-education" />
+        <FieldSelect compact={compact} label="Tình trạng mối quan hệ" value={relationshipStatus} options={SIGNUP_RELATIONSHIP_OPTIONS} onChange={setRelationshipStatus} testID="signup-relationship" />
+        <FieldSelect compact={compact} label="Con cái" value={childrenStatus} options={SIGNUP_CHILDREN_OPTIONS} onChange={setChildrenStatus} testID="signup-children" />
+        <FieldSelect compact={compact} label="Uống rượu bia" value={drinkingStatus} options={SIGNUP_DRINKING_OPTIONS} onChange={setDrinkingStatus} testID="signup-drinking" />
+        <FieldSelect compact={compact} label="Hút thuốc lá" value={smokingStatus} options={SIGNUP_SMOKING_OPTIONS} onChange={setSmokingStatus} testID="signup-smoking" />
       </View>
-
-      <SignupHelpText>
-        Nếu chọn Không chia sẻ, hồ sơ công khai sẽ hiển thị Chưa chia sẻ và bạn vẫn có thể thay đổi sau trong Chỉnh sửa hồ sơ.
-      </SignupHelpText>
 
       <Text style={styles.policyCopy}>
         Khi tiếp tục, bạn xác nhận ngày sinh là chính xác, bạn từ đủ 18 tuổi và đồng ý với{' '}
@@ -267,12 +254,14 @@ export default function OnboardingPersonalInfo() {
 }
 
 function FieldSelect({
+  compact,
   label,
   value,
   options,
   onChange,
   testID,
 }: {
+  compact: boolean;
   label: string;
   value: string;
   options: readonly { value: string; label: string }[];
@@ -280,7 +269,7 @@ function FieldSelect({
   testID: string;
 }) {
   return (
-    <View style={styles.fieldCell}>
+    <View style={[styles.fieldCell, compact && styles.fieldCellCompact]}>
       <SignupFieldLabel>{label}</SignupFieldLabel>
       <SignupSelect accessibilityLabel={label} onChange={onChange} options={options} testID={testID} value={value} />
     </View>
@@ -290,10 +279,10 @@ function FieldSelect({
 const styles = StyleSheet.create({
   loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   loadingText: { color: colors.muted, fontSize: 15 },
-  preferenceSummary: { alignSelf: 'flex-start', backgroundColor: '#FFF1B8', borderColor: '#F2B51D', borderRadius: 999, borderWidth: 1, color: '#6F4B00', fontSize: 13, fontWeight: '800', marginBottom: 2, overflow: 'hidden', paddingHorizontal: 12, paddingVertical: 7 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 },
-  gridCompact: { flexDirection: 'column' },
-  fieldCell: { flexBasis: '47%', flexGrow: 1, gap: 7, minWidth: 260 },
+  gridCompact: { flexDirection: 'column', flexWrap: 'nowrap' },
+  fieldCell: { flexBasis: '47%', flexGrow: 1, gap: 7, minWidth: 0 },
+  fieldCellCompact: { flexBasis: 'auto', flexGrow: 0, minWidth: 0, width: '100%' },
   policyCopy: { color: colors.muted, fontSize: 11.5, lineHeight: 18, marginTop: 4 },
   inlineLink: { color: colors.accent, fontWeight: '800' },
   signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48, marginTop: 8 },

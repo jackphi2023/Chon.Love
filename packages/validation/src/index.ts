@@ -256,7 +256,7 @@ export const adultDateOfBirthSchema = dateOfBirthSchema.refine(
 export const signupDisplayNameSchema = z
   .string()
   .trim()
-  .min(10, 'Tên hiển thị cần ít nhất 10 ký tự.')
+  .min(6, 'Tên hiển thị cần ít nhất 6 ký tự.')
   .max(50, 'Tên hiển thị tối đa 50 ký tự.');
 
 // SU-04 keeps only DOB + display name + the Step 1 preference pair mandatory.
