@@ -1,16 +1,18 @@
 export type SignupGender = 'male' | 'female';
 export type SignupInterest = 'female' | 'male' | 'everyone';
 export type SignupDraftStage = 'account' | 'otp' | 'verified';
-
-export type SignupDraft = {
+export type SignupPreferences = {
   gender: SignupGender;
   interest: SignupInterest;
+};
+
+export type SignupDraft = SignupPreferences & {
   email: string | null;
   stage: SignupDraftStage;
   updatedAt: number;
 };
 
-type SessionStorageLike = {
+type StorageLike = {
   getItem: (key: string) => string | null;
   setItem: (key: string, value: string) => void;
   removeItem: (key: string) => void;
@@ -18,6 +20,10 @@ type SessionStorageLike = {
 
 const STORAGE_KEY = 'chon.signup.onboarding-v2';
 const MAX_DRAFT_AGE_MS = 24 * 60 * 60 * 1000;
+const SIGNUP_FLOW_METADATA_KEY = 'chon_signup_flow';
+const SIGNUP_GENDER_METADATA_KEY = 'chon_signup_gender';
+const SIGNUP_INTEREST_METADATA_KEY = 'chon_signup_interest';
+const SIGNUP_FLOW_METADATA_VALUE = 'onboarding-v2';
 export const EMAIL_OTP_LENGTH = 6;
 
 let memoryDraft: SignupDraft | null = null;
@@ -30,15 +36,36 @@ export function isCompleteEmailOtp(value: string): boolean {
   return new RegExp(`^\\d{${EMAIL_OTP_LENGTH}}$`, 'u').test(value);
 }
 
+export function buildSignupPreferenceUserMetadata(preferences: SignupPreferences): Record<string, string> {
+  return {
+    [SIGNUP_FLOW_METADATA_KEY]: SIGNUP_FLOW_METADATA_VALUE,
+    [SIGNUP_GENDER_METADATA_KEY]: preferences.gender,
+    [SIGNUP_INTEREST_METADATA_KEY]: preferences.interest,
+  };
+}
+
+export function readSignupPreferencesFromUserMetadata(metadata: unknown): SignupPreferences | null {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const candidate = metadata as Record<string, unknown>;
+  const gender = candidate[SIGNUP_GENDER_METADATA_KEY];
+  const interest = candidate[SIGNUP_INTEREST_METADATA_KEY];
+  if (candidate[SIGNUP_FLOW_METADATA_KEY] !== SIGNUP_FLOW_METADATA_VALUE) return null;
+  if (gender !== 'male' && gender !== 'female') return null;
+  if (interest !== 'female' && interest !== 'male' && interest !== 'everyone') return null;
+  return { gender, interest };
+}
+
 export function writeSignupDraft(draft: SignupDraft): void {
   memoryDraft = draft;
-  const storage = getSessionStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(draft));
-  } catch {
-    // Storage can be disabled by privacy settings. In-memory fallback still
-    // preserves the draft for the current app process.
+  const serialized = JSON.stringify(draft);
+  for (const storage of getDraftStorages()) {
+    try {
+      storage.setItem(STORAGE_KEY, serialized);
+      return;
+    } catch {
+      // Try the next storage. localStorage is preferred because confirmation
+      // links commonly open in a new tab where sessionStorage is unavailable.
+    }
   }
 }
 
@@ -55,18 +82,18 @@ export function patchSignupDraft(patch: Partial<Omit<SignupDraft, 'gender' | 'in
 }
 
 export function readSignupDraft(now = Date.now()): SignupDraft | null {
-  const storage = getSessionStorage();
-  if (storage) {
+  for (const storage of getDraftStorages()) {
     try {
       const raw = storage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = parseSignupDraft(JSON.parse(raw) as unknown);
-        if (parsed && now - parsed.updatedAt <= MAX_DRAFT_AGE_MS) {
-          memoryDraft = parsed;
-          return parsed;
-        }
-        storage.removeItem(STORAGE_KEY);
+      if (!raw) continue;
+      const parsed = parseSignupDraft(JSON.parse(raw) as unknown);
+      if (parsed && now - parsed.updatedAt <= MAX_DRAFT_AGE_MS) {
+        memoryDraft = parsed;
+        // Promote a legacy/session draft into the preferred persistent store.
+        writeSignupDraft(parsed);
+        return parsed;
       }
+      storage.removeItem(STORAGE_KEY);
     } catch {
       try { storage.removeItem(STORAGE_KEY); } catch { /* no-op */ }
     }
@@ -79,9 +106,9 @@ export function readSignupDraft(now = Date.now()): SignupDraft | null {
 
 export function clearSignupDraft(): void {
   memoryDraft = null;
-  const storage = getSessionStorage();
-  if (!storage) return;
-  try { storage.removeItem(STORAGE_KEY); } catch { /* no-op */ }
+  for (const storage of getDraftStorages()) {
+    try { storage.removeItem(STORAGE_KEY); } catch { /* no-op */ }
+  }
 }
 
 function parseSignupDraft(value: unknown): SignupDraft | null {
@@ -101,9 +128,16 @@ function parseSignupDraft(value: unknown): SignupDraft | null {
   };
 }
 
-function getSessionStorage(): SessionStorageLike | null {
-  const candidate = (globalThis as unknown as { sessionStorage?: SessionStorageLike }).sessionStorage;
-  if (!candidate) return null;
-  if (typeof candidate.getItem !== 'function' || typeof candidate.setItem !== 'function' || typeof candidate.removeItem !== 'function') return null;
-  return candidate;
+function getDraftStorages(): StorageLike[] {
+  const globalObject = globalThis as unknown as {
+    localStorage?: StorageLike;
+    sessionStorage?: StorageLike;
+  };
+  const storages: StorageLike[] = [];
+  for (const candidate of [globalObject.localStorage, globalObject.sessionStorage]) {
+    if (!candidate) continue;
+    if (typeof candidate.getItem !== 'function' || typeof candidate.setItem !== 'function' || typeof candidate.removeItem !== 'function') continue;
+    if (!storages.includes(candidate)) storages.push(candidate);
+  }
+  return storages;
 }
