@@ -1,7 +1,16 @@
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 import { resolveAuthenticatedRoute, type AuthenticatedRoute } from './auth-routing';
-import { isCompleteEmailOtp, normalizeEmailOtp } from './signup-draft';
+import {
+  buildSignupPreferenceUserMetadata,
+  isCompleteEmailOtp,
+  normalizeEmailOtp,
+  readSignupDraft,
+  readSignupPreferencesFromUserMetadata,
+  writeSignupDraft,
+  type SignupDraft,
+  type SignupPreferences,
+} from './signup-draft';
 import { getMobileSupabaseClient } from './supabase';
 
 export type AuthSignOutScope = 'local' | 'global' | 'others';
@@ -83,6 +92,7 @@ export async function verifyEmailSignupOtp(email: string, token: string): Promis
   });
   if (error) throw error;
   if (!data.session) throw new Error('otp_session_missing');
+  await restoreSignupDraftFromAuthenticatedUser();
   return getAuthenticatedDestination();
 }
 
@@ -95,7 +105,11 @@ export async function signInWithEmailPassword(email: string, password: string): 
   return getAuthenticatedDestination();
 }
 
-export async function signUpWithEmailPassword(email: string, password: string): Promise<EmailSignUpResult> {
+export async function signUpWithEmailPassword(
+  email: string,
+  password: string,
+  preferences: SignupPreferences,
+): Promise<EmailSignUpResult> {
   const client = requireAuthClient();
   const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail || !password) throw new Error('email_and_password_required');
@@ -104,7 +118,10 @@ export async function signUpWithEmailPassword(email: string, password: string): 
   const { data, error } = await client.auth.signUp({
     email: normalizedEmail,
     password,
-    options: { emailRedirectTo: getAuthCallbackUrl() },
+    options: {
+      emailRedirectTo: getAuthCallbackUrl(),
+      data: buildSignupPreferenceUserMetadata(preferences),
+    },
   });
   if (error) throw error;
 
@@ -162,6 +179,26 @@ export async function completeAuthentication(code?: string): Promise<void> {
 }
 
 export const completeGoogleAuthentication = completeAuthentication;
+
+export async function restoreSignupDraftFromAuthenticatedUser(): Promise<SignupDraft | null> {
+  const existing = readSignupDraft();
+  if (existing) return existing;
+
+  const client = requireAuthClient();
+  const { data, error } = await client.auth.getUser();
+  if (error) throw error;
+  const preferences = readSignupPreferencesFromUserMetadata(data.user?.user_metadata);
+  if (!preferences) return null;
+
+  const draft: SignupDraft = {
+    ...preferences,
+    email: data.user?.email ? normalizeAuthEmail(data.user.email) : null,
+    stage: 'verified',
+    updatedAt: Date.now(),
+  };
+  writeSignupDraft(draft);
+  return draft;
+}
 
 export async function getAuthenticatedDestination(): Promise<AuthenticatedRoute> {
   const client = requireAuthClient();
