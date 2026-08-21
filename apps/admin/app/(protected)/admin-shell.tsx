@@ -5,29 +5,21 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { getAdminSupabaseClient } from '../../src/lib/supabase';
 
-const links = [
-  ['Dashboard', '/dashboard'],
-  ['Homepage', '/homepage'],
-  ['Users', '/users'],
-  ['Xác minh ảnh', '/member-verifications'],
-  ['Gói thành viên', '/memberships'],
-  ['Đối soát VietQR', '/vietqr-reconciliation'],
-  ['KYC & rút tiền', '/withdrawals'],
-  ['Moderation', '/moderation'],
-  ['Observability', '/runtime-observability'],
-] as const;
+type AdminLink = readonly [label: string, href: string];
+const REQUIRED_USER_LINK: AdminLink = ['Users', '/users'];
 
 function normalizePath(pathname: string): string {
   const path = pathname.startsWith('/admin/') ? pathname.slice('/admin'.length) : pathname;
   return path.replace(/\/+$/u, '') || '/';
 }
 
-export function AdminShell({ children }: Readonly<{ children: React.ReactNode }>) {
+export function AdminShell({ children, links }: Readonly<{ children: React.ReactNode; links: readonly AdminLink[] }>) {
   const pathname = usePathname();
   const router = useRouter();
   const normalizedPath = useMemo(() => normalizePath(pathname), [pathname]);
   const [email, setEmail] = useState<string>('');
   const [signingOut, setSigningOut] = useState(false);
+  const effectiveLinks = links.length > 0 ? links : [REQUIRED_USER_LINK];
 
   useEffect(() => {
     const client = getAdminSupabaseClient();
@@ -62,7 +54,7 @@ export function AdminShell({ children }: Readonly<{ children: React.ReactNode }>
         </div>
 
         <nav aria-label="Admin navigation" className="adminNav">
-          {links.map(([label, href]) => {
+          {effectiveLinks.map(([label, href]) => {
             const active = normalizedPath === href || normalizedPath.startsWith(`${href}/`);
             return (
               <Link aria-current={active ? 'page' : undefined} className={active ? 'adminNavLink isActive' : 'adminNavLink'} href={href} key={href}>
