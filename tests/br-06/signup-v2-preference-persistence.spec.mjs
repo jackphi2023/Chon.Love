@@ -47,8 +47,9 @@ test('Signup V2 restores Step 1 from auth metadata in a fresh tab after OTP', as
 
   // Simulate the reported verification-link/new-tab failure after a valid auth
   // session exists: remove only Chọn.Love's signup draft, keep the Supabase
-  // session, then enter onboarding from a fresh JS/tab context. The Step 1 pair
-  // must be reconstructed from auth user_metadata rather than memory/storage.
+  // session, then enter the canonical root route from a fresh JS/tab context.
+  // The authenticated router must restore Step 3 and reconstruct the Step 1
+  // pair from auth user_metadata rather than memory/storage.
   await page.evaluate((key) => {
     window.localStorage.removeItem(key);
     window.sessionStorage.removeItem(key);
@@ -56,7 +57,7 @@ test('Signup V2 restores Step 1 from auth metadata in a fresh tab after OTP', as
 
   const resumed = await context.newPage();
   await resumed.setViewportSize({ width: 390, height: 844 });
-  await resumed.goto('/onboarding');
+  await resumed.goto('/');
 
   const personalInfo = resumed.getByTestId('chon-onboarding-personal-info');
   await expect(personalInfo.getByRole('heading', { name: 'Thông tin cá nhân', exact: true })).toBeVisible({ timeout: 30_000 });
