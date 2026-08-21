@@ -4,47 +4,61 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { getAdminSupabaseClient, isCurrentUserSuperAdmin } from '../src/lib/supabase';
 
-const PUBLIC_ADMIN_PATHS = new Set([
-  '/',
-  '/login',
-  '/login/',
-  '/admin',
-  '/admin/',
-  '/admin/login',
-  '/admin/login/',
-]);
+function normalizeAdminPath(pathname: string): string {
+  const withoutBasePath = pathname === '/admin'
+    ? '/'
+    : pathname.startsWith('/admin/')
+      ? pathname.slice('/admin'.length)
+      : pathname;
+  const withoutTrailingSlash = withoutBasePath.replace(/\/+$/u, '');
+  return withoutTrailingSlash || '/';
+}
+
+function isPublicAdminPath(pathname: string): boolean {
+  const normalized = normalizeAdminPath(pathname);
+  return normalized === '/' || normalized === '/login';
+}
 
 export function AdminRouteGuard({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const router = useRouter();
-  const isPublicRoute = useMemo(() => PUBLIC_ADMIN_PATHS.has(pathname), [pathname]);
-  const [allowed, setAllowed] = useState(isPublicRoute);
-  const [checking, setChecking] = useState(!isPublicRoute);
+  const isPublicRoute = useMemo(() => isPublicAdminPath(pathname), [pathname]);
+
+  // Always fail closed on the prerendered/static HTML. Authorization is decided
+  // only after the isolated Admin Supabase session and live super_admin role have
+  // been checked in the browser. This prevents protected page content from being
+  // exposed when Admin JS fails to hydrate or a member session exists on the site.
+  const [allowed, setAllowed] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (isPublicRoute) {
-      setAllowed(true);
-      setChecking(false);
-      return;
-    }
-
+    let active = true;
     setAllowed(false);
     setChecking(true);
 
     const client = getAdminSupabaseClient();
     if (!client) {
-      router.replace('/login');
-      return;
+      if (isPublicRoute) {
+        setAllowed(true);
+        setChecking(false);
+      } else {
+        router.replace('/login');
+      }
+      return () => { active = false; };
     }
     const supabase = client;
-    let active = true;
 
     async function checkAccess() {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
       if (!active) return;
 
-      if (!userData.user) {
-        router.replace('/login');
+      if (userError || !userData.user) {
+        if (isPublicRoute) {
+          setAllowed(true);
+          setChecking(false);
+        } else {
+          router.replace('/login');
+        }
         return;
       }
 
@@ -52,8 +66,21 @@ export function AdminRouteGuard({ children }: Readonly<{ children: React.ReactNo
       if (!active) return;
 
       if (!isSuperAdmin) {
-        await supabase.auth.signOut();
-        if (active) router.replace('/login');
+        // This signs out only the isolated Admin storage key; the normal Chọn.Love
+        // member session is intentionally separate and must not be inherited here.
+        await supabase.auth.signOut({ scope: 'local' });
+        if (!active) return;
+        if (isPublicRoute) {
+          setAllowed(true);
+          setChecking(false);
+        } else {
+          router.replace('/login');
+        }
+        return;
+      }
+
+      if (isPublicRoute) {
+        router.replace('/dashboard');
         return;
       }
 
@@ -64,8 +91,10 @@ export function AdminRouteGuard({ children }: Readonly<{ children: React.ReactNo
     void checkAccess();
 
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' && active) {
+      if (!active) return;
+      if (event === 'SIGNED_OUT' && !isPublicRoute) {
         setAllowed(false);
+        setChecking(true);
         router.replace('/login');
       }
     });
@@ -74,10 +103,17 @@ export function AdminRouteGuard({ children }: Readonly<{ children: React.ReactNo
       active = false;
       data.subscription.unsubscribe();
     };
-  }, [isPublicRoute, router]);
+  }, [isPublicRoute, pathname, router]);
 
   if (checking || !allowed) {
-    return <main className="adminPage"><div className="adminCard"><p>Đang kiểm tra quyền quản trị…</p></div></main>;
+    return (
+      <main className="adminPage adminGatePage" data-testid="admin-access-gate">
+        <div className="adminCard adminGateCard">
+          <span className="adminGateSpinner" aria-hidden="true" />
+          <p>Đang kiểm tra quyền Super Admin…</p>
+        </div>
+      </main>
+    );
   }
 
   return <>{children}</>;

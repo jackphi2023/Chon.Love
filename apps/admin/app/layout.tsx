@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './admin-shell.css';
 import { AdminRouteGuard } from './admin-route-guard';
 
 export const metadata: Metadata = {

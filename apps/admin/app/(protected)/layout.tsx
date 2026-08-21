@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AdminShell } from './admin-shell';
 
 const links = [
   ['Dashboard', '/dashboard'],
@@ -13,13 +13,5 @@ const links = [
 ] as const;
 
 export default function ProtectedLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <div className="shell">
-      <nav aria-label="Admin navigation">
-        <strong>Chon.Love Admin</strong>
-        {links.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
-      </nav>
-      <main>{children}</main>
-    </div>
-  );
+  return <AdminShell links={links}>{children}</AdminShell>;
 }

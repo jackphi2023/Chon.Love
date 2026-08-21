@@ -26,6 +26,7 @@ export type PublicSupabaseClientOptions = {
   detectSessionInUrl?: boolean;
   flowType?: 'implicit' | 'pkce';
   storage?: SupabaseAuthStorage;
+  storageKey?: string;
   allowInsecureLocalhost?: boolean;
 };
 
@@ -59,6 +60,7 @@ export function createPublicSupabaseClient(
       detectSessionInUrl: options.detectSessionInUrl ?? true,
       flowType: options.flowType ?? 'implicit',
       ...(options.storage ? { storage: options.storage } : {}),
+      ...(options.storageKey ? { storageKey: options.storageKey } : {}),
     },
   });
 }

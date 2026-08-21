@@ -26,8 +26,16 @@ rm -rf apps/mobile/dist/admin
 mkdir -p apps/mobile/dist/admin
 cp -R apps/admin/out/. apps/mobile/dist/admin/
 
-# Fail the deployment if the two critical Admin routes were not exported.
+# Fail the deployment if critical Admin HTML or Next static assets are missing.
+# A deploy with HTML but without /admin/_next assets renders as unstyled text and
+# cannot hydrate the client-side fail-closed Admin authorization guard.
 test -f apps/mobile/dist/admin/login/index.html
+test -f apps/mobile/dist/admin/dashboard/index.html
 test -f apps/mobile/dist/admin/users/index.html
+test -d apps/mobile/dist/admin/_next/static
+find apps/mobile/dist/admin/_next/static -type f -name '*.js' -size +0c -print -quit | grep -q .
+find apps/mobile/dist/admin/_next/static -type f -name '*.css' -size +0c -print -quit | grep -q .
+grep -q '/admin/_next/static/' apps/mobile/dist/admin/login/index.html
+grep -q '/admin/_next/static/' apps/mobile/dist/admin/dashboard/index.html
 
-echo "Built Chon.Love web + /admin static application successfully."
+echo "Built Chon.Love web + isolated /admin static application successfully."
