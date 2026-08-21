@@ -108,19 +108,21 @@ export async function signInWithEmailPassword(email: string, password: string): 
 export async function signUpWithEmailPassword(
   email: string,
   password: string,
-  preferences: SignupPreferences,
+  preferences?: SignupPreferences,
 ): Promise<EmailSignUpResult> {
   const client = requireAuthClient();
   const normalizedEmail = normalizeAuthEmail(email);
   if (!normalizedEmail || !password) throw new Error('email_and_password_required');
   if (password.length < MIN_PASSWORD_LENGTH) throw new Error('password_too_short');
+  const resolvedPreferences = preferences ?? readSignupDraft();
+  if (!resolvedPreferences) throw new Error('signup_preferences_missing');
 
   const { data, error } = await client.auth.signUp({
     email: normalizedEmail,
     password,
     options: {
       emailRedirectTo: getAuthCallbackUrl(),
-      data: buildSignupPreferenceUserMetadata(preferences),
+      data: buildSignupPreferenceUserMetadata(resolvedPreferences),
     },
   });
   if (error) throw error;
