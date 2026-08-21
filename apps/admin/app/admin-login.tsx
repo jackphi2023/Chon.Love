@@ -21,7 +21,9 @@ export function AdminLogin() {
       if (await isCurrentUserSuperAdmin(client)) {
         router.replace('/dashboard');
       } else {
-        await client.auth.signOut();
+        // Admin uses a dedicated browser storage key. Never invalidate a normal
+        // member session just because that member visited the Admin login page.
+        await client.auth.signOut({ scope: 'local' });
       }
     });
 
@@ -42,7 +44,7 @@ export function AdminLogin() {
     setMessage(null);
 
     const { error } = await client.auth.signInWithPassword({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -54,8 +56,9 @@ export function AdminLogin() {
 
     const isSuperAdmin = await isCurrentUserSuperAdmin(client);
     if (!isSuperAdmin) {
-      await client.auth.signOut();
+      await client.auth.signOut({ scope: 'local' });
       setBusy(false);
+      setPassword('');
       setMessage('Tài khoản không có quyền Super Admin.');
       return;
     }
@@ -65,13 +68,13 @@ export function AdminLogin() {
 
   return (
     <form className="adminCard adminLoginForm" onSubmit={signIn}>
-      <p className="adminEyebrow">MODERATION · FINANCE · 18+</p>
+      <p className="adminEyebrow">SECURE OPERATIONS · SUPER ADMIN</p>
       <h1>Chon.Love Admin</h1>
-      <p id="admin-login-help">Chỉ tài khoản được cấp quyền Super Admin mới có thể truy cập khu vực quản trị. Các thao tác nhạy cảm tiếp tục được kiểm tra quyền ở backend và ghi audit.</p>
+      <p id="admin-login-help">Khu vực quản trị dùng phiên đăng nhập riêng với tài khoản thành viên. Chỉ tài khoản có role Super Admin mới được truy cập.</p>
       <label htmlFor="admin-email">Email<input aria-describedby="admin-login-help" id="admin-email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
       <label htmlFor="admin-password">Mật khẩu<input aria-describedby="admin-login-help" id="admin-password" autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
       {message ? <p className="adminError" role="alert">{message}</p> : null}
-      <button aria-busy={busy} className="adminPrimary" disabled={busy} type="submit">{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
+      <button aria-busy={busy} className="adminPrimary" disabled={busy} type="submit">{busy ? 'Đang xác minh quyền…' : 'Đăng nhập Admin'}</button>
     </form>
   );
 }
