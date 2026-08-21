@@ -82,7 +82,7 @@ expect(adminSupabase.includes("ADMIN_AUTH_STORAGE_KEY = 'chonlove-admin-auth-v1'
 expect(adminSupabase.includes('detectSessionInUrl: false') && adminSupabase.includes('storageKey: ADMIN_AUTH_STORAGE_KEY'), 'Admin auth client must ignore member/auth callback fragments and persist only in Admin storage.');
 expect(adminGuard.includes('const [allowed, setAllowed] = useState(false)') && adminGuard.includes('const [checking, setChecking] = useState(true)'), 'Admin route guard must prerender fail-closed and never expose protected children before authorization.');
 expect(adminGuard.includes("signOut({ scope: 'local' })") && adminGuard.includes('isCurrentUserSuperAdmin'), 'Unauthorized Admin sessions must be locally cleared after the live super_admin check.');
-expect(adminProtectedLayout.includes('<AdminShell>{children}</AdminShell>'), 'Protected Admin routes must render inside the authenticated application shell.');
+expect(adminProtectedLayout.includes('<AdminShell links={links}>{children}</AdminShell>'), 'Protected Admin routes must render inside the authenticated application shell using the guarded navigation source.');
 expect(adminShell.includes("['Users', '/users']") && adminShell.includes('Đăng xuất') && adminShell.includes("signOut({ scope: 'local' })"), 'Admin shell must expose operational navigation and an isolated local sign-out action.');
 expect(adminShellCss.includes('.adminShell') && adminShellCss.includes('.adminSidebar') && adminShellCss.includes('.adminMain>.card'), 'Admin shell stylesheet must style navigation and legacy operational cards; unstyled text-only Admin deploys are not acceptable.');
 
