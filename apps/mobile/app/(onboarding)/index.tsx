@@ -26,12 +26,25 @@ import {
   SIGNUP_WEIGHT_OPTIONS,
 } from '@/lib/signup-profile-contract';
 import { isUsableSignupProfilePhoto } from '@/lib/signup-photo-contract';
-import { clearSignupDraft, readSignupDraft } from '@/lib/signup-draft';
+import { clearSignupDraft, readSignupDraft, writeSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 type Gender = 'male' | 'female';
 type Interest = 'female' | 'male' | 'everyone';
+
+const RECOVERY_GENDER_OPTIONS = [
+  { value: '', label: 'Chọn' },
+  { value: 'male', label: 'Nam' },
+  { value: 'female', label: 'Nữ' },
+] as const;
+
+const RECOVERY_INTEREST_OPTIONS = [
+  { value: '', label: 'Chọn' },
+  { value: 'female', label: 'Nữ' },
+  { value: 'male', label: 'Nam' },
+  { value: 'everyone', label: 'Tất cả' },
+] as const;
 
 export default function OnboardingPersonalInfo() {
   const router = useRouter();
@@ -53,6 +66,7 @@ export default function OnboardingPersonalInfo() {
   const [isChecking, setIsChecking] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accountStatus, setAccountStatus] = useState<string | null>(null);
+  const [needsPreferenceRecovery, setNeedsPreferenceRecovery] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const displayNameLength = displayName.trim().length;
@@ -123,9 +137,12 @@ export default function OnboardingPersonalInfo() {
         const profileInterest = profile?.interested_in === 'male' || profile?.interested_in === 'female' || profile?.interested_in === 'everyone'
           ? profile.interested_in
           : null;
+        const resolvedGender = draftGender ?? profileGender;
+        const resolvedInterest = draftInterest ?? profileInterest;
 
-        setGender(draftGender ?? profileGender);
-        setInterestedIn(draftInterest ?? profileInterest);
+        setGender(resolvedGender);
+        setInterestedIn(resolvedInterest);
+        setNeedsPreferenceRecovery(!resolvedGender || !resolvedInterest);
         if (profile?.display_name) setDisplayName(profile.display_name);
 
         if (profile?.height_cm != null) setHeightCm(String(profile.height_cm));
@@ -135,10 +152,6 @@ export default function OnboardingPersonalInfo() {
         if (profile?.children_status && profile.children_status !== 'prefer_not_to_say') setChildrenStatus(profile.children_status);
         if (profile?.drinking_status && profile.drinking_status !== 'prefer_not_to_say') setDrinkingStatus(profile.drinking_status);
         if (profile?.smoking_status && profile.smoking_status !== 'prefer_not_to_say') setSmokingStatus(profile.smoking_status);
-
-        if (!(draftGender ?? profileGender) || !(draftInterest ?? profileInterest)) {
-          setErrorMessage('Không thể khôi phục lựa chọn ở bước đầu. Vui lòng đăng xuất và bắt đầu đăng ký lại.');
-        }
       } catch (error) {
         if (active) setErrorMessage(getReadableOnboardingError(error));
       } finally {
@@ -149,9 +162,36 @@ export default function OnboardingPersonalInfo() {
     return () => { active = false; };
   }, [auth.isRestoring, auth.userId, router]);
 
+  function persistRecoveredPreferences(nextGender: Gender | null, nextInterest: Interest | null) {
+    if (!nextGender || !nextInterest) return;
+    writeSignupDraft({
+      gender: nextGender,
+      interest: nextInterest,
+      email: null,
+      stage: 'verified',
+      updatedAt: Date.now(),
+    });
+    setNeedsPreferenceRecovery(false);
+  }
+
+  function handleRecoveryGender(value: string) {
+    const nextGender = value === 'male' || value === 'female' ? value : null;
+    setGender(nextGender);
+    setErrorMessage(null);
+    persistRecoveredPreferences(nextGender, interestedIn);
+  }
+
+  function handleRecoveryInterest(value: string) {
+    const nextInterest = value === 'female' || value === 'male' || value === 'everyone' ? value : null;
+    setInterestedIn(nextInterest);
+    setErrorMessage(null);
+    persistRecoveredPreferences(gender, nextInterest);
+  }
+
   async function handleSubmit() {
     if (!gender || !interestedIn) {
-      setErrorMessage('Thiếu lựa chọn giới tính / đối tượng kết nối từ bước đầu.');
+      setNeedsPreferenceRecovery(true);
+      setErrorMessage('Vui lòng hoàn tất hai lựa chọn kết nối ban đầu để tiếp tục.');
       return;
     }
     setErrorMessage(null);
@@ -213,6 +253,31 @@ export default function OnboardingPersonalInfo() {
       testID="chon-onboarding-personal-info"
       title="Thông tin cá nhân"
     >
+      {needsPreferenceRecovery ? (
+        <View style={styles.recoveryBlock} testID="signup-preference-recovery">
+          <Text style={styles.recoveryTitle}>Hoàn tất lựa chọn kết nối</Text>
+          <Text style={styles.recoveryText}>
+            Tài khoản đã được xác thực nhưng hai lựa chọn ban đầu không còn trong phiên đăng ký cũ. Chọn lại một lần để tiếp tục; email và tài khoản hiện tại được giữ nguyên.
+          </Text>
+          <SignupFieldLabel required>Giới tính của bạn</SignupFieldLabel>
+          <SignupSelect
+            accessibilityLabel="Giới tính của bạn"
+            onChange={handleRecoveryGender}
+            options={RECOVERY_GENDER_OPTIONS}
+            testID="signup-recovery-gender"
+            value={gender ?? ''}
+          />
+          <SignupFieldLabel required>Đối tượng bạn quan tâm</SignupFieldLabel>
+          <SignupSelect
+            accessibilityLabel="Đối tượng bạn quan tâm"
+            onChange={handleRecoveryInterest}
+            options={RECOVERY_INTEREST_OPTIONS}
+            testID="signup-recovery-interest"
+            value={interestedIn ?? ''}
+          />
+        </View>
+      ) : null}
+
       <SignupFieldLabel required>Ngày sinh</SignupFieldLabel>
       <DateOfBirthSelector onChange={setDateOfBirth} />
 
@@ -279,6 +344,9 @@ function FieldSelect({
 const styles = StyleSheet.create({
   loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   loadingText: { color: colors.muted, fontSize: 15 },
+  recoveryBlock: { backgroundColor: '#FFF9E8', borderColor: '#F2B51D', borderRadius: 16, borderWidth: 1, gap: 8, marginBottom: 6, padding: 14 },
+  recoveryTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  recoveryText: { color: colors.muted, fontSize: 13, lineHeight: 20, marginBottom: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 },
   gridCompact: { flexDirection: 'column', flexWrap: 'nowrap' },
   fieldCell: { flexBasis: '47%', flexGrow: 1, gap: 7, minWidth: 0 },
