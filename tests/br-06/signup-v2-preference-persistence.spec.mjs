@@ -24,7 +24,7 @@ async function readSignupOtp(email) {
   throw new Error(`Signup OTP email not captured for ${email}`);
 }
 
-test('Signup V2 restores Step 1 from auth metadata after browser draft is lost', async ({ page }) => {
+test('Signup V2 restores Step 1 from auth metadata in a fresh tab after OTP', async ({ context, page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/auth');
 
@@ -41,21 +41,28 @@ test('Signup V2 restores Step 1 from auth metadata after browser draft is lost',
   await expect(otpStep.getByRole('heading', { name: 'Xác thực email', exact: true })).toBeVisible({ timeout: 30_000 });
   const otp = await readSignupOtp(uniqueEmail);
 
-  // Reproduce the reported failure mode: the email verification path resumes
-  // without the original tab-scoped draft. User metadata must be sufficient to
-  // recover Step 1 and continue directly to Personal Info.
+  await page.getByLabel('Mã OTP', { exact: true }).fill(otp);
+  await otpStep.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+  await expect(page.getByTestId('chon-onboarding-personal-info')).toBeVisible({ timeout: 30_000 });
+
+  // Simulate the reported verification-link/new-tab failure after a valid auth
+  // session exists: remove only Chọn.Love's signup draft, keep the Supabase
+  // session, then enter onboarding from a fresh JS/tab context. The Step 1 pair
+  // must be reconstructed from auth user_metadata rather than memory/storage.
   await page.evaluate((key) => {
     window.localStorage.removeItem(key);
     window.sessionStorage.removeItem(key);
   }, draftKey);
 
-  await page.getByLabel('Mã OTP', { exact: true }).fill(otp);
-  await otpStep.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+  const resumed = await context.newPage();
+  await resumed.setViewportSize({ width: 390, height: 844 });
+  await resumed.goto('/onboarding');
 
-  const personalInfo = page.getByTestId('chon-onboarding-personal-info');
+  const personalInfo = resumed.getByTestId('chon-onboarding-personal-info');
   await expect(personalInfo.getByRole('heading', { name: 'Thông tin cá nhân', exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(personalInfo.getByText(/Đang tìm/u)).toHaveCount(0);
   await expect(personalInfo.getByText(/Không tìm thấy lựa chọn giới tính/u)).toHaveCount(0);
+  await expect(personalInfo.getByText(/Không thể khôi phục lựa chọn/u)).toHaveCount(0);
 
   const selectIds = [
     'signup-height',
@@ -77,9 +84,11 @@ test('Signup V2 restores Step 1 from auth metadata after browser draft is lost',
     expect(boxes[index].y).toBeGreaterThan(boxes[index - 1].y);
   }
 
-  const overflow = await page.evaluate(() => ({
+  const overflow = await resumed.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+
+  await resumed.close();
 });
