@@ -10,6 +10,12 @@ const redirects = read('apps/mobile/public/_redirects');
 const rootNetlify = read('netlify.toml');
 const mobileNetlify = read('apps/mobile/netlify.toml');
 const netlifyBuildScript = read('scripts/build-netlify-web.sh');
+const adminSupabase = read('apps/admin/src/lib/supabase.ts');
+const adminGuard = read('apps/admin/app/admin-route-guard.tsx');
+const adminProtectedLayout = read('apps/admin/app/(protected)/layout.tsx');
+const adminShell = read('apps/admin/app/(protected)/admin-shell.tsx');
+const adminShellCss = read('apps/admin/app/admin-shell.css');
+const sharedSupabase = read('packages/supabase/src/index.ts');
 const ci = read('.github/workflows/ci.yml');
 const errors = [];
 const expect = (condition, message) => { if (!condition) errors.push(message); };
@@ -66,8 +72,19 @@ for (const [label, netlify] of [['root', rootNetlify], ['apps/mobile mirror', mo
 expect(netlifyBuildScript.includes('pnpm --filter @myfan/mobile build:web'), 'Combined Netlify build must compile canonical Mobile Web.');
 expect(netlifyBuildScript.includes('pnpm --filter @myfan/admin build'), 'Combined Netlify build must compile Admin.');
 expect(netlifyBuildScript.includes('cp -R apps/admin/out/. apps/mobile/dist/admin/'), 'Combined Netlify build must mount Admin output below /admin.');
-expect(netlifyBuildScript.includes('apps/mobile/dist/admin/login/index.html') && netlifyBuildScript.includes('apps/mobile/dist/admin/users/index.html'), 'Combined Netlify build must fail closed if core Admin routes are missing.');
+expect(netlifyBuildScript.includes('apps/mobile/dist/admin/login/index.html') && netlifyBuildScript.includes('apps/mobile/dist/admin/dashboard/index.html') && netlifyBuildScript.includes('apps/mobile/dist/admin/users/index.html'), 'Combined Netlify build must fail closed if core Admin routes are missing.');
+expect(netlifyBuildScript.includes("-name '*.js'") && netlifyBuildScript.includes("-name '*.css'"), 'Combined Netlify build must require non-empty Admin JS and CSS assets.');
+expect(count(netlifyBuildScript, "grep -q '/admin/_next/static/'") >= 2, 'Combined Netlify build must verify exported Admin HTML points at /admin/_next static assets.');
 expect(!netlifyBuildScript.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Combined Netlify build must never require a service-role key.');
+
+expect(sharedSupabase.includes('storageKey?: string;') && sharedSupabase.includes('options.storageKey ? { storageKey: options.storageKey }'), 'Shared Supabase client must support an explicit isolated auth storage key.');
+expect(adminSupabase.includes("ADMIN_AUTH_STORAGE_KEY = 'chonlove-admin-auth-v1'"), 'Admin must use a dedicated browser auth storage key rather than inherit the member session.');
+expect(adminSupabase.includes('detectSessionInUrl: false') && adminSupabase.includes('storageKey: ADMIN_AUTH_STORAGE_KEY'), 'Admin auth client must ignore member/auth callback fragments and persist only in Admin storage.');
+expect(adminGuard.includes('const [allowed, setAllowed] = useState(false)') && adminGuard.includes('const [checking, setChecking] = useState(true)'), 'Admin route guard must prerender fail-closed and never expose protected children before authorization.');
+expect(adminGuard.includes("signOut({ scope: 'local' })") && adminGuard.includes('isCurrentUserSuperAdmin'), 'Unauthorized Admin sessions must be locally cleared after the live super_admin check.');
+expect(adminProtectedLayout.includes('<AdminShell>{children}</AdminShell>'), 'Protected Admin routes must render inside the authenticated application shell.');
+expect(adminShell.includes("['Users', '/users']") && adminShell.includes('Đăng xuất') && adminShell.includes("signOut({ scope: 'local' })"), 'Admin shell must expose operational navigation and an isolated local sign-out action.');
+expect(adminShellCss.includes('.adminShell') && adminShellCss.includes('.adminSidebar') && adminShellCss.includes('.adminMain>.card'), 'Admin shell stylesheet must style navigation and legacy operational cards; unstyled text-only Admin deploys are not acceptable.');
 
 expect(!rootNetlify.includes('build:netlify:chon') && !rootNetlify.includes('apps/public-web/.next'), 'Root production must never fall back to the retired combined public-web build.');
 expect(packageJson.scripts?.build === 'pnpm --filter @myfan/admin build && pnpm --filter @myfan/mobile build:web', 'Root build must compile Admin and the canonical Chon.Love Expo Web app only.');
@@ -91,4 +108,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.warn('Chon.Love Netlify validation passed: Expo Web is canonical, /admin is mounted in the same artifact, and non-production deploys are not hard-wired to production data.');
+console.warn('Chon.Love Netlify validation passed: Expo Web is canonical, /admin is isolated and fail-closed with styled static assets, and non-production deploys are not hard-wired to production data.');
