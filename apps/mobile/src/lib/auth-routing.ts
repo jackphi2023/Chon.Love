@@ -1,4 +1,4 @@
-export type AuthenticatedRoute = '/(onboarding)' | '/(tabs)/connect';
+export type AuthenticatedRoute = '/(onboarding)' | '/(tabs)' | '/(tabs)/connect';
 
 export type AuthOnboardingStatus = {
   age_verified: boolean;
