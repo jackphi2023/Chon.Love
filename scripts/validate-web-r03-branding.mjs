@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 
 const read = (path) => readFileSync(path, 'utf8');
@@ -131,11 +132,46 @@ function validatePng(path, expectedWidth, expectedHeight) {
   expect(height === expectedHeight, `${path}: expected ${expectedHeight}px natural height, found ${height}px.`);
 }
 
-for (const path of [
-  'apps/mobile/assets/luxy/premium-badge-hq.png',
-  'apps/mobile/assets/luxy/diamond-badge-hq.png',
+const canonicalMembershipAssets = [
+  {
+    path: 'apps/mobile/assets/luxy/chonlove-premium.png',
+    width: 480,
+    height: 320,
+    sha256: '703166bb21db2d547fda6f6525c1a87cf7872b85cba2e44561bc66d35216603b',
+  },
+  {
+    path: 'apps/mobile/assets/luxy/chonlove-diamond.png',
+    width: 480,
+    height: 320,
+    sha256: 'cc7e1cc533e0433b0681356ceb33eeb99acd432f9f276387d7e349febc40a442',
+  },
+];
+
+for (const asset of canonicalMembershipAssets) {
+  validatePng(asset.path, asset.width, asset.height);
+  const actualSha256 = createHash('sha256').update(readBuffer(asset.path)).digest('hex');
+  expect(actualSha256 === asset.sha256, `${asset.path}: canonical artwork SHA-256 changed; do not redraw, regenerate, restyle, crop, stretch, or substitute this badge.`);
+}
+
+const retiredMembershipAssets = new Set([
+  'premium-badge.png',
+  'premium-badge-hq.png',
+  'diamond-badge.png',
+  'diamond-badge-hq.png',
+]);
+const membershipAssetNames = readdirSync('apps/mobile/assets/luxy');
+for (const retired of retiredMembershipAssets) {
+  expect(!membershipAssetNames.includes(retired), `apps/mobile/assets/luxy/${retired}: retired ambiguous membership artwork must not return.`);
+}
+
+const badgeManifest = read('apps/mobile/assets/luxy/CANONICAL_MEMBERSHIP_BADGES.md');
+for (const hash of [
+  '70eed4c9bc1080756e1bf7d4d44bfb1625b2b198ec62dd33c9a91a62041c2e11',
+  '4514f67e9da17214bcbebd81ca900994007a48a6b55bc71d4cf255fed3604ffd',
+  'cc7e1cc533e0433b0681356ceb33eeb99acd432f9f276387d7e349febc40a442',
+  '703166bb21db2d547fda6f6525c1a87cf7872b85cba2e44561bc66d35216603b',
 ]) {
-  validatePng(path, 768, 528);
+  expect(badgeManifest.includes(hash), 'Canonical membership badge manifest must preserve source and runtime provenance hashes.');
 }
 
 for (const path of [
@@ -144,23 +180,23 @@ for (const path of [
 ]) {
   const membershipBadge = read(path);
   expect(
-    membershipBadge.includes('BADGE_ASPECT_WIDTH = 16') && membershipBadge.includes('BADGE_ASPECT_HEIGHT = 11'),
-    `${path}: membership badge layout must preserve the canonical 16:11 artwork ratio.`,
+    membershipBadge.includes('BADGE_ASPECT_WIDTH = 3') && membershipBadge.includes('BADGE_ASPECT_HEIGHT = 2'),
+    `${path}: membership badge layout must preserve the user-supplied 3:2 artwork ratio.`,
   );
   expect(
-    membershipBadge.includes("premium-badge-hq.png") && membershipBadge.includes("diamond-badge-hq.png"),
-    `${path}: membership presentation must use both validated HQ raster assets.`,
+    membershipBadge.includes('chonlove-premium.png') && membershipBadge.includes('chonlove-diamond.png'),
+    `${path}: membership presentation must use only the canonical user-supplied artwork derivatives.`,
   );
-  expect(
-    !membershipBadge.includes('(width * 2) / 3'),
-    `${path}: stale 3:2 membership badge sizing must not return.`,
-  );
+  expect(membershipBadge.includes('resizeMode="contain"'), `${path}: membership artwork must use contain mode and must never crop.`);
+  expect(!/premium-badge|diamond-badge|16:11|768×528/.test(membershipBadge), `${path}: reconstructed legacy badge references or stale 16:11 geometry must not return.`);
 }
 
 const badgeE2e = read('tests/br-06/luxy-profile-visual-regressions.spec.mjs');
 expect(badgeE2e.includes("tier: 'premium'") && badgeE2e.includes("tier: 'diamond'"), 'Browser regression must exercise both Premium and Diamond badges.');
-expect(badgeE2e.includes('await node.decode()') && badgeE2e.includes('natural height`).toBe(528)'), 'Browser regression must require complete image decoding and the 768×528 natural canvas.');
-expect(badgeE2e.includes('expectedWidth * 11') && badgeE2e.includes("getByTestId('luxy-member-profile-hero-photo')"), 'Browser regression must enforce 16:11 rendered height and keep the badge inside the hero frame.');
+expect(badgeE2e.includes('await node.decode()') && badgeE2e.includes('natural height`).toBe(320)') && badgeE2e.includes('natural width`).toBe(480)'), 'Browser regression must require complete decoding of the 480×320 canonical runtime assets.');
+expect(badgeE2e.includes("createHash('sha256')") && badgeE2e.includes('canonicalMembershipSha256'), 'Browser regression must verify the exact SHA-256 bytes loaded by Chromium.');
+expect(badgeE2e.includes('expectedWidth * 2') && badgeE2e.includes('/ 3') && badgeE2e.includes("getByTestId('luxy-member-profile-hero-photo')"), 'Browser regression must enforce the 3:2 rendered ratio and keep the badge inside the hero frame.');
+expect(badgeE2e.includes("objectFit, `${tier} artwork should not be cropped`).toBe('contain')"), 'Browser regression must prove membership artwork is rendered with contain and not cropped.');
 
 const mobileHtml = read('apps/mobile/app/+html.tsx');
 const ui = read('packages/ui/src/index.ts');
@@ -181,4 +217,4 @@ if (failures.length) {
   console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
   process.exit(1);
 }
-console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, unreleased Admin finance placeholders stay out of navigation, membership PNGs are intact, native/Web badge renderers preserve 16:11, and legacy Activity/Creator routes are retired.');
+console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, membership artwork is checksum-locked to the approved user-supplied 3:2 badges, native/Web use contain without cropping, and retired legacy surfaces remain excluded.');
