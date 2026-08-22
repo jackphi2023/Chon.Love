@@ -48,7 +48,7 @@ export default function OnboardingAbout() {
         const status = await getMyOnboardingStatus();
         if (!active || !status) return;
         if (status.account_status !== 'active') { setAccountStatus(status.account_status); return; }
-        if (status.profile_status === 'active') { router.replace('/(tabs)'); return; }
+        if (status.profile_status === 'active') { router.replace('/(tabs)/connect'); return; }
         if (status.profile_status !== 'incomplete') { router.replace('/onboarding/selfie'); return; }
         if (!status.age_verified || !status.policies_accepted) { router.replace('/(onboarding)'); return; }
         const [profile, mediaRows] = await Promise.all([getMyProfile(client), listMyMedia(client)]);
@@ -105,7 +105,7 @@ export default function OnboardingAbout() {
         <SignupCharacterCount current={bioLength} max={BIO_MAX_LENGTH} valid={bioValid} />
       </View>
       <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>Hãy chân thật và có điểm nhất về bạn</Text>
+        <Text style={styles.noteTitle}>Hãy chân thật và có các điểm nhấn về bạn</Text>
         <Text style={styles.noteText}>Hãy viết bằng giọng thật của bạn, tập trung vào con người, giá trị và phong cách sống thay vì chỉ liệt kê thành tích.</Text>
       </View>
       {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
