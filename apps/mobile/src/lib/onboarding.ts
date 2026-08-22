@@ -33,6 +33,13 @@ type PublicConfigRow = {
   value_json: unknown;
 };
 
+type BackendErrorLike = {
+  code?: unknown;
+  message?: unknown;
+  details?: unknown;
+  hint?: unknown;
+};
+
 export type SignupPersonalInfoFormInput = {
   dateOfBirth: string;
   displayName: string;
@@ -152,7 +159,11 @@ export function getReadableOnboardingError(error: unknown): string {
     const firstMessage = issues?.[0]?.message;
     if (firstMessage) return firstMessage;
   }
-  const message = error instanceof Error ? error.message : String(error);
+
+  const message = getOnboardingErrorText(error);
+  if (/PGRST202|could not find the function[^\n]*save_my_signup_(?:personal_info|location|looking_for|headline_bio)_v2|schema cache[^\n]*save_my_signup_/iu.test(message)) {
+    return 'Hệ thống đăng ký chưa đồng bộ với máy chủ. Vui lòng tải lại trang; nếu lỗi còn tiếp diễn, liên hệ hỗ trợ.';
+  }
   if (/at least 18|đủ 18/iu.test(message)) return 'Chon.Love chỉ dành cho người trưởng thành. Tài khoản của bạn chưa đáp ứng điều kiện sử dụng.';
   if (/date_of_birth|date of birth|invalid date/iu.test(message)) {
     return 'Ngày sinh không hợp lệ. Vui lòng chọn đầy đủ Ngày – Tháng – Năm.';
@@ -211,6 +222,16 @@ export function getReadableOnboardingError(error: unknown): string {
     return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
   }
   return 'Chưa thể lưu thông tin. Vui lòng thử lại.';
+}
+
+function getOnboardingErrorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error !== 'object' || error === null) return String(error);
+
+  const backendError = error as BackendErrorLike;
+  return [backendError.code, backendError.message, backendError.details, backendError.hint]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' ');
 }
 
 function requireAuthClient() {

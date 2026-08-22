@@ -24,6 +24,15 @@ describe('onboarding policy contract', () => {
     );
   });
 
+  it('maps hosted Signup V2 RPC drift to an actionable server-sync error', () => {
+    expect(getReadableOnboardingError({
+      code: 'PGRST202',
+      message: 'Could not find the function public.save_my_signup_personal_info_v2 in the schema cache',
+    })).toBe(
+      'Hệ thống đăng ký chưa đồng bộ với máy chủ. Vui lòng tải lại trang; nếu lỗi còn tiếp diễn, liên hệ hỗ trợ.',
+    );
+  });
+
   it('maps staged Step 7 validation errors to member-facing copy', () => {
     expect(getReadableOnboardingError(new Error('signup headline must be blank or 10 to 50 characters'))).toBe(
       'Tiêu đề có thể để trống; nếu nhập cần từ 10 đến 50 ký tự.',
