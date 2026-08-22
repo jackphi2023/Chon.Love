@@ -11,10 +11,10 @@ import {
 import { HomepageYoutubeHero } from './homepage-youtube-hero';
 
 type HomepageHeroMediaProps = {
-  slides?: HomepageHeroSlide[] | null;
-  desktopUrl?: string | null;
-  mobileUrl?: string | null;
-  isPhone?: boolean;
+  slides?: HomepageHeroSlide[] | null | undefined;
+  desktopUrl?: string | null | undefined;
+  mobileUrl?: string | null | undefined;
+  isPhone?: boolean | undefined;
   fallbackSource: ImageSourcePropType;
   style?: StyleProp<ViewStyle>;
 };
