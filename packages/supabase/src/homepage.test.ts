@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  normalizeHomepageSettings,
   normalizePublicActivityHighlights,
   normalizePublicFeaturedCreators,
+  shouldUseHomepageHeroSlider,
   truncatePublicHomepageText,
 } from './homepage';
 
@@ -56,6 +58,61 @@ describe('public homepage data', () => {
         },
       ]),
     ).toThrow();
+  });
+
+  it('keeps the pre-slider settings payload backward-compatible', () => {
+    const settings = normalizeHomepageSettings({
+      hero_desktop_youtube_url: 'https://www.youtube.com/watch?v=demo123',
+      hero_mobile_youtube_url: null,
+      section2_left_image_url: null,
+      section2_right_image_url: null,
+      section3_background_image_url: null,
+      section4_image_url: null,
+      updated_at: '2026-08-22T11:00:00.000Z',
+    });
+
+    expect(settings.hero_slider_images).toEqual([]);
+    expect(shouldUseHomepageHeroSlider(settings)).toBe(false);
+  });
+
+  it('uses a complete responsive slider in preference to YouTube', () => {
+    const settings = normalizeHomepageSettings({
+      hero_desktop_youtube_url: 'https://youtu.be/demo123',
+      hero_mobile_youtube_url: 'https://youtu.be/demo456',
+      hero_slider_images: [{
+        id: '00000000-0000-4000-8000-000000000099',
+        desktop_url: 'https://cdn.example.com/hero-desktop.webp',
+        mobile_url: 'https://cdn.example.com/hero-mobile.webp',
+      }],
+      section2_left_image_url: null,
+      section2_right_image_url: null,
+      section3_background_image_url: null,
+      section4_image_url: null,
+      updated_at: '2026-08-22T11:00:00.000Z',
+    });
+
+    expect(shouldUseHomepageHeroSlider(settings)).toBe(true);
+    expect(settings.hero_slider_images[0]?.desktop_url).toContain('hero-desktop');
+  });
+
+  it('rejects an incomplete or non-HTTPS hero slide', () => {
+    const base = {
+      hero_desktop_youtube_url: null,
+      hero_mobile_youtube_url: null,
+      section2_left_image_url: null,
+      section2_right_image_url: null,
+      section3_background_image_url: null,
+      section4_image_url: null,
+      updated_at: '2026-08-22T11:00:00.000Z',
+    };
+
+    expect(() => normalizeHomepageSettings({
+      ...base,
+      hero_slider_images: [{
+        id: '00000000-0000-4000-8000-000000000099',
+        desktop_url: 'http://cdn.example.com/hero.webp',
+      }],
+    })).toThrow();
   });
 
   it('normalizes whitespace and truncates long public copy', () => {
