@@ -1,9 +1,14 @@
+import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const creator = { username: 'br06_creator', displayName: 'BR06 Creator', tier: 'diamond' };
 const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tier: 'premium' };
 const outsider = { email: 'br06.outsider@example.test' };
+const canonicalMembershipSha256 = {
+  diamond: 'cc7e1cc533e0433b0681356ceb33eeb99acd432f9f276387d7e349febc40a442',
+  premium: '703166bb21db2d547fda6f6525c1a87cf7872b85cba2e44561bc66d35216603b',
+};
 
 async function login(page, expectedSearchTestId) {
   await page.goto('/auth?mode=login');
@@ -82,16 +87,27 @@ async function expectCanonicalMembershipArtwork(page, tier, expectedWidth) {
       complete: node.complete,
       width: node.naturalWidth,
       height: node.naturalHeight,
+      objectFit: getComputedStyle(node).objectFit,
+      src: node.currentSrc || node.src,
     };
   });
   expect(naturalSize.complete, `${tier} artwork should finish decoding`).toBe(true);
-  expect(naturalSize.width, `${tier} artwork natural width`).toBe(768);
-  expect(naturalSize.height, `${tier} artwork natural height`).toBe(528);
+  expect(naturalSize.width, `${tier} artwork natural width`).toBe(480);
+  expect(naturalSize.height, `${tier} artwork natural height`).toBe(320);
+  expect(naturalSize.objectFit, `${tier} artwork should not be cropped`).toBe('contain');
+
+  const assetResponse = await page.request.get(naturalSize.src);
+  expect(assetResponse.ok(), `${tier} artwork asset should load successfully`).toBe(true);
+  const assetBytes = await assetResponse.body();
+  expect(
+    createHash('sha256').update(assetBytes).digest('hex'),
+    `${tier} browser asset must be the exact canonical user-supplied artwork derivative`,
+  ).toBe(canonicalMembershipSha256[tier]);
 
   const box = await badge.boundingBox();
   expect(box, `${tier} badge should render`).not.toBeNull();
   expect(Math.round(box.width), `${tier} badge width`).toBe(expectedWidth);
-  expect(Math.round(box.height), `${tier} badge height`).toBe(Math.round((expectedWidth * 11) / 16));
+  expect(Math.round(box.height), `${tier} badge height`).toBe(Math.round((expectedWidth * 2) / 3));
 
   const hero = await page.getByTestId('luxy-member-profile-hero-photo').boundingBox();
   expect(hero, 'hero photo should render').not.toBeNull();
