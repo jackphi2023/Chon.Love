@@ -17,6 +17,7 @@ const serverOnlyFunctions = [
   'resolve_chon_member_route',
   'admin_get_homepage_settings',
   'admin_update_homepage_settings',
+  'admin_publish_homepage_settings',
   'get_public_homepage_settings',
   'is_super_admin',
   'activate_verified_signup_profile_v2',
