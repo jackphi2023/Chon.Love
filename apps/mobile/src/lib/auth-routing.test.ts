@@ -17,7 +17,7 @@ describe('authentication routing', () => {
     ).toBe('/(onboarding)');
   });
 
-  it('opens the app only after age and policy checks are complete', () => {
+  it('opens the concrete Connect screen only after age and policy checks are complete', () => {
     expect(
       resolveAuthenticatedRoute({
         age_verified: true,
@@ -25,7 +25,7 @@ describe('authentication routing', () => {
         account_status: 'active',
         profile_status: 'active',
       }),
-    ).toBe('/(tabs)');
+    ).toBe('/(tabs)/connect');
   });
 
   it('maps invalid password credentials without exposing provider details', () => {
