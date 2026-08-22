@@ -87,7 +87,10 @@ export default function SelfieVerificationOnboarding() {
     }
   }
 
-  function completeSignup() { clearSignupDraft(); router.replace('/(tabs)'); }
+  function completeSignup() {
+    clearSignupDraft();
+    router.replace('/(tabs)/connect');
+  }
 
   async function leaveToHomepage() {
     if (isLeaving) return;
@@ -108,7 +111,7 @@ export default function SelfieVerificationOnboarding() {
           <View accessible={false} style={styles.successIcon}><Text accessibilityElementsHidden style={styles.successIconText}>✓</Text></View>
           <View style={styles.successCopy}>
             <Text style={styles.successTitle}>Chào mừng bạn đến Chon.Love</Text>
-            <Text style={styles.successText}>Chọn Hoàn tất để đến Kết nối. Danh sách mặc định ưu tiên thành viên gần → xa khi vị trí hiện tại của bạn còn hiệu lực; nếu bạn chỉ chọn tỉnh/thành, hệ thống vẫn hiển thị thành viên phù hợp mà không công khai tọa độ.</Text>
+            <Text style={styles.successText}>Bấm Hoàn tất để xem các thành viên thật và nổi bật của Chọn.Love. Chúc bạn “Chọn đúng người, Yêu đúng Gu”</Text>
           </View>
         </View>
         <SignupPrimaryButton label="Hoàn tất" onPress={completeSignup} />
