@@ -20,7 +20,7 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
-import { HomepageYoutubeHero } from '@/components/homepage-youtube-hero';
+import { HomepageHeroMedia } from '@/components/homepage-hero-media';
 import { luxyPublicArtwork } from '@/components/luxy-public-artwork';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { getAuthenticatedDestination } from '@/lib/auth';
@@ -147,11 +147,12 @@ export default function HomeScreen() {
   return (
     <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false} testID="chon-love-public-homepage">
       <View style={[styles.hero, isPhone && styles.heroPhone]}>
-        <HomepageYoutubeHero
+        <HomepageHeroMedia
           desktopUrl={settings?.hero_desktop_youtube_url}
           fallbackSource={luxyPublicArtwork.hero}
           isPhone={isPhone}
           mobileUrl={settings?.hero_mobile_youtube_url}
+          slides={settings?.hero_slider_images}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.heroShade} />
