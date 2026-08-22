@@ -39,58 +39,25 @@ export default function OnboardingAbout() {
 
   useEffect(() => {
     if (auth.isRestoring) return;
-    if (!auth.userId) {
-      router.replace('/(auth)');
-      return;
-    }
-
+    if (!auth.userId) { router.replace('/(auth)'); return; }
     const client = getMobileSupabaseClient();
-    if (!client) {
-      setErrorMessage('Kết nối hồ sơ chưa được cấu hình.');
-      setIsChecking(false);
-      return;
-    }
-
+    if (!client) { setErrorMessage('Kết nối hồ sơ chưa được cấu hình.'); setIsChecking(false); return; }
     let active = true;
     void (async () => {
       try {
         const status = await getMyOnboardingStatus();
         if (!active || !status) return;
-        if (status.account_status !== 'active') {
-          setAccountStatus(status.account_status);
-          return;
-        }
-        if (status.profile_status === 'active') {
-          router.replace('/(tabs)');
-          return;
-        }
-        if (status.profile_status !== 'incomplete') {
-          router.replace('/onboarding/selfie');
-          return;
-        }
-        if (!status.age_verified || !status.policies_accepted) {
-          router.replace('/(onboarding)');
-          return;
-        }
-
+        if (status.account_status !== 'active') { setAccountStatus(status.account_status); return; }
+        if (status.profile_status === 'active') { router.replace('/(tabs)'); return; }
+        if (status.profile_status !== 'incomplete') { router.replace('/onboarding/selfie'); return; }
+        if (!status.age_verified || !status.policies_accepted) { router.replace('/(onboarding)'); return; }
         const [profile, mediaRows] = await Promise.all([getMyProfile(client), listMyMedia(client)]);
         if (!active) return;
-        if (profile.province_id == null) {
-          router.replace('/onboarding/location');
-          return;
-        }
-
+        if (profile.province_id == null) { router.replace('/onboarding/location'); return; }
         const lookingForLength = profile.looking_for?.trim().length ?? 0;
         const lifestyleTagCount = profile.lifestyle_tags?.length ?? 0;
-        if (lookingForLength < 50 || lookingForLength > 4000 || lifestyleTagCount < 1 || lifestyleTagCount > 7) {
-          router.replace('/onboarding/looking-for');
-          return;
-        }
-        if (!mediaRows.some(isUsableSignupProfilePhoto)) {
-          router.replace('/onboarding/photos');
-          return;
-        }
-
+        if (lookingForLength < 50 || lookingForLength > 4000 || lifestyleTagCount < 1 || lifestyleTagCount > 7) { router.replace('/onboarding/looking-for'); return; }
+        if (!mediaRows.some(isUsableSignupProfilePhoto)) { router.replace('/onboarding/photos'); return; }
         setHeadline(profile.headline ?? '');
         setBio(profile.bio ?? '');
       } catch (error) {
@@ -99,110 +66,50 @@ export default function OnboardingAbout() {
         if (active) setIsChecking(false);
       }
     })();
-
     return () => { active = false; };
   }, [auth.isRestoring, auth.userId, router]);
 
   async function handleContinue() {
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      await saveSignupHeadlineBio({ headline, bio });
-      router.replace('/onboarding/selfie');
-    } catch (error) {
-      setErrorMessage(getReadableOnboardingError(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+    try { await saveSignupHeadlineBio({ headline, bio }); router.replace('/onboarding/selfie'); }
+    catch (error) { setErrorMessage(getReadableOnboardingError(error)); }
+    finally { setIsSubmitting(false); }
   }
 
-  if (isChecking || auth.isRestoring) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} size="large" />
-        <Text accessibilityLiveRegion="polite" style={styles.muted}>Đang chuẩn bị phần giới thiệu…</Text>
-      </View>
-    );
-  }
+  if (isChecking || auth.isRestoring) return <View style={styles.loading}><ActivityIndicator color={colors.accent} size="large" /><Text accessibilityLiveRegion="polite" style={styles.muted}>Đang chuẩn bị phần giới thiệu…</Text></View>;
 
   if (accountStatus) {
     const deletionRequested = accountStatus === 'deletion_requested';
-    return (
-      <SignupShell
-        description={deletionRequested ? 'Hồ sơ và tính năng xã hội đang tắt trong thời gian chờ xử lý yêu cầu xóa.' : 'Tài khoản đang bị đình chỉ hoặc vô hiệu hóa.'}
-        testID="chon-about-account-status"
-        title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}
-      >
-        <Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}>
-          <Text style={styles.signOutText}>Đăng xuất</Text>
-        </Pressable>
-      </SignupShell>
-    );
+    return <SignupShell description={deletionRequested ? 'Hồ sơ và tính năng xã hội đang tắt trong thời gian chờ xử lý yêu cầu xóa.' : 'Tài khoản đang bị đình chỉ hoặc vô hiệu hóa.'} testID="chon-about-account-status" title={deletionRequested ? 'Tài khoản đang chờ xóa' : 'Tài khoản chưa thể truy cập'}><Pressable accessibilityLabel="Đăng xuất" accessibilityRole="button" onPress={() => void auth.signOut()} style={styles.signOutButton}><Text style={styles.signOutText}>Đăng xuất</Text></Pressable></SignupShell>;
   }
 
   return (
     <SignupShell
-      description="Giúp thành viên phù hợp hiểu bạn là ai. Tiêu đề có thể để trống; phần giới thiệu bản thân là bắt buộc."
+      description="Giúp thành viên phù hợp hiểu bạn là ai. Tiêu đề giúp người xem nhận diện nhanh về bạn, giới thiệu giúp người xem hiểu rõ chi tiết về bạn để có thể bắt đầu kết nối, xây dựng một mối quan hệ mới."
       onBack={() => router.replace('/onboarding/photos')}
       step={7}
       testID="chon-onboarding-about"
       title="Giới thiệu về bạn"
     >
       <SignupFieldLabel>Tiêu đề hồ sơ</SignupFieldLabel>
-      <SignupTextField
-        accessibilityLabel="Tiêu đề hồ sơ"
-        maxLength={HEADLINE_MAX_LENGTH}
-        onChangeText={setHeadline}
-        placeholder="Ví dụ: Yêu trải nghiệm mới và những cuộc trò chuyện có chiều sâu"
-        testID="signup-headline"
-        value={headline}
-      />
+      <SignupTextField accessibilityLabel="Tiêu đề hồ sơ" maxLength={HEADLINE_MAX_LENGTH} onChangeText={setHeadline} placeholder="Ví dụ: Yêu trải nghiệm mới và những cuộc trò chuyện có chiều sâu" testID="signup-headline" value={headline} />
       <View style={styles.counterRow}>
-        <SignupHelpText tone={headlineLength > 0 && !headlineValid ? 'danger' : 'muted'}>
-          {headlineLength === 0
-            ? 'Không bắt buộc. Nếu nhập, hãy dùng từ 10–50 ký tự.'
-            : headlineValid
-              ? 'Một câu ngắn, tự nhiên và đúng với bạn.'
-              : 'Tiêu đề cần từ 10–50 ký tự hoặc để trống.'}
-        </SignupHelpText>
+        <SignupHelpText tone={headlineLength > 0 && !headlineValid ? 'danger' : 'muted'}>{headlineLength === 0 ? 'Không bắt buộc. Nếu nhập, hãy dùng từ 10–50 ký tự.' : headlineValid ? 'Một câu ngắn, tự nhiên và đúng với bạn.' : 'Tiêu đề cần từ 10–50 ký tự hoặc để trống.'}</SignupHelpText>
         <SignupCharacterCount current={headlineLength} max={HEADLINE_MAX_LENGTH} valid={headlineValid} />
       </View>
-
       <SignupFieldLabel required>Giới thiệu bản thân</SignupFieldLabel>
-      <SignupTextField
-        accessibilityLabel="Giới thiệu bản thân"
-        maxLength={BIO_MAX_LENGTH}
-        multiline
-        numberOfLines={12}
-        onChangeText={setBio}
-        placeholder="Chia sẻ về bạn, lối sống, sở thích, điều bạn trân trọng và những điều khiến bạn trở nên đặc biệt…"
-        style={styles.textArea}
-        testID="signup-bio"
-        value={bio}
-      />
+      <SignupTextField accessibilityLabel="Giới thiệu bản thân" maxLength={BIO_MAX_LENGTH} multiline numberOfLines={12} onChangeText={setBio} placeholder="Chia sẻ về bạn, lối sống, sở thích, điều bạn trân trọng và những điều khiến bạn trở nên đặc biệt…" style={styles.textArea} testID="signup-bio" value={bio} />
       <View style={styles.counterRow}>
-        <SignupHelpText tone={bioLength > 0 && !bioValid ? 'danger' : 'muted'}>
-          {bioLength < BIO_MIN_LENGTH
-            ? `Cần ít nhất ${BIO_MIN_LENGTH} ký tự để hồ sơ đủ thông tin và đáng tin cậy.`
-            : 'Tối đa 4000 ký tự. Không nên chia sẻ số điện thoại, địa chỉ riêng hoặc thông tin tài chính.'}
-        </SignupHelpText>
+        <SignupHelpText tone={bioLength > 0 && !bioValid ? 'danger' : 'muted'}>{bioLength < BIO_MIN_LENGTH ? `Cần ít nhất ${BIO_MIN_LENGTH} ký tự để hồ sơ đủ thông tin và đáng tin cậy.` : 'Tối đa 4000 ký tự. Không nên chia sẻ số điện thoại, địa chỉ riêng hoặc thông tin tài chính.'}</SignupHelpText>
         <SignupCharacterCount current={bioLength} max={BIO_MAX_LENGTH} valid={bioValid} />
       </View>
-
       <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>Hồ sơ rõ ràng tạo kết nối tốt hơn</Text>
-        <Text style={styles.noteText}>
-          Hãy viết bằng giọng thật của bạn, tập trung vào con người, giá trị và phong cách sống thay vì chỉ liệt kê thành tích.
-        </Text>
+        <Text style={styles.noteTitle}>Hãy chân thật và có điểm nhất về bạn</Text>
+        <Text style={styles.noteText}>Hãy viết bằng giọng thật của bạn, tập trung vào con người, giá trị và phong cách sống thay vì chỉ liệt kê thành tích.</Text>
       </View>
-
       {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
-      <SignupPrimaryButton
-        busy={isSubmitting}
-        disabled={!canSubmit}
-        label="Tiếp tục xác minh"
-        onPress={() => void handleContinue()}
-      />
+      <SignupPrimaryButton busy={isSubmitting} disabled={!canSubmit} label="Tiếp tục xác minh" onPress={() => void handleContinue()} />
     </SignupShell>
   );
 }

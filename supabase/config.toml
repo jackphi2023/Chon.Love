@@ -66,6 +66,9 @@ verify_jwt = true
 [functions.media-moderation]
 verify_jwt = true
 
+[functions.member-photo-verification]
+verify_jwt = true
+
 [functions.play-purchase-verify]
 verify_jwt = true
 

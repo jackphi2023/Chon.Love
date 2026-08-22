@@ -17,6 +17,23 @@ export type MemberPhotoVerificationResult = {
   message?: string | null;
 };
 
+async function throwFunctionError(error: unknown): Promise<never> {
+  const candidate = error as { message?: unknown; context?: unknown } | null;
+  const response = candidate?.context instanceof Response ? candidate.context : null;
+  let remoteCode = '';
+  if (response) {
+    try {
+      const payload = await response.clone().json() as { error?: unknown };
+      if (typeof payload.error === 'string') remoteCode = payload.error;
+    } catch {
+      // A non-JSON proxy response still carries the HTTP status below.
+    }
+  }
+  const message = typeof candidate?.message === 'string' ? candidate.message : 'edge_function_error';
+  const status = response?.status ?? 0;
+  throw new Error(`member_photo_verification_invoke_failed:${status}:${remoteCode || message}`);
+}
+
 export async function getMemberPhotoVerificationStatus(
   client = getMobileSupabaseClient(),
 ): Promise<MemberPhotoVerificationResult> {
@@ -24,7 +41,7 @@ export async function getMemberPhotoVerificationStatus(
   const { data, error } = await client.functions.invoke('member-photo-verification', {
     body: { action: 'status' },
   });
-  if (error) throw error;
+  if (error) return throwFunctionError(error);
   return normalizeResult(data);
 }
 
@@ -46,7 +63,7 @@ export async function submitMemberPhotoVerification(
       declaredGender,
     },
   });
-  if (error) throw error;
+  if (error) return throwFunctionError(error);
   return normalizeResult(data);
 }
 
