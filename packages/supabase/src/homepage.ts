@@ -37,7 +37,8 @@ const publicActivityHighlightSchema = z.object({
   media_height: z.coerce.number().int().positive().nullable(),
 });
 
-const nullableHttpsUrl = z.string().url().refine((value) => value.startsWith('https://')).nullable();
+const httpsUrl = z.string().url().refine((value) => value.startsWith('https://'));
+const nullableHttpsUrl = httpsUrl.nullable();
 const nullableYoutubeUrl = z
   .string()
   .url()
@@ -51,9 +52,20 @@ const nullableYoutubeUrl = z
   })
   .nullable();
 
+export const HOMEPAGE_HERO_MAX_SLIDES = 8;
+
+export const homepageHeroSlideSchema = z.object({
+  id: z.string().uuid(),
+  desktop_url: httpsUrl,
+  mobile_url: httpsUrl,
+});
+
 export const homepageSettingsSchema = z.object({
   hero_desktop_youtube_url: nullableYoutubeUrl,
   hero_mobile_youtube_url: nullableYoutubeUrl,
+  // Defaulting to [] keeps the public homepage backward-compatible during a
+  // rolling deploy where the app may briefly read the pre-slider RPC shape.
+  hero_slider_images: z.array(homepageHeroSlideSchema).max(HOMEPAGE_HERO_MAX_SLIDES).default([]),
   section2_left_image_url: nullableHttpsUrl,
   section2_right_image_url: nullableHttpsUrl,
   section3_background_image_url: nullableHttpsUrl,
@@ -63,6 +75,7 @@ export const homepageSettingsSchema = z.object({
 
 export type PublicFeaturedCreator = z.infer<typeof publicFeaturedCreatorSchema>;
 export type PublicActivityHighlight = z.infer<typeof publicActivityHighlightSchema>;
+export type HomepageHeroSlide = z.infer<typeof homepageHeroSlideSchema>;
 export type HomepageSettings = z.infer<typeof homepageSettingsSchema>;
 
 export const publicHomepageQueryKeys = {
@@ -83,6 +96,12 @@ export function normalizePublicActivityHighlights(value: unknown): PublicActivit
 export function normalizeHomepageSettings(value: unknown): HomepageSettings {
   const row = Array.isArray(value) ? value[0] : value;
   return homepageSettingsSchema.parse(row);
+}
+
+export function shouldUseHomepageHeroSlider(
+  settings: Pick<HomepageSettings, 'hero_slider_images'> | null | undefined,
+): boolean {
+  return (settings?.hero_slider_images.length ?? 0) > 0;
 }
 
 export function truncatePublicHomepageText(value: string, maximumLength = 180): string {
@@ -137,11 +156,12 @@ export async function updateAdminHomepageSettings(
 ): Promise<HomepageSettings> {
   const parsed = homepageSettingsSchema.omit({ updated_at: true }).parse(input);
   const { data, error } = await client.rpc(
-    'admin_update_homepage_settings' as never,
+    'admin_publish_homepage_settings' as never,
     {
       p_actor_user_id: z.string().uuid().parse(actorUserId),
       p_hero_desktop_youtube_url: parsed.hero_desktop_youtube_url,
       p_hero_mobile_youtube_url: parsed.hero_mobile_youtube_url,
+      p_hero_slider_images: parsed.hero_slider_images,
       p_section2_left_image_url: parsed.section2_left_image_url,
       p_section2_right_image_url: parsed.section2_right_image_url,
       p_section3_background_image_url: parsed.section3_background_image_url,
