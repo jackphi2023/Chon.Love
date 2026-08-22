@@ -1,4 +1,4 @@
-export type AuthenticatedRoute = '/(onboarding)' | '/(tabs)';
+export type AuthenticatedRoute = '/(onboarding)' | '/(tabs)' | '/(tabs)/connect';
 
 export type AuthOnboardingStatus = {
   age_verified: boolean;
@@ -17,7 +17,10 @@ export function resolveAuthenticatedRoute(
   // verification. pending_review/incomplete users stay inside onboarding even
   // when they already hold an authenticated Supabase session.
   if (status.profile_status !== 'active') return '/(onboarding)';
-  return '/(tabs)';
+  // Use a concrete path instead of the route-group index. The public homepage
+  // and `(tabs)/index` both resolve to `/` on web, so `/(tabs)` can collapse
+  // back to the public root instead of opening the authenticated discovery UI.
+  return '/(tabs)/connect';
 }
 
 export function getReadableAuthError(error: unknown): string {

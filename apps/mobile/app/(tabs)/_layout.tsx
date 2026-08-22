@@ -11,8 +11,7 @@ import { logger } from '@/lib/logger';
 import { useAuth } from '@/providers/auth-provider';
 
 function shouldShowDesktopFooter(pathname: string): boolean {
-  return pathname === '/'
-    || pathname === '/index'
+  return pathname === '/connect'
     || pathname.startsWith('/favorites')
     || pathname.startsWith('/friends')
     || pathname.startsWith('/messages');
@@ -44,7 +43,7 @@ export default function AuthenticatedLuxyLayout() {
   if (auth.isRestoring) return <RouteLoading />;
   if (!auth.userId) return Platform.OS === 'web' ? <PublicHomepageReload /> : <Redirect href="/" />;
   if (destination === null) return <RouteLoading />;
-  if (destination !== '/(tabs)') return <Redirect href="/(onboarding)" />;
+  if (destination !== '/(tabs)/connect') return <Redirect href="/(onboarding)" />;
 
   return (
     <View style={styles.shell}>
