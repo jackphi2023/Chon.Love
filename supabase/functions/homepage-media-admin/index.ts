@@ -13,6 +13,8 @@ const responseHeaders = {
 };
 
 const allowedFields = new Set([
+  'hero_slider_desktop',
+  'hero_slider_mobile',
   'section2_left_image_url',
   'section2_right_image_url',
   'section3_background_image_url',
