@@ -81,5 +81,8 @@ verify_jwt = true
 [functions.vietqr-reconciliation-admin]
 verify_jwt = true
 
+[functions.homepage-media-admin]
+verify_jwt = true
+
 [functions.public-profile-seo]
 verify_jwt = false
