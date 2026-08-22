@@ -153,33 +153,14 @@ export function parseLuxySearchInput(input: SearchLuxyProfilesInput = {}) {
   return searchInputSchema.parse(input);
 }
 
+// Kept as a public helper for source compatibility. Locality fallback now lives
+// in Search V2 itself so the default Connect feed needs only one network round-trip.
 export function resolveLuxySearchDefaultProvince(
   requestedProvinceId: number | null | undefined,
-  sort: LuxySearchSort,
-  context: DiscoverySearchContext | null | undefined,
+  _sort: LuxySearchSort,
+  _context: DiscoverySearchContext | null | undefined,
 ): number | null {
-  if (requestedProvinceId != null) return requestedProvinceId;
-  if (sort !== 'distance' || !context || context.has_fresh_location === true) return null;
-  const provinceId = Number(context.province_id);
-  return Number.isInteger(provinceId) && provinceId > 0 ? provinceId : null;
-}
-
-async function resolveSearchProvinceId(
-  client: Client,
-  requestedProvinceId: number | null | undefined,
-  sort: LuxySearchSort,
-): Promise<number | null> {
-  if (requestedProvinceId != null || sort !== 'distance') {
-    return requestedProvinceId ?? null;
-  }
-
-  // The default Connect feed follows the member's live GPS when available.
-  // Without a fresh consented coordinate, automatically fall back to the
-  // province selected during signup instead of showing a nationwide feed.
-  const { data, error } = await client.rpc('get_my_discovery_context');
-  if (error) return null;
-  const context = (Array.isArray(data) ? data[0] : data) as DiscoverySearchContext | null | undefined;
-  return resolveLuxySearchDefaultProvince(requestedProvinceId, sort, context);
+  return requestedProvinceId ?? null;
 }
 
 export async function searchLuxyProfilesV2(
@@ -187,14 +168,13 @@ export async function searchLuxyProfilesV2(
   input: SearchLuxyProfilesInput = {},
 ): Promise<LuxySearchProfile[]> {
   const parsed = parseLuxySearchInput(input);
-  const effectiveProvinceId = await resolveSearchProvinceId(client, parsed.provinceId, parsed.sort);
   const args = {
     p_sort: parsed.sort,
     p_min_age: parsed.minAge,
     p_max_age: parsed.maxAge,
     p_limit: parsed.limit,
     p_offset: parsed.offset,
-    ...(effectiveProvinceId == null ? {} : { p_province_id: effectiveProvinceId }),
+    ...(parsed.provinceId == null ? {} : { p_province_id: parsed.provinceId }),
     ...(parsed.maxDistanceKm == null ? {} : { p_max_distance_km: parsed.maxDistanceKm }),
     ...(parsed.genders?.length ? { p_genders: parsed.genders } : {}),
     ...(parsed.minHeightCm == null ? {} : { p_min_height_cm: parsed.minHeightCm }),
