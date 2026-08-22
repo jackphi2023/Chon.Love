@@ -1,0 +1,4 @@
+-- Hosted production migration-history alignment marker for SIGNUP-R01.
+-- The canonical schema/behavior change is defined in
+-- 20260822172000_chon_connect_locality_ranking.sql and was production-validated
+-- before this marker was recorded. No duplicate schema change is required here.

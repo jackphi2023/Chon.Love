@@ -168,18 +168,18 @@ select ok(
 
 select lives_ok(
   $$select public.activate_verified_signup_profile_v2('29000000-0000-0000-0000-000000000002')$$,
-  'stale GPS profile still activates after selfie approval'
+  'older but unexpired GPS profile still activates after selfie approval'
 );
 
 select ok(
   (
     select profile_status='active'::public.profile_status
       and discovery_enabled
-      and not nearby_enabled
+      and nearby_enabled
     from public.profiles
     where id='29000000-0000-0000-0000-000000000002'
   ),
-  'GPS older than Search V2 freshness window does not enable nearby'
+  'consented GPS remains usable for nearby until its normal expiry instead of only 30 minutes'
 );
 
 select lives_ok(
@@ -207,11 +207,11 @@ select throws_ok(
 
 select ok(
   position(
-    'p.nearby_enabled' in pg_get_functiondef(
+    'caller_province_id' in pg_get_functiondef(
       'public.search_luxy_profiles_v2(text,bigint,numeric,smallint,smallint,public.gender_identity[],smallint,smallint,smallint,smallint,public.relationship_status[],public.children_status[],public.smoking_status[],public.drinking_status[],public.education_level[],public.profile_lifestyle_tag[],text[],text[],boolean,boolean,text,text,text,text,integer,integer)'::regprocedure
     )
   ) > 0,
-  'Kết nối distance ranking still derives exact distance only through nearby-enabled private location'
+  'Kết nối distance ranking has a server-side same-province fallback before nationwide results'
 );
 
 reset role;
