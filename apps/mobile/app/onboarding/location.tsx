@@ -114,10 +114,7 @@ export default function OnboardingLocation() {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      await saveSignupLocation({
-        provinceId: parsedProvinceId,
-        location: exactLocation,
-      });
+      await saveSignupLocation({ provinceId: parsedProvinceId, location: exactLocation });
       router.replace('/onboarding/looking-for');
     } catch (error) {
       setErrorMessage(getReadableOnboardingError(error));
@@ -151,27 +148,15 @@ export default function OnboardingLocation() {
   }
 
   const captureMessage = captureResult ? getSignupLocationCaptureMessage(captureResult) : null;
-  const captureTone = captureResult?.status === 'captured'
-    ? 'success'
-    : captureResult
-      ? 'danger'
-      : 'muted';
+  const captureTone = captureResult?.status === 'captured' ? 'success' : captureResult ? 'danger' : 'muted';
 
   return (
     <SignupShell
-      description="Chọn tỉnh/thành phố để hiển thị trên hồ sơ. Bạn có thể cho phép vị trí hiện tại để Chon.Love tính khoảng cách gần/xa chính xác hơn."
       onBack={() => router.replace('/(onboarding)')}
       step={4}
       testID="chon-onboarding-location"
       title="Vị trí của bạn"
     >
-      <View style={styles.privacyCard}>
-        <Text style={styles.privacyTitle}>Vị trí chính xác luôn được giữ riêng tư</Text>
-        <Text style={styles.privacyText}>
-          Thành viên khác chỉ thấy tỉnh/thành phố và khoảng cách tương đối. Tọa độ GPS không hiển thị trên hồ sơ công khai.
-        </Text>
-      </View>
-
       <SignupFieldLabel required>Tỉnh / thành phố</SignupFieldLabel>
       <SignupSelect
         accessibilityLabel="Tỉnh hoặc thành phố"
@@ -180,7 +165,6 @@ export default function OnboardingLocation() {
         testID="signup-location-province"
         value={provinceId}
       />
-      <SignupHelpText>Danh sách sử dụng 34 tỉnh/thành phố đang hoạt động trong dữ liệu Chon.Love.</SignupHelpText>
 
       <SignupFieldLabel>Vị trí hiện tại</SignupFieldLabel>
       <SignupSecondaryButton
@@ -189,28 +173,7 @@ export default function OnboardingLocation() {
         label={exactLocation ? 'Cập nhật vị trí hiện tại' : 'Sử dụng vị trí hiện tại'}
         onPress={() => void handleCurrentLocation()}
       />
-      {captureMessage ? <SignupHelpText tone={captureTone}>{captureMessage}</SignupHelpText> : (
-        <SignupHelpText>Không bắt buộc. Nếu không cấp quyền GPS, bạn vẫn có thể tiếp tục bằng tỉnh/thành phố đã chọn.</SignupHelpText>
-      )}
-
-      {exactLocation ? (
-        <Pressable
-          accessibilityLabel="Chỉ dùng tỉnh hoặc thành phố cho lần lưu này"
-          accessibilityRole="button"
-          onPress={() => {
-            setExactLocation(null);
-            setCaptureResult(null);
-          }}
-          style={({ pressed }) => [styles.provinceOnlyButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.provinceOnlyText}>Chỉ dùng tỉnh/thành phố cho lần lưu này</Text>
-        </Pressable>
-      ) : null}
-
-      <View style={styles.divider} />
-      <SignupHelpText>
-        Bạn có thể thay đổi tỉnh/thành phố hoặc tắt quyền dùng vị trí gần đây trong phần chỉnh sửa/cài đặt hồ sơ sau này.
-      </SignupHelpText>
+      {captureMessage ? <SignupHelpText tone={captureTone}>{captureMessage}</SignupHelpText> : null}
 
       {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
       <SignupPrimaryButton
@@ -224,36 +187,8 @@ export default function OnboardingLocation() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    flex: 1,
-    gap: spacing.md,
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
+  loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   loadingText: { color: colors.muted, fontSize: 15 },
-  privacyCard: {
-    backgroundColor: '#FFF8E1',
-    borderColor: '#F2B51D',
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 5,
-    padding: 14,
-  },
-  privacyTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  privacyText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  provinceOnlyButton: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, paddingVertical: 6 },
-  provinceOnlyText: { color: '#B42318', fontSize: 16, fontWeight: '700', textDecorationLine: 'underline' },
-  divider: { backgroundColor: colors.border, height: 1, marginVertical: 3 },
-  signOutButton: {
-    alignItems: 'center',
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-  },
+  signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48 },
   signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  pressed: { opacity: 0.72 },
 });
