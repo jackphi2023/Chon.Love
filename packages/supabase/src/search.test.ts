@@ -3,6 +3,7 @@ import {
   formatLuxyDistance,
   getNextLuxySearchOffset,
   parseLuxySearchInput,
+  resolveLuxySearchDefaultProvince,
   searchLuxyProfilesV2,
 } from './search';
 
@@ -15,6 +16,25 @@ describe('Luxy Search V2 client contract', () => {
       limit: 24,
       offset: 0,
     });
+  });
+
+  it('uses live GPS for distance search and falls back to signup province without GPS', () => {
+    expect(resolveLuxySearchDefaultProvince(null, 'distance', {
+      province_id: 79,
+      has_fresh_location: true,
+    })).toBeNull();
+    expect(resolveLuxySearchDefaultProvince(null, 'distance', {
+      province_id: 79,
+      has_fresh_location: false,
+    })).toBe(79);
+    expect(resolveLuxySearchDefaultProvince(1, 'distance', {
+      province_id: 79,
+      has_fresh_location: false,
+    })).toBe(1);
+    expect(resolveLuxySearchDefaultProvince(null, 'recent', {
+      province_id: 79,
+      has_fresh_location: false,
+    })).toBeNull();
   });
 
   it('rejects inverted age, height and weight ranges before RPC execution', () => {
@@ -77,44 +97,76 @@ describe('Luxy Search V2 client contract', () => {
     expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_verified');
   });
 
+  it('injects the signup province into the default feed when no fresh location exists', async () => {
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({
+        data: [{ province_id: 79, has_fresh_location: false }],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: [], error: null });
+
+    await searchLuxyProfilesV2({ rpc } as never);
+
+    expect(rpc).toHaveBeenNthCalledWith(1, 'get_my_discovery_context');
+    expect(rpc).toHaveBeenNthCalledWith(2, 'search_luxy_profiles_v2', expect.objectContaining({
+      p_sort: 'distance',
+      p_province_id: 79,
+    }));
+  });
+
+  it('keeps the default feed nationwide and distance-aware when fresh GPS exists', async () => {
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({
+        data: [{ province_id: 79, has_fresh_location: true }],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: [], error: null });
+
+    await searchLuxyProfilesV2({ rpc } as never);
+
+    expect(rpc.mock.calls[1]?.[0]).toBe('search_luxy_profiles_v2');
+    expect(rpc.mock.calls[1]?.[1]).not.toHaveProperty('p_province_id');
+    expect(rpc.mock.calls[1]?.[1]).toMatchObject({ p_sort: 'distance' });
+  });
+
   it('validates and returns the privacy-safe result + LX-12 relationship state', async () => {
-    const rpc = vi.fn().mockResolvedValue({
-      error: null,
-      data: [{
-        id: '19000000-0000-4000-8000-000000000002',
-        username: 'lan',
-        display_name: 'Lan',
-        headline: 'Fine dining',
-        bio: null,
-        gender: 'female',
-        age: 29,
-        province_id: 79,
-        province_name: 'Thành phố Hồ Chí Minh',
-        avatar_media_id: null,
-        avatar_storage_bucket: null,
-        avatar_storage_path: null,
-        photo_count: 2,
-        interests: ['Du lịch'],
-        height_cm: 165,
-        weight_kg: 52,
-        relationship_status: 'single',
-        children_status: 'no_children',
-        smoking_status: 'never',
-        drinking_status: 'socially',
-        education_level: 'masters',
-        occupation: 'Kiến trúc sư',
-        looking_for: 'Lâu dài',
-        lifestyle_tags: ['fine_dining', 'long_term'],
-        languages: ['Tiếng Việt'],
-        last_active_at: '2026-08-11T15:00:00.000Z',
-        is_online: true,
-        distance_km: 0.7,
-        member_since: '2026-08-01T00:00:00.000Z',
-        is_favorited: true,
-        is_favorited_by: false,
-        is_viewed: true,
-      }],
-    });
+    const resultRow = {
+      id: '19000000-0000-4000-8000-000000000002',
+      username: 'lan',
+      display_name: 'Lan',
+      headline: 'Fine dining',
+      bio: null,
+      gender: 'female',
+      age: 29,
+      province_id: 79,
+      province_name: 'Thành phố Hồ Chí Minh',
+      avatar_media_id: null,
+      avatar_storage_bucket: null,
+      avatar_storage_path: null,
+      photo_count: 2,
+      interests: ['Du lịch'],
+      height_cm: 165,
+      weight_kg: 52,
+      relationship_status: 'single',
+      children_status: 'no_children',
+      smoking_status: 'never',
+      drinking_status: 'socially',
+      education_level: 'masters',
+      occupation: 'Kiến trúc sư',
+      looking_for: 'Lâu dài',
+      lifestyle_tags: ['fine_dining', 'long_term'],
+      languages: ['Tiếng Việt'],
+      last_active_at: '2026-08-11T15:00:00.000Z',
+      is_online: true,
+      distance_km: 0.7,
+      member_since: '2026-08-01T00:00:00.000Z',
+      is_favorited: true,
+      is_favorited_by: false,
+      is_viewed: true,
+    };
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({ data: [{ province_id: 79, has_fresh_location: true }], error: null })
+      .mockResolvedValueOnce({ error: null, data: [resultRow] });
 
     const result = await searchLuxyProfilesV2({ rpc } as never);
     expect(result[0]).toMatchObject({
