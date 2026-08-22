@@ -1,0 +1,3 @@
+-- Remote migration-history alignment marker for the 2026-08-22 production Signup V2 hotfix.
+-- The canonical schema change is defined in 20260820132500_su_09_selfie_completion_activation.sql.
+-- No schema change is required here.
