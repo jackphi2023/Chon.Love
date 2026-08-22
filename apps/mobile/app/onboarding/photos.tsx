@@ -62,11 +62,12 @@ export default function OnboardingPhotos() {
   const [isChecking, setIsChecking] = useState(true);
   const [isSelecting, setIsSelecting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const totalCount = Math.min(SIGNUP_PROFILE_PHOTO_LIMIT, existingPhotos.length + pendingPhotos.length);
   const remainingSlots = remainingSignupPhotoSlots(existingPhotos.length, pendingPhotos.length);
-  const hasRequiredPhoto = totalCount >= 1 && (hasAvatar || pendingPhotos.length > 0);
+  const hasRequiredPhoto = totalCount >= 1;
   const recommendedReached = totalCount >= SIGNUP_RECOMMENDED_PHOTO_COUNT;
 
   const slots = useMemo<PhotoSlot[]>(() => {
@@ -174,6 +175,36 @@ export default function OnboardingPhotos() {
     setPendingPhotos((current) => current.filter((_, index) => index !== pendingIndex));
   }
 
+  async function removeExisting(photo: ExistingPhoto) {
+    const client = getMobileSupabaseClient();
+    if (!client || deletingMediaId) return;
+    setDeletingMediaId(photo.id);
+    setErrorMessage(null);
+    try {
+      const { error } = await client.rpc('delete_my_media', {
+        p_media_id: photo.id,
+        p_request_id: crypto.randomUUID(),
+      });
+      if (error) throw error;
+
+      const remaining = existingPhotos.filter((item) => item.id !== photo.id);
+      if (photo.visibility === 'avatar' && remaining.length > 0) {
+        const nextAvatar = remaining[0]!;
+        const { error: avatarError } = await client.rpc('set_my_avatar', { p_media_id: nextAvatar.id });
+        if (avatarError) throw avatarError;
+        setExistingPhotos(remaining.map((item, index) => ({ ...item, visibility: index === 0 ? 'avatar' : 'public' })));
+        setHasAvatar(true);
+      } else {
+        setExistingPhotos(remaining);
+        if (photo.visibility === 'avatar') setHasAvatar(false);
+      }
+    } catch (error) {
+      setErrorMessage(getReadableProfileMediaError(error));
+    } finally {
+      setDeletingMediaId(null);
+    }
+  }
+
   async function continueNext() {
     if (!hasRequiredPhoto) {
       setErrorMessage('Bạn cần ít nhất một ảnh hồ sơ. Ảnh đầu tiên sẽ được dùng làm ảnh đại diện.');
@@ -238,7 +269,7 @@ export default function OnboardingPhotos() {
 
   return (
     <SignupShell
-      description="Thêm ảnh thật, rõ khuôn mặt và đúng với bạn. Cần ít nhất 1 ảnh; Chon.Love khuyến nghị 3 ảnh để hồ sơ đáng tin cậy hơn."
+      description="Thêm ảnh thật, rõ khuôn mặt và đúng với bạn. Cần ít nhất 1 ảnh, Chon.Love khuyến nghị đăng từ 3-5 ảnh để hồ sơ tin cậy và hấp dẫn hơn. Bạn có thể chọn ảnh ẩn chỉ cho thành viên trả phí xem ở trang quản trị cá nhân"
       onBack={() => router.replace('/onboarding/looking-for')}
       step={6}
       testID="chon-onboarding-photos"
@@ -279,18 +310,17 @@ export default function OnboardingPhotos() {
                 </View>
               ) : (
                 <View style={styles.emptySlot}>
-                  <Text accessibilityElementsHidden style={styles.plus}>＋</Text>
                   <Text style={styles.emptyText}>Ảnh {index + 1}</Text>
                 </View>
               )}
               {isAvatar ? <Text style={styles.avatarBadge}>Đại diện</Text> : null}
-              {slot?.kind === 'pending' ? (
+              {slot ? (
                 <Pressable
-                  accessibilityLabel={`Bỏ ảnh ${index + 1}`}
+                  accessibilityLabel={`Xóa ảnh ${index + 1}`}
                   accessibilityRole="button"
-                  accessibilityState={{ disabled: isUploading }}
-                  disabled={isUploading}
-                  onPress={() => removePending(slot.pendingIndex)}
+                  accessibilityState={{ disabled: isUploading || Boolean(deletingMediaId) }}
+                  disabled={isUploading || Boolean(deletingMediaId)}
+                  onPress={() => slot.kind === 'pending' ? removePending(slot.pendingIndex) : void removeExisting(slot.photo)}
                   style={styles.removeButton}
                 >
                   <Text accessibilityElementsHidden style={styles.removeText}>×</Text>
@@ -306,20 +336,20 @@ export default function OnboardingPhotos() {
           ? 'Cần ít nhất 1 ảnh để tiếp tục. Ảnh đầu tiên sẽ là ảnh đại diện.'
           : recommendedReached
             ? '✓ Ảnh đã sẵn sàng cho bước xác minh khuôn mặt.'
-            : 'Bạn đã đủ điều kiện tối thiểu. Thêm 3 ảnh giúp tăng độ tin cậy và có thêm ảnh tham chiếu khi xác minh selfie.'}
+            : 'Cần ít nhất 1 ảnh để tiếp tục. Ảnh đầu tiên sẽ là ảnh đại diện.'}
       </SignupHelpText>
 
       <SignupSecondaryButton
         busy={isSelecting}
-        disabled={remainingSlots <= 0 || isUploading}
-        label={remainingSlots > 0 ? `Chọn ảnh từ thiết bị (${remainingSlots} ô còn lại)` : 'Đã đủ 5 ảnh'}
+        disabled={remainingSlots <= 0 || isUploading || Boolean(deletingMediaId)}
+        label="Chọn ảnh từ máy"
         onPress={() => void choosePhotos()}
       />
 
       {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
       <SignupPrimaryButton
         busy={isUploading}
-        disabled={!hasRequiredPhoto || isSelecting}
+        disabled={!hasRequiredPhoto || isSelecting || Boolean(deletingMediaId)}
         label={pendingPhotos.length > 0 ? `Tải ${pendingPhotos.length} ảnh lên và tiếp tục` : 'Tiếp tục'}
         onPress={() => void continueNext()}
       />
@@ -341,14 +371,13 @@ const styles = StyleSheet.create({
   photoSlot: { aspectRatio: 1, borderRadius: 12, minWidth: 92, overflow: 'hidden', position: 'relative' },
   photo: { height: '100%', width: '100%' },
   emptySlot: { alignItems: 'center', backgroundColor: '#FAFAFA', borderColor: colors.border, borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, height: '100%', justifyContent: 'center', width: '100%' },
-  plus: { color: colors.muted, fontSize: 28, lineHeight: 32 },
   emptyText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   savedPlaceholder: { alignItems: 'center', backgroundColor: '#F0FDF4', borderColor: '#86EFAC', borderRadius: 12, borderWidth: 1, height: '100%', justifyContent: 'center', width: '100%' },
   savedIcon: { color: '#15803D', fontSize: 24, fontWeight: '900' },
   savedText: { color: '#15803D', fontSize: 11, fontWeight: '700' },
   avatarBadge: { backgroundColor: 'rgba(17,17,17,0.78)', borderRadius: 999, color: '#FFFFFF', fontSize: 10, fontWeight: '800', left: 6, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 6 },
-  removeButton: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 999, height: 44, justifyContent: 'center', position: 'absolute', right: 4, top: 4, width: 44 },
-  removeText: { color: colors.text, fontSize: 22, fontWeight: '800', lineHeight: 24 },
+  removeButton: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 999, height: 28, justifyContent: 'center', position: 'absolute', right: 4, top: 4, width: 28 },
+  removeText: { color: colors.text, fontSize: 18, fontWeight: '800', lineHeight: 20 },
   signOutButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 48 },
   signOutText: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });
