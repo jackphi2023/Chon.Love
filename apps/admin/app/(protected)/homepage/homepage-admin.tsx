@@ -16,6 +16,8 @@ type ImageField =
   | 'section3_background_image_url'
   | 'section4_image_url';
 
+type SignedUploadResponse = { path?: unknown; token?: unknown };
+
 const emptySettings: EditableSettings = {
   hero_desktop_youtube_url: null,
   hero_mobile_youtube_url: null,
@@ -31,6 +33,26 @@ const imageSlots: Array<{ field: ImageField; label: string; hint: string }> = [
   { field: 'section3_background_image_url', label: 'Section 3 · Nền testimonials', hint: 'Ưu tiên ảnh ngang từ 1600px, có khoảng trống để chữ dễ đọc.' },
   { field: 'section4_image_url', label: 'Section 4 · Ảnh quyền lợi', hint: 'Ưu tiên ảnh dọc chất lượng cao, phù hợp khung oval.' },
 ];
+
+function editableFromSaved(saved: HomepageSettings): EditableSettings {
+  return {
+    hero_desktop_youtube_url: saved.hero_desktop_youtube_url,
+    hero_mobile_youtube_url: saved.hero_mobile_youtube_url,
+    section2_left_image_url: saved.section2_left_image_url,
+    section2_right_image_url: saved.section2_right_image_url,
+    section3_background_image_url: saved.section3_background_image_url,
+    section4_image_url: saved.section4_image_url,
+  };
+}
+
+function readableError(error: unknown): string {
+  if (!error || typeof error !== 'object') return '';
+  const candidate = error as { message?: unknown; statusCode?: unknown; error?: unknown };
+  const parts = [candidate.message, candidate.error, candidate.statusCode]
+    .filter((value): value is string | number => typeof value === 'string' || typeof value === 'number')
+    .map(String);
+  return parts.join(' · ').slice(0, 280);
+}
 
 export function HomepageAdmin() {
   const [actorUserId, setActorUserId] = useState<string | null>(null);
@@ -56,14 +78,7 @@ export function HomepageAdmin() {
       if (!userId) throw new Error('admin_login_required');
       const current = await getAdminHomepageSettings(client, userId);
       setActorUserId(userId);
-      setSettings({
-        hero_desktop_youtube_url: current.hero_desktop_youtube_url,
-        hero_mobile_youtube_url: current.hero_mobile_youtube_url,
-        section2_left_image_url: current.section2_left_image_url,
-        section2_right_image_url: current.section2_right_image_url,
-        section3_background_image_url: current.section3_background_image_url,
-        section4_image_url: current.section4_image_url,
-      });
+      setSettings(editableFromSaved(current));
       setUpdatedAt(current.updated_at);
     } catch {
       setError('Không thể tải cấu hình homepage. Tài khoản hiện tại cần role super_admin.');
@@ -85,22 +100,25 @@ export function HomepageAdmin() {
     setNotice(null);
     try {
       const saved = await updateAdminHomepageSettings(client, actorUserId, settings);
-      setSettings({
-        hero_desktop_youtube_url: saved.hero_desktop_youtube_url,
-        hero_mobile_youtube_url: saved.hero_mobile_youtube_url,
-        section2_left_image_url: saved.section2_left_image_url,
-        section2_right_image_url: saved.section2_right_image_url,
-        section3_background_image_url: saved.section3_background_image_url,
-        section4_image_url: saved.section4_image_url,
-      });
+      setSettings(editableFromSaved(saved));
       setUpdatedAt(saved.updated_at);
-      setNotice('Đã lưu cấu hình homepage. Trang chủ sẽ nhận cấu hình mới khi cache dữ liệu được làm mới.');
+      setNotice('Đã lưu cấu hình homepage. Trang chủ đang dùng cơ chế tự làm mới cấu hình.');
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : '';
-      setError(message.includes('youtube') ? 'Link video phải là URL YouTube HTTPS hợp lệ.' : 'Không thể lưu cấu hình homepage hoặc tài khoản không có quyền super_admin.');
+      const message = readableError(saveError);
+      setError(message.includes('youtube')
+        ? 'Link video phải là URL YouTube HTTPS hợp lệ.'
+        : `Không thể lưu cấu hình homepage hoặc tài khoản không có quyền super_admin.${message ? ` Chi tiết: ${message}` : ''}`);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function cleanupUploadedPath(path: string) {
+    const client = getAdminSupabaseClient();
+    if (!client) return;
+    await client.functions.invoke('homepage-media-admin', {
+      body: { action: 'delete_upload', path },
+    }).catch(() => undefined);
   }
 
   async function uploadImage(field: ImageField, file: File | undefined) {
@@ -111,14 +129,8 @@ export function HomepageAdmin() {
       setError('Ảnh tối đa 8 MB.');
       return;
     }
-    const extensionByType: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-      'image/avif': 'avif',
-    };
-    const extension = extensionByType[file.type];
-    if (!extension) {
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+    if (!allowedTypes.has(file.type)) {
       setError('Chỉ hỗ trợ JPG, PNG, WebP hoặc AVIF.');
       return;
     }
@@ -126,19 +138,37 @@ export function HomepageAdmin() {
     setUploading(field);
     setError(null);
     setNotice(null);
+    let uploadedPath: string | null = null;
     try {
-      const path = `homepage/${field}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await client.storage.from('homepage-public').upload(path, file, {
+      // The server verifies the current JWT + super_admin role and returns a
+      // one-time signed upload token. This avoids relying on browser INSERT RLS
+      // for the privileged homepage publishing path.
+      const { data: signedData, error: signedError } = await client.functions.invoke('homepage-media-admin', {
+        body: { action: 'create_upload', field, contentType: file.type },
+      });
+      if (signedError) throw signedError;
+      const signed = (signedData ?? {}) as SignedUploadResponse;
+      const path = typeof signed.path === 'string' ? signed.path : '';
+      const token = typeof signed.token === 'string' ? signed.token : '';
+      if (!path || !token) throw new Error('signed_upload_token_missing');
+
+      const { error: uploadError } = await client.storage.from('homepage-public').uploadToSignedUrl(path, token, file, {
         cacheControl: '31536000',
         contentType: file.type,
-        upsert: false,
       });
       if (uploadError) throw uploadError;
+      uploadedPath = path;
+
       const { data } = client.storage.from('homepage-public').getPublicUrl(path);
-      setSettings((current) => ({ ...current, [field]: data.publicUrl }));
-      setNotice('Ảnh đã upload. Bấm “Lưu homepage” để áp dụng URL mới.');
-    } catch {
-      setError('Upload ảnh thất bại hoặc tài khoản không có quyền super_admin.');
+      const nextSettings: EditableSettings = { ...settings, [field]: data.publicUrl };
+      const saved = await updateAdminHomepageSettings(client, actorUserId, nextSettings);
+      setSettings(editableFromSaved(saved));
+      setUpdatedAt(saved.updated_at);
+      setNotice('Ảnh đã upload và được áp dụng vào homepage. Trang chủ sẽ tự lấy cấu hình mới trong tối đa khoảng 30 giây.');
+    } catch (uploadOrSaveError) {
+      if (uploadedPath) await cleanupUploadedPath(uploadedPath);
+      const detail = readableError(uploadOrSaveError);
+      setError(`Upload/áp dụng ảnh thất bại.${detail ? ` Chi tiết: ${detail}` : ' Kiểm tra quyền Super Admin và định dạng ảnh.'}`);
     } finally {
       setUploading(null);
     }
@@ -171,7 +201,7 @@ export function HomepageAdmin() {
 
       <section style={panelStyle}>
         <h2 style={{ margin: 0 }}>Ảnh homepage</h2>
-        <p style={hintStyle}>Ảnh dùng đường dẫn immutable và cache dài hạn để tải nhanh. Upload ảnh mới sẽ tạo URL mới nên không bị cache ảnh cũ.</p>
+        <p style={hintStyle}>Chọn ảnh mới sẽ upload và áp dụng ngay. Mỗi lần upload tạo URL immutable mới nên CDN có thể cache dài hạn mà không giữ nhầm ảnh cũ.</p>
         <div style={{ display: 'grid', gap: 18 }}>
           {imageSlots.map((slot) => (
             <div key={slot.field} style={imageRowStyle}>
@@ -193,7 +223,7 @@ export function HomepageAdmin() {
                     value={settings[slot.field] ?? ''}
                   />
                 </label>
-                {uploading === slot.field ? <p style={hintStyle}>Đang upload…</p> : null}
+                {uploading === slot.field ? <p style={hintStyle}>Đang upload và áp dụng…</p> : null}
               </div>
               <div style={previewStyle}>
                 {settings[slot.field] ? <img alt={`Preview ${slot.label}`} src={settings[slot.field] ?? ''} style={previewImageStyle} /> : <span style={hintStyle}>Chưa có ảnh tùy chỉnh</span>}
@@ -207,7 +237,7 @@ export function HomepageAdmin() {
       {notice ? <p role="status" style={{ color: '#166534', margin: 0 }}>{notice}</p> : null}
       {updatedAt ? <p style={hintStyle}>Cập nhật gần nhất: {new Date(updatedAt).toLocaleString('vi-VN')}</p> : null}
       <div style={{ display: 'flex', gap: 10 }}>
-        <button disabled={busy || uploading !== null || !actorUserId} type="submit">{busy ? 'Đang lưu…' : 'Lưu homepage'}</button>
+        <button disabled={busy || uploading !== null || !actorUserId} type="submit">{busy ? 'Đang lưu…' : 'Lưu video / URL thủ công'}</button>
         <button disabled={busy || uploading !== null} onClick={() => void load()} type="button">Tải lại</button>
       </div>
     </form>
