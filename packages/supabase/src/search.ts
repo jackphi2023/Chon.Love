@@ -157,9 +157,11 @@ export function parseLuxySearchInput(input: SearchLuxyProfilesInput = {}) {
 // in Search V2 itself so the default Connect feed needs only one network round-trip.
 export function resolveLuxySearchDefaultProvince(
   requestedProvinceId: number | null | undefined,
-  _sort: LuxySearchSort,
-  _context: DiscoverySearchContext | null | undefined,
+  sort: LuxySearchSort,
+  context: DiscoverySearchContext | null | undefined,
 ): number | null {
+  void sort;
+  void context;
   return requestedProvinceId ?? null;
 }
 
