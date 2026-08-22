@@ -18,7 +18,7 @@ describe('Luxy Search V2 client contract', () => {
     });
   });
 
-  it('uses live GPS for distance search and falls back to signup province without GPS', () => {
+  it('keeps default locality ranking server-side and preserves explicit province filters', () => {
     expect(resolveLuxySearchDefaultProvince(null, 'distance', {
       province_id: 79,
       has_fresh_location: true,
@@ -26,7 +26,7 @@ describe('Luxy Search V2 client contract', () => {
     expect(resolveLuxySearchDefaultProvince(null, 'distance', {
       province_id: 79,
       has_fresh_location: false,
-    })).toBe(79);
+    })).toBeNull();
     expect(resolveLuxySearchDefaultProvince(1, 'distance', {
       province_id: 79,
       has_fresh_location: false,
@@ -97,36 +97,18 @@ describe('Luxy Search V2 client contract', () => {
     expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_verified');
   });
 
-  it('injects the signup province into the default feed when no fresh location exists', async () => {
-    const rpc = vi.fn()
-      .mockResolvedValueOnce({
-        data: [{ province_id: 79, has_fresh_location: false }],
-        error: null,
-      })
-      .mockResolvedValueOnce({ data: [], error: null });
+  it('loads the default Connect feed with one Search RPC and no province preflight', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
 
     await searchLuxyProfilesV2({ rpc } as never);
 
-    expect(rpc).toHaveBeenNthCalledWith(1, 'get_my_discovery_context');
-    expect(rpc).toHaveBeenNthCalledWith(2, 'search_luxy_profiles_v2', expect.objectContaining({
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith('search_luxy_profiles_v2', expect.objectContaining({
       p_sort: 'distance',
-      p_province_id: 79,
+      p_limit: 24,
+      p_offset: 0,
     }));
-  });
-
-  it('keeps the default feed nationwide and distance-aware when fresh GPS exists', async () => {
-    const rpc = vi.fn()
-      .mockResolvedValueOnce({
-        data: [{ province_id: 79, has_fresh_location: true }],
-        error: null,
-      })
-      .mockResolvedValueOnce({ data: [], error: null });
-
-    await searchLuxyProfilesV2({ rpc } as never);
-
-    expect(rpc.mock.calls[1]?.[0]).toBe('search_luxy_profiles_v2');
-    expect(rpc.mock.calls[1]?.[1]).not.toHaveProperty('p_province_id');
-    expect(rpc.mock.calls[1]?.[1]).toMatchObject({ p_sort: 'distance' });
+    expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_province_id');
   });
 
   it('validates and returns the privacy-safe result + LX-12 relationship state', async () => {
@@ -164,9 +146,7 @@ describe('Luxy Search V2 client contract', () => {
       is_favorited_by: false,
       is_viewed: true,
     };
-    const rpc = vi.fn()
-      .mockResolvedValueOnce({ data: [{ province_id: 79, has_fresh_location: true }], error: null })
-      .mockResolvedValueOnce({ error: null, data: [resultRow] });
+    const rpc = vi.fn().mockResolvedValue({ error: null, data: [resultRow] });
 
     const result = await searchLuxyProfilesV2({ rpc } as never);
     expect(result[0]).toMatchObject({
