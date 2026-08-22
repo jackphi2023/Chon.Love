@@ -16,6 +16,8 @@ type ImageField =
   | 'section3_background_image_url'
   | 'section4_image_url';
 
+type SignedUploadResponse = { path?: unknown; token?: unknown };
+
 const emptySettings: EditableSettings = {
   hero_desktop_youtube_url: null,
   hero_mobile_youtube_url: null,
@@ -111,6 +113,14 @@ export function HomepageAdmin() {
     }
   }
 
+  async function cleanupUploadedPath(path: string) {
+    const client = getAdminSupabaseClient();
+    if (!client) return;
+    await client.functions.invoke('homepage-media-admin', {
+      body: { action: 'delete_upload', path },
+    }).catch(() => undefined);
+  }
+
   async function uploadImage(field: ImageField, file: File | undefined) {
     if (!file) return;
     const client = getAdminSupabaseClient();
@@ -119,14 +129,8 @@ export function HomepageAdmin() {
       setError('Ảnh tối đa 8 MB.');
       return;
     }
-    const extensionByType: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-      'image/avif': 'avif',
-    };
-    const extension = extensionByType[file.type];
-    if (!extension) {
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+    if (!allowedTypes.has(file.type)) {
       setError('Chỉ hỗ trợ JPG, PNG, WebP hoặc AVIF.');
       return;
     }
@@ -136,32 +140,33 @@ export function HomepageAdmin() {
     setNotice(null);
     let uploadedPath: string | null = null;
     try {
-      // Match the Storage RLS ownership convention used by Chon.Love media:
-      // the first folder is always the authenticated user's UUID.
-      const path = `${actorUserId}/homepage/${field}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await client.storage.from('homepage-public').upload(path, file, {
+      // The server verifies the current JWT + super_admin role and returns a
+      // one-time signed upload token. This avoids relying on browser INSERT RLS
+      // for the privileged homepage publishing path.
+      const { data: signedData, error: signedError } = await client.functions.invoke('homepage-media-admin', {
+        body: { action: 'create_upload', field, contentType: file.type },
+      });
+      if (signedError) throw signedError;
+      const signed = (signedData ?? {}) as SignedUploadResponse;
+      const path = typeof signed.path === 'string' ? signed.path : '';
+      const token = typeof signed.token === 'string' ? signed.token : '';
+      if (!path || !token) throw new Error('signed_upload_token_missing');
+
+      const { error: uploadError } = await client.storage.from('homepage-public').uploadToSignedUrl(path, token, file, {
         cacheControl: '31536000',
         contentType: file.type,
-        upsert: false,
       });
       if (uploadError) throw uploadError;
       uploadedPath = path;
 
       const { data } = client.storage.from('homepage-public').getPublicUrl(path);
       const nextSettings: EditableSettings = { ...settings, [field]: data.publicUrl };
-
-      // Publishing the Storage URL is part of the upload transaction from the
-      // operator's perspective. A successful upload no longer requires a second
-      // easy-to-miss "Lưu homepage" click.
       const saved = await updateAdminHomepageSettings(client, actorUserId, nextSettings);
       setSettings(editableFromSaved(saved));
       setUpdatedAt(saved.updated_at);
       setNotice('Ảnh đã upload và được áp dụng vào homepage. Trang chủ sẽ tự lấy cấu hình mới trong tối đa khoảng 30 giây.');
     } catch (uploadOrSaveError) {
-      if (uploadedPath) {
-        // Best effort cleanup if Storage succeeded but publishing the URL failed.
-        await client.storage.from('homepage-public').remove([uploadedPath]).catch(() => undefined);
-      }
+      if (uploadedPath) await cleanupUploadedPath(uploadedPath);
       const detail = readableError(uploadOrSaveError);
       setError(`Upload/áp dụng ảnh thất bại.${detail ? ` Chi tiết: ${detail}` : ' Kiểm tra quyền Super Admin và định dạng ảnh.'}`);
     } finally {
