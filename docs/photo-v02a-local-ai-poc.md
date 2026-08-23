@@ -51,6 +51,42 @@ The POC records OpenCV SFace's published LFW cosine reference threshold (`0.363`
 
 Future production policy should aggregate multiple profile images rather than use a single maximum score.
 
+## Observed benchmark — GitHub Actions run #3
+
+Environment: Ubuntu 24.04 hosted runner, Python 3.12, OpenCV 4.14.0 CPU, YuNet INT8BQ + SFace INT8.
+
+| Metric | Result |
+|---|---:|
+| Model load | 31.707 ms |
+| Cold 1 selfie × 5 profiles | 242.430 ms |
+| Warm median | 164.105 ms |
+| Warm p95 | 184.224 ms |
+| Warm min / max | 162.993 / 184.224 ms |
+| Peak RSS | 97.672 MB |
+| Edge screening candidate | `true` |
+| Same-person strong matches | 5 / 5 |
+| Top-3 median cosine | 0.982861 |
+
+Cold comparison scores for the five deterministic same-person variants:
+
+```text
+1.000000
+0.972202
+0.978689
+0.982861
+0.970388
+```
+
+Interpretation:
+
+- Local CPU inference is comfortably fast on the GitHub runner.
+- Memory use is below the POC screening budget of 180 MB.
+- The model pair is functional with quantized artifacts and OpenCV 4.14.
+- The result supports moving to an **in-runtime Edge benchmark**, but does not prove Supabase Edge compatibility or production accuracy.
+- The sample is one identity transformed five ways, so these scores must not be used to set Chon.Love's final verification threshold.
+
+Benchmark evidence is uploaded as the `photo-v02a-local-ai-benchmark` artifact by workflow run `32635795443`.
+
 ## Screening gate
 
 The GitHub Actions benchmark emits:
@@ -105,10 +141,12 @@ python scripts/photo-v02a/local_face_poc.py \
 
 ## Exit criteria for PHOTO-V02A
 
-1. Pinned model downloads pass checksum verification.
-2. YuNet detects the face and SFace produces finite embeddings.
-3. One selfie × five same-person variants produces five finite cosine scores.
-4. At least three variants exceed the SFace reference threshold.
-5. Benchmark artifact is uploaded by GitHub Actions.
-6. Latency and peak RSS are recorded.
-7. No production function/database deployment occurs.
+1. Pinned model downloads pass checksum verification. ✅
+2. YuNet detects the face and SFace produces finite embeddings. ✅
+3. One selfie × five same-person variants produces five finite cosine scores. ✅
+4. At least three variants exceed the SFace reference threshold. ✅ (5/5)
+5. Benchmark artifact is uploaded by GitHub Actions. ✅
+6. Latency and peak RSS are recorded. ✅
+7. No production function/database deployment occurs. ✅
+
+PHOTO-V02A therefore passes the local CPU proof-of-concept gate. The next technical gate is an isolated Supabase Edge runtime benchmark before any production-provider replacement is considered.
