@@ -19,14 +19,14 @@ function shouldShowDesktopFooter(pathname: string): boolean {
     || pathname.startsWith('/messages');
 }
 
-async function getProtectedDestination(pathname: string): Promise<AuthenticatedRoute> {
+async function getProtectedDestination(): Promise<AuthenticatedRoute> {
   let destination = await getAuthenticatedDestination();
-  if (pathname !== '/connect' || destination === '/(tabs)/connect') return destination;
+  if (destination === '/(tabs)/connect') return destination;
 
   // Selfie auto-approval activates the profile synchronously, but a freshly
-  // completed web transition may still observe the previous onboarding state
-  // for a very short window. Re-check only the Connect entry path instead of
-  // bouncing an approved member back into onboarding immediately.
+  // completed transition may still observe the previous onboarding state for
+  // a very short window. Re-check only while protected layout authorization is
+  // being established; ordinary tab navigation does not re-run this effect.
   for (const delayMs of CONNECT_ACTIVATION_GRACE_DELAYS_MS) {
     await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
     destination = await getAuthenticatedDestination();
@@ -46,7 +46,7 @@ export default function AuthenticatedLuxyLayout() {
     if (auth.isRestoring || !auth.userId) return;
     let active = true;
     setDestination(null);
-    void getProtectedDestination(pathname)
+    void getProtectedDestination()
       .then((route) => {
         if (active) setDestination(route);
       })
@@ -57,7 +57,7 @@ export default function AuthenticatedLuxyLayout() {
     return () => {
       active = false;
     };
-  }, [auth.isRestoring, auth.userId, pathname]);
+  }, [auth.isRestoring, auth.userId]);
 
   if (auth.isRestoring) return <RouteLoading />;
   if (!auth.userId) return Platform.OS === 'web' ? <PublicHomepageReload /> : <Redirect href="/" />;
