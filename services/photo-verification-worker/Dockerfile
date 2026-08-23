@@ -11,13 +11,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY services/photo-verification-worker/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 
-COPY services/photo-verification-worker/download_models.py /app/download_models.py
+COPY download_models.py /app/download_models.py
 RUN mkdir -p /models && MODEL_DIR=/models python /app/download_models.py
 
-COPY services/photo-verification-worker/app.py /app/app.py
+COPY app.py /app/app.py
 
 RUN useradd --create-home --uid 10001 worker \
     && chown -R worker:worker /app /models
