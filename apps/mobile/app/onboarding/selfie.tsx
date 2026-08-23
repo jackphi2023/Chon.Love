@@ -145,6 +145,7 @@ export default function SelfieVerificationOnboarding() {
 
   const usesLocalFaceWorker = result?.providerMetric === 'cosine' || result?.provider === 'local_face_worker_sface';
   const minimumLocalMatches = Math.max(1, Math.round(result?.localMinimumStrongMatches ?? 2));
+  const currentReferencePhotoCount = Math.max(0, Math.round(result?.currentReferencePhotoCount ?? 0));
 
   if (result?.state === 'approved') {
     return (
@@ -163,7 +164,8 @@ export default function SelfieVerificationOnboarding() {
   }
 
   if (result?.state === 'pending_review') {
-    const needsMoreReferences = result.reason === 'face_reference_photos_insufficient_for_auto_approval';
+    const needsMoreReferences = result.reason === 'face_reference_photos_insufficient_for_auto_approval'
+      && currentReferencePhotoCount < minimumLocalMatches;
     return (
       <SignupShell description="Hồ sơ tạm thời chưa được kích hoạt trong khi Chon.Love kiểm tra ảnh xác minh." step={8} testID="chon-selfie-pending" title="Chúng tôi sẽ kiểm tra để xác nhận">
         <View style={styles.warningCard}>
