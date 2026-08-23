@@ -1,6 +1,11 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2.57.4';
 import { CompareFacesCommand, RekognitionClient } from 'npm:@aws-sdk/client-rekognition@3.1097.0';
+import {
+  compareWithLocalWorker,
+  localWorkerState,
+  type LocalWorkerComparison,
+} from './local-face-worker.ts';
 
 type JsonBody = Record<string, unknown> & {
   action?: string;
@@ -36,9 +41,19 @@ type CaseRow = {
   created_at: string;
 };
 
-type ProviderState = {
+type AwsProviderState = {
   client: RekognitionClient | null;
   missing: string[];
+};
+
+type ProviderKind = 'aws' | 'local_worker';
+
+type SelectedProvider = {
+  kind: ProviderKind;
+  name: string;
+  configured: boolean;
+  missing: string[];
+  awsClient: RekognitionClient | null;
 };
 
 type PendingPresentation = {
@@ -48,19 +63,29 @@ type PendingPresentation = {
   retryable: boolean;
 };
 
+type LocalAggregate = {
+  maxCosineSimilarity: number | null;
+  matchedMediaId: string | null;
+  top3MedianCosine: number | null;
+  strongMatchCount: number;
+  usableProfileCount: number;
+  passed: boolean;
+};
+
 const RULE_CODE = 'member_photo_verification';
 const FACE_SIMILARITY_THRESHOLD = 60;
-// Ask Rekognition for the actual similarity score, then apply Chon.Love's
-// business threshold ourselves. Passing 60 here would suppress all sub-60
-// matches from FaceMatches and incorrectly turn them into a displayed 0%.
 const REKOGNITION_REQUEST_THRESHOLD = 0;
+const LOCAL_FACE_DEFAULT_COSINE_THRESHOLD = 0.363;
+const LOCAL_FACE_DEFAULT_MIN_STRONG_MATCHES = 2;
 const MAX_PROFILE_IMAGES = 5;
 const MAX_SELFIE_BYTES = 5 * 1024 * 1024;
 const GENERIC_PENDING_MESSAGE = 'Ảnh xác minh cần được kiểm tra thêm trước khi hồ sơ có thể kích hoạt.';
 const SIMILARITY_PENDING_MESSAGE = `Ảnh selfie chưa đạt ngưỡng tương đồng trên ${FACE_SIMILARITY_THRESHOLD}% với ảnh hồ sơ. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.`;
+const LOCAL_SIMILARITY_PENDING_MESSAGE = 'Ảnh selfie chưa đạt ngưỡng xác minh khuôn mặt theo mô hình local AI. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.';
+const LOCAL_REFERENCE_PENDING_MESSAGE = 'Chưa có đủ ảnh hồ sơ rõ mặt để tự động xác minh. Hãy bổ sung thêm ảnh hồ sơ rồi thử lại, hoặc Chon.Love sẽ kiểm tra thủ công.';
 const PROVIDER_PENDING_MESSAGE = 'Dịch vụ so sánh khuôn mặt đang tạm thời chưa sẵn sàng. Điểm tương đồng chưa được tính; hồ sơ được giữ ở trạng thái chờ để tránh từ chối nhầm.';
-const PROVIDER_RECOVERED_MESSAGE = 'Dịch vụ so sánh khuôn mặt đã sẵn sàng trở lại. Hãy chụp lại selfie để hệ thống tính điểm tương đồng.';
-const QUALITY_PENDING_MESSAGE = 'Hệ thống chưa tính được điểm tương đồng đáng tin cậy từ ảnh hiện tại. Hãy chụp lại selfie rõ mặt, đủ sáng và nhìn gần thẳng camera.';
+const PROVIDER_RECOVERED_MESSAGE = 'Dịch vụ so sánh khuôn mặt đã sẵn sàng trở lại. Hãy chụp lại selfie để hệ thống xác minh.';
+const QUALITY_PENDING_MESSAGE = 'Hệ thống chưa tính được kết quả xác minh đáng tin cậy từ ảnh hiện tại. Hãy chụp lại selfie rõ mặt, đủ sáng và nhìn gần thẳng camera.';
 const PROFILE_CHANGED_MESSAGE = 'Thông tin hồ sơ đã thay đổi trong lúc xác minh. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.';
 
 const corsHeaders = {
@@ -115,7 +140,7 @@ function verificationState(profileStatus: string | null, latestCase: CaseRow | n
   return 'not_started';
 }
 
-function rekognitionProvider(): ProviderState {
+function rekognitionProvider(): AwsProviderState {
   const region = Deno.env.get('AWS_REGION');
   const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
   const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
@@ -132,6 +157,94 @@ function rekognitionProvider(): ProviderState {
       credentials: { accessKeyId, secretAccessKey, ...(sessionToken ? { sessionToken } : {}) },
     }),
     missing: [],
+  };
+}
+
+function selectedProvider(): SelectedProvider {
+  const mode = (Deno.env.get('FACE_COMPARISON_PROVIDER') ?? 'aws').trim().toLowerCase();
+  const aws = rekognitionProvider();
+  const local = localWorkerState();
+
+  if (mode === 'local_worker') {
+    return {
+      kind: 'local_worker',
+      name: local.configured ? 'local_face_worker_sface' : 'unconfigured',
+      configured: local.configured,
+      missing: local.missing,
+      awsClient: null,
+    };
+  }
+  if (mode === 'auto') {
+    if (local.configured) {
+      return { kind: 'local_worker', name: 'local_face_worker_sface', configured: true, missing: [], awsClient: null };
+    }
+    if (aws.client) {
+      return { kind: 'aws', name: 'aws_rekognition_compare_faces', configured: true, missing: [], awsClient: aws.client };
+    }
+    return {
+      kind: 'local_worker',
+      name: 'unconfigured',
+      configured: false,
+      missing: [...local.missing, ...aws.missing],
+      awsClient: null,
+    };
+  }
+  if (mode !== 'aws') {
+    return { kind: 'aws', name: 'unconfigured', configured: false, missing: ['FACE_COMPARISON_PROVIDER'], awsClient: null };
+  }
+  return {
+    kind: 'aws',
+    name: aws.client ? 'aws_rekognition_compare_faces' : 'unconfigured',
+    configured: Boolean(aws.client),
+    missing: aws.missing,
+    awsClient: aws.client,
+  };
+}
+
+function localCosineThreshold(): number {
+  const parsed = Number(Deno.env.get('LOCAL_FACE_COSINE_THRESHOLD'));
+  return Number.isFinite(parsed) && parsed >= -1 && parsed <= 1 ? parsed : LOCAL_FACE_DEFAULT_COSINE_THRESHOLD;
+}
+
+function localMinimumStrongMatches(): number {
+  const parsed = Number(Deno.env.get('LOCAL_FACE_MIN_STRONG_MATCHES'));
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= MAX_PROFILE_IMAGES
+    ? parsed
+    : LOCAL_FACE_DEFAULT_MIN_STRONG_MATCHES;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function aggregateLocalComparison(
+  comparison: LocalWorkerComparison,
+  cosineThreshold: number,
+  minimumStrongMatches: number,
+): LocalAggregate {
+  const sorted = [...comparison.profileScores].sort((left, right) => right.cosineSimilarity - left.cosineSimilarity);
+  const top3 = sorted.slice(0, 3).map((item) => item.cosineSimilarity);
+  const top3MedianCosine = median(top3);
+  const strongMatchCount = sorted.filter((item) => item.cosineSimilarity >= cosineThreshold).length;
+  const usableProfileCount = sorted.length;
+  const maxCosineSimilarity = sorted[0]?.cosineSimilarity ?? null;
+  const matchedMediaId = sorted[0]?.mediaId ?? null;
+  const passed = usableProfileCount >= minimumStrongMatches
+    && strongMatchCount >= minimumStrongMatches
+    && top3MedianCosine != null
+    && top3MedianCosine >= cosineThreshold;
+  return {
+    maxCosineSimilarity,
+    matchedMediaId,
+    top3MedianCosine,
+    strongMatchCount,
+    usableProfileCount,
+    passed,
   };
 }
 
@@ -156,6 +269,22 @@ function pendingPresentation(caseRow: CaseRow | null, providerConfigured: boolea
       maxSimilarity: null,
       reason,
       retryable: providerConfigured,
+    };
+  }
+  if (reason === 'face_reference_photos_insufficient_for_auto_approval') {
+    return {
+      message: LOCAL_REFERENCE_PENDING_MESSAGE,
+      maxSimilarity: null,
+      reason,
+      retryable: providerConfigured,
+    };
+  }
+  if (reason === 'face_similarity_not_above_local_threshold') {
+    return {
+      message: LOCAL_SIMILARITY_PENDING_MESSAGE,
+      maxSimilarity: null,
+      reason,
+      retryable: false,
     };
   }
   if (reason === 'face_similarity_not_above_threshold') {
@@ -419,14 +548,25 @@ Deno.serve(async (request: Request) => {
 
     const latestCase = await latestVerificationCase(server, actorId);
     const state = verificationState(profile.profile_status, latestCase);
-    const providerState = rekognitionProvider();
-    const currentPending = pendingPresentation(latestCase, Boolean(providerState.client));
+    const provider = selectedProvider();
+    const currentPending = pendingPresentation(latestCase, provider.configured);
+    const providerMetric = provider.kind === 'local_worker' ? 'cosine' : 'percent';
 
     if (action === 'status') {
+      const currentReferencePhotoCount = provider.kind === 'local_worker'
+        && currentPending.reason === 'face_reference_photos_insufficient_for_auto_approval'
+        ? (await profileMedia(server, actorId)).length
+        : null;
       return respond(200, {
         state,
         profileStatus: profile.profile_status,
         threshold: FACE_SIMILARITY_THRESHOLD,
+        provider: provider.name,
+        providerConfigured: provider.configured,
+        providerMetric,
+        localCosineThreshold: provider.kind === 'local_worker' ? localCosineThreshold() : null,
+        localMinimumStrongMatches: provider.kind === 'local_worker' ? localMinimumStrongMatches() : null,
+        currentReferencePhotoCount,
         maxSimilarity: state === 'pending_review' ? currentPending.maxSimilarity : null,
         message: state === 'pending_review' ? currentPending.message : null,
         reason: state === 'pending_review' ? currentPending.reason : null,
@@ -435,13 +575,15 @@ Deno.serve(async (request: Request) => {
     }
 
     if (action !== 'submit') return respond(400, { error: 'unsupported_action' });
-    if (state === 'approved') return respond(200, { state: 'approved', threshold: FACE_SIMILARITY_THRESHOLD });
+    if (state === 'approved') return respond(200, { state: 'approved', threshold: FACE_SIMILARITY_THRESHOLD, provider: provider.name, providerMetric });
     if (state === 'hidden') return respond(403, { state: 'hidden', error: 'account_not_eligible' });
     const retryCase = state === 'pending_review' && currentPending.retryable ? latestCase : null;
     if (state === 'pending_review' && !retryCase) {
       return respond(200, {
         state: 'pending_review',
         threshold: FACE_SIMILARITY_THRESHOLD,
+        provider: provider.name,
+        providerMetric,
         maxSimilarity: currentPending.maxSimilarity,
         message: currentPending.message,
         reason: currentPending.reason,
@@ -495,17 +637,52 @@ Deno.serve(async (request: Request) => {
     const declaredGender = String(profile.gender);
     const declaredGenderConsistent = typeof body.declaredGender !== 'string' || body.declaredGender === declaredGender;
     let maxSimilarity: number | null = null;
+    let maxCosineSimilarity: number | null = null;
+    let top3MedianCosine: number | null = null;
+    let strongMatchCount = 0;
+    let usableProfileCount = 0;
     let matchedMediaId: string | null = null;
     let providerErrors: string[] = [];
     let scoredComparisons = 0;
+    let workerVersion: string | null = null;
+    let workerElapsedMs: number | null = null;
     let pendingReason: string | null = null;
+    let approvalPassed = false;
+    const localThreshold = localCosineThreshold();
+    const localMinStrongMatches = localMinimumStrongMatches();
 
     if (!declaredGenderConsistent) {
       pendingReason = 'declared_gender_changed_during_verification';
-    } else if (!providerState.client) {
+    } else if (!provider.configured) {
       pendingReason = 'face_comparison_provider_not_configured';
-    } else {
-      const comparison = await compareAgainstProfileImages(providerState.client, selfieBytes, media, server);
+    } else if (provider.kind === 'local_worker') {
+      try {
+        const comparison = await compareWithLocalWorker(server, selfieStoragePath, media, attemptId);
+        const aggregate = aggregateLocalComparison(comparison, localThreshold, localMinStrongMatches);
+        maxCosineSimilarity = aggregate.maxCosineSimilarity;
+        top3MedianCosine = aggregate.top3MedianCosine;
+        strongMatchCount = aggregate.strongMatchCount;
+        usableProfileCount = aggregate.usableProfileCount;
+        matchedMediaId = aggregate.matchedMediaId;
+        providerErrors = comparison.errors;
+        scoredComparisons = aggregate.usableProfileCount;
+        workerVersion = comparison.version;
+        workerElapsedMs = comparison.workerElapsedMs;
+        if (aggregate.usableProfileCount === 0) {
+          pendingReason = 'face_comparison_quality_or_provider_error';
+        } else if (aggregate.usableProfileCount < localMinStrongMatches) {
+          pendingReason = 'face_reference_photos_insufficient_for_auto_approval';
+        } else if (!aggregate.passed) {
+          pendingReason = 'face_similarity_not_above_local_threshold';
+        } else {
+          approvalPassed = true;
+        }
+      } catch (error) {
+        providerErrors = [error instanceof Error ? error.message.split(':')[0] : 'local_worker_error'];
+        pendingReason = 'face_comparison_quality_or_provider_error';
+      }
+    } else if (provider.awsClient) {
+      const comparison = await compareAgainstProfileImages(provider.awsClient, selfieBytes, media, server);
       maxSimilarity = comparison.maxSimilarity;
       matchedMediaId = comparison.matchedMediaId;
       providerErrors = comparison.errors;
@@ -514,16 +691,27 @@ Deno.serve(async (request: Request) => {
         pendingReason = 'face_comparison_quality_or_provider_error';
       } else if (maxSimilarity <= FACE_SIMILARITY_THRESHOLD) {
         pendingReason = 'face_similarity_not_above_threshold';
+      } else {
+        approvalPassed = true;
       }
+    } else {
+      pendingReason = 'face_comparison_provider_not_configured';
     }
 
     const score: Record<string, unknown> = {
-      provider: providerState.client ? 'aws_rekognition_compare_faces' : 'unconfigured',
-      providerConfigured: Boolean(providerState.client),
-      providerConfigMissing: providerState.missing,
-      requestSimilarityThreshold: REKOGNITION_REQUEST_THRESHOLD,
+      provider: provider.configured ? provider.name : 'unconfigured',
+      providerConfigured: provider.configured,
+      providerConfigMissing: provider.missing,
+      providerMetric,
+      requestSimilarityThreshold: provider.kind === 'aws' ? REKOGNITION_REQUEST_THRESHOLD : null,
       threshold: FACE_SIMILARITY_THRESHOLD,
+      localCosineThreshold: provider.kind === 'local_worker' ? localThreshold : null,
+      localMinimumStrongMatches: provider.kind === 'local_worker' ? localMinStrongMatches : null,
       maxSimilarity: maxSimilarity == null ? null : Number(maxSimilarity.toFixed(2)),
+      maxCosineSimilarity: maxCosineSimilarity == null ? null : Number(maxCosineSimilarity.toFixed(6)),
+      top3MedianCosine: top3MedianCosine == null ? null : Number(top3MedianCosine.toFixed(6)),
+      strongMatchCount,
+      usableProfileCount,
       matchedMediaId,
       profileMediaIds: media.map((item) => item.id),
       selfieStoragePath,
@@ -531,19 +719,24 @@ Deno.serve(async (request: Request) => {
       declaredGenderConsistent,
       genderCheckMode: 'declared_profile_consistency_only',
       providerErrors,
+      workerVersion,
+      workerElapsedMs,
       scoredComparisons,
       attemptedComparisons: media.length,
       pendingReason,
       submittedAt: new Date().toISOString(),
     };
 
-    if (!pendingReason && maxSimilarity != null && maxSimilarity > FACE_SIMILARITY_THRESHOLD) {
+    if (!pendingReason && approvalPassed) {
+      const approvalNote = provider.kind === 'local_worker'
+        ? `Auto-approved by local SFace policy: ${strongMatchCount} strong matches, top-3 median ${top3MedianCosine?.toFixed(4) ?? 'n/a'} >= ${localThreshold}.`
+        : `Auto-approved: face similarity ${maxSimilarity?.toFixed(2) ?? 'n/a'}% > ${FACE_SIMILARITY_THRESHOLD}%.`;
       const approvedCase = await saveVerificationCase(server, retryCase, {
         userId: actorId,
         status: 'resolved',
         priority: 'normal',
         decision: 'approve',
-        notes: `Auto-approved: face similarity ${maxSimilarity.toFixed(2)}% > ${FACE_SIMILARITY_THRESHOLD}%`,
+        notes: approvalNote,
         score,
       });
       const { data: activationRows, error: activateError } = await server.rpc('activate_verified_signup_profile_v2', {
@@ -556,7 +749,9 @@ Deno.serve(async (request: Request) => {
         state: 'approved',
         caseId: approvedCase.id,
         threshold: FACE_SIMILARITY_THRESHOLD,
-        maxSimilarity: Number(maxSimilarity.toFixed(2)),
+        provider: provider.name,
+        providerMetric,
+        maxSimilarity: maxSimilarity == null ? null : Number(maxSimilarity.toFixed(2)),
       });
     }
 
@@ -567,7 +762,7 @@ Deno.serve(async (request: Request) => {
       decision: null,
       automated_score_json: score,
       created_at: retryCase?.created_at ?? new Date().toISOString(),
-    }, Boolean(providerState.client));
+    }, provider.configured);
     const queuedCase = await saveVerificationCase(server, retryCase, {
       userId: actorId,
       status: 'queued',
@@ -579,6 +774,8 @@ Deno.serve(async (request: Request) => {
       state: 'pending_review',
       caseId: queuedCase.id,
       threshold: FACE_SIMILARITY_THRESHOLD,
+      provider: provider.name,
+      providerMetric,
       maxSimilarity: queuedPresentation.maxSimilarity,
       message: queuedPresentation.message,
       reason: queuedPresentation.reason,
