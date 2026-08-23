@@ -6,7 +6,7 @@ import {
 } from './member-photo-verification';
 
 describe('member photo verification contract', () => {
-  it('keeps automatic approval strictly above the 60% business threshold', () => {
+  it('keeps the AWS compatibility threshold at 60%', () => {
     expect(MEMBER_PHOTO_SIMILARITY_THRESHOLD).toBe(60);
   });
 
@@ -30,16 +30,40 @@ describe('member photo verification contract', () => {
     expect(result.retryable).toBe(false);
   });
 
-  it('preserves a real sub-threshold score instead of collapsing it to zero', () => {
+  it('preserves a real AWS sub-threshold percentage instead of collapsing it to zero', () => {
     const result = normalizeMemberPhotoVerificationResult({
       state: 'pending_review',
       threshold: 60,
+      provider: 'aws_rekognition_compare_faces',
+      providerMetric: 'percent',
       maxSimilarity: 57.42,
       reason: 'face_similarity_not_above_threshold',
       retryable: false,
     });
 
     expect(result.maxSimilarity).toBe(57.42);
+    expect(result.providerMetric).toBe('percent');
     expect(result.threshold).toBe(MEMBER_PHOTO_SIMILARITY_THRESHOLD);
+  });
+
+  it('keeps local SFace cosine metadata separate from percentage similarity', () => {
+    const result = normalizeMemberPhotoVerificationResult({
+      state: 'pending_review',
+      threshold: 60,
+      provider: 'local_face_worker_sface',
+      providerConfigured: true,
+      providerMetric: 'cosine',
+      localCosineThreshold: 0.363,
+      localMinimumStrongMatches: 2,
+      maxSimilarity: null,
+      reason: 'face_similarity_not_above_local_threshold',
+    });
+
+    expect(result.provider).toBe('local_face_worker_sface');
+    expect(result.providerConfigured).toBe(true);
+    expect(result.providerMetric).toBe('cosine');
+    expect(result.localCosineThreshold).toBe(0.363);
+    expect(result.localMinimumStrongMatches).toBe(2);
+    expect(result.maxSimilarity).toBeNull();
   });
 });
