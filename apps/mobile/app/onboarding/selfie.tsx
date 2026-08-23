@@ -113,9 +113,6 @@ export default function SelfieVerificationOnboarding() {
       clearSignupDraft();
       router.replace('/(tabs)/connect');
 
-      // Expo Router normally performs an in-app transition. On web, keep a
-      // bounded hard-navigation fallback so a stale route-group state cannot
-      // leave an already-active member stuck on the selfie success screen.
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.setTimeout(() => {
           if (window.location.pathname === '/onboarding/selfie') window.location.replace('/connect');
@@ -146,6 +143,9 @@ export default function SelfieVerificationOnboarding() {
     return <View style={styles.loading}><ActivityIndicator color={colors.accent} size="large" /><Text accessibilityLiveRegion="polite" style={styles.muted}>Đang kiểm tra trạng thái xác minh…</Text></View>;
   }
 
+  const usesLocalFaceWorker = result?.providerMetric === 'cosine' || result?.provider === 'local_face_worker_sface';
+  const minimumLocalMatches = Math.max(1, Math.round(result?.localMinimumStrongMatches ?? 2));
+
   if (result?.state === 'approved') {
     return (
       <SignupShell description="Ảnh selfie đã được xác minh. Hồ sơ của bạn đã được kích hoạt và sẵn sàng xuất hiện trong cộng đồng Chon.Love." step={8} testID="chon-selfie-approved" title="Xác minh thành công">
@@ -163,6 +163,7 @@ export default function SelfieVerificationOnboarding() {
   }
 
   if (result?.state === 'pending_review') {
+    const needsMoreReferences = result.reason === 'face_reference_photos_insufficient_for_auto_approval';
     return (
       <SignupShell description="Hồ sơ tạm thời chưa được kích hoạt trong khi Chon.Love kiểm tra ảnh xác minh." step={8} testID="chon-selfie-pending" title="Chúng tôi sẽ kiểm tra để xác nhận">
         <View style={styles.warningCard}>
@@ -170,7 +171,12 @@ export default function SelfieVerificationOnboarding() {
           <Text style={styles.warningText}>{result.message || MEMBER_PHOTO_PENDING_MESSAGE}</Text>
           {typeof result.maxSimilarity === 'number' ? <Text style={styles.scoreText}>Độ tương đồng tự động: {result.maxSimilarity.toFixed(1)}%</Text> : null}
         </View>
-        {result.retryable ? (
+        {needsMoreReferences ? (
+          <>
+            <SignupPrimaryButton label="Cập nhật ảnh hồ sơ" onPress={() => router.replace('/onboarding/photos')} />
+            <SignupSecondaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+          </>
+        ) : result.retryable ? (
           <>
             <SignupPrimaryButton label="Chụp lại để xác minh" onPress={retryVerification} />
             <SignupSecondaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
@@ -190,7 +196,14 @@ export default function SelfieVerificationOnboarding() {
     <SignupShell description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã tải lên." onBack={() => router.replace('/onboarding/about')} step={8} testID="chon-selfie-verification" title="Chụp selfie xác minh">
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Điều kiện duyệt thành viên</Text>
-        <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
+        {usesLocalFaceWorker ? (
+          <>
+            <Text style={styles.ruleText}>• Local AI so sánh selfie với tối đa 5 ảnh hồ sơ và cần ít nhất {minimumLocalMatches} ảnh rõ mặt đạt ngưỡng xác minh.</Text>
+            <Text style={styles.ruleText}>• Điểm cosine của mô hình chỉ dùng nội bộ để ra quyết định; Chon.Love không quy đổi giả thành phần trăm tương đồng.</Text>
+          </>
+        ) : (
+          <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
+        )}
         <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng thì chúng tôi kiểm tra thủ công để đảm bảo đúng chính xác là người thật về bạn.</Text>
       </View>
 
