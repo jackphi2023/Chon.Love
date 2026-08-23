@@ -90,7 +90,7 @@ export default function OnboardingPersonalInfo() {
           return;
         }
         if (status.profile_status === 'active') {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/connect');
           return;
         }
         if (status.profile_status !== 'incomplete') {
