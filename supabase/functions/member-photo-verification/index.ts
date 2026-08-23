@@ -23,6 +23,7 @@ type MediaRow = {
   storage_path: string;
   visibility: string;
   moderation_status: string;
+  mime_type: string | null;
   uploaded_at: string | null;
 };
 
@@ -35,11 +36,32 @@ type CaseRow = {
   created_at: string;
 };
 
+type ProviderState = {
+  client: RekognitionClient | null;
+  missing: string[];
+};
+
+type PendingPresentation = {
+  message: string;
+  maxSimilarity: number | null;
+  reason: string | null;
+  retryable: boolean;
+};
+
 const RULE_CODE = 'member_photo_verification';
 const FACE_SIMILARITY_THRESHOLD = 60;
+// Ask Rekognition for the actual similarity score, then apply Chon.Love's
+// business threshold ourselves. Passing 60 here would suppress all sub-60
+// matches from FaceMatches and incorrectly turn them into a displayed 0%.
+const REKOGNITION_REQUEST_THRESHOLD = 0;
 const MAX_PROFILE_IMAGES = 5;
 const MAX_SELFIE_BYTES = 5 * 1024 * 1024;
-const PENDING_MESSAGE = 'Chúng tôi thấy ảnh chụp chưa giống trên 60% ảnh bạn upload, chúng tôi sẽ kiểm tra để xác nhận.';
+const GENERIC_PENDING_MESSAGE = 'Ảnh xác minh cần được kiểm tra thêm trước khi hồ sơ có thể kích hoạt.';
+const SIMILARITY_PENDING_MESSAGE = `Ảnh selfie chưa đạt ngưỡng tương đồng trên ${FACE_SIMILARITY_THRESHOLD}% với ảnh hồ sơ. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.`;
+const PROVIDER_PENDING_MESSAGE = 'Dịch vụ so sánh khuôn mặt đang tạm thời chưa sẵn sàng. Điểm tương đồng chưa được tính; hồ sơ được giữ ở trạng thái chờ để tránh từ chối nhầm.';
+const PROVIDER_RECOVERED_MESSAGE = 'Dịch vụ so sánh khuôn mặt đã sẵn sàng trở lại. Hãy chụp lại selfie để hệ thống tính điểm tương đồng.';
+const QUALITY_PENDING_MESSAGE = 'Hệ thống chưa tính được điểm tương đồng đáng tin cậy từ ảnh hiện tại. Hãy chụp lại selfie rõ mặt, đủ sáng và nhìn gần thẳng camera.';
+const PROFILE_CHANGED_MESSAGE = 'Thông tin hồ sơ đã thay đổi trong lúc xác minh. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,16 +115,61 @@ function verificationState(profileStatus: string | null, latestCase: CaseRow | n
   return 'not_started';
 }
 
-function rekognitionClient(): RekognitionClient | null {
+function rekognitionProvider(): ProviderState {
   const region = Deno.env.get('AWS_REGION');
   const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
   const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
   const sessionToken = Deno.env.get('AWS_SESSION_TOKEN') ?? undefined;
-  if (!region || !accessKeyId || !secretAccessKey) return null;
-  return new RekognitionClient({
-    region,
-    credentials: { accessKeyId, secretAccessKey, ...(sessionToken ? { sessionToken } : {}) },
-  });
+  const missing = [
+    !region ? 'AWS_REGION' : null,
+    !accessKeyId ? 'AWS_ACCESS_KEY_ID' : null,
+    !secretAccessKey ? 'AWS_SECRET_ACCESS_KEY' : null,
+  ].filter((value): value is string => Boolean(value));
+  if (missing.length > 0 || !region || !accessKeyId || !secretAccessKey) return { client: null, missing };
+  return {
+    client: new RekognitionClient({
+      region,
+      credentials: { accessKeyId, secretAccessKey, ...(sessionToken ? { sessionToken } : {}) },
+    }),
+    missing: [],
+  };
+}
+
+function pendingPresentation(caseRow: CaseRow | null, providerConfigured: boolean): PendingPresentation {
+  const score = caseRow?.automated_score_json ?? {};
+  const reason = typeof score.pendingReason === 'string' ? score.pendingReason : null;
+  const storedSimilarity = typeof score.maxSimilarity === 'number' && Number.isFinite(score.maxSimilarity)
+    ? score.maxSimilarity
+    : null;
+
+  if (reason === 'face_comparison_provider_not_configured' || score.provider === 'unconfigured') {
+    return {
+      message: providerConfigured ? PROVIDER_RECOVERED_MESSAGE : PROVIDER_PENDING_MESSAGE,
+      maxSimilarity: null,
+      reason: 'face_comparison_provider_not_configured',
+      retryable: providerConfigured,
+    };
+  }
+  if (reason === 'face_comparison_quality_or_provider_error') {
+    return {
+      message: QUALITY_PENDING_MESSAGE,
+      maxSimilarity: null,
+      reason,
+      retryable: providerConfigured,
+    };
+  }
+  if (reason === 'face_similarity_not_above_threshold') {
+    return {
+      message: SIMILARITY_PENDING_MESSAGE,
+      maxSimilarity: storedSimilarity,
+      reason,
+      retryable: false,
+    };
+  }
+  if (reason === 'declared_gender_changed_during_verification') {
+    return { message: PROFILE_CHANGED_MESSAGE, maxSimilarity: null, reason, retryable: false };
+  }
+  return { message: GENERIC_PENDING_MESSAGE, maxSimilarity: storedSimilarity, reason, retryable: false };
 }
 
 async function latestVerificationCase(server: SupabaseClient, userId: string): Promise<CaseRow | null> {
@@ -121,7 +188,7 @@ async function latestVerificationCase(server: SupabaseClient, userId: string): P
 async function profileMedia(server: SupabaseClient, userId: string): Promise<MediaRow[]> {
   const { data, error } = await server
     .from('media_assets')
-    .select('id,storage_bucket,storage_path,visibility,moderation_status,uploaded_at')
+    .select('id,storage_bucket,storage_path,visibility,moderation_status,mime_type,uploaded_at')
     .eq('owner_id', userId)
     .in('visibility', ['avatar', 'public'])
     .in('moderation_status', ['pending_review', 'approved'])
@@ -144,25 +211,35 @@ async function compareAgainstProfileImages(
   selfie: Uint8Array,
   media: MediaRow[],
   server: SupabaseClient,
-): Promise<{ maxSimilarity: number; matchedMediaId: string | null; errors: string[] }> {
-  let maxSimilarity = 0;
+): Promise<{ maxSimilarity: number | null; matchedMediaId: string | null; errors: string[]; scoredComparisons: number }> {
+  let maxSimilarity: number | null = null;
   let matchedMediaId: string | null = null;
+  let scoredComparisons = 0;
   const errors: string[] = [];
 
   for (const item of media) {
+    if (item.mime_type !== 'image/jpeg' && item.mime_type !== 'image/png') {
+      errors.push(`${item.id}:unsupported_media_type`);
+      continue;
+    }
     try {
       const target = await downloadMedia(server, item);
       const result = await client.send(new CompareFacesCommand({
         SourceImage: { Bytes: selfie },
         TargetImage: { Bytes: target },
-        SimilarityThreshold: FACE_SIMILARITY_THRESHOLD,
-        QualityFilter: 'MEDIUM',
+        SimilarityThreshold: REKOGNITION_REQUEST_THRESHOLD,
+        QualityFilter: 'AUTO',
       }));
       const similarities = (result.FaceMatches ?? [])
-        .map((match) => Number(match.Similarity ?? 0))
+        .map((match) => Number(match.Similarity))
         .filter(Number.isFinite);
-      const candidate = similarities.length > 0 ? Math.max(...similarities) : 0;
-      if (candidate > maxSimilarity) {
+      if (similarities.length === 0) {
+        errors.push(`${item.id}:no_similarity_score`);
+        continue;
+      }
+      const candidate = Math.max(...similarities);
+      scoredComparisons += 1;
+      if (maxSimilarity == null || candidate > maxSimilarity) {
         maxSimilarity = candidate;
         matchedMediaId = item.id;
       }
@@ -172,11 +249,12 @@ async function compareAgainstProfileImages(
     }
   }
 
-  return { maxSimilarity, matchedMediaId, errors };
+  return { maxSimilarity, matchedMediaId, errors, scoredComparisons };
 }
 
-async function insertVerificationCase(
+async function saveVerificationCase(
   server: SupabaseClient,
+  existingCase: CaseRow | null,
   input: {
     userId: string;
     status: 'queued' | 'resolved';
@@ -187,6 +265,24 @@ async function insertVerificationCase(
   },
 ): Promise<CaseRow> {
   const resolved = input.status === 'resolved';
+  if (existingCase) {
+    const { data, error } = await server
+      .from('moderation_cases')
+      .update({
+        status: input.status,
+        priority: input.priority,
+        automated_score_json: input.score,
+        decision: input.decision ?? null,
+        decision_notes: input.notes ?? null,
+        resolved_at: resolved ? new Date().toISOString() : null,
+      })
+      .eq('id', existingCase.id)
+      .select('id,reported_user_id,status,decision,automated_score_json,created_at')
+      .single();
+    if (error || !data) throw new Error(`verification_case_update_failed:${error?.code ?? 'no_result'}`);
+    return data as CaseRow;
+  }
+
   const { data, error } = await server
     .from('moderation_cases')
     .insert({
@@ -323,22 +419,34 @@ Deno.serve(async (request: Request) => {
 
     const latestCase = await latestVerificationCase(server, actorId);
     const state = verificationState(profile.profile_status, latestCase);
+    const providerState = rekognitionProvider();
+    const currentPending = pendingPresentation(latestCase, Boolean(providerState.client));
 
     if (action === 'status') {
       return respond(200, {
         state,
         profileStatus: profile.profile_status,
         threshold: FACE_SIMILARITY_THRESHOLD,
-        maxSimilarity: latestCase?.automated_score_json?.maxSimilarity ?? null,
-        message: state === 'pending_review' ? PENDING_MESSAGE : null,
+        maxSimilarity: state === 'pending_review' ? currentPending.maxSimilarity : null,
+        message: state === 'pending_review' ? currentPending.message : null,
+        reason: state === 'pending_review' ? currentPending.reason : null,
+        retryable: state === 'pending_review' && currentPending.retryable,
       });
     }
 
     if (action !== 'submit') return respond(400, { error: 'unsupported_action' });
     if (state === 'approved') return respond(200, { state: 'approved', threshold: FACE_SIMILARITY_THRESHOLD });
     if (state === 'hidden') return respond(403, { state: 'hidden', error: 'account_not_eligible' });
-    if (state === 'pending_review') {
-      return respond(200, { state: 'pending_review', threshold: FACE_SIMILARITY_THRESHOLD, message: PENDING_MESSAGE });
+    const retryCase = state === 'pending_review' && currentPending.retryable ? latestCase : null;
+    if (state === 'pending_review' && !retryCase) {
+      return respond(200, {
+        state: 'pending_review',
+        threshold: FACE_SIMILARITY_THRESHOLD,
+        maxSimilarity: currentPending.maxSimilarity,
+        message: currentPending.message,
+        reason: currentPending.reason,
+        retryable: currentPending.retryable,
+      });
     }
 
     if (onboarding.account_status !== 'active' || !onboarding.age_verified || !onboarding.policies_accepted) {
@@ -361,9 +469,7 @@ Deno.serve(async (request: Request) => {
       && headlineValid
       && bioLength >= 50
       && bioLength <= 4000;
-    if (!profileCopyComplete) {
-      return respond(422, { error: 'signup_profile_details_required' });
-    }
+    if (!profileCopyComplete) return respond(422, { error: 'signup_profile_details_required' });
 
     if (typeof body.selfieBase64 !== 'string' || body.mimeType !== 'image/jpeg') {
       return respond(400, { error: 'jpeg_selfie_required' });
@@ -373,10 +479,11 @@ Deno.serve(async (request: Request) => {
     const media = await profileMedia(server, actorId);
     if (media.length === 0) return respond(422, { error: 'profile_photo_required' });
 
-    await server
+    const { error: profilePendingError } = await server
       .from('profiles')
       .update({ profile_status: 'pending_review', discovery_enabled: false, nearby_enabled: false })
       .eq('id', actorId);
+    if (profilePendingError) throw new Error(`profile_pending_update_failed:${profilePendingError.code}`);
 
     const attemptId = crypto.randomUUID();
     const selfieStoragePath = `${actorId}/${attemptId}/selfie.jpg`;
@@ -387,32 +494,36 @@ Deno.serve(async (request: Request) => {
 
     const declaredGender = String(profile.gender);
     const declaredGenderConsistent = typeof body.declaredGender !== 'string' || body.declaredGender === declaredGender;
-    const provider = rekognitionClient();
-    let maxSimilarity = 0;
+    let maxSimilarity: number | null = null;
     let matchedMediaId: string | null = null;
     let providerErrors: string[] = [];
+    let scoredComparisons = 0;
     let pendingReason: string | null = null;
 
     if (!declaredGenderConsistent) {
       pendingReason = 'declared_gender_changed_during_verification';
-    } else if (!provider) {
+    } else if (!providerState.client) {
       pendingReason = 'face_comparison_provider_not_configured';
     } else {
-      const comparison = await compareAgainstProfileImages(provider, selfieBytes, media, server);
+      const comparison = await compareAgainstProfileImages(providerState.client, selfieBytes, media, server);
       maxSimilarity = comparison.maxSimilarity;
       matchedMediaId = comparison.matchedMediaId;
       providerErrors = comparison.errors;
-      if (maxSimilarity <= FACE_SIMILARITY_THRESHOLD) {
-        pendingReason = providerErrors.length === media.length
-          ? 'face_comparison_quality_or_provider_error'
-          : 'face_similarity_not_above_threshold';
+      scoredComparisons = comparison.scoredComparisons;
+      if (scoredComparisons === 0 || maxSimilarity == null) {
+        pendingReason = 'face_comparison_quality_or_provider_error';
+      } else if (maxSimilarity <= FACE_SIMILARITY_THRESHOLD) {
+        pendingReason = 'face_similarity_not_above_threshold';
       }
     }
 
     const score: Record<string, unknown> = {
-      provider: provider ? 'aws_rekognition_compare_faces' : 'unconfigured',
+      provider: providerState.client ? 'aws_rekognition_compare_faces' : 'unconfigured',
+      providerConfigured: Boolean(providerState.client),
+      providerConfigMissing: providerState.missing,
+      requestSimilarityThreshold: REKOGNITION_REQUEST_THRESHOLD,
       threshold: FACE_SIMILARITY_THRESHOLD,
-      maxSimilarity: Number(maxSimilarity.toFixed(2)),
+      maxSimilarity: maxSimilarity == null ? null : Number(maxSimilarity.toFixed(2)),
       matchedMediaId,
       profileMediaIds: media.map((item) => item.id),
       selfieStoragePath,
@@ -420,12 +531,14 @@ Deno.serve(async (request: Request) => {
       declaredGenderConsistent,
       genderCheckMode: 'declared_profile_consistency_only',
       providerErrors,
+      scoredComparisons,
+      attemptedComparisons: media.length,
       pendingReason,
       submittedAt: new Date().toISOString(),
     };
 
-    if (!pendingReason && maxSimilarity > FACE_SIMILARITY_THRESHOLD) {
-      const approvedCase = await insertVerificationCase(server, {
+    if (!pendingReason && maxSimilarity != null && maxSimilarity > FACE_SIMILARITY_THRESHOLD) {
+      const approvedCase = await saveVerificationCase(server, retryCase, {
         userId: actorId,
         status: 'resolved',
         priority: 'normal',
@@ -447,19 +560,29 @@ Deno.serve(async (request: Request) => {
       });
     }
 
-    const queuedCase = await insertVerificationCase(server, {
+    const queuedPresentation = pendingPresentation({
+      id: retryCase?.id ?? '',
+      reported_user_id: actorId,
+      status: 'queued',
+      decision: null,
+      automated_score_json: score,
+      created_at: retryCase?.created_at ?? new Date().toISOString(),
+    }, Boolean(providerState.client));
+    const queuedCase = await saveVerificationCase(server, retryCase, {
       userId: actorId,
       status: 'queued',
       priority: 'high',
-      notes: PENDING_MESSAGE,
+      notes: queuedPresentation.message,
       score,
     });
     return respond(200, {
       state: 'pending_review',
       caseId: queuedCase.id,
       threshold: FACE_SIMILARITY_THRESHOLD,
-      maxSimilarity: Number(maxSimilarity.toFixed(2)),
-      message: PENDING_MESSAGE,
+      maxSimilarity: queuedPresentation.maxSimilarity,
+      message: queuedPresentation.message,
+      reason: queuedPresentation.reason,
+      retryable: queuedPresentation.retryable,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'member_photo_verification_failed';
