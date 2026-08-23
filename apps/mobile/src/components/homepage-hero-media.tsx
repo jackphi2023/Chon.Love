@@ -31,17 +31,11 @@ export function HomepageHeroMedia({
 }: HomepageHeroMediaProps) {
   const heroSlides = slides ?? [];
 
-  // Do not mount the YouTube component at all while an image slider is active.
-  // This prevents poster/player/network work from competing with first paint.
+  // Do not mount the YouTube component or its poster while an image slider is active.
+  // The slider prefetches its own responsive assets so an old fallback image never
+  // flashes underneath a newly configured Supabase slide.
   if (heroSlides.length > 0) {
-    return (
-      <HomepageHeroSlider
-        fallbackSource={fallbackSource}
-        isPhone={isPhone}
-        slides={heroSlides}
-        style={style}
-      />
-    );
+    return <HomepageHeroSlider isPhone={isPhone} slides={heroSlides} style={style} />;
   }
 
   return (
@@ -58,12 +52,10 @@ export function HomepageHeroMedia({
 function HomepageHeroSlider({
   slides,
   isPhone,
-  fallbackSource,
   style,
 }: {
   slides: HomepageHeroSlide[];
   isPhone: boolean;
-  fallbackSource: ImageSourcePropType;
   style?: StyleProp<ViewStyle>;
 }) {
   const slidesKey = useMemo(() => slides.map((slide) => slide.id).join(':'), [slides]);
@@ -72,6 +64,16 @@ function HomepageHeroSlider({
   useEffect(() => {
     setActiveIndex(0);
   }, [slidesKey]);
+
+  useEffect(() => {
+    const responsiveUrls = slides
+      .map((slide) => (isPhone ? slide.mobile_url : slide.desktop_url))
+      .filter((url): url is string => Boolean(url));
+
+    for (const url of responsiveUrls) {
+      void Image.prefetch(url).catch(() => undefined);
+    }
+  }, [isPhone, slides]);
 
   useEffect(() => {
     if (slides.length < 2) return undefined;
@@ -96,12 +98,12 @@ function HomepageHeroSlider({
 
   return (
     <View pointerEvents="none" style={[styles.frame, style]} testID="chon-homepage-hero-slider">
-      <Image accessibilityElementsHidden resizeMode="cover" source={fallbackSource} style={StyleSheet.absoluteFill} />
       {activeUrl ? (
         <Image
           accessibilityLabel={`Ảnh giới thiệu Chọn.love ${activeIndex + 1}`}
+          fadeDuration={0}
           resizeMode="cover"
-          source={{ uri: activeUrl }}
+          source={{ uri: activeUrl, cache: 'force-cache' }}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
@@ -118,7 +120,7 @@ function HomepageHeroSlider({
 
 const styles = StyleSheet.create({
   frame: {
-    backgroundColor: '#090909',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   dots: {
