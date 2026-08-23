@@ -7,12 +7,16 @@ on:
     paths:
       - 'services/photo-verification-worker/**'
       - 'supabase/functions/member-photo-verification/**'
+      - 'apps/mobile/app/onboarding/selfie.tsx'
+      - 'apps/mobile/src/lib/member-photo-verification*'
       - '.github/workflows/photo-v02c-local-face-worker.yml'
       - 'docs/photo-v02c-local-face-worker.md'
   pull_request:
     paths:
       - 'services/photo-verification-worker/**'
       - 'supabase/functions/member-photo-verification/**'
+      - 'apps/mobile/app/onboarding/selfie.tsx'
+      - 'apps/mobile/src/lib/member-photo-verification*'
       - '.github/workflows/photo-v02c-local-face-worker.yml'
       - 'docs/photo-v02c-local-face-worker.md'
 
@@ -39,7 +43,7 @@ jobs:
           cp .photo-v02c/samples/lena.jpg .photo-v02c/http/lena.jpg
 
       - name: Build worker image
-        run: docker build -f services/photo-verification-worker/Dockerfile -t chon-photo-worker:photo-v02c .
+        run: docker build -t chon-photo-worker:photo-v02c services/photo-verification-worker
 
       - name: Start sample image server
         run: |
