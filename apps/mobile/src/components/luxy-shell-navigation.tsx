@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
+import { ChonMenuIcon } from '@/components/chon-menu-icon';
 import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
 import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -33,10 +34,10 @@ const primaryItems = [
 ] as const;
 
 const accountItems = [
-  { label: 'Hồ sơ', href: '/(tabs)/profile' as const },
-  { label: 'Quà', href: '/(tabs)/gifts' as const },
-  { label: 'Số dư', href: '/(tabs)/balance' as const },
-  { label: 'Cài đặt', href: '/settings' as const },
+  { label: 'Hồ sơ', icon: 'profile' as const, href: '/(tabs)/profile' as const },
+  { label: 'Quà tặng', icon: 'gift' as const, href: '/(tabs)/gifts' as const },
+  { label: 'Số dư', icon: 'balance' as const, href: '/(tabs)/balance' as const },
+  { label: 'Cài đặt', icon: 'settings' as const, href: '/settings' as const },
 ] as const;
 
 type PrimaryItem = (typeof primaryItems)[number];
@@ -192,6 +193,7 @@ export function LuxyShellNavigation() {
   const accountControl = (variant: ShellVariant) => {
     const phone = variant === 'phone';
     const tablet = variant === 'tablet';
+    const avatarSize = phone ? 29 : 34;
     return (
       <Pressable
         accessibilityLabel="Mở menu hồ sơ Chọn.love"
@@ -207,7 +209,7 @@ export function LuxyShellNavigation() {
         ]}
       >
         <View style={[styles.avatar, phone && styles.phoneAvatar]}>
-          <ChonUserAvatar size={phone ? 36 : 42} />
+          <ChonUserAvatar size={avatarSize} />
         </View>
         {variant === 'desktop' ? <Text style={styles.accountLabel}>Tài khoản</Text> : null}
       </Pressable>
@@ -242,6 +244,7 @@ export function LuxyShellNavigation() {
               pressed && styles.menuItemPressed,
             ]}
           >
+            <ChonMenuIcon name={item.icon} size={12} />
             <Text style={styles.menuLabel}>{item.label}</Text>
           </Pressable>
         );
@@ -259,6 +262,7 @@ export function LuxyShellNavigation() {
         ]}
         testID="chon-navigation-logout"
       >
+        <ChonMenuIcon name="logout" size={12} />
         <Text style={styles.menuLabel}>Đăng xuất</Text>
       </Pressable>
     </View>
@@ -268,10 +272,11 @@ export function LuxyShellNavigation() {
     return (
       <View style={styles.shell}>
         <View style={styles.phoneTopRow}>
+          <View accessibilityElementsHidden style={styles.phoneSideSpacer} />
           <Pressable accessibilityLabel="Chọn.love — về Kết nối" accessibilityRole="button" onPress={navigateHome} style={({ pressed }) => [styles.phoneBrandButton, pressed && styles.pressed]}>
             <ChonLoveLogo height={38} scale={NAV_LOGO_SCALE} width={width < 430 ? 102 : 118} />
           </Pressable>
-          {accountControl('phone')}
+          <View style={styles.phoneAccountSlot}>{accountControl('phone')}</View>
           {accountMenu('phone')}
         </View>
         {upgradePromo}
@@ -327,10 +332,12 @@ const styles = StyleSheet.create({
   brandButton: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: luxySpacing.lg },
   desktopBrandButton: { minWidth: 204, paddingHorizontal: luxySpacing.xl },
   tabletBrandButton: { minWidth: 130, paddingHorizontal: luxySpacing.xs },
-  phoneBrandButton: { alignItems: 'center', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', minWidth: 118, paddingHorizontal: luxySpacing.xs },
+  phoneBrandButton: { alignItems: 'center', flex: 1, height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', minWidth: 0, paddingHorizontal: luxySpacing.xs },
+  phoneSideSpacer: { height: luxyLayout.authenticatedPhoneTopHeight, width: 52 },
+  phoneAccountSlot: { alignItems: 'center', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'center', width: 52 },
   desktopPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row' },
   tabletPrimary: { alignItems: 'stretch', flex: 1, flexDirection: 'row', minWidth: 0 },
-  phoneTopRow: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', height: luxyLayout.authenticatedPhoneTopHeight, justifyContent: 'space-between', position: 'relative', zIndex: 110 },
+  phoneTopRow: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', height: luxyLayout.authenticatedPhoneTopHeight, position: 'relative', zIndex: 110 },
   phoneNavRow: { alignItems: 'stretch', backgroundColor: luxyColors.brandRedSurface, flexDirection: 'row', height: luxyLayout.authenticatedPhoneNavHeight, width: '100%', ...luxyShadows.navigation },
   navItem: { alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 3, justifyContent: 'center', minHeight: luxyLayout.authenticatedNavHeight, minWidth: 92, paddingHorizontal: luxySpacing.lg },
   tabletNavItem: { flex: 1, minWidth: 0, paddingHorizontal: luxySpacing.xs },
@@ -357,29 +364,30 @@ const styles = StyleSheet.create({
   tabletUpgrade: { flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.sm },
   phoneUpgrade: { alignSelf: 'center', flex: 1, marginHorizontal: luxySpacing.xs, minHeight: 44, minWidth: 0, paddingHorizontal: luxySpacing.xs, paddingVertical: 2 },
   upgradeHover: {
-    backgroundColor: '#E24A47',
+    backgroundColor: '#E94A47',
     shadowColor: '#C81C1D',
     shadowOffset: { height: 2, width: 0 },
     shadowOpacity: 0.22,
     shadowRadius: 5,
     elevation: 3,
+    transform: [{ scale: 1.02 }],
   },
   upgradeText: { color: luxyColors.surface, fontWeight: '700' },
   accountButton: { alignItems: 'center', flexDirection: 'row', gap: luxySpacing.sm, justifyContent: 'center', minWidth: 148, paddingHorizontal: luxySpacing.lg },
-  tabletAccountButton: { minWidth: 56, paddingHorizontal: luxySpacing.sm },
-  phoneAccountButton: { height: luxyLayout.authenticatedPhoneTopHeight, minWidth: 52, paddingHorizontal: luxySpacing.sm },
+  tabletAccountButton: { minWidth: 50, paddingHorizontal: luxySpacing.xs },
+  phoneAccountButton: { height: luxyLayout.authenticatedPhoneTopHeight, minWidth: 52, paddingHorizontal: 0, width: 52 },
   accountActive: { backgroundColor: luxyColors.subtleSurface },
-  avatar: { alignItems: 'center', height: 42, justifyContent: 'center', width: 42 },
-  phoneAvatar: { height: 36, width: 36 },
+  avatar: { alignItems: 'center', height: 34, justifyContent: 'center', width: 34 },
+  phoneAvatar: { height: 29, width: 29 },
   accountLabel: { color: luxyColors.text, fontSize: 16, fontWeight: '500', maxWidth: 110 },
-  accountMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 216, paddingVertical: luxySpacing.sm, position: 'absolute', right: luxySpacing.md, top: luxyLayout.authenticatedNavHeight - 2, zIndex: 140, ...luxyShadows.navigation },
-  phoneMenu: { maxWidth: 280, minWidth: 216, right: luxySpacing.sm, top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight - 2 },
+  accountMenu: { backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: luxyRadii.sm, borderWidth: 1, minWidth: 154, paddingVertical: luxySpacing.sm, position: 'absolute', right: luxySpacing.md, top: luxyLayout.authenticatedNavHeight - 2, width: 154, zIndex: 140, ...luxyShadows.navigation },
+  phoneMenu: { minWidth: 152, right: luxySpacing.sm, top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight - 2, width: 152 },
   phoneMenuWithPromo: { top: luxyLayout.authenticatedPhoneTopHeight + luxyLayout.authenticatedPhoneNavHeight + luxyLayout.authenticatedPromoHeight - 2 },
   tabletMenu: { right: luxySpacing.sm },
-  menuItem: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg },
+  menuItem: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'flex-start', minHeight: 40, paddingHorizontal: 12 },
   menuItemHover: { backgroundColor: CHON_GOLD },
   menuItemPressed: { backgroundColor: 'rgba(255,187,0,0.82)' },
-  menuLabel: { color: luxyColors.text, fontSize: 15, fontWeight: '600' },
+  menuLabel: { color: '#111111', fontSize: 12, fontWeight: '600', textAlign: 'left' },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },
   pressed: { opacity: 0.78 },
 });
