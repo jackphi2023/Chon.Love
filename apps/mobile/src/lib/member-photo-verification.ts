@@ -17,6 +17,7 @@ export type MemberPhotoVerificationResult = {
   providerMetric?: 'percent' | 'cosine' | string | null;
   localCosineThreshold?: number | null;
   localMinimumStrongMatches?: number | null;
+  currentReferencePhotoCount?: number | null;
   maxSimilarity?: number | null;
   caseId?: string;
   message?: string | null;
@@ -90,6 +91,7 @@ export function normalizeMemberPhotoVerificationResult(value: unknown): MemberPh
     providerMetric: typeof record.providerMetric === 'string' ? record.providerMetric : null,
     localCosineThreshold: typeof record.localCosineThreshold === 'number' ? record.localCosineThreshold : null,
     localMinimumStrongMatches: typeof record.localMinimumStrongMatches === 'number' ? record.localMinimumStrongMatches : null,
+    currentReferencePhotoCount: typeof record.currentReferencePhotoCount === 'number' ? record.currentReferencePhotoCount : null,
     maxSimilarity: typeof record.maxSimilarity === 'number' ? record.maxSimilarity : null,
     ...(typeof record.caseId === 'string' ? { caseId: record.caseId } : {}),
     message: typeof record.message === 'string' ? record.message : null,
