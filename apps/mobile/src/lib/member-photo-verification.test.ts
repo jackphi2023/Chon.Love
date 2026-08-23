@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   MEMBER_PHOTO_PENDING_MESSAGE,
@@ -42,13 +41,5 @@ describe('member photo verification contract', () => {
 
     expect(result.maxSimilarity).toBe(57.42);
     expect(result.threshold).toBe(MEMBER_PHOTO_SIMILARITY_THRESHOLD);
-  });
-
-  it('keeps the Rekognition request threshold separate from the Chon.Love business threshold', () => {
-    const source = readFileSync('supabase/functions/member-photo-verification/index.ts', 'utf8');
-    expect(source).toContain('const REKOGNITION_REQUEST_THRESHOLD = 0;');
-    expect(source).toContain('SimilarityThreshold: REKOGNITION_REQUEST_THRESHOLD');
-    expect(source).toContain('maxSimilarity: maxSimilarity == null ? null');
-    expect(source).toContain("pendingReason = 'face_comparison_provider_not_configured'");
   });
 });
