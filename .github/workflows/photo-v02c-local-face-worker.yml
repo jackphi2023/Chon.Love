@@ -36,11 +36,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Download public smoke image
+      - name: Download pinned-version public smoke image
         run: |
-          bash scripts/photo-v02a/download-assets.sh .photo-v02c
           mkdir -p .photo-v02c/http
-          cp .photo-v02c/samples/lena.jpg .photo-v02c/http/lena.jpg
+          curl --fail --location --retry 3 --retry-delay 2 --silent --show-error \
+            https://raw.githubusercontent.com/opencv/opencv/4.14.0/samples/data/lena.jpg \
+            --output .photo-v02c/http/lena.jpg
+          test -s .photo-v02c/http/lena.jpg
 
       - name: Build worker image
         run: docker build -t chon-photo-worker:photo-v02c services/photo-verification-worker
