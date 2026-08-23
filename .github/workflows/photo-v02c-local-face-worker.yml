@@ -1,0 +1,101 @@
+name: PHOTO-V02C Local Face Worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feature/photo-v02c-local-face-worker']
+    paths:
+      - 'services/photo-verification-worker/**'
+      - 'supabase/functions/member-photo-verification/**'
+      - '.github/workflows/photo-v02c-local-face-worker.yml'
+      - 'docs/photo-v02c-local-face-worker.md'
+  pull_request:
+    paths:
+      - 'services/photo-verification-worker/**'
+      - 'supabase/functions/member-photo-verification/**'
+      - '.github/workflows/photo-v02c-local-face-worker.yml'
+      - 'docs/photo-v02c-local-face-worker.md'
+
+permissions:
+  contents: read
+
+jobs:
+  worker-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download public smoke image
+        run: |
+          bash scripts/photo-v02a/download-assets.sh .photo-v02c
+          mkdir -p .photo-v02c/http
+          cp .photo-v02c/samples/lena.jpg .photo-v02c/http/lena.jpg
+
+      - name: Build worker image
+        run: docker build -f services/photo-verification-worker/Dockerfile -t chon-photo-worker:photo-v02c .
+
+      - name: Start sample image server
+        run: |
+          python -m http.server 8099 --bind 0.0.0.0 --directory .photo-v02c/http > /tmp/photo-v02c-http.log 2>&1 &
+          echo $! > /tmp/photo-v02c-http.pid
+
+      - name: Start worker container
+        env:
+          FACE_WORKER_HMAC_SECRET: photo-v02c-ci-secret-not-production
+        run: |
+          docker run -d --rm \
+            --name chon-photo-worker \
+            --add-host host.docker.internal:host-gateway \
+            -p 8088:8080 \
+            -e FACE_WORKER_HMAC_SECRET="$FACE_WORKER_HMAC_SECRET" \
+            -e FACE_ALLOWED_IMAGE_HOSTS=host.docker.internal \
+            -e FACE_ALLOW_HTTP_FOR_TESTS=true \
+            chon-photo-worker:photo-v02c
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8088/healthz > /tmp/photo-v02c-health.json; then
+              break
+            fi
+            sleep 1
+          done
+          python - <<'PY'
+          import json
+          health=json.load(open('/tmp/photo-v02c-health.json'))
+          assert health['ok'] is True, health
+          assert health['modelsPresent'] is True, health
+          assert health['authConfigured'] is True, health
+          print(json.dumps(health, indent=2))
+          PY
+
+      - name: Run signed end-to-end verification smoke
+        env:
+          SMOKE_WORKER_URL: http://127.0.0.1:8088
+          SMOKE_IMAGE_BASE_URL: http://host.docker.internal:8099
+          FACE_WORKER_HMAC_SECRET: photo-v02c-ci-secret-not-production
+        run: python services/photo-verification-worker/smoke_test.py
+
+      - name: Verify worker rejects unsigned request
+        run: |
+          status=$(curl -sS -o /tmp/unsigned.json -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            -d '{"requestId":"unsigned-test","selfie":{"id":"selfie","url":"http://host.docker.internal:8099/lena.jpg","mimeType":"image/jpeg"},"profiles":[{"id":"p1","url":"http://host.docker.internal:8099/lena.jpg","mimeType":"image/jpeg"}]}' \
+            http://127.0.0.1:8088/v1/verify)
+          test "$status" = "401"
+
+      - name: Print worker logs on failure
+        if: failure()
+        run: |
+          docker logs chon-photo-worker || true
+          cat /tmp/photo-v02c-http.log || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f chon-photo-worker || true
+          if [ -f /tmp/photo-v02c-http.pid ]; then kill "$(cat /tmp/photo-v02c-http.pid)" || true; fi
