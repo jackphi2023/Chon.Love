@@ -4,7 +4,7 @@ import { getMobileSupabaseClient } from './supabase';
 
 export const MEMBER_PHOTO_SIMILARITY_THRESHOLD = 60;
 export const MEMBER_PHOTO_PENDING_MESSAGE =
-  'Chúng tôi thấy ảnh chụp chưa giống trên 60% ảnh bạn upload, chúng tôi sẽ kiểm tra để xác nhận.';
+  'Ảnh xác minh cần được kiểm tra thêm trước khi hồ sơ có thể kích hoạt.';
 
 export type MemberPhotoVerificationState = 'not_started' | 'pending_review' | 'approved' | 'hidden';
 
@@ -15,6 +15,8 @@ export type MemberPhotoVerificationResult = {
   maxSimilarity?: number | null;
   caseId?: string;
   message?: string | null;
+  reason?: string | null;
+  retryable?: boolean;
 };
 
 async function throwFunctionError(error: unknown): Promise<never> {
@@ -42,7 +44,7 @@ export async function getMemberPhotoVerificationStatus(
     body: { action: 'status' },
   });
   if (error) return throwFunctionError(error);
-  return normalizeResult(data);
+  return normalizeMemberPhotoVerificationResult(data);
 }
 
 export async function submitMemberPhotoVerification(
@@ -64,10 +66,10 @@ export async function submitMemberPhotoVerification(
     },
   });
   if (error) return throwFunctionError(error);
-  return normalizeResult(data);
+  return normalizeMemberPhotoVerificationResult(data);
 }
 
-function normalizeResult(value: unknown): MemberPhotoVerificationResult {
+export function normalizeMemberPhotoVerificationResult(value: unknown): MemberPhotoVerificationResult {
   if (!value || typeof value !== 'object') throw new Error('invalid_verification_response');
   const record = value as Record<string, unknown>;
   const state = record.state;
@@ -81,6 +83,8 @@ function normalizeResult(value: unknown): MemberPhotoVerificationResult {
     maxSimilarity: typeof record.maxSimilarity === 'number' ? record.maxSimilarity : null,
     ...(typeof record.caseId === 'string' ? { caseId: record.caseId } : {}),
     message: typeof record.message === 'string' ? record.message : null,
+    reason: typeof record.reason === 'string' ? record.reason : null,
+    retryable: record.retryable === true,
   };
 }
 
