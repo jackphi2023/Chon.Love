@@ -2,7 +2,7 @@ import { getMyProfile, listMyMedia, type GenderIdentity } from '@myfan/supabase'
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LiveSelfieCamera } from '@/components/live-selfie-camera';
 import {
   SignupHelpText,
@@ -10,6 +10,7 @@ import {
   SignupSecondaryButton,
   SignupShell,
 } from '@/components/signup-shell';
+import { getAuthenticatedDestination } from '@/lib/auth';
 import {
   getMemberPhotoVerificationStatus,
   MEMBER_PHOTO_PENDING_MESSAGE,
@@ -23,6 +24,8 @@ import { clearSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
+const ACTIVATION_RETRY_DELAYS_MS = [0, 200, 400] as const;
+
 function readableVerificationFailure(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('profile_photo_required')) return 'Bạn cần tải lên ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.';
@@ -35,6 +38,14 @@ function readableVerificationFailure(error: unknown): string {
   return 'Xác minh ảnh tạm thời không thành công. Vui lòng thử lại; nếu lỗi tiếp tục, Chon.Love sẽ kiểm tra dịch vụ xác minh.';
 }
 
+async function waitForActivatedConnectDestination(): Promise<boolean> {
+  for (const delayMs of ACTIVATION_RETRY_DELAYS_MS) {
+    if (delayMs > 0) await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    if (await getAuthenticatedDestination() === '/(tabs)/connect') return true;
+  }
+  return false;
+}
+
 export default function SelfieVerificationOnboarding() {
   const router = useRouter();
   const auth = useAuth();
@@ -43,6 +54,7 @@ export default function SelfieVerificationOnboarding() {
   const [result, setResult] = useState<MemberPhotoVerificationResult | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -87,9 +99,33 @@ export default function SelfieVerificationOnboarding() {
     }
   }
 
-  function completeSignup() {
-    clearSignupDraft();
-    router.replace('/(tabs)/connect');
+  async function completeSignup() {
+    if (isCompleting) return;
+    setIsCompleting(true);
+    setErrorMessage(null);
+    try {
+      const activated = await waitForActivatedConnectDestination();
+      if (!activated) {
+        setErrorMessage('Xác minh đã thành công nhưng hồ sơ vẫn đang đồng bộ trạng thái kích hoạt. Hãy bấm Hoàn tất lại sau ít giây.');
+        return;
+      }
+
+      clearSignupDraft();
+      router.replace('/(tabs)/connect');
+
+      // Expo Router normally performs an in-app transition. On web, keep a
+      // bounded hard-navigation fallback so a stale route-group state cannot
+      // leave an already-active member stuck on the selfie success screen.
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          if (window.location.pathname === '/onboarding/selfie') window.location.replace('/connect');
+        }, 700);
+      }
+    } catch {
+      setErrorMessage('Không thể xác nhận trạng thái hồ sơ lúc này. Vui lòng bấm Hoàn tất để thử lại.');
+    } finally {
+      setIsCompleting(false);
+    }
   }
 
   async function leaveToHomepage() {
@@ -114,7 +150,8 @@ export default function SelfieVerificationOnboarding() {
             <Text style={styles.successText}>Bấm Hoàn tất để xem các thành viên thật và nổi bật của Chọn.Love. Chúc bạn “Chọn đúng người, Yêu đúng Gu”</Text>
           </View>
         </View>
-        <SignupPrimaryButton label="Hoàn tất" onPress={completeSignup} />
+        {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
+        <SignupPrimaryButton busy={isCompleting} disabled={isCompleting} label="Hoàn tất" onPress={() => void completeSignup()} />
       </SignupShell>
     );
   }
