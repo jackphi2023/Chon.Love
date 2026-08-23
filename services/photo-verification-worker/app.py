@@ -7,6 +7,7 @@ import math
 import os
 import statistics
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -108,6 +109,12 @@ class FaceEngine:
         return score
 
 
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+        return None
+
+
+_NO_REDIRECT_OPENER = urllib.request.build_opener(NoRedirectHandler())
 app = FastAPI(title="Chon.Love Photo Verification Worker", version=ENGINE_VERSION)
 _engine: FaceEngine | None = None
 
@@ -140,7 +147,13 @@ def fetch_image(url: str) -> bytes:
     if parsed.username or parsed.password or not host_allowed(parsed.hostname):
         raise ValueError("image_url_host_not_allowed")
     request = urllib.request.Request(url, headers={"User-Agent": "Chon.Love-PHOTO-V02C/1.0"})
-    with urllib.request.urlopen(request, timeout=8) as response:
+    try:
+        response = _NO_REDIRECT_OPENER.open(request, timeout=8)
+    except urllib.error.HTTPError as error:
+        if 300 <= error.code < 400:
+            raise ValueError("image_redirect_not_allowed") from error
+        raise
+    with response:
         content_length = response.headers.get("Content-Length")
         if content_length and int(content_length) > MAX_IMAGE_BYTES:
             raise ValueError("image_too_large")
@@ -181,10 +194,12 @@ def safe_error(error: Exception) -> str:
         "image_decode_failed",
         "image_too_small",
         "no_face_detected",
+        "multiple_faces_detected",
         "invalid_face_embedding",
         "non_finite_similarity",
         "image_url_scheme_not_allowed",
         "image_url_host_not_allowed",
+        "image_redirect_not_allowed",
         "image_too_large",
     }
     return message if message in allowed else error.__class__.__name__
@@ -272,6 +287,8 @@ async def verify(
         try:
             profile_bytes = fetch_image(profile.url)
             profile_embedding = face_engine.embedding(face_engine.decode(profile_bytes))
+            if profile_embedding.face_count != 1:
+                raise ValueError("multiple_faces_detected")
             cosine = face_engine.cosine(selfie_embedding.vector, profile_embedding.vector)
             scores.append(
                 {
