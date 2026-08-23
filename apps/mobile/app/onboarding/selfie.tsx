@@ -128,6 +128,12 @@ export default function SelfieVerificationOnboarding() {
     }
   }
 
+  function retryVerification() {
+    setResult(null);
+    setSelfie(null);
+    setErrorMessage(null);
+  }
+
   async function leaveToHomepage() {
     if (isLeaving) return;
     setIsLeaving(true);
@@ -160,11 +166,18 @@ export default function SelfieVerificationOnboarding() {
     return (
       <SignupShell description="Hồ sơ tạm thời chưa được kích hoạt trong khi Chon.Love kiểm tra ảnh xác minh." step={8} testID="chon-selfie-pending" title="Chúng tôi sẽ kiểm tra để xác nhận">
         <View style={styles.warningCard}>
-          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
+          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thêm</Text>
           <Text style={styles.warningText}>{result.message || MEMBER_PHOTO_PENDING_MESSAGE}</Text>
           {typeof result.maxSimilarity === 'number' ? <Text style={styles.scoreText}>Độ tương đồng tự động: {result.maxSimilarity.toFixed(1)}%</Text> : null}
         </View>
-        <SignupPrimaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+        {result.retryable ? (
+          <>
+            <SignupPrimaryButton label="Chụp lại để xác minh" onPress={retryVerification} />
+            <SignupSecondaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+          </>
+        ) : (
+          <SignupPrimaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+        )}
       </SignupShell>
     );
   }
