@@ -10,11 +10,29 @@ import type { AuthenticatedRoute } from '@/lib/auth-routing';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/providers/auth-provider';
 
+const CONNECT_ACTIVATION_GRACE_DELAYS_MS = [200, 400] as const;
+
 function shouldShowDesktopFooter(pathname: string): boolean {
   return pathname === '/connect'
     || pathname.startsWith('/favorites')
     || pathname.startsWith('/friends')
     || pathname.startsWith('/messages');
+}
+
+async function getProtectedDestination(pathname: string): Promise<AuthenticatedRoute> {
+  let destination = await getAuthenticatedDestination();
+  if (pathname !== '/connect' || destination === '/(tabs)/connect') return destination;
+
+  // Selfie auto-approval activates the profile synchronously, but a freshly
+  // completed web transition may still observe the previous onboarding state
+  // for a very short window. Re-check only the Connect entry path instead of
+  // bouncing an approved member back into onboarding immediately.
+  for (const delayMs of CONNECT_ACTIVATION_GRACE_DELAYS_MS) {
+    await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    destination = await getAuthenticatedDestination();
+    if (destination === '/(tabs)/connect') break;
+  }
+  return destination;
 }
 
 export default function AuthenticatedLuxyLayout() {
@@ -27,7 +45,8 @@ export default function AuthenticatedLuxyLayout() {
   useEffect(() => {
     if (auth.isRestoring || !auth.userId) return;
     let active = true;
-    void getAuthenticatedDestination()
+    setDestination(null);
+    void getProtectedDestination(pathname)
       .then((route) => {
         if (active) setDestination(route);
       })
@@ -38,7 +57,7 @@ export default function AuthenticatedLuxyLayout() {
     return () => {
       active = false;
     };
-  }, [auth.isRestoring, auth.userId]);
+  }, [auth.isRestoring, auth.userId, pathname]);
 
   if (auth.isRestoring) return <RouteLoading />;
   if (!auth.userId) return Platform.OS === 'web' ? <PublicHomepageReload /> : <Redirect href="/" />;
