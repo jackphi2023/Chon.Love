@@ -276,7 +276,7 @@ function pendingPresentation(caseRow: CaseRow | null, providerConfigured: boolea
       message: LOCAL_REFERENCE_PENDING_MESSAGE,
       maxSimilarity: null,
       reason,
-      retryable: false,
+      retryable: providerConfigured,
     };
   }
   if (reason === 'face_similarity_not_above_local_threshold') {
@@ -553,6 +553,10 @@ Deno.serve(async (request: Request) => {
     const providerMetric = provider.kind === 'local_worker' ? 'cosine' : 'percent';
 
     if (action === 'status') {
+      const currentReferencePhotoCount = provider.kind === 'local_worker'
+        && currentPending.reason === 'face_reference_photos_insufficient_for_auto_approval'
+        ? (await profileMedia(server, actorId)).length
+        : null;
       return respond(200, {
         state,
         profileStatus: profile.profile_status,
@@ -562,6 +566,7 @@ Deno.serve(async (request: Request) => {
         providerMetric,
         localCosineThreshold: provider.kind === 'local_worker' ? localCosineThreshold() : null,
         localMinimumStrongMatches: provider.kind === 'local_worker' ? localMinimumStrongMatches() : null,
+        currentReferencePhotoCount,
         maxSimilarity: state === 'pending_review' ? currentPending.maxSimilarity : null,
         message: state === 'pending_review' ? currentPending.message : null,
         reason: state === 'pending_review' ? currentPending.reason : null,
