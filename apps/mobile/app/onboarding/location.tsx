@@ -1,7 +1,8 @@
 import { getMyProfile, listActiveProvinces, type ProvinceOption } from '@myfan/supabase';
+import type { SignupExactLocationInput } from '@myfan/validation';
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   SignupFieldLabel,
@@ -19,17 +20,18 @@ import {
 } from '@/lib/signup-location';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
-import type { SignupExactLocationInput } from '@myfan/validation';
 
 export default function OnboardingLocation() {
   const router = useRouter();
   const auth = useAuth();
+  const autoCaptureAttemptedRef = useRef(false);
   const [provinces, setProvinces] = useState<ProvinceOption[]>([]);
   const [provinceId, setProvinceId] = useState('');
   const [exactLocation, setExactLocation] = useState<SignupExactLocationInput | null>(null);
   const [captureResult, setCaptureResult] = useState<SignupLocationCaptureResult | null>(null);
   const [accountStatus, setAccountStatus] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(true);
+  const [canAutoCapture, setCanAutoCapture] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -38,6 +40,18 @@ export default function OnboardingLocation() {
     { value: '', label: 'Chọn tỉnh/thành phố' },
     ...provinces.map((province) => ({ value: String(province.id), label: province.name })),
   ], [provinces]);
+
+  const handleCurrentLocation = useCallback(async () => {
+    setIsCapturing(true);
+    setErrorMessage(null);
+    try {
+      const result = await captureSignupCurrentLocation();
+      setCaptureResult(result);
+      if (result.status === 'captured') setExactLocation(result.location);
+    } finally {
+      setIsCapturing(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (auth.isRestoring) return;
@@ -63,7 +77,7 @@ export default function OnboardingLocation() {
           return;
         }
         if (status.profile_status === 'active') {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/connect');
           return;
         }
         if (status.profile_status !== 'incomplete') {
@@ -82,6 +96,7 @@ export default function OnboardingLocation() {
         if (!active) return;
         setProvinces(provinceRows);
         setProvinceId(profile.province_id == null ? '' : String(profile.province_id));
+        setCanAutoCapture(true);
       } catch (error) {
         if (active) setErrorMessage(getReadableOnboardingError(error));
       } finally {
@@ -92,17 +107,22 @@ export default function OnboardingLocation() {
     return () => { active = false; };
   }, [auth.isRestoring, auth.userId, router]);
 
-  async function handleCurrentLocation() {
-    setIsCapturing(true);
-    setErrorMessage(null);
-    try {
-      const result = await captureSignupCurrentLocation();
-      setCaptureResult(result);
-      if (result.status === 'captured') setExactLocation(result.location);
-    } finally {
-      setIsCapturing(false);
-    }
-  }
+  useEffect(() => {
+    if (!canAutoCapture || isChecking || auth.isRestoring || !auth.userId || accountStatus) return;
+    if (exactLocation || isCapturing || isSubmitting || autoCaptureAttemptedRef.current) return;
+    autoCaptureAttemptedRef.current = true;
+    void handleCurrentLocation();
+  }, [
+    accountStatus,
+    auth.isRestoring,
+    auth.userId,
+    canAutoCapture,
+    exactLocation,
+    handleCurrentLocation,
+    isCapturing,
+    isChecking,
+    isSubmitting,
+  ]);
 
   async function handleContinue() {
     const parsedProvinceId = Number(provinceId);
@@ -167,6 +187,7 @@ export default function OnboardingLocation() {
       />
 
       <SignupFieldLabel>Vị trí hiện tại</SignupFieldLabel>
+      <SignupHelpText tone="muted">Chon.Love tự thử lấy vị trí hiện tại một lần để xếp thành viên gần → xa. Trình duyệt hoặc điện thoại vẫn sẽ hỏi quyền vị trí; nếu bạn từ chối, hệ thống tiếp tục dùng tỉnh/thành phố đã chọn.</SignupHelpText>
       <SignupSecondaryButton
         busy={isCapturing}
         disabled={isSubmitting}
