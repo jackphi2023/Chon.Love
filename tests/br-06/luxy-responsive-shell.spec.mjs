@@ -56,12 +56,13 @@ async function expectResponsiveAccountMenu(page, viewportWidth) {
   await accountButton.click();
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
-  for (const label of ['Hồ sơ', 'Quà', 'Số dư', 'Cài đặt', 'Đăng xuất']) {
+  for (const label of ['Hồ sơ', 'Quà tặng', 'Số dư', 'Cài đặt', 'Đăng xuất']) {
     await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible();
   }
   await expect(menu.locator('img')).toHaveCount(0);
   const menuBox = await menu.boundingBox();
   expect(menuBox).not.toBeNull();
+  expect(menuBox.width).toBeLessThanOrEqual(160);
   expect(menuBox.x).toBeGreaterThanOrEqual(0);
   expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(viewportWidth + 1);
   await accountButton.click();
@@ -87,9 +88,13 @@ test('authenticated Free shell keeps refreshed connection navigation responsive 
 
     const compactBrandBox = await shellBrand.boundingBox();
     const compactConnectBox = await page.getByRole('button', { name: 'Kết nối', exact: true }).boundingBox();
+    const compactAccountBox = await page.getByRole('button', { name: 'Mở menu hồ sơ Chọn.love' }).boundingBox();
     expect(compactBrandBox).not.toBeNull();
     expect(compactConnectBox).not.toBeNull();
+    expect(compactAccountBox).not.toBeNull();
     expect(compactBrandBox.y).toBeLessThan(compactConnectBox.y);
+    expect(Math.abs((compactBrandBox.x + compactBrandBox.width / 2) - 195)).toBeLessThanOrEqual(3);
+    expect(compactAccountBox.width).toBeLessThanOrEqual(52);
 
     await expectResponsiveAccountMenu(page, 390);
 
@@ -109,6 +114,7 @@ test('authenticated Free shell keeps refreshed connection navigation responsive 
     expect(phoneBrandBox).not.toBeNull();
     expect(phoneConnectBox).not.toBeNull();
     expect(phoneBrandBox.y).toBeLessThan(phoneConnectBox.y);
+    expect(Math.abs((phoneBrandBox.x + phoneBrandBox.width / 2) - 215)).toBeLessThanOrEqual(3);
 
     await testInfo.attach('free-shell-430', {
       body: await page.screenshot({ fullPage: true }),
