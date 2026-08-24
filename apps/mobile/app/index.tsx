@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   positioningCopy: { alignItems: 'center', maxWidth: 620, width: '45%', zIndex: 2 },
   positioningCopyCompact: { maxWidth: 720, width: '100%' },
   positioningCopyPhone: { width: '100%' },
-  sideArtwork: { backgroundColor: '#FFFFFF', borderColor: CHON_GOLD, borderRadius: 18, borderWidth: 2, height: 300, overflow: 'hidden', position: 'absolute', top: 60, width: 220 },
+  sideArtwork: { backgroundColor: '#FFFFFF', borderColor: CHON_GOLD, borderRadius: 18, borderWidth: 2, height: 296, overflow: 'hidden', position: 'absolute', top: 60, width: 216 },
   sideArtworkLeft: { left: 80 },
   sideArtworkRight: { right: 80 },
   fillImage: { height: '100%', width: '100%' },
