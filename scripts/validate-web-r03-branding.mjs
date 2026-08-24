@@ -12,7 +12,7 @@ const userFacing = [
   'apps/mobile/app/chat/[conversationId].tsx',
   'apps/mobile/app/profile/[username].tsx',
   'apps/mobile/app/thanh-vien/[username].tsx',
-  'apps/mobile/src/screens/luxy-member-profile-screen.tsx',
+  'apps/mobile/src/screens/chon-member-profile-screen.tsx',
   'apps/mobile/app/legal/terms.tsx',
   'apps/mobile/app/legal/community-standards.tsx',
   'apps/mobile/app/auth/forgot-password.tsx',
@@ -138,8 +138,11 @@ for (const path of [
   validatePng(path, 768, 528);
 }
 
+// Chọn.Love is the canonical owner after UI-PRO01. Keep the old Web renderer
+// guarded while legacy screens still import it, but do not require the native
+// compatibility bridge to duplicate badge assets or layout logic.
 for (const path of [
-  'apps/mobile/src/components/luxy-membership-badge-image.tsx',
+  'apps/mobile/src/components/chon-membership-badge.tsx',
   'apps/mobile/src/components/luxy-membership-badge-image.web.tsx',
 ]) {
   const membershipBadge = read(path);
@@ -157,10 +160,21 @@ for (const path of [
   );
 }
 
-const badgeE2e = read('tests/br-06/luxy-profile-visual-regressions.spec.mjs');
-expect(badgeE2e.includes("tier: 'premium'") && badgeE2e.includes("tier: 'diamond'"), 'Browser regression must exercise both Premium and Diamond badges.');
-expect(badgeE2e.includes('await node.decode()') && badgeE2e.includes('natural height`).toBe(528)'), 'Browser regression must require complete image decoding and the 768×528 natural canvas.');
-expect(badgeE2e.includes('expectedWidth * 11') && badgeE2e.includes("getByTestId('luxy-member-profile-hero-photo')"), 'Browser regression must enforce 16:11 rendered height and keep the badge inside the hero frame.');
+const badgeBridge = read('apps/mobile/src/components/luxy-membership-badge-image.tsx');
+expect(
+  badgeBridge.includes("from './chon-membership-badge'") && badgeBridge.includes('<ChonMembershipBadge'),
+  'Legacy membership badge bridge must delegate to the canonical Chọn.Love owner.',
+);
+expect(
+  !badgeBridge.includes('premium-badge-hq.png') && !badgeBridge.includes('diamond-badge-hq.png'),
+  'Legacy membership badge bridge must not duplicate canonical artwork ownership.',
+);
+
+const badgeE2e = read('tests/br-06/chon-public-member-profile-pro01.spec.mjs');
+expect(badgeE2e.includes("tier: 'premium'") && badgeE2e.includes("tier: 'diamond'"), 'UI-PRO01 browser regression must exercise both Premium and Diamond badges.');
+expect(badgeE2e.includes('await node.decode()') && badgeE2e.includes('naturalSize.height).toBe(528)'), 'UI-PRO01 browser regression must require complete image decoding and the 768×528 natural canvas.');
+expect(badgeE2e.includes('(expectedWidth * 11) / 16') && badgeE2e.includes("getByTestId('chon-member-profile-hero-photo')"), 'UI-PRO01 browser regression must enforce 16:11 rendered height and keep the badge inside the Chọn.Love hero frame.');
+expect(badgeE2e.includes('chon-membership-badge-'), 'UI-PRO01 browser regression must target the canonical Chọn.Love membership badge owner.');
 
 const mobileHtml = read('apps/mobile/app/+html.tsx');
 const ui = read('packages/ui/src/index.ts');
@@ -181,4 +195,4 @@ if (failures.length) {
   console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
   process.exit(1);
 }
-console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, unreleased Admin finance placeholders stay out of navigation, membership PNGs are intact, native/Web badge renderers preserve 16:11, and legacy Activity/Creator routes are retired.');
+console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, unreleased Admin finance placeholders stay out of navigation, membership PNGs are intact, Chọn.Love owns the profile badge contract, and legacy Activity/Creator routes are retired.');
