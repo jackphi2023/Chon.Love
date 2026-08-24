@@ -1,6 +1,4 @@
 import {
-  createPublicProfileMediaUrl,
-  formatLuxyDistance,
   getMyDiscoveryContext,
   getNextLuxySearchOffset,
   listActiveProvinces,
@@ -12,7 +10,6 @@ import {
   type DrinkingStatus,
   type EducationLevel,
   type LuxySearchFavoriteScope,
-  type LuxySearchProfile,
   type LuxySearchSort,
   type LuxySearchViewState,
   type ProfileLifestyleTag,
@@ -23,7 +20,6 @@ import {
 } from '@myfan/supabase';
 import { luxyColors, luxyLayout, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,8 +32,8 @@ import {
   View,
 } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
-import { LazyProfileImage } from '@/components/lazy-profile-image';
-import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
+import { ChonConnectMemberCard } from '@/components/chon-connect-member-card';
+import { ChonViewResultsButton } from '@/components/chon-view-results-button';
 import { requestDiscoveryLocation } from '@/lib/location';
 import { getReadableLocationError } from '@/lib/location-errors';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -373,7 +369,7 @@ export function LuxySearchMobile() {
           </State>
         ) : (
           <View style={styles.memberGrid} testID="luxy-search-mobile-grid">
-            {profiles.map((profile) => <LuxyMobileMemberCard key={profile.id} profile={profile} />)}
+            {profiles.map((profile) => <ChonConnectMemberCard key={profile.id} profile={profile} style={styles.memberCard} testID="luxy-search-mobile-card" />)}
           </View>
         )}
 
@@ -473,7 +469,7 @@ export function LuxySearchMobile() {
 
             <View style={styles.sheetFooter}>
               <Pressable accessibilityRole="button" disabled style={[styles.saveSearchButton, styles.disabledAction]}><Text style={styles.saveSearchText}>Lưu tìm kiếm</Text></Pressable>
-              <Pressable accessibilityRole="button" onPress={applyFilters} style={styles.applyButton} testID="luxy-search-mobile-filter-apply"><Text style={styles.applyButtonText}>Xem kết quả</Text></Pressable>
+              <ChonViewResultsButton large onPress={applyFilters} style={styles.applyButtonLayout} testID="luxy-search-mobile-filter-apply" />
             </View>
           </View>
         </View>
@@ -542,48 +538,6 @@ function RangeInputs({ leftLabel, leftValue, rightLabel, rightValue, onLeftChang
   return <View style={styles.rangeRow}><View style={styles.rangeField}><Text style={styles.rangeLabel}>{leftLabel}</Text><TextInput keyboardType="number-pad" onChangeText={onLeftChange} style={styles.rangeInput} value={leftValue} /></View><Text style={styles.rangeDash}>–</Text><View style={styles.rangeField}><Text style={styles.rangeLabel}>{rightLabel}</Text><TextInput keyboardType="number-pad" onChangeText={onRightChange} style={styles.rangeInput} value={rightValue} /></View></View>;
 }
 
-function LuxyMobileMemberCard({ profile }: { profile: LuxySearchProfile }) {
-  const router = useRouter();
-  const client = getMobileSupabaseClient();
-  const name = profile.display_name || profile.username || 'Thành viên Chọn.Love';
-  const distance = formatLuxyDistance(profile.distance_km);
-  const location = [profile.province_name, distance].filter(Boolean).join(' · ');
-  const imageQuery = useQuery({
-    queryKey: ['luxy-search', 'member-photo', profile.avatar_media_id],
-    enabled: Boolean(client && profile.avatar_media_id && profile.avatar_storage_bucket && profile.avatar_storage_path),
-    staleTime: 35_000,
-    gcTime: 5 * 60_000,
-    queryFn: async () => {
-      if (!client || !profile.avatar_storage_bucket || !profile.avatar_storage_path) return null;
-      return createPublicProfileMediaUrl(client, { storage_bucket: profile.avatar_storage_bucket, storage_path: profile.avatar_storage_path });
-    },
-  });
-
-  return (
-    <View style={styles.memberCard} testID="luxy-search-mobile-card">
-      <Pressable
-        accessibilityLabel={`Xem hồ sơ ${name}, ${profile.age} tuổi${location ? `, ${location}` : ''}`}
-        accessibilityRole="button"
-        disabled={!profile.username}
-        onPress={() => profile.username && router.push({ pathname: '/profile/[username]', params: { username: profile.username } })}
-        style={({ pressed }) => [styles.cardPressable, pressed && styles.memberCardPressed]}
-      >
-        <View style={styles.photoFrame}>
-          {imageQuery.data ? <LazyProfileImage accessibilityLabel={`Ảnh hồ sơ của ${name}`} resizeMode="cover" source={{ uri: imageQuery.data }} style={styles.memberPhoto} /> : <View style={styles.photoFallback}><Text style={styles.photoInitial}>{name.slice(0, 1).toUpperCase()}</Text></View>}
-          <View style={styles.photoCountBadge}><Text style={styles.photoCountText}>▣ {profile.photo_count}</Text></View>
-          <View style={styles.photoOverlay}>
-            <View style={styles.memberNameRow}>{profile.is_online ? <View accessibilityLabel="Đang online" style={styles.onlineDot} /> : null}<Text numberOfLines={1} style={styles.memberName}>{name}</Text><Text style={styles.memberAge}>{profile.age}</Text></View>
-            <Text numberOfLines={1} style={styles.memberLocation}>{location || 'Việt Nam'}</Text>
-          </View>
-        </View>
-      </Pressable>
-      <View style={styles.favoriteOverlay}>
-        <LuxyFavoriteButton initialFavorited={profile.is_favorited} initialFavoritedBy={profile.is_favorited_by} name={name} profileId={profile.id} />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, minHeight: '100%', backgroundColor: luxyColors.background },
   page: { width: '100%', maxWidth: 920, alignSelf: 'center', paddingHorizontal: 10, paddingTop: luxySpacing.md, paddingBottom: luxySpacing.huge },
@@ -598,22 +552,7 @@ const styles = StyleSheet.create({
   filterCountBadge: { position: 'absolute', top: -5, right: -4, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: luxyColors.action, alignItems: 'center', justifyContent: 'center' },
   filterCountText: { color: luxyColors.surface, fontSize: 9, fontWeight: '700' },
   memberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' },
-  memberCard: { width: '49%', flexGrow: 1, maxWidth: '49.2%', position: 'relative' },
-  cardPressable: { width: '100%' },
-  memberCardPressed: { opacity: 0.84 },
-  photoFrame: { width: '100%', aspectRatio: luxyLayout.memberCardAspectRatio, borderRadius: luxyRadii.sm, overflow: 'hidden', backgroundColor: luxyColors.elevatedSubtle, position: 'relative' },
-  memberPhoto: { width: '100%', height: '100%' },
-  photoFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E7E5E4' },
-  photoInitial: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 42 },
-  photoCountBadge: { position: 'absolute', top: 7, left: 7, minHeight: 22, borderRadius: luxyRadii.xs, backgroundColor: 'rgba(8,23,38,0.76)', justifyContent: 'center', paddingHorizontal: 6 },
-  photoCountText: { color: luxyColors.surface, fontSize: 9, fontWeight: '600' },
-  photoOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 74, justifyContent: 'flex-end', paddingHorizontal: 8, paddingTop: 22, paddingBottom: 7, paddingRight: 56, backgroundColor: 'rgba(8,23,38,0.60)' },
-  memberNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: luxyColors.online },
-  memberName: { flexShrink: 1, color: luxyColors.surface, fontSize: 12, fontWeight: '600' },
-  memberAge: { color: luxyColors.surface, fontSize: 11 },
-  memberLocation: { color: '#F1F1F1', fontSize: 9, marginTop: 3 },
-  favoriteOverlay: { bottom: 7, position: 'absolute', right: 7, zIndex: 4 },
+  memberCard: { width: '49%', flexGrow: 1, maxWidth: '49.2%' },
   skeletonCard: { overflow: 'hidden' },
   skeletonPhoto: { width: '100%', aspectRatio: luxyLayout.memberCardAspectRatio, borderRadius: luxyRadii.sm, backgroundColor: '#E8EAED' },
   skeletonCopy: { gap: 6, paddingHorizontal: 4, paddingTop: 8, paddingBottom: 4 },
@@ -682,8 +621,7 @@ const styles = StyleSheet.create({
   saveSearchButton: { minHeight: 48, minWidth: 112, borderRadius: luxyRadii.pill, borderWidth: 1, borderColor: luxyColors.ink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   saveSearchText: { color: luxyColors.text, fontSize: 11, fontWeight: '600' },
   disabledAction: { opacity: 0.5 },
-  applyButton: { flex: 1, minHeight: 48, borderRadius: luxyRadii.pill, backgroundColor: luxyColors.ink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  applyButtonText: { color: luxyColors.surface, fontSize: 12, fontWeight: '700' },
+  applyButtonLayout: { flex: 1 },
   sortSheet: { width: '100%', maxWidth: 620, alignSelf: 'center', backgroundColor: luxyColors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 18 },
   sortTitle: { color: luxyColors.text, fontSize: 17, fontWeight: '600', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 8 },
   sortRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
