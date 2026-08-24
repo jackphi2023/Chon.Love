@@ -1,4 +1,4 @@
-import { chonColors, chonInteraction, chonRadii, chonShadows } from '@myfan/ui';
+import { chonColors, chonInteraction, chonShadows, luxyRadii } from '@myfan/ui';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: chonColors.surface,
     borderColor: chonColors.gold,
-    borderRadius: chonRadii.pill,
+    borderRadius: luxyRadii.pill,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,
