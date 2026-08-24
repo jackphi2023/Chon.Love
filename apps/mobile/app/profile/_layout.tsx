@@ -56,7 +56,8 @@ export default function MemberProfileRouteLayout() {
     });
   }, [auth.userId, client, isEditor, profile?.id, profile?.username]);
 
-  if (isEditor || !auth.userId) return <Slot />;
+  if (!auth.userId) return <Slot />;
+  if (isEditor) return <Slot />;
 
   const recipientName = profile?.display_name || profile?.username || 'thành viên này';
   const canOfferGift = Boolean(profile && profile.id !== auth.userId && !profile.blocked_by_viewer);
