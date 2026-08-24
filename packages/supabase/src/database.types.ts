@@ -2320,6 +2320,13 @@ export type Database = {
         Args: { p_profile_id: string }
         Returns: string
       }
+      get_luxy_search_membership_badges: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          badge_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          user_id: string
+        }[]
+      }
       get_my_account_deletion_status: {
         Args: never
         Returns: {
