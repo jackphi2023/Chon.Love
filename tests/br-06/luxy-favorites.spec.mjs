@@ -33,7 +33,7 @@ async function normalizeNotFavorited(page, actor) {
   }
 }
 
-test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated users', async ({ browser }, testInfo) => {
+test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded actions', async ({ browser }, testInfo) => {
   const viewerSession = await createSession(browser);
   const creatorSession = await createSession(browser);
   const viewerPage = viewerSession.page;
@@ -52,15 +52,21 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await favoriteCreator.click();
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
 
-    // Persistence survives a full reload and feeds the Seeking-derived Favorites tab.
+    // Persistence survives a full reload and Favorites is the default first tab.
     await viewerPage.reload();
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 20_000 });
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
     await openInterests(viewerPage);
+
+    const tabs = viewerPage.getByTestId('luxy-interests-tabs').getByRole('tab');
+    await expect(tabs).toHaveCount(3);
+    expect(await tabs.allTextContents()).toEqual(['Yêu thích', 'Yêu thích tôi', 'Đã xem tôi']);
+
     const favoritesTab = viewerPage.getByTestId('luxy-interests-tab-favorites');
-    await expect(favoritesTab).toBeVisible();
-    await favoritesTab.click();
     await expect(favoritesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(viewerPage.getByTestId('luxy-interests-sort')).toHaveCount(0);
+    await expect(viewerPage.getByText('Tương hợp', { exact: true })).toHaveCount(0);
+
     const creatorRow = viewerPage.getByTestId('luxy-interests-row').filter({ hasText: actors.creator.name }).first();
     await expect(creatorRow).toBeVisible();
     await expect(creatorRow.getByTestId('chon-seeking-member-photo')).toBeVisible();
@@ -70,6 +76,14 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     const creatorBadgeBox = await creatorBadge.boundingBox();
     expect(creatorBadgeBox).not.toBeNull();
     expect(Math.abs(creatorBadgeBox.width - 16)).toBeLessThanOrEqual(1);
+
+    const messageButton = creatorRow.getByRole('button', { name: `Nhắn tin cho ${actors.creator.name}` });
+    await expect(messageButton).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(messageButton).toHaveCSS('border-color', 'rgb(255, 187, 0)');
+
+    const savedButton = creatorRow.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) });
+    await expect(savedButton).toHaveCSS('border-color', 'rgb(255, 187, 0)');
+    await expect(savedButton.getByText('♥', { exact: true })).toHaveCSS('color', 'rgb(255, 187, 0)');
 
     // Recipient sees the incoming signal under Favorited Me.
     await openInterests(creatorPage);
@@ -84,7 +98,7 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await viewerPage.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
     await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible({ timeout: 20_000 });
 
-    // Removing the favorite is also persistent and removes the current Favorites row.
+    // Removing the favorite is persistent and removes the current Favorites row.
     await viewerPage.getByRole('tab', { name: 'Yêu thích', exact: true }).click();
     const removeFavorite = viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) });
     await expect(removeFavorite).toBeVisible();
@@ -96,7 +110,7 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await creatorPage.getByRole('tab', { name: 'Yêu thích tôi', exact: true }).click();
     await expect(creatorPage.getByText(actors.viewer.name, { exact: true })).toHaveCount(0, { timeout: 20_000 });
 
-    await testInfo.attach('lx16-viewer-viewed-me', {
+    await testInfo.attach('ui-fav01-viewer-favorites', {
       body: await viewerPage.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
