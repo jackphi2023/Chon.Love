@@ -3,7 +3,7 @@ import {
   publicHomepageQueryKeys,
   type HomepageSettings,
 } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxyTypography } from '@myfan/ui';
+import { chonColors, chonShadows, chonTypography, luxyColors, luxyRadii } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -28,10 +28,10 @@ import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
-const CHON_RED = '#D92D2A';
-const CHON_GOLD = '#FFBB00';
-const CHON_PINK = '#FAF5F2';
-const CHON_BLACK = '#151515';
+const CHON_RED = chonColors.primaryRed;
+const CHON_GOLD = chonColors.gold;
+const CHON_PINK = chonColors.warmSurface;
+const CHON_BLACK = chonColors.text;
 
 const testimonials = [
   {
@@ -382,58 +382,60 @@ function BenefitsArtwork({ source, isPhone }: { source: ImageSourcePropType; isP
 const styles = StyleSheet.create({
   page: { backgroundColor: CHON_PINK, flexGrow: 1 },
   loadingContainer: { alignItems: 'center', backgroundColor: CHON_PINK, flex: 1, gap: 18, justifyContent: 'center', padding: 32 },
-  loadingCopy: { color: '#5A4C48', fontSize: 12 },
+  loadingCopy: { color: '#5A4C48', fontSize: chonTypography.sizes.body },
   hero: { backgroundColor: '#090909', minHeight: 740, overflow: 'hidden', position: 'relative', width: '100%' },
   heroPhone: { minHeight: 660 },
   heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.34)' },
   heroContent: { alignItems: 'center', alignSelf: 'center', justifyContent: 'center', minHeight: 650, paddingBottom: 70, paddingHorizontal: 24, position: 'relative', width: '100%', zIndex: 2 },
   heroContentPhone: { minHeight: 580, paddingBottom: 44 },
-  heroSlogan: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 36, lineHeight: 44, marginTop: 8, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  heroSlogan: { color: '#FFFFFF', fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h1Desktop, lineHeight: chonTypography.lineHeights.h1Desktop, marginTop: 8, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   heroSloganPhone: { fontSize: 30, lineHeight: 38, marginTop: 15 },
   goldRule: { backgroundColor: CHON_GOLD, height: 2, marginBottom: 22, marginTop: 16, width: 74 },
   primaryButton: { alignItems: 'center', backgroundColor: CHON_RED, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 48, minWidth: 150, paddingHorizontal: 24 },
-  primaryButtonHovered: { backgroundColor: '#E94A47', elevation: 3, shadowColor: '#C81C1D', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.24, shadowRadius: 6, transform: [{ scale: 1.03 }] },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  primaryButtonHovered: { backgroundColor: chonColors.primaryRedHover, ...chonShadows.primaryHover, transform: [{ scale: 1.03 }] },
+  primaryButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800' },
   positioningSection: { alignItems: 'center', backgroundColor: CHON_PINK, justifyContent: 'center', minHeight: 420, overflow: 'hidden', paddingHorizontal: 24, paddingVertical: 28, position: 'relative' },
   positioningSectionPhone: { minHeight: 0, paddingHorizontal: 18, paddingVertical: 50 },
   positioningCopy: { alignItems: 'center', maxWidth: 620, width: '45%', zIndex: 2 },
   positioningCopyCompact: { maxWidth: 720, width: '100%' },
   positioningCopyPhone: { width: '100%' },
-  sideArtwork: { backgroundColor: '#FFFFFF', borderColor: CHON_GOLD, borderRadius: 18, borderWidth: 2, height: 300, overflow: 'hidden', position: 'absolute', top: 60, width: 220 },
+  // React Native Web uses content-box sizing for this bordered View. 216×296
+  // content + 2px border on each side yields the intended 220×300 outer box.
+  sideArtwork: { backgroundColor: '#FFFFFF', borderColor: CHON_GOLD, borderRadius: 18, borderWidth: 2, height: 296, overflow: 'hidden', position: 'absolute', top: 60, width: 216 },
   sideArtworkLeft: { left: 80 },
   sideArtworkRight: { right: 80 },
   fillImage: { height: '100%', width: '100%' },
   eyebrowRow: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 14 },
   eyebrowRule: { backgroundColor: CHON_GOLD, height: 1, width: 30 },
   eyebrowRuleLight: { backgroundColor: CHON_GOLD },
-  eyebrowText: { color: CHON_RED, fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
+  eyebrowText: { color: CHON_RED, fontSize: chonTypography.sizes.help, fontWeight: '800', letterSpacing: 1.6 },
   eyebrowTextLight: { color: CHON_RED },
-  sectionHeading: { color: '#171312', fontFamily: luxyTypography.families.display, fontSize: 26, fontWeight: '500', letterSpacing: -0.35, lineHeight: 34, marginBottom: 20, textAlign: 'center' },
+  sectionHeading: { color: '#171312', fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '500', letterSpacing: -0.35, lineHeight: chonTypography.lineHeights.h2, marginBottom: 20, textAlign: 'center' },
   goldSectionHeading: { color: CHON_GOLD },
-  sectionHeadingPhone: { fontSize: 26, lineHeight: 34 },
-  centerBody: { color: '#514844', fontSize: 12, lineHeight: 20, marginBottom: 12, maxWidth: 680, textAlign: 'center' },
+  sectionHeadingPhone: { fontSize: chonTypography.sizes.h2, lineHeight: chonTypography.lineHeights.h2 },
+  centerBody: { color: '#514844', fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginBottom: 12, maxWidth: 680, textAlign: 'center' },
   textCta: { alignItems: 'center', borderRadius: luxyRadii.pill, flexDirection: 'row', gap: 8, marginTop: 14, minHeight: 44, paddingHorizontal: 12 },
-  textCtaHovered: { backgroundColor: 'rgba(255,187,0,0.16)', elevation: 2, shadowColor: '#000000', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.12, shadowRadius: 4, transform: [{ scale: 1.02 }] },
-  textCtaText: { color: CHON_RED, fontSize: 12, fontWeight: '800' },
+  textCtaHovered: { backgroundColor: 'rgba(255,187,0,0.16)', ...chonShadows.hover, transform: [{ scale: 1.02 }] },
+  textCtaText: { color: CHON_RED, fontSize: chonTypography.sizes.body, fontWeight: '800' },
   textCtaArrow: { color: CHON_GOLD, fontSize: 20, fontWeight: '700' },
   testimonialSection: { minHeight: 720, paddingHorizontal: 24, paddingVertical: 78, position: 'relative' },
   testimonialSectionPhone: { minHeight: 650, paddingHorizontal: 16, paddingVertical: 58 },
   testimonialShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(5,7,8,0.46)' },
   testimonialInner: { alignSelf: 'center', maxWidth: 1280, position: 'relative', width: '100%', zIndex: 2 },
-  testimonialHeading: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 26, fontWeight: '500', lineHeight: 34, marginBottom: 34, textAlign: 'center' },
+  testimonialHeading: { color: '#FFFFFF', fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '500', lineHeight: chonTypography.lineHeights.h2, marginBottom: 34, textAlign: 'center' },
   testimonialGrid: { flexDirection: 'row', gap: 18 },
   testimonialMobileWrap: { alignItems: 'center', gap: 18 },
   testimonialCard: { backgroundColor: 'rgba(255,241,200,0.88)', borderColor: 'rgba(255,187,0,0.72)', borderRadius: 8, borderWidth: 1, flex: 1, minHeight: 370, paddingHorizontal: 25, paddingVertical: 28 },
-  quoteMark: { color: CHON_RED, fontFamily: luxyTypography.families.display, fontSize: 48, lineHeight: 48 },
-  testimonialQuote: { color: CHON_BLACK, fontSize: 12, lineHeight: 20, marginTop: 4 },
+  quoteMark: { color: CHON_RED, fontFamily: chonTypography.families.display, fontSize: 48, lineHeight: 48 },
+  testimonialQuote: { color: CHON_BLACK, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginTop: 4 },
   testimonialAuthorRule: { backgroundColor: CHON_RED, height: 2, marginTop: 22, width: 38 },
-  testimonialAuthor: { color: CHON_RED, fontSize: 12, fontWeight: '800', marginTop: 12 },
-  testimonialPlace: { color: '#5A514C', fontSize: 10, marginTop: 3 },
+  testimonialAuthor: { color: CHON_RED, fontSize: chonTypography.sizes.body, fontWeight: '800', marginTop: 12 },
+  testimonialPlace: { color: '#5A514C', fontSize: chonTypography.sizes.help, marginTop: 3 },
   carouselControls: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'center' },
   carouselButton: { alignItems: 'center', borderColor: CHON_GOLD, borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
-  carouselButtonHovered: { backgroundColor: 'rgba(255,187,0,0.18)', elevation: 2, shadowColor: '#000000', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.18, shadowRadius: 4, transform: [{ scale: 1.05 }] },
+  carouselButtonHovered: { backgroundColor: 'rgba(255,187,0,0.18)', ...chonShadows.hover, transform: [{ scale: 1.05 }] },
   carouselArrow: { color: '#FFFFFF', fontSize: 28, lineHeight: 30 },
-  carouselCount: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  carouselCount: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '700' },
   benefitsSection: { backgroundColor: CHON_PINK, paddingHorizontal: 32, paddingVertical: 88 },
   benefitsSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
   benefitsInner: { alignSelf: 'center', gap: 36, maxWidth: 1220, width: '100%' },
@@ -442,10 +444,10 @@ const styles = StyleSheet.create({
   alignLeft: { textAlign: 'left' },
   benefitItem: { borderTopColor: 'rgba(217,45,42,0.18)', borderTopWidth: 1, flexDirection: 'row', gap: 16, paddingVertical: 18 },
   benefitNumber: { alignItems: 'center', borderColor: CHON_GOLD, borderRadius: 999, borderWidth: 1, height: 34, justifyContent: 'center', width: 34 },
-  benefitNumberText: { color: CHON_GOLD, fontSize: 10, fontWeight: '800' },
+  benefitNumberText: { color: CHON_GOLD, fontSize: chonTypography.sizes.help, fontWeight: '800' },
   benefitContent: { flex: 1 },
-  benefitTitle: { color: '#191514', fontFamily: luxyTypography.families.display, fontSize: 16, fontStyle: 'italic', lineHeight: 22 },
-  benefitCopyText: { color: '#584E49', fontSize: 12, lineHeight: 19, marginTop: 6 },
+  benefitTitle: { color: '#191514', fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h3, fontStyle: 'italic', lineHeight: chonTypography.lineHeights.h3 },
+  benefitCopyText: { color: '#584E49', fontSize: chonTypography.sizes.body, lineHeight: 19, marginTop: 6 },
   benefitsArtwork: { borderBottomLeftRadius: 180, borderBottomRightRadius: 180, borderTopLeftRadius: 180, borderTopRightRadius: 180, height: 720, marginTop: 58, maxWidth: 430, overflow: 'hidden', position: 'relative', width: '38%' },
   benefitsArtworkPhone: { alignSelf: 'center', backgroundColor: '#FFFFFF', borderBottomLeftRadius: 18, borderBottomRightRadius: 18, borderTopLeftRadius: 18, borderTopRightRadius: 18, height: 430, marginBottom: 10, marginTop: 0, maxWidth: 360, width: '100%' },
   artworkGoldFrame: { ...StyleSheet.absoluteFillObject, borderColor: 'rgba(255,187,0,0.72)', borderRadius: 180, borderWidth: 2 },
@@ -454,11 +456,11 @@ const styles = StyleSheet.create({
   missionSectionPhone: { minHeight: 0, paddingBottom: 24, paddingHorizontal: 18, paddingTop: 52 },
   missionGlow: { backgroundColor: 'rgba(217,45,42,0.16)', borderRadius: 999, height: 520, position: 'absolute', right: -180, top: -160, width: 520 },
   missionInner: { alignItems: 'center', maxWidth: 780, zIndex: 2 },
-  missionHeading: { color: '#FFFFFF', fontFamily: luxyTypography.families.display, fontSize: 26, fontWeight: '500', lineHeight: 34, marginBottom: 20, textAlign: 'center' },
-  missionBody: { color: '#D8D1CD', fontSize: 12, lineHeight: 20, marginBottom: 12, textAlign: 'center' },
+  missionHeading: { color: '#FFFFFF', fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '500', lineHeight: chonTypography.lineHeights.h2, marginBottom: 20, textAlign: 'center' },
+  missionBody: { color: '#D8D1CD', fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginBottom: 12, textAlign: 'center' },
   missionButton: { alignItems: 'center', backgroundColor: CHON_RED, borderRadius: luxyRadii.pill, justifyContent: 'center', marginTop: 16, minHeight: 48, minWidth: 150, paddingHorizontal: 24 },
-  missionButtonHovered: { backgroundColor: '#E94A47', elevation: 3, shadowColor: '#C81C1D', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.24, shadowRadius: 6, transform: [{ scale: 1.03 }] },
-  missionButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  missionButtonHovered: { backgroundColor: chonColors.primaryRedHover, ...chonShadows.primaryHover, transform: [{ scale: 1.03 }] },
+  missionButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800' },
   cultureSection: { backgroundColor: CHON_PINK, paddingHorizontal: 24, paddingVertical: 84 },
   cultureSectionPhone: { paddingHorizontal: 18, paddingVertical: 58 },
   cultureInner: { alignSelf: 'center', maxWidth: 1120, width: '100%' },
@@ -469,6 +471,6 @@ const styles = StyleSheet.create({
   cultureIcon: { alignItems: 'center', backgroundColor: CHON_RED, borderRadius: 999, height: 44, justifyContent: 'center', width: 44 },
   cultureIconText: { color: CHON_GOLD, fontSize: 19 },
   cultureCopyWrap: { flex: 1 },
-  cultureCopy: { color: '#201B19', fontFamily: luxyTypography.families.display, fontSize: 16, lineHeight: 22 },
+  cultureCopy: { color: '#201B19', fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h3, lineHeight: chonTypography.lineHeights.h3 },
   pressed: { opacity: 0.78 },
 });
