@@ -1,5 +1,5 @@
 import { createLuxyUpgradeIntent, getReadableLuxyMailboxError, openLuxyProfileConversation } from '@myfan/supabase';
-import { luxyColors, luxyRadii } from '@myfan/ui';
+import { chonColors, luxyColors, luxyRadii } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
@@ -71,14 +71,16 @@ export function LuxySeekingMessageButton({ profileId, name }: { profileId: strin
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: luxyColors.ink,
+    backgroundColor: '#FFFFFF',
+    borderColor: chonColors.gold,
     borderRadius: luxyRadii.pill,
+    borderWidth: 1,
     justifyContent: 'center',
     minHeight: 34,
     minWidth: 102,
     paddingHorizontal: 18,
   },
-  text: { color: '#FFFFFF', fontSize: 14, fontWeight: '500' },
-  pressed: { opacity: 0.76 },
+  text: { color: luxyColors.ink, fontSize: 14, fontWeight: '500' },
+  pressed: { backgroundColor: chonColors.warmSurfaceStrong, opacity: 0.78 },
   busy: { opacity: 0.6 },
 });
