@@ -16,9 +16,9 @@ import {
   type LuxyMembershipPlanOption,
   type LuxyMembershipTier,
 } from '@myfan/supabase';
-import { luxyBrand, luxyColors, luxyRadii, luxyShadows, luxyTypography } from '@myfan/ui';
+import { luxyColors, luxyRadii, luxyShadows, luxyTypography } from '@myfan/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -68,7 +68,6 @@ const COMPARE_ROWS = [
 
 export default function MembershipBillingPage() {
   const auth = useAuth();
-  const router = useRouter();
   const client = getMobileSupabaseClient();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
@@ -214,10 +213,6 @@ export default function MembershipBillingPage() {
     <SafeAreaView style={styles.safeArea} testID="luxy-upgrade-billing">
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.page, compact && styles.pageCompact]}>
-          <View style={styles.topBar}>
-            <Pressable accessibilityLabel="Quay lại" onPress={() => router.back()} style={styles.backButton}><Text style={styles.backIcon}>‹</Text></Pressable>
-            <Text style={styles.brand}>{luxyBrand.productName}</Text><View style={styles.topSpacer} />
-          </View>
           <View style={styles.headingBlock}>
             <Text accessibilityRole="header" style={styles.title}>Nâng cấp trải nghiệm của bạn</Text>
             <Text style={styles.subtitle}>Chọn quyền truy cập phù hợp. Giá và quyền lợi được lấy trực tiếp từ hệ thống Chon.Love.</Text>
@@ -361,8 +356,7 @@ function errorCopy(error: unknown): string {
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: luxyColors.background, flex: 1 }, scrollContent: { flexGrow: 1, paddingBottom: 72 }, page: { alignSelf: 'center', maxWidth: 600, paddingHorizontal: 20, width: '100%' }, pageCompact: { paddingHorizontal: 16 },
-  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 74 }, backButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, backIcon: { color: luxyColors.ink, fontSize: 34, fontWeight: '300' }, topSpacer: { width: 44 }, brand: { color: luxyColors.brandCoral, fontFamily: luxyTypography.families.brand, fontSize: 27, letterSpacing: -1.2 },
-  headingBlock: { alignItems: 'center', paddingBottom: 26, paddingTop: 14 }, title: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 42, textAlign: 'center' }, subtitle: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, marginTop: 10, textAlign: 'center' }, currentPill: { backgroundColor: luxyColors.subtleSurface, borderRadius: luxyRadii.pill, marginTop: 16, paddingHorizontal: 14, paddingVertical: 7 }, currentText: { color: luxyColors.text, fontSize: 12.5, fontWeight: '600' },
+  headingBlock: { alignItems: 'center', paddingBottom: 26, paddingTop: 28 }, title: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 42, textAlign: 'center' }, subtitle: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, marginTop: 10, textAlign: 'center' }, currentPill: { backgroundColor: luxyColors.subtleSurface, borderRadius: luxyRadii.pill, marginTop: 16, paddingHorizontal: 14, paddingVertical: 7 }, currentText: { color: luxyColors.text, fontSize: 12.5, fontWeight: '600' },
   tabs: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, flexDirection: 'row', marginBottom: 28 }, tab: { alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2, flex: 1, justifyContent: 'center', minHeight: 48 }, tabActive: { borderBottomColor: luxyColors.ink }, tabText: { color: luxyColors.muted, fontSize: 14.5 }, tabTextActive: { color: luxyColors.text, fontWeight: '700' },
   planSection: { borderBottomColor: luxyColors.border, borderBottomWidth: 1, marginBottom: 30, paddingBottom: 30 }, rowBetween: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between' }, eyebrow: { color: luxyColors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1.3 }, planTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 28, marginTop: 2 }, ultimate: { backgroundColor: luxyColors.ink, borderRadius: 4, color: '#FFF', fontSize: 9, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 6 }, planDescription: { color: luxyColors.muted, fontSize: 13.5, lineHeight: 20, marginTop: 8 }, feature: { color: luxyColors.text, fontSize: 12.5, lineHeight: 18 },
   planOption: { alignItems: 'center', backgroundColor: luxyColors.surface, borderColor: luxyColors.border, borderRadius: 6, borderWidth: 1, flexDirection: 'row', gap: 12, minHeight: 76, padding: 13 }, planOptionSelected: { backgroundColor: '#FFF7F7', borderColor: luxyColors.brandCoral, borderWidth: 1.5 }, radio: { alignItems: 'center', borderColor: luxyColors.softMuted, borderRadius: 10, borderWidth: 1.5, height: 20, justifyContent: 'center', width: 20 }, radioSelected: { borderColor: luxyColors.brandCoral }, radioDot: { backgroundColor: luxyColors.brandCoral, borderRadius: 5, height: 10, width: 10 }, optionTitle: { color: luxyColors.text, fontSize: 14.5, fontWeight: '700' }, discountBadge: { backgroundColor: luxyColors.brandCoral, borderRadius: 3, color: '#FFF', fontSize: 9, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 3 }, optionMeta: { color: luxyColors.muted, fontSize: 11.5, marginTop: 3 }, optionHeart: { color: luxyColors.text, fontSize: 11.5, fontWeight: '600', marginTop: 4 }, optionAmount: { color: luxyColors.text, fontSize: 14, fontWeight: '700' },
