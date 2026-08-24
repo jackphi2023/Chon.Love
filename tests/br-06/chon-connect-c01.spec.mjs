@@ -35,7 +35,7 @@ async function expectResultsButton(button) {
   await expect(button).not.toHaveCSS('box-shadow', 'none');
 }
 
-test('UI-C01 keeps Connect cards compact, branded and consistent across mobile and desktop', async ({ browser }, testInfo) => {
+test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent across mobile and desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
