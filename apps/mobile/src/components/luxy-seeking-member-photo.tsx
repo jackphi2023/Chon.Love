@@ -1,14 +1,8 @@
-import { createPublicProfileMediaUrl, type LuxyMembershipTier } from '@myfan/supabase';
-import { luxyColors, luxyTypography } from '@myfan/ui';
-import { useQuery } from '@tanstack/react-query';
-import { StyleSheet, Text, View } from 'react-native';
-import { getMobileSupabaseClient } from '@/lib/supabase';
-import { LazyProfileImage } from './lazy-profile-image';
-import { LuxyMembershipBadgeImage } from './luxy-membership-badge-image';
+import type { LuxyMembershipTier } from '@myfan/supabase';
+import { ChonMemberPhoto } from './chon-member-photo';
 
-const PUBLIC_PHOTO_STALE_TIME_MS = 55 * 60_000;
-const PUBLIC_PHOTO_GC_TIME_MS = 2 * 60 * 60_000;
-
+// Compatibility wrapper for existing Seeking-derived row layouts.
+// Photo loading, fallback, membership badge and photo count now live in ChonMemberPhoto.
 export function LuxySeekingMemberPhoto({
   mediaId,
   storageBucket,
@@ -28,68 +22,21 @@ export function LuxySeekingMemberPhoto({
   width?: number;
   height?: number;
 }) {
-  const client = getMobileSupabaseClient();
-  const imageQuery = useQuery({
-    // Include the immutable storage path so a replaced seed image invalidates an old URL
-    // immediately even when the media row keeps the same stable id.
-    queryKey: ['luxy-seeking-row-photo', mediaId, storagePath],
-    enabled: Boolean(client && mediaId && storageBucket && storagePath),
-    staleTime: PUBLIC_PHOTO_STALE_TIME_MS,
-    gcTime: PUBLIC_PHOTO_GC_TIME_MS,
-    refetchOnWindowFocus: false,
-    queryFn: async () => {
-      if (!client || !storageBucket || !storagePath) return null;
-      return createPublicProfileMediaUrl(client, { storage_bucket: storageBucket, storage_path: storagePath });
-    },
-  });
-
-  const frameStyle = { width, height };
-  const badgeWidth = Math.max(46, Math.min(64, Math.round(width * 0.68)));
+  const desktop = width >= 84;
   return (
-    <View style={[styles.frame, frameStyle]}>
-      {imageQuery.data ? (
-        <LazyProfileImage
-          accessibilityLabel={`Ảnh hồ sơ của ${name}`}
-          resizeMode="cover"
-          source={{ uri: imageQuery.data }}
-          style={styles.image}
-        />
-      ) : (
-        <View accessibilityLabel={`Chưa có ảnh hồ sơ của ${name}`} style={styles.fallback}>
-          <Text style={styles.initial}>{name.slice(0, 1).toUpperCase()}</Text>
-        </View>
-      )}
-      <LuxyMembershipBadgeImage tier={membershipTier} width={badgeWidth} />
-      {typeof photoCount === 'number' && photoCount > 0 ? (
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>▣ {photoCount}</Text>
-        </View>
-      ) : null}
-    </View>
+    <ChonMemberPhoto
+      badgeInset={5}
+      desktop={desktop}
+      fallbackFontSize={34}
+      mediaId={mediaId}
+      membershipTier={membershipTier}
+      name={name}
+      photoCount={photoCount}
+      photoCountPlacement="bottom-right"
+      storageBucket={storageBucket}
+      storagePath={storagePath}
+      style={{ borderRadius: 7, flexShrink: 0, height, width }}
+      testID="chon-seeking-member-photo"
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  frame: {
-    backgroundColor: '#E8E8E8',
-    borderRadius: 7,
-    flexShrink: 0,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  image: { height: '100%', width: '100%' },
-  fallback: { alignItems: 'center', backgroundColor: '#E7E5E4', flex: 1, justifyContent: 'center' },
-  initial: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 34 },
-  countBadge: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(8,23,38,0.78)',
-    borderRadius: 4,
-    bottom: 5,
-    minHeight: 19,
-    paddingHorizontal: 5,
-    position: 'absolute',
-    right: 5,
-    zIndex: 7,
-  },
-  countText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700', lineHeight: 18 },
-});
