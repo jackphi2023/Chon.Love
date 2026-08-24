@@ -12,11 +12,14 @@ import {
   type GiftCatalogItem,
 } from '@myfan/supabase';
 import {
-  luxyColors,
+  chonBreakpoints,
+  chonColors,
+  chonInteraction,
+  chonLayout,
+  chonShadows,
+  chonTypography,
   luxyRadii,
-  luxyShadows,
   luxySpacing,
-  luxyTypography,
 } from '@myfan/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -31,6 +34,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -94,7 +98,8 @@ export function LuxyGiftModal({
   const canGift = Boolean(walletQuery.data?.can_gift && membershipQuery.data?.can_use_hearts);
   const balanceUnits = walletQuery.data?.heart_available_units ?? membershipQuery.data?.heart_balance_units ?? 0;
   const hasEnough = selectedGift ? balanceUnits >= selectedGift.heart_price_units : false;
-  const columns = width < 430 ? 4 : width < 720 ? 5 : 6;
+  const compact = width < chonBreakpoints.mobile;
+  const columns = width < chonBreakpoints.compactPhone ? 4 : 5;
   const tileWidth = `${100 / columns}%` as `${number}%`;
 
   const sendMutation = useMutation({
@@ -134,28 +139,43 @@ export function LuxyGiftModal({
     onClose();
   };
 
+  const catalog = catalogQuery.data ?? [];
+
   return (
     <Modal animationType="fade" onRequestClose={close} transparent visible={visible}>
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, compact && styles.backdropCompact]}>
         <Pressable accessibilityLabel="Đóng danh sách quà" onPress={close} style={StyleSheet.absoluteFill} />
-        <View accessibilityViewIsModal style={[styles.dialog, width < 560 && styles.dialogCompact]}>
-          <View style={styles.header}>
+        <View
+          accessibilityViewIsModal
+          style={[styles.dialog, compact && styles.dialogCompact]}
+          testID="chon-gift-picker"
+        >
+          <View style={[styles.header, compact && styles.headerCompact]}>
+            <View style={styles.titleIcon}>
+              <ChonBrandIcon name="gift" size={22} />
+            </View>
             <View style={styles.headerText}>
-              <Text style={styles.title}>Tặng quà</Text>
+              <Text accessibilityRole="header" style={styles.title}>Tặng quà</Text>
               <Text numberOfLines={1} style={styles.subtitle}>Gửi một món quà tự nguyện đến {recipientName}</Text>
             </View>
-            <Pressable accessibilityLabel="Đóng" disabled={sendMutation.isPending} onPress={close} style={styles.closeButton}>
+            <Pressable
+              accessibilityLabel="Đóng"
+              accessibilityRole="button"
+              disabled={sendMutation.isPending}
+              onPress={close}
+              style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+            >
               <Text style={styles.closeText}>×</Text>
             </Pressable>
           </View>
 
-          <View style={styles.balanceRow}>
-            <Text style={styles.balanceLabel}>Số dư của bạn</Text>
+          <View style={[styles.balanceRow, compact && styles.balanceRowCompact]} testID="chon-gift-picker-balance">
+            <Text style={styles.balanceLabel}>Số dư ❤️</Text>
             <Text style={styles.balanceValue}>{formatHeartUnitBalance(balanceUnits)}</Text>
           </View>
 
           {!membershipQuery.isLoading && !canGift ? (
-            <View style={styles.lockedBox}>
+            <View style={[styles.lockedBox, compact && styles.lockedBoxCompact]}>
               <Text style={styles.lockedTitle}>Quà dành cho thành viên Cao cấp và Kim cương</Text>
               <Text style={styles.lockedBody}>Quà không mở ảnh riêng tư, không tạo quan hệ và không bắt buộc người nhận phản hồi.</Text>
               <Pressable
@@ -164,7 +184,7 @@ export function LuxyGiftModal({
                   close();
                   router.push('/settings/membership');
                 }}
-                style={({ pressed }) => [styles.upgradeButton, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.upgradeButton, pressed && styles.upgradeButtonPressed]}
               >
                 <Text style={styles.upgradeText}>Xem gói thành viên</Text>
               </Pressable>
@@ -172,18 +192,38 @@ export function LuxyGiftModal({
           ) : null}
 
           {catalogQuery.isLoading || walletQuery.isLoading || membershipQuery.isLoading ? (
-            <View style={styles.loading}><ActivityIndicator /><Text style={styles.loadingText}>Đang tải danh sách quà…</Text></View>
+            <View style={styles.statePanel} testID="chon-gift-picker-loading">
+              <ActivityIndicator color={chonColors.primaryRed} />
+              <Text style={styles.stateTitle}>Đang tải quà tặng</Text>
+              <Text style={styles.stateText}>Danh sách quà và số dư sẽ hiển thị ngay khi sẵn sàng.</Text>
+            </View>
           ) : catalogQuery.isError || walletQuery.isError || membershipQuery.isError ? (
-            <View style={styles.loading}>
-              <Text style={styles.errorText}>Không tải được quà hoặc số dư.</Text>
-              <Pressable onPress={() => void Promise.all([catalogQuery.refetch(), walletQuery.refetch(), membershipQuery.refetch()])}>
+            <View style={styles.statePanel} testID="chon-gift-picker-error">
+              <Text style={styles.stateTitle}>Không tải được quà hoặc số dư</Text>
+              <Text style={styles.stateText}>Vui lòng thử lại để tải lại thông tin hiện tại.</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void Promise.all([catalogQuery.refetch(), walletQuery.refetch(), membershipQuery.refetch()])}
+                style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+              >
                 <Text style={styles.retryText}>Thử lại</Text>
               </Pressable>
             </View>
+          ) : catalog.length === 0 ? (
+            <View style={styles.statePanel} testID="chon-gift-picker-empty">
+              <Text style={styles.stateTitle}>Chưa có quà tặng</Text>
+              <Text style={styles.stateText}>Danh mục quà hiện chưa có món quà đang hoạt động.</Text>
+            </View>
           ) : (
-            <ScrollView contentContainerStyle={styles.catalog} style={styles.catalogScroll}>
-              <View style={styles.grid}>
-                {(catalogQuery.data ?? []).map((gift) => {
+            <ScrollView
+              contentContainerStyle={[styles.catalog, compact && styles.catalogCompact]}
+              showsVerticalScrollIndicator={false}
+              style={styles.catalogScroll}
+            >
+              <Text style={styles.catalogTitle}>Chọn món quà</Text>
+              <Text style={styles.catalogHint}>Giá quà được hiển thị bằng ❤️.</Text>
+              <View style={styles.grid} testID="chon-gift-picker-grid">
+                {catalog.map((gift) => {
                   const selected = gift.id === selectedGiftId;
                   const affordable = balanceUnits >= gift.heart_price_units;
                   return (
@@ -199,13 +239,15 @@ export function LuxyGiftModal({
                         }}
                         style={({ pressed }) => [
                           styles.giftTile,
+                          compact && styles.giftTileCompact,
                           selected && styles.giftSelected,
                           !affordable && styles.giftUnaffordable,
                           pressed && styles.pressed,
                         ]}
+                        testID="chon-gift-picker-item"
                       >
-                        <View style={[styles.giftIconWell, selected && styles.giftIconWellSelected]}>
-                          <Text style={styles.giftIcon}>{gift.icon_emoji}</Text>
+                        <View style={[styles.giftIconWell, compact && styles.giftIconWellCompact, selected && styles.giftIconWellSelected]}>
+                          <Text style={[styles.giftIcon, compact && styles.giftIconCompact]}>{gift.icon_emoji}</Text>
                         </View>
                         <Text numberOfLines={1} style={styles.giftName}>{gift.name_vi}</Text>
                         <Text style={[styles.giftPrice, !affordable && styles.giftPriceUnaffordable]}>{formatGiftHeartPrice(gift)}</Text>
@@ -218,7 +260,7 @@ export function LuxyGiftModal({
           )}
 
           {selectedGift ? (
-            <View style={styles.confirmation}>
+            <View style={[styles.confirmation, compact && styles.confirmationCompact]} testID="chon-gift-picker-confirmation">
               <View style={styles.confirmationCopy}>
                 <Text style={styles.confirmationTitle}>{selectedGift.icon_emoji} {selectedGift.name_vi}</Text>
                 <Text style={styles.confirmationBody}>
@@ -229,9 +271,16 @@ export function LuxyGiftModal({
                 accessibilityRole="button"
                 disabled={!canGift || !hasEnough || sendMutation.isPending}
                 onPress={() => sendMutation.mutate(selectedGift)}
-                style={({ pressed }) => [styles.sendButton, (!canGift || !hasEnough || sendMutation.isPending) && styles.sendDisabled, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  compact && styles.sendButtonCompact,
+                  (!canGift || !hasEnough || sendMutation.isPending) && styles.sendDisabled,
+                  pressed && styles.sendButtonPressed,
+                ]}
               >
-                {sendMutation.isPending ? <ActivityIndicator color={luxyColors.surface} /> : <Text style={styles.sendText}>Gửi quà</Text>}
+                {sendMutation.isPending
+                  ? <ActivityIndicator color={chonColors.surface} />
+                  : <Text style={styles.sendText}>Gửi quà</Text>}
               </Pressable>
             </View>
           ) : null}
@@ -246,65 +295,204 @@ export function LuxyGiftModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { alignItems: 'center', backgroundColor: luxyColors.overlay, flex: 1, justifyContent: 'center', padding: luxySpacing.lg },
-  dialog: { backgroundColor: luxyColors.surface, borderRadius: luxyRadii.lg, maxHeight: '88%', maxWidth: 640, overflow: 'hidden', width: '100%', ...luxyShadows.card },
-  dialogCompact: { maxHeight: '92%' },
-  header: { alignItems: 'flex-start', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', padding: luxySpacing.xl },
-  headerText: { flex: 1, minWidth: 0 },
-  title: { color: luxyColors.ink, fontFamily: luxyTypography.families.body, fontSize: 24, fontWeight: '600', lineHeight: 30 },
-  subtitle: { color: luxyColors.muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
-  closeButton: { alignItems: 'center', height: 36, justifyContent: 'center', marginLeft: luxySpacing.md, width: 36 },
-  closeText: { color: luxyColors.ink, fontSize: 30, fontWeight: '300', lineHeight: 32 },
-  balanceRow: { alignItems: 'center', borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.md },
-  balanceLabel: { color: luxyColors.muted, fontSize: 14 },
-  balanceValue: { color: luxyColors.ink, fontSize: 16, fontWeight: '700' },
-  lockedBox: { backgroundColor: luxyColors.subtleSurface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, padding: luxySpacing.xl },
-  lockedTitle: { color: luxyColors.ink, fontSize: 16, fontWeight: '600' },
-  lockedBody: { color: luxyColors.muted, fontSize: 13, lineHeight: 19, marginTop: 6 },
-  upgradeButton: { alignSelf: 'flex-start', backgroundColor: luxyColors.ink, borderRadius: luxyRadii.sm, marginTop: luxySpacing.md, paddingHorizontal: luxySpacing.lg, paddingVertical: 10 },
-  upgradeText: { color: luxyColors.surface, fontSize: 14, fontWeight: '700' },
-  loading: { alignItems: 'center', gap: luxySpacing.sm, justifyContent: 'center', minHeight: 180, padding: luxySpacing.xl },
-  loadingText: { color: luxyColors.muted, fontSize: 14 },
-  catalogScroll: { maxHeight: 430 },
-  catalog: { padding: luxySpacing.md },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  tileSlot: { padding: 5 },
-  giftTile: {
+  backdrop: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: luxyColors.border,
-    borderRadius: luxyRadii.sm,
+    backgroundColor: chonColors.overlay,
+    flex: 1,
+    justifyContent: 'center',
+    padding: luxySpacing.lg,
+  },
+  backdropCompact: { justifyContent: 'flex-end', padding: 10 },
+  dialog: {
+    backgroundColor: chonColors.surface,
+    borderColor: chonColors.border,
+    borderRadius: luxyRadii.lg,
     borderWidth: 1,
-    minHeight: 132,
-    paddingHorizontal: 5,
+    maxHeight: '90%',
+    maxWidth: 600,
+    overflow: 'hidden',
+    width: '100%',
+    ...chonShadows.card,
+  },
+  dialogCompact: { borderRadius: 18, maxHeight: '94%' },
+  header: {
+    alignItems: 'center',
+    borderBottomColor: chonColors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: luxySpacing.md,
+    paddingHorizontal: luxySpacing.xl,
+    paddingVertical: 18,
+  },
+  headerCompact: { paddingHorizontal: chonLayout.contentHorizontalPaddingMobile, paddingVertical: 14 },
+  titleIcon: {
+    alignItems: 'center',
+    backgroundColor: chonColors.warmSurfaceStrong,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  headerText: { flex: 1, minWidth: 0 },
+  title: {
+    color: chonColors.ink,
+    fontFamily: chonTypography.families.display,
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 26,
+  },
+  subtitle: { color: chonColors.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
+  closeButton: {
+    alignItems: 'center',
+    borderRadius: 20,
+    height: chonLayout.minimumTouchTarget,
+    justifyContent: 'center',
+    width: chonLayout.minimumTouchTarget,
+  },
+  closeText: { color: chonColors.ink, fontSize: 28, fontWeight: '300', lineHeight: 30 },
+  balanceRow: {
+    alignItems: 'center',
+    backgroundColor: chonColors.warmSurface,
+    borderBottomColor: chonColors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    paddingHorizontal: luxySpacing.xl,
     paddingVertical: 10,
   },
-  giftSelected: { backgroundColor: '#FFF8F2', borderColor: luxyColors.brandCoral, borderWidth: 2 },
-  giftUnaffordable: { backgroundColor: '#FFFCF8', borderColor: '#E7DED4' },
+  balanceRowCompact: { paddingHorizontal: chonLayout.contentHorizontalPaddingMobile },
+  balanceLabel: { color: chonColors.text, fontSize: 12, fontWeight: '600' },
+  balanceValue: { color: chonColors.ink, fontSize: 15, fontWeight: '700' },
+  lockedBox: {
+    backgroundColor: chonColors.warmSurface,
+    borderBottomColor: chonColors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    padding: luxySpacing.xl,
+  },
+  lockedBoxCompact: { padding: chonLayout.contentHorizontalPaddingMobile },
+  lockedTitle: { color: chonColors.ink, fontSize: 14, fontWeight: '700' },
+  lockedBody: { color: chonColors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
+  upgradeButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: chonColors.surface,
+    borderColor: chonColors.gold,
+    borderRadius: luxyRadii.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginTop: luxySpacing.md,
+    minHeight: chonLayout.minimumTouchTarget,
+    paddingHorizontal: luxySpacing.lg,
+  },
+  upgradeButtonPressed: { backgroundColor: chonColors.warmSurfaceStrong, ...chonShadows.hover },
+  upgradeText: { color: chonColors.text, fontSize: 12, fontWeight: '700' },
+  statePanel: {
+    alignItems: 'center',
+    gap: 7,
+    justifyContent: 'center',
+    minHeight: 210,
+    padding: luxySpacing.xl,
+  },
+  stateTitle: { color: chonColors.ink, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  stateText: { color: chonColors.muted, fontSize: 12, lineHeight: 18, maxWidth: 340, textAlign: 'center' },
+  retryButton: {
+    alignItems: 'center',
+    backgroundColor: chonColors.surface,
+    borderColor: chonColors.gold,
+    borderRadius: luxyRadii.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginTop: 6,
+    minHeight: chonLayout.minimumTouchTarget,
+    paddingHorizontal: 20,
+  },
+  retryButtonPressed: { backgroundColor: chonColors.warmSurfaceStrong, ...chonShadows.hover },
+  retryText: { color: chonColors.text, fontSize: 12, fontWeight: '700' },
+  catalogScroll: { maxHeight: 430 },
+  catalog: { paddingHorizontal: 14, paddingVertical: 14 },
+  catalogCompact: { paddingHorizontal: 7, paddingVertical: 12 },
+  catalogTitle: { color: chonColors.ink, fontSize: 13, fontWeight: '700', paddingHorizontal: 5 },
+  catalogHint: { color: chonColors.muted, fontSize: 10.5, lineHeight: 15, marginTop: 2, paddingHorizontal: 5 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 7 },
+  tileSlot: { padding: 4 },
+  giftTile: {
+    alignItems: 'center',
+    backgroundColor: chonColors.surface,
+    borderColor: chonColors.border,
+    borderRadius: luxyRadii.md,
+    borderWidth: 1,
+    minHeight: 126,
+    paddingHorizontal: 5,
+    paddingVertical: 9,
+  },
+  giftTileCompact: { minHeight: 116, paddingHorizontal: 3, paddingVertical: 8 },
+  giftSelected: {
+    backgroundColor: chonColors.warmSurface,
+    borderColor: chonColors.gold,
+    borderWidth: 2,
+    ...chonShadows.card,
+  },
+  giftUnaffordable: { opacity: 0.58 },
   giftIconWell: {
     alignItems: 'center',
-    backgroundColor: '#FFF4E2',
-    borderColor: '#F0D4A4',
+    backgroundColor: chonColors.warmSurface,
     borderRadius: 18,
-    borderWidth: 1,
-    height: 62,
+    height: 58,
     justifyContent: 'center',
-    width: 62,
+    width: 58,
   },
-  giftIconWellSelected: { backgroundColor: '#FFF0E6', borderColor: luxyColors.brandCoral },
-  giftIcon: { fontSize: 40, lineHeight: 48 },
-  giftName: { color: luxyColors.ink, fontSize: 12, fontWeight: '700', marginTop: 7, maxWidth: '100%' },
-  giftPrice: { color: luxyColors.muted, fontSize: 11.5, fontWeight: '600', marginTop: 3 },
-  giftPriceUnaffordable: { color: luxyColors.actionRed },
-  confirmation: { alignItems: 'center', borderTopColor: luxyColors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: luxySpacing.md, paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.lg },
+  giftIconWellCompact: { height: 52, width: 52 },
+  giftIconWellSelected: { backgroundColor: chonColors.warmSurfaceStrong },
+  giftIcon: { fontSize: 36, lineHeight: 44 },
+  giftIconCompact: { fontSize: 32, lineHeight: 40 },
+  giftName: {
+    color: chonColors.ink,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 7,
+    maxWidth: '100%',
+  },
+  giftPrice: { color: chonColors.goldStrong, fontSize: 10.5, fontWeight: '700', marginTop: 3 },
+  giftPriceUnaffordable: { color: chonColors.danger },
+  confirmation: {
+    alignItems: 'center',
+    backgroundColor: chonColors.warmSurface,
+    borderTopColor: chonColors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: luxySpacing.md,
+    paddingHorizontal: luxySpacing.xl,
+    paddingVertical: 14,
+  },
+  confirmationCompact: { alignItems: 'stretch', flexDirection: 'column', gap: 10, paddingHorizontal: chonLayout.contentHorizontalPaddingMobile },
   confirmationCopy: { flex: 1 },
-  confirmationTitle: { color: luxyColors.ink, fontSize: 15, fontWeight: '700' },
-  confirmationBody: { color: luxyColors.muted, fontSize: 12, lineHeight: 17, marginTop: 3 },
-  sendButton: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.sm, justifyContent: 'center', minHeight: 42, minWidth: 104, paddingHorizontal: luxySpacing.lg },
-  sendDisabled: { opacity: 0.45 },
-  sendText: { color: luxyColors.surface, fontSize: 14, fontWeight: '700' },
-  errorText: { color: luxyColors.danger, fontSize: 12, lineHeight: 17, paddingHorizontal: luxySpacing.xl, paddingVertical: 6 },
-  retryText: { color: luxyColors.actionRed, fontSize: 14, fontWeight: '700' },
-  disclaimer: { borderTopColor: luxyColors.border, borderTopWidth: StyleSheet.hairlineWidth, color: luxyColors.muted, fontSize: 11, lineHeight: 16, paddingHorizontal: luxySpacing.xl, paddingVertical: luxySpacing.md },
-  pressed: { opacity: 0.86 },
+  confirmationTitle: { color: chonColors.ink, fontSize: 13, fontWeight: '700' },
+  confirmationBody: { color: chonColors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },
+  sendButton: {
+    alignItems: 'center',
+    backgroundColor: chonColors.primaryRed,
+    borderColor: chonColors.primaryRed,
+    borderRadius: luxyRadii.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: chonLayout.minimumTouchTarget,
+    minWidth: 112,
+    paddingHorizontal: luxySpacing.lg,
+  },
+  sendButtonCompact: { width: '100%' },
+  sendButtonPressed: { backgroundColor: chonColors.primaryRedHover, ...chonShadows.primaryHover },
+  sendDisabled: { opacity: chonInteraction.disabledOpacity },
+  sendText: { color: chonColors.surface, fontSize: 12, fontWeight: '700' },
+  errorText: { color: chonColors.danger, fontSize: 11, lineHeight: 16, paddingHorizontal: luxySpacing.xl, paddingVertical: 6 },
+  disclaimer: {
+    borderTopColor: chonColors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    color: chonColors.muted,
+    fontSize: 10.5,
+    lineHeight: 15,
+    paddingHorizontal: luxySpacing.xl,
+    paddingVertical: 10,
+  },
+  pressed: { opacity: chonInteraction.pressedOpacity },
 });
