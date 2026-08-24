@@ -170,6 +170,10 @@ function genderLabel(value: GenderIdentity): string {
   return 'Không chia sẻ';
 }
 
+function sameTags(left: readonly ProfileLifestyleTag[], right: readonly ProfileLifestyleTag[]): boolean {
+  return left.length === right.length && left.every((tag, index) => tag === right[index]);
+}
+
 function resolveEditError(error: unknown): string {
   const raw = error instanceof Error ? error.message : '';
   if (raw && /[À-ỹ]/u.test(raw)) return raw;
@@ -339,14 +343,25 @@ export default function ChonMyProfileScreen() {
   const mutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
       if (!client) throw new Error('supabase_not_configured');
+      const baseline = profileQuery.data;
+      if (!baseline) throw new Error('profile_not_available');
+
       const heightCm = parseNullableInteger(values.heightCmText);
       const weightKg = parseNullableInteger(values.weightKgText);
+      const displayName = values.displayName.trim();
+      const headline = values.headline.trim();
+      const bio = values.bio.trim();
+      const lookingFor = values.lookingFor.trim();
+      const lifestyleTags = values.lifestyleTags;
 
-      const displayName = signupDisplayNameSchema.parse(values.displayName);
-      const headline = signupHeadlineSchema.parse(values.headline);
-      const bio = signupBioSchema.parse(values.bio);
-      const lookingFor = signupLookingForTextSchema.parse(values.lookingFor);
-      const lifestyleTags = signupLifestyleTagsSchema.parse(values.lifestyleTags);
+      // Existing members may have values created under older profile rules. Preserve an
+      // unchanged legacy value so editing another field does not lock the account. The
+      // moment a shared signup/profile field changes, apply the current Signup V2 rule.
+      if (displayName !== (baseline.display_name ?? '').trim()) signupDisplayNameSchema.parse(displayName);
+      if (headline !== (baseline.headline ?? '').trim()) signupHeadlineSchema.parse(headline);
+      if (bio !== (baseline.bio ?? '').trim()) signupBioSchema.parse(bio);
+      if (lookingFor !== (baseline.looking_for ?? '').trim()) signupLookingForTextSchema.parse(lookingFor);
+      if (!sameTags(lifestyleTags, baseline.lifestyle_tags ?? [])) signupLifestyleTagsSchema.parse(lifestyleTags);
       if (heightCm !== null) signupHeightCmSchema.parse(heightCm);
       if (weightKg !== null) weightKgSchema.parse(weightKg);
 
@@ -373,7 +388,7 @@ export default function ChonMyProfileScreen() {
         agePreferenceMin: parseRequiredInteger(values.agePreferenceMinText),
         agePreferenceMax: parseRequiredInteger(values.agePreferenceMaxText),
         lifestyleTags,
-        languages: profileQuery.data?.languages ?? [],
+        languages: baseline.languages ?? [],
       });
       if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'invalid_profile');
       return updateMyLuxyProfile(client, parsed.data);
@@ -605,17 +620,17 @@ export default function ChonMyProfileScreen() {
                   </Section>
 
                   <Section title="Giới thiệu về bạn">
-                    <Controller control={control} name="bio" render={({ field }) => <TextArea accessibilityLabel="Giới thiệu về bạn" helper="Tối thiểu 50 ký tự, tối đa 4000." maxLength={4000} onChangeText={field.onChange} value={field.value} />} />
+                    <Controller control={control} name="bio" render={({ field }) => <TextArea accessibilityLabel="Giới thiệu về bạn" helper="Tối thiểu 50 ký tự khi chỉnh sửa; dữ liệu legacy không đổi vẫn được giữ nguyên." maxLength={4000} onChangeText={field.onChange} value={field.value} />} />
                   </Section>
 
                   <Section title="Tôi đang tìm kiếm">
-                    <Controller control={control} name="lookingFor" render={({ field }) => <TextArea accessibilityLabel="Tôi đang tìm kiếm" helper="Tối thiểu 50 ký tự, tối đa 4000." maxLength={4000} onChangeText={field.onChange} value={field.value} />} />
+                    <Controller control={control} name="lookingFor" render={({ field }) => <TextArea accessibilityLabel="Tôi đang tìm kiếm" helper="Tối thiểu 50 ký tự khi chỉnh sửa; dữ liệu legacy không đổi vẫn được giữ nguyên." maxLength={4000} onChangeText={field.onChange} value={field.value} />} />
                     <Controller control={control} name="interestedIn" render={({ field }) => <ChoiceField label="Bạn quan tâm đến" onChange={field.onChange} options={interestedInOptions} value={field.value} />} />
                     <AgeRange maximum={maximumAge} minimum={minimumAge} onMaximum={(value) => setValue('agePreferenceMaxText', value, { shouldDirty: true })} onMinimum={(value) => setValue('agePreferenceMinText', value, { shouldDirty: true })} />
                   </Section>
 
                   <Section title="Mong muốn tìm kiếm" testID="chon-profile-looking-for-tags">
-                    <Text style={styles.helper}>Chọn 1–7 mục tiêu / phong cách, đồng nhất với bước đăng ký.</Text>
+                    <Text style={styles.helper}>Chọn 1–7 mục tiêu / phong cách khi chỉnh sửa, đồng nhất với bước đăng ký.</Text>
                     <TagPicker onToggle={toggleLifestyleTag} selected={selectedTags ?? []} />
                   </Section>
 
