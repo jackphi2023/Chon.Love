@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
-const actor = { email: 'br06.outsider@example.test' };
+const actor = { email: 'br06.viewer@example.test' };
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -44,6 +44,7 @@ test('UI-C01 keeps Connect cards compact, branded and consistent across mobile a
 
     const mobileCreator = page.getByTestId('luxy-search-mobile-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(mobileCreator).toBeVisible();
+    await expect(mobileCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
     const mobileBadge = mobileCreator.getByTestId('luxy-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
     const mobileBadgeBox = await mobileBadge.boundingBox();
@@ -75,6 +76,7 @@ test('UI-C01 keeps Connect cards compact, branded and consistent across mobile a
     await expect(page.getByTestId('luxy-search-desktop')).toBeVisible();
     const desktopCreator = page.getByTestId('luxy-search-member-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(desktopCreator).toBeVisible();
+    await expect(desktopCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
     const desktopBadge = desktopCreator.getByTestId('luxy-membership-badge-diamond');
     const desktopBadgeBox = await desktopBadge.boundingBox();
     expect(desktopBadgeBox).not.toBeNull();
