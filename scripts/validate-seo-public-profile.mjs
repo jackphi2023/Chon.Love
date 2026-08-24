@@ -13,7 +13,8 @@ const publicRoute = read('apps/mobile/app/thanh-vien/[username].tsx');
 const canonicalProfileLayout = read('apps/mobile/app/thanh-vien/_layout.tsx');
 const legacyRoute = read('apps/mobile/app/profile/[username].tsx');
 const sharedProfileLayout = read('apps/mobile/app/profile/_layout.tsx');
-const richProfileScreen = read('apps/mobile/src/screens/luxy-member-profile-screen.tsx');
+const richProfileScreen = read('apps/mobile/src/screens/chon-member-profile-screen.tsx');
+const legacyRichProfileBridge = read('apps/mobile/src/screens/luxy-member-profile-screen.tsx');
 const verificationBadgesWeb = read('apps/mobile/src/components/member-profile-verification-badges.web.tsx');
 const mobileActionsWeb = read('apps/mobile/src/components/member-profile-mobile-actions.web.tsx');
 const sharedPublicProfile = read('packages/supabase/src/public-profile.ts');
@@ -50,16 +51,29 @@ expect(memberProfileClient.includes('resolveChonMemberUsername'), 'Rich member p
 expect(publicRoute.includes("useLocalSearchParams<{ username?"), 'Canonical member route must use a single dynamic segment while carrying id-xxxxxx as the value.');
 expect(publicRoute.includes('publicProfileCodeFromRouteId'), 'Public profile screen must validate id-xxxxxx routes.');
 expect(publicRoute.includes('publicProfileAvatarUrl'), 'Public profile screen must use the matching member avatar, not the global thumbnail.');
-expect(publicRoute.includes('LuxyMemberProfileScreen'), 'Signed-in canonical member route must preserve the complete existing rich profile experience.');
+expect(publicRoute.includes('ChonMemberProfileScreen'), 'Signed-in canonical member route must preserve the complete rich profile experience through the Chọn.Love owner.');
 expect(publicRoute.includes('`Thành viên ${profile.display_name} | ${TITLE_SUFFIX}`'), 'Public profile browser title must include the member display name.');
 expect(!publicRoute.includes("pathname: '/profile/[username]'"), 'Canonical public profile screen must not navigate back to username URLs.');
-expect(richProfileScreen.includes('getLuxyMemberProfile') && richProfileScreen.includes('getProfileViewer'), 'Extracted rich member screen must preserve existing profile and social behavior.');
+expect(
+  richProfileScreen.includes('getLuxyMemberProfile') &&
+    richProfileScreen.includes('getProfileViewer') &&
+    richProfileScreen.includes('getLuxyMemberVerificationBadges') &&
+    richProfileScreen.includes('blockUser') &&
+    richProfileScreen.includes('createSafetyReport'),
+  'Chọn.Love rich member screen must preserve profile, verification, social and safety behavior.',
+);
+expect(
+  legacyRichProfileBridge.includes("from './chon-member-profile-screen'") && legacyRichProfileBridge.includes('ChonMemberProfileScreen'),
+  'Legacy rich-profile module must remain a compatibility bridge to the canonical Chọn.Love owner.',
+);
 
 expect(canonicalProfileLayout.includes("export { default } from '../profile/_layout';"), 'Canonical member route must reuse the authenticated profile shell instead of silently dropping profile actions.');
 expect(sharedProfileLayout.includes('if (!auth.userId) return <Slot />;'), 'Shared member profile shell must stay clean for logged-out public profile visitors.');
 expect(sharedProfileLayout.includes('recordProfileViewByUsername(client, profile.username)'), 'Canonical profile views must keep analytics after resolving the opaque public ID to the existing username contract.');
 expect(verificationBadgesWeb.includes('(?:profile|thanh-vien)'), 'Verification badges must activate on both legacy and canonical member routes.');
 expect(mobileActionsWeb.includes('(?:profile|thanh-vien)'), 'Mobile member actions and the Free upgrade prompt must activate on both legacy and canonical member routes.');
+expect(verificationBadgesWeb.includes('chon-member-profile-hero-photo'), 'Verification sidecar must attach to the canonical Chọn.Love profile hero.');
+expect(mobileActionsWeb.includes('chon-member-profile-page') && mobileActionsWeb.includes('chon-member-profile-message-composer'), 'Mobile profile sidecar must target the canonical Chọn.Love profile owner.');
 
 expect(legacyRoute.includes('resolveChonMemberRoute') && legacyRoute.includes('router.replace(toPublicMemberPath(code))'), 'Legacy /profile/<username> route must canonicalize authenticated users to /thanh-vien/id-xxxxxx.');
 expect(routeMigration.includes('resolve_chon_member_route') && routeMigration.includes('revoke all') && routeMigration.includes('to authenticated, service_role'), 'Legacy route resolver must be authenticated-only and avoid public username mapping.');
@@ -97,4 +111,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.warn('Chọn.love public profile SEO validation passed: canonical id routes, legacy username redirects, shared authenticated profile shell, member-specific social images, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
+console.warn('Chọn.love public profile SEO validation passed: canonical id routes, Chọn.Love rich-profile ownership, legacy username redirects, shared authenticated profile shell, member-specific social images, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
