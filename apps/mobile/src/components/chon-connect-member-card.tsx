@@ -1,17 +1,9 @@
-import {
-  createPublicProfileMediaUrl,
-  formatLuxyDistance,
-  type LuxySearchProfile,
-} from '@myfan/supabase';
-import { luxyColors, luxyLayout, luxyRadii, luxyTypography } from '@myfan/ui';
-import { useQuery } from '@tanstack/react-query';
+import { formatLuxyDistance, type LuxySearchProfile } from '@myfan/supabase';
+import { luxyColors, luxyLayout, luxyRadii } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { ChonMembershipBadge } from '@/components/chon-membership-badge';
-import { ChonPhotoCount } from '@/components/chon-photo-count';
-import { LazyProfileImage } from '@/components/lazy-profile-image';
+import { ChonMemberPhoto } from '@/components/chon-member-photo';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
-import { getMobileSupabaseClient } from '@/lib/supabase';
 
 export function ChonConnectMemberCard({
   profile,
@@ -25,23 +17,9 @@ export function ChonConnectMemberCard({
   testID?: string;
 }) {
   const router = useRouter();
-  const client = getMobileSupabaseClient();
   const name = profile.display_name || profile.username || 'Thành viên Chọn.Love';
   const distance = formatLuxyDistance(profile.distance_km);
   const location = [profile.province_name, distance].filter(Boolean).join(' · ');
-  const imageQuery = useQuery({
-    queryKey: ['luxy-search', 'member-photo', profile.avatar_media_id],
-    enabled: Boolean(client && profile.avatar_media_id && profile.avatar_storage_bucket && profile.avatar_storage_path),
-    staleTime: 35_000,
-    gcTime: 5 * 60_000,
-    queryFn: async () => {
-      if (!client || !profile.avatar_storage_bucket || !profile.avatar_storage_path) return null;
-      return createPublicProfileMediaUrl(client, {
-        storage_bucket: profile.avatar_storage_bucket,
-        storage_path: profile.avatar_storage_path,
-      });
-    },
-  });
 
   return (
     <View style={[styles.card, style]} testID={testID}>
@@ -52,30 +30,20 @@ export function ChonConnectMemberCard({
         onPress={() => profile.username && router.push({ pathname: '/profile/[username]', params: { username: profile.username } })}
         style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
       >
-        <View style={styles.photoFrame}>
-          {imageQuery.data ? (
-            <LazyProfileImage
-              accessibilityLabel={`Ảnh hồ sơ của ${name}`}
-              resizeMode="cover"
-              source={{ uri: imageQuery.data }}
-              style={styles.memberPhoto}
-            />
-          ) : (
-            <View style={styles.photoFallback}>
-              <Text style={[styles.photoInitial, desktop && styles.photoInitialDesktop]}>{name.slice(0, 1).toUpperCase()}</Text>
-            </View>
-          )}
-
-          <ChonMembershipBadge
-            desktop={desktop}
-            inset={desktop ? 8 : 7}
-            tier={profile.membership_badge_tier}
-            variant="icon"
-          />
-          <View style={[styles.photoCountWrap, desktop && styles.photoCountWrapDesktop]}>
-            <ChonPhotoCount count={profile.photo_count} />
-          </View>
-
+        <ChonMemberPhoto
+          desktop={desktop}
+          fallbackFontSize={desktop ? 52 : 42}
+          mediaId={profile.avatar_media_id}
+          membershipTier={profile.membership_badge_tier}
+          name={name}
+          photoCount={profile.photo_count}
+          photoCountPlacement="top-right"
+          showZeroPhotoCount
+          storageBucket={profile.avatar_storage_bucket}
+          storagePath={profile.avatar_storage_path}
+          style={styles.photoFrame}
+          testID="chon-connect-member-photo"
+        >
           <View
             style={[styles.infoOverlay, desktop && styles.infoOverlayDesktop]}
             testID="chon-connect-card-info-overlay"
@@ -89,7 +57,7 @@ export function ChonConnectMemberCard({
               {location || 'Việt Nam'}
             </Text>
           </View>
-        </View>
+        </ChonMemberPhoto>
       </Pressable>
 
       <View style={[styles.favoriteOverlay, desktop && styles.favoriteOverlayDesktop]}>
@@ -110,18 +78,9 @@ const styles = StyleSheet.create({
   cardPressed: { opacity: 0.84 },
   photoFrame: {
     aspectRatio: luxyLayout.memberCardAspectRatio,
-    backgroundColor: luxyColors.elevatedSubtle,
     borderRadius: luxyRadii.sm,
-    overflow: 'hidden',
-    position: 'relative',
     width: '100%',
   },
-  memberPhoto: { height: '100%', width: '100%' },
-  photoFallback: { alignItems: 'center', backgroundColor: '#E7E5E4', height: '100%', justifyContent: 'center', width: '100%' },
-  photoInitial: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 42 },
-  photoInitialDesktop: { fontSize: 52 },
-  photoCountWrap: { position: 'absolute', right: 7, top: 8, zIndex: 5 },
-  photoCountWrapDesktop: { right: 8, top: 9 },
   infoOverlay: {
     backgroundColor: 'rgba(8,23,38,0.60)',
     bottom: 0,
