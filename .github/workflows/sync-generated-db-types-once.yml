@@ -1,0 +1,51 @@
+name: Sync generated DB types once
+
+on:
+  push:
+    branches: [agent/ui-home-nav-consistency-v1]
+    paths:
+      - '.github/workflows/sync-generated-db-types-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ui-home-nav-consistency-v1
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Generate canonical public database contract
+        run: |
+          supabase start
+          supabase db reset --local
+          supabase gen types typescript --local --schema public > /tmp/database.types.ts
+          node scripts/filter-internal-database-types.mjs /tmp/database.types.ts
+          cmp --silent /tmp/database.types.ts packages/supabase/src/database.types.ts || cp /tmp/database.types.ts packages/supabase/src/database.types.ts
+
+      - name: Commit generated contract and remove one-time workflow
+        run: |
+          rm .github/workflows/sync-generated-db-types-once.yml
+          if git diff --quiet -- packages/supabase/src/database.types.ts .github/workflows/sync-generated-db-types-once.yml; then
+            echo 'No generated contract drift to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/supabase/src/database.types.ts .github/workflows/sync-generated-db-types-once.yml
+          git commit -m 'UI-C02: sync generated database types'
+          git push origin HEAD:agent/ui-home-nav-consistency-v1
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
