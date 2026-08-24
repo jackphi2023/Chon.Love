@@ -1,4 +1,4 @@
-import { luxyColors, luxyRadii } from '@myfan/ui';
+import { chonColors, luxyColors, luxyRadii } from '@myfan/ui';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { useChonFavorite } from '@/hooks/use-chon-favorite';
 
@@ -35,7 +35,12 @@ export function LuxySeekingFavoriteButton({
       accessibilityState={{ busy, selected: favorited }}
       disabled={!available || busy}
       onPress={() => void toggleFavorite()}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed, busy && styles.busy]}
+      style={({ pressed }) => [
+        styles.button,
+        favorited && styles.buttonFavorited,
+        pressed && styles.pressed,
+        busy && styles.busy,
+      ]}
       testID={`luxy-interests-favorite-${profileId}`}
     >
       <Text style={[styles.heart, favorited && styles.heartActive]}>{favorited ? '♥' : '♡'}</Text>
@@ -58,9 +63,10 @@ const styles = StyleSheet.create({
     minWidth: 122,
     paddingHorizontal: 14,
   },
+  buttonFavorited: { borderColor: chonColors.gold },
   heart: { color: luxyColors.ink, fontSize: 18, lineHeight: 19 },
-  heartActive: { color: '#5B6470' },
+  heartActive: { color: chonColors.gold },
   text: { color: luxyColors.ink, fontSize: 14, fontWeight: '500' },
-  pressed: { opacity: 0.72 },
+  pressed: { backgroundColor: chonColors.warmSurfaceStrong, opacity: 0.78 },
   busy: { opacity: 0.55 },
 });
