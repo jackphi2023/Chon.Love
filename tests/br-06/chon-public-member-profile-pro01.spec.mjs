@@ -28,9 +28,11 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
     await expect(page.getByTestId('chon-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByTestId(/chon-favorite-/)).toBeVisible();
     await expect(page.getByTestId('chon-membership-badge-diamond')).toBeVisible();
-    await expect(page.getByLabel('Trạng thái xác thực')).toContainText('Ảnh');
-    await expect(page.getByLabel('Trạng thái xác thực')).toContainText('Danh tính');
-    await expect(page.getByLabel('Trạng thái xác thực')).toContainText('LinkedIn');
+    const verification = page.getByTestId('chon-member-verification-badges');
+    await expect(verification).toBeVisible();
+    await expect(verification.getByRole('button', { name: /^(Đã|Chưa) xác thực ảnh chụp cá nhân$/ })).toBeVisible();
+    await expect(verification.getByRole('button', { name: /^(Đã|Chưa) xác thực CCCD$/ })).toBeVisible();
+    await expect(verification.getByRole('button', { name: /^(Đã|Chưa) xác thực LinkedIn$/ })).toBeVisible();
 
     const info = page.getByTestId('chon-member-profile-info-list');
     const labels = ['Chiều cao', 'Cân nặng', 'Tình trạng mối quan hệ', 'Giới tính', 'Con cái', 'Học vấn', 'Hút thuốc', 'Uống rượu bia', 'Nghề nghiệp'];

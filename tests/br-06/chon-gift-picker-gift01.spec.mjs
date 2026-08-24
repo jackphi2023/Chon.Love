@@ -25,7 +25,8 @@ test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive 
   try {
     await login(page);
     await page.goto(`/profile/${creator.username}`);
-    await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
+    await expect(page).toHaveURL(/\/thanh-vien\/id-[a-z0-9-]+/i, { timeout: 20_000 });
+    await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
 
     const giftAction = page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
     await expect(giftAction).toBeVisible();

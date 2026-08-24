@@ -10,13 +10,14 @@ async function login(page) {
   await expect(page.getByTestId('luxy-search-desktop')).toBeVisible({ timeout: 30_000 });
 }
 
-test('WEB-R02 member profile keeps photo and favorite as separate interactive controls', async ({ browser }) => {
+test('UI-PRO01 member profile keeps photo and favorite as separate interactive controls', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   try {
     await login(page);
     await page.goto('/profile/br06_creator');
-    await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
+    await expect(page).toHaveURL(/\/thanh-vien\/id-[a-z0-9-]+/i, { timeout: 20_000 });
+    await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: 'Xem ảnh đại diện của BR06 Creator' })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Yêu thích BR06 Creator|^Bỏ yêu thích BR06 Creator/ })).toBeVisible();
     await expect(page.locator('button button')).toHaveCount(0);

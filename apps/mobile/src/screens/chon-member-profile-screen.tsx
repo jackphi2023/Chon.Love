@@ -5,7 +5,6 @@ import {
   createPublicProfileMediaUrl,
   createSafetyReport,
   getLuxyMemberProfile,
-  getLuxyMemberVerificationBadges,
   getLuxyProfileConversation,
   getMyLuxyMembershipSnapshot,
   getProfileInterestState,
@@ -19,7 +18,6 @@ import {
   unblockUser,
   type AlbumMediaItem,
   type LuxyMemberProfile,
-  type MemberVerificationBadges,
   type ReportReasonCode,
 } from '@myfan/supabase';
 import {
@@ -122,16 +120,6 @@ export default function ChonMemberProfileScreen() {
     queryFn: async () => {
       if (!client || !profile) throw new Error('profile_not_available');
       return getProfileInterestState(client, profile.id);
-    },
-  });
-
-  const verificationQuery = useQuery({
-    queryKey: ['chon-member-verification-badges', profile?.id],
-    enabled: Boolean(client && profile?.id && !profile?.blocked_by_viewer),
-    staleTime: 60_000,
-    queryFn: async () => {
-      if (!client || !profile) throw new Error('profile_not_available');
-      return getLuxyMemberVerificationBadges(client, profile.id);
     },
   });
 
@@ -284,13 +272,7 @@ export default function ChonMemberProfileScreen() {
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="chon-member-profile-page">
       <View style={[styles.profileFrame, desktop ? styles.profileFrameDesktop : styles.profileFrameMobile]}>
         <View style={[styles.leftColumn, desktop && styles.leftColumnDesktop]}>
-          <Pressable
-            accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
-            accessibilityRole="button"
-            disabled={!avatarQuery.data}
-            onPress={() => openPhoto(avatarQuery.data ?? null)}
-            style={({ pressed }) => [styles.heroPressable, pressed && styles.pressed]}
-          >
+          <View style={styles.heroPhotoFrame} testID="chon-member-profile-hero-photo">
             <ChonMemberPhoto
               desktop={desktop}
               mediaId={profile.avatar_media_id}
@@ -300,20 +282,26 @@ export default function ChonMemberProfileScreen() {
               storageBucket={profile.avatar_storage_bucket}
               storagePath={profile.avatar_storage_path}
               style={styles.heroPhoto}
-              testID="chon-member-profile-hero-photo"
-            >
-              {!profile.blocked_by_viewer ? (
-                <View style={styles.heroFavorite}>
-                  <ChonFavoriteButton
-                    initialFavorited={favoriteState?.is_favorited ?? false}
-                    initialFavoritedBy={favoriteState?.is_favorited_by ?? false}
-                    name={displayName}
-                    profileId={profile.id}
-                  />
-                </View>
-              ) : null}
-            </ChonMemberPhoto>
-          </Pressable>
+              testID="chon-member-profile-hero-media"
+            />
+            <Pressable
+              accessibilityLabel={`Xem ảnh đại diện của ${displayName}`}
+              accessibilityRole="button"
+              disabled={!avatarQuery.data}
+              onPress={() => openPhoto(avatarQuery.data ?? null)}
+              style={({ pressed }) => [styles.heroPhotoPressTarget, pressed && styles.pressed]}
+            />
+            {!profile.blocked_by_viewer ? (
+              <View style={styles.heroFavorite}>
+                <ChonFavoriteButton
+                  initialFavorited={favoriteState?.is_favorited ?? false}
+                  initialFavoritedBy={favoriteState?.is_favorited_by ?? false}
+                  name={displayName}
+                  profileId={profile.id}
+                />
+              </View>
+            ) : null}
+          </View>
 
           {profile.private_photo_count > 0 && !profile.blocked_by_viewer ? (
             <View style={styles.privateActionWrap}>
@@ -328,9 +316,9 @@ export default function ChonMemberProfileScreen() {
           ) : null}
 
           <View style={styles.sideMeta}>
-            <SideMetaRow icon="recent" label={formatLastActive(profile.last_active_at)} />
-            <SideMetaRow icon="location" label={profile.province_name ?? 'Việt Nam'} />
-            <SideMetaRow icon="profile" label={`Thành viên từ ${formatMemberSince(profile.member_since)}`} />
+            <SideMetaRow icon="recent" label={formatLastActive(profile.last_active_at)} testID="chon-profile-fact-recent" />
+            <SideMetaRow icon="location" label={profile.province_name ?? 'Việt Nam'} testID="chon-profile-fact-location" />
+            <SideMetaRow icon="profile" label={`Thành viên từ ${formatMemberSince(profile.member_since)}`} testID="chon-profile-fact-member-since" />
           </View>
         </View>
 
@@ -340,7 +328,6 @@ export default function ChonMemberProfileScreen() {
               <Text accessibilityRole="header" style={[styles.displayName, !desktop && styles.displayNameMobile]}>{displayName}, {profile.age}</Text>
               <Text style={styles.locationText}>{profile.province_name ?? 'Việt Nam'}</Text>
               <Text style={styles.headline}>{profile.headline || interestedInSentence(profile)}</Text>
-              <VerificationBadges badges={verificationQuery.data} loading={verificationQuery.isLoading} />
             </View>
             <View style={styles.moreWrap}>
               <Pressable accessibilityLabel="Tùy chọn hồ sơ" accessibilityRole="button" onPress={() => setShowMoreMenu((value) => !value)} style={styles.moreButton}>
@@ -439,27 +426,8 @@ export default function ChonMemberProfileScreen() {
   );
 }
 
-function VerificationBadges({ badges, loading }: { badges: MemberVerificationBadges | undefined; loading: boolean }) {
-  if (loading) return <View style={styles.verificationRow}><ActivityIndicator color={chonColors.goldStrong} size="small" /></View>;
-  const items = [
-    ['Ảnh', badges?.selfie_verified ?? false],
-    ['Danh tính', badges?.identity_verified ?? false],
-    ['LinkedIn', badges?.linkedin_verified ?? false],
-  ] as const;
-  return (
-    <View accessibilityLabel="Trạng thái xác thực" style={styles.verificationRow}>
-      {items.map(([label, verified]) => (
-        <View key={label} style={[styles.verificationBadge, verified ? styles.verificationBadgeActive : styles.verificationBadgeMuted]}>
-          <View style={[styles.verificationMark, verified && styles.verificationMarkActive]}><Text style={[styles.verificationMarkText, verified && styles.verificationMarkTextActive]}>{verified ? '✓' : '–'}</Text></View>
-          <Text style={[styles.verificationText, verified && styles.verificationTextActive]}>{label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function SideMetaRow({ icon, label }: { icon: 'recent' | 'location' | 'profile'; label: string }) {
-  return <View style={styles.sideMetaRow}><ChonBrandIcon name={icon} size={20} /><Text style={styles.sideMetaText}>{label}</Text></View>;
+function SideMetaRow({ icon, label, testID }: { icon: 'recent' | 'location' | 'profile'; label: string; testID: string }) {
+  return <View style={styles.sideMetaRow} testID={testID}><ChonBrandIcon name={icon} size={20} /><Text style={styles.sideMetaText}>{label}</Text></View>;
 }
 
 function ProfileGallery({
@@ -609,8 +577,9 @@ const styles = StyleSheet.create({
   leftColumn: { width: '100%' },
   leftColumnDesktop: { flexBasis: 330, flexGrow: 0, flexShrink: 0, width: 330 },
   rightColumn: { flex: 1, minWidth: 0 },
-  heroPressable: { borderRadius: 14, overflow: 'hidden' },
+  heroPhotoFrame: { borderRadius: 14, overflow: 'hidden', position: 'relative', width: '100%' },
   heroPhoto: { aspectRatio: 0.72, borderRadius: 14, width: '100%' },
+  heroPhotoPressTarget: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0, zIndex: 8 },
   heroFavorite: { bottom: 10, position: 'absolute', right: 10, zIndex: 9 },
   privateActionWrap: { marginTop: 10 },
   sideMeta: { borderBottomColor: chonColors.border, borderBottomWidth: 1, borderTopColor: chonColors.border, borderTopWidth: 1, gap: 10, marginTop: 14, paddingVertical: 14 },
@@ -622,16 +591,6 @@ const styles = StyleSheet.create({
   displayNameMobile: { fontSize: chonTypography.sizes.h2, lineHeight: chonTypography.lineHeights.h2 },
   locationText: { color: chonColors.text, fontSize: chonTypography.sizes.h3, lineHeight: chonTypography.lineHeights.h3 },
   headline: { color: chonColors.muted, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginTop: 2 },
-  verificationRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, minHeight: 32 },
-  verificationBadge: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 6, minHeight: 32, paddingHorizontal: 9 },
-  verificationBadgeActive: { backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold },
-  verificationBadgeMuted: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.border },
-  verificationMark: { alignItems: 'center', borderColor: chonColors.borderStrong, borderRadius: 12, borderWidth: 1, height: 24, justifyContent: 'center', width: 24 },
-  verificationMarkActive: { backgroundColor: chonColors.gold, borderColor: chonColors.goldStrong },
-  verificationMarkText: { color: chonColors.muted, fontSize: 14, fontWeight: '800' },
-  verificationMarkTextActive: { color: chonColors.ink },
-  verificationText: { color: chonColors.muted, fontSize: chonTypography.sizes.help, fontWeight: '700' },
-  verificationTextActive: { color: chonColors.text },
   moreWrap: { position: 'relative', zIndex: 20 },
   moreButton: { alignItems: 'center', borderColor: chonColors.border, borderRadius: 22, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
   moreText: { color: chonColors.muted, fontSize: 18, letterSpacing: 1 },
