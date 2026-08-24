@@ -102,6 +102,7 @@ export default function MessagesPage() {
           </View>
           <View style={styles.controls}>
             <Pressable
+              aria-checked={unreadOnly}
               accessibilityLabel="Chỉ hiện tin chưa đọc"
               accessibilityRole="checkbox"
               accessibilityState={{ checked: unreadOnly }}
