@@ -1,5 +1,5 @@
 import { createPublicProfileMediaUrl, type LuxyMembershipTier } from '@myfan/supabase';
-import { chonColors, luxyTypography } from '@myfan/ui';
+import { chonColors, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   initial: {
     color: chonColors.muted,
-    fontFamily: luxyTypography.families.display,
+    fontFamily: chonTypography.families.display,
     fontSize: 34,
   },
   photoCount: { position: 'absolute', right: 7, zIndex: 7 },

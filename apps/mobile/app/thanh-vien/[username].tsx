@@ -5,7 +5,7 @@ import {
   publicProfileCodeFromRouteId,
   type PublicChonProfile,
 } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxyTypography } from '@myfan/ui';
+import { chonColors, chonShadows, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
@@ -20,7 +20,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import LuxyMemberProfileScreen from '@/screens/luxy-member-profile-screen';
+import { ChonMembershipBadge } from '@/components/chon-membership-badge';
+import ChonMemberProfileScreen from '@/screens/chon-member-profile-screen';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -101,10 +102,7 @@ export default function CanonicalMemberProfilePage() {
   if (profileQuery.isLoading) return <MemberLoading />;
   if (profileQuery.isError || !profile) return <Redirect href="/" />;
 
-  // Signed-in members keep the complete existing profile experience (favorite,
-  // messaging, private photos, safety actions and membership gates) while the
-  // browser URL remains the canonical opaque public member ID.
-  if (auth.userId) return <LuxyMemberProfileScreen />;
+  if (auth.userId) return <ChonMemberProfileScreen />;
 
   return (
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="public-member-profile-page">
@@ -130,10 +128,10 @@ export default function CanonicalMemberProfilePage() {
             ) : (
               <View style={styles.photoFallback}><Text style={styles.photoFallbackText}>{profile.display_name.slice(0, 1).toUpperCase()}</Text></View>
             )}
+            {profile.membership_badge_visible ? (
+              <ChonMembershipBadge desktop={!isCompact} inset={10} tier={profile.membership_tier} variant="icon" />
+            ) : null}
           </View>
-          {profile.membership_badge_visible ? (
-            <View style={styles.membershipBadge}><Text style={styles.membershipBadgeText}>{membershipLabel(profile.membership_tier)}</Text></View>
-          ) : null}
         </View>
 
         <View style={styles.profileCopy}>
@@ -166,60 +164,52 @@ function ProfileSection({ title, children }: Readonly<{ title: string; children:
 }
 
 function MemberLoading() {
-  return <View style={styles.centered}><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.muted}>Đang tải hồ sơ thành viên…</Text></View>;
-}
-
-function membershipLabel(value: string): string {
-  if (value === 'diamond') return 'Kim cương';
-  if (value === 'premium') return 'Cao cấp';
-  return 'Thành viên';
+  return <View style={styles.centered}><ActivityIndicator color={chonColors.primaryRed} size="large" /><Text style={styles.muted}>Đang tải hồ sơ thành viên…</Text></View>;
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: '#FFF9F8', flex: 1 },
+  page: { backgroundColor: chonColors.warmSurface, flex: 1 },
   pageContent: { alignItems: 'center', minHeight: '100%', paddingBottom: 64 },
   topbar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', maxWidth: 1180, paddingHorizontal: 20, paddingVertical: 18, width: '100%' },
   topbarCompact: { paddingHorizontal: 14, paddingVertical: 13 },
-  brand: { color: luxyColors.actionRed, fontFamily: luxyTypography.families.display, fontSize: 28, fontWeight: '700' },
+  brand: { color: chonColors.primaryRed, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '700' },
   brandCompact: { fontSize: 22 },
   topActions: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   linkButton: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
   linkButtonCompact: { paddingHorizontal: 7 },
-  linkButtonText: { color: luxyColors.text, fontSize: 13, fontWeight: '600' },
-  primarySmall: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 44, paddingHorizontal: 18 },
+  linkButtonText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '600' },
+  primarySmall: { alignItems: 'center', backgroundColor: chonColors.primaryRed, borderRadius: 999, justifyContent: 'center', minHeight: 44, paddingHorizontal: 18 },
   primarySmallCompact: { paddingHorizontal: 13 },
-  primarySmallText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  profileCard: { alignItems: 'flex-start', backgroundColor: '#FFFFFF', borderColor: '#F2DEDA', borderRadius: 22, borderWidth: 1, flexDirection: 'row', gap: 30, maxWidth: 1040, padding: 24, width: '94%' },
+  primarySmallText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  profileCard: { alignItems: 'flex-start', backgroundColor: chonColors.surface, borderColor: chonColors.border, borderRadius: 22, borderWidth: 1, flexDirection: 'row', gap: 30, maxWidth: 1040, padding: 24, width: '94%', ...chonShadows.card },
   profileCardCompact: { borderRadius: 16, flexDirection: 'column', gap: 20, padding: 14, width: '94%' },
   photoColumn: { maxWidth: 340, width: '38%' },
   photoColumnCompact: { maxWidth: '100%', width: '100%' },
-  photoFrame: { aspectRatio: 0.8, backgroundColor: '#F4E8E5', borderRadius: 18, overflow: 'hidden', width: '100%' },
+  photoFrame: { aspectRatio: 0.8, backgroundColor: chonColors.warmSurface, borderRadius: 18, overflow: 'hidden', position: 'relative', width: '100%' },
   photoFrameCompact: { aspectRatio: 0.92, borderRadius: 14 },
   photo: { height: '100%', width: '100%' },
   photoFallback: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  photoFallbackText: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 72 },
-  membershipBadge: { alignSelf: 'flex-start', backgroundColor: '#FFF4D6', borderColor: '#F2B51D', borderRadius: luxyRadii.pill, borderWidth: 1, marginTop: 12, paddingHorizontal: 13, paddingVertical: 7 },
-  membershipBadgeText: { color: '#8A5A00', fontSize: 12, fontWeight: '700' },
+  photoFallbackText: { color: chonColors.muted, fontFamily: chonTypography.families.display, fontSize: 72 },
   profileCopy: { flex: 1, minWidth: 0, paddingVertical: 6, width: '100%' },
-  name: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 34, lineHeight: 41 },
-  nameCompact: { fontSize: 29, lineHeight: 35 },
-  location: { color: luxyColors.text, fontSize: 16, marginTop: 3 },
-  headline: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, marginTop: 7 },
-  section: { borderTopColor: '#F1E8E6', borderTopWidth: 1, gap: 9, marginTop: 22, paddingTop: 18 },
-  sectionTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 20, fontWeight: '600' },
-  body: { color: luxyColors.text, fontSize: 14, lineHeight: 22 },
+  name: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h1Desktop, lineHeight: chonTypography.lineHeights.h1Desktop },
+  nameCompact: { fontSize: chonTypography.sizes.h2, lineHeight: chonTypography.lineHeights.h2 },
+  location: { color: chonColors.text, fontSize: chonTypography.sizes.h3, marginTop: 3 },
+  headline: { color: chonColors.muted, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginTop: 7 },
+  section: { borderTopColor: chonColors.border, borderTopWidth: 1, gap: 9, marginTop: 22, paddingTop: 18 },
+  sectionTitle: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '600' },
+  body: { color: chonColors.text, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { backgroundColor: '#FFF1F3', borderRadius: luxyRadii.pill, paddingHorizontal: 12, paddingVertical: 8 },
-  tagText: { color: '#9F1239', fontSize: 12, fontWeight: '600' },
-  joinCard: { backgroundColor: '#FFF6F5', borderColor: '#F5D4CF', borderRadius: 16, borderWidth: 1, gap: 9, marginTop: 26, padding: 18 },
-  joinTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 19, fontWeight: '700' },
-  joinCopy: { color: luxyColors.muted, fontSize: 12, lineHeight: 19 },
+  tag: { backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
+  tagText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  joinCard: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 16, borderWidth: 1, gap: 9, marginTop: 26, padding: 18 },
+  joinTitle: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h3, fontWeight: '700' },
+  joinCopy: { color: chonColors.muted, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
   joinActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 3 },
-  primaryButton: { alignItems: 'center', backgroundColor: luxyColors.actionRed, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 46, paddingHorizontal: 22 },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  outlineButton: { alignItems: 'center', borderColor: luxyColors.ink, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 22 },
-  outlineButtonText: { color: luxyColors.text, fontSize: 12, fontWeight: '700' },
+  primaryButton: { alignItems: 'center', backgroundColor: chonColors.primaryRed, borderRadius: 999, justifyContent: 'center', minHeight: 46, paddingHorizontal: 22 },
+  primaryButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  outlineButton: { alignItems: 'center', borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: 22 },
+  outlineButtonText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '700' },
   fullWidthButton: { width: '100%' },
-  centered: { alignItems: 'center', backgroundColor: '#FFF9F8', flex: 1, gap: 12, justifyContent: 'center', padding: 24 },
-  muted: { color: luxyColors.muted, fontSize: 13 },
+  centered: { alignItems: 'center', backgroundColor: chonColors.warmSurface, flex: 1, gap: 12, justifyContent: 'center', padding: 24 },
+  muted: { color: chonColors.muted, fontSize: chonTypography.sizes.body },
 });
