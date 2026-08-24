@@ -61,7 +61,15 @@ test('LX-12 Favorite + Viewed Me lifecycle persists across two authenticated use
     await expect(favoritesTab).toBeVisible();
     await favoritesTab.click();
     await expect(favoritesTab).toHaveAttribute('aria-selected', 'true');
-    await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible();
+    const creatorRow = viewerPage.getByTestId('luxy-interests-row').filter({ hasText: actors.creator.name }).first();
+    await expect(creatorRow).toBeVisible();
+    await expect(creatorRow.getByTestId('chon-seeking-member-photo')).toBeVisible();
+    await expect(creatorRow.getByTestId('chon-photo-count')).toBeVisible();
+    const creatorBadge = creatorRow.getByTestId('luxy-membership-badge-diamond');
+    await expect(creatorBadge).toBeVisible();
+    const creatorBadgeBox = await creatorBadge.boundingBox();
+    expect(creatorBadgeBox).not.toBeNull();
+    expect(Math.abs(creatorBadgeBox.width - 16)).toBeLessThanOrEqual(1);
 
     // Recipient sees the incoming signal under Favorited Me.
     await openInterests(creatorPage);
