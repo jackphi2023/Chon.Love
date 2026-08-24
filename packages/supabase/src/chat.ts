@@ -10,6 +10,7 @@ export const CHAT_MESSAGE_MAX_CHARACTERS = 2_000;
 export const CHAT_CONVERSATION_PAGE_SIZE = 30;
 export const CHAT_AUTO_DELETE_DAYS = 7;
 export const CHAT_AUTO_DELETE_MS = CHAT_AUTO_DELETE_DAYS * 24 * 60 * 60 * 1_000;
+export const CHAT_RETENTION_DELETED_PLACEHOLDER = 'Tin nhắn đã xoá sau 7 ngày';
 
 // LX-15 keeps legacy friendship context when it exists, while `direct` represents
 // a Seeking-style conversation that does not require a friendship relationship.
@@ -30,6 +31,7 @@ const conversationSummarySchema = z.object({
   friendship_status: friendshipStatusSchema,
   can_send: z.boolean(),
   blocked: z.boolean(),
+  retention_purged_at: z.string().nullable().optional(),
   last_message_id: z.string().uuid().nullable(),
   last_message_type: messageTypeSchema.nullable(),
   last_message_body: z.string().nullable(),
@@ -64,6 +66,7 @@ const conversationRetentionSchema = z.object({
   auto_delete_enabled: z.boolean().nullable().transform((value) => value ?? false),
   auto_delete_after_days: z.literal(CHAT_AUTO_DELETE_DAYS).nullable(),
   updated_at: z.string().nullable(),
+  purged_at: z.string().nullable().optional(),
 });
 
 const conversationRetentionUpdateSchema = conversationRetentionSchema.extend({
@@ -108,6 +111,7 @@ const realtimeConversationSchema = z.object({
   id: z.string().uuid(),
   auto_delete_messages_after_days: z.union([z.literal(CHAT_AUTO_DELETE_DAYS), z.null()]),
   message_retention_updated_at: z.string().nullable(),
+  message_retention_purged_at: z.string().nullable().optional(),
 });
 
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
@@ -296,8 +300,17 @@ export function getNextChatExpiryMs(
   return next;
 }
 
+export function hasRetentionDeletedMessages(
+  retention: ConversationRetention | null | undefined,
+): boolean {
+  return Boolean(retention?.purged_at);
+}
+
 export function formatConversationPreview(conversation: ConversationSummary): string {
-  if (!conversation.last_message_id) return conversation.can_send ? 'Bắt đầu trò chuyện' : 'Chưa có tin nhắn';
+  if (!conversation.last_message_id) {
+    if (conversation.retention_purged_at) return CHAT_RETENTION_DELETED_PLACEHOLDER;
+    return conversation.can_send ? 'Bắt đầu trò chuyện' : 'Chưa có tin nhắn';
+  }
   if (conversation.last_message_type === 'gift') return 'Đã gửi một món quà';
   if (conversation.last_message_type === 'system') return 'Thông báo hệ thống';
   return conversation.last_message_body?.trim() || 'Tin nhắn không còn hiển thị';
@@ -414,6 +427,7 @@ export function subscribeToConversationMessages(
           auto_delete_enabled: parsed.data.auto_delete_messages_after_days === CHAT_AUTO_DELETE_DAYS,
           auto_delete_after_days: parsed.data.auto_delete_messages_after_days,
           updated_at: parsed.data.message_retention_updated_at,
+          purged_at: parsed.data.message_retention_purged_at ?? null,
         });
       },
     )
