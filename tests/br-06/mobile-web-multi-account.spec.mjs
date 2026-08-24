@@ -77,7 +77,7 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     // Recipient can read the incoming direct message even when their own send entitlement differs.
     await creatorPage.getByRole('button', { name: 'Tin nhắn', exact: true }).click();
     await expect(creatorPage.getByTestId('luxy-messages-page')).toBeVisible({ timeout: 20_000 });
-    await expect(creatorPage.getByRole('tab', { name: 'Tin nhắn đến', exact: true })).toBeVisible();
+    await expect(creatorPage.getByRole('heading', { name: 'Tin nhắn', exact: true })).toBeVisible();
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByText(message, { exact: true })).toBeVisible();
 
