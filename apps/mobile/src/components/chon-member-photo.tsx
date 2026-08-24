@@ -33,16 +33,16 @@ export function ChonMemberPhoto({
   storageBucket: string | null;
   storagePath: string | null;
   name: string;
-  photoCount?: number | null;
-  membershipTier?: LuxyMembershipTier | null;
-  desktop?: boolean;
-  photoCountPlacement?: PhotoCountPlacement;
-  showZeroPhotoCount?: boolean;
-  badgeInset?: number;
-  fallbackFontSize?: number;
-  style?: StyleProp<ViewStyle>;
-  children?: ReactNode;
-  testID?: string;
+  photoCount?: number | null | undefined;
+  membershipTier?: LuxyMembershipTier | null | undefined;
+  desktop?: boolean | undefined;
+  photoCountPlacement?: PhotoCountPlacement | undefined;
+  showZeroPhotoCount?: boolean | undefined;
+  badgeInset?: number | undefined;
+  fallbackFontSize?: number | undefined;
+  style?: StyleProp<ViewStyle> | undefined;
+  children?: ReactNode | undefined;
+  testID?: string | undefined;
 }) {
   const client = getMobileSupabaseClient();
   const imageQuery = useQuery({
