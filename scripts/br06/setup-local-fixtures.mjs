@@ -157,6 +157,14 @@ set
   languages = array['Tiếng Việt','English']::text[]
 where id = ${uuidLiteral(creator.id)};
 
+-- Keep the Connect badge fixture valid under the real mutual-interest search contract:
+-- the female viewer can discover the male creator, and the creator accepts female profiles.
+update public.profiles
+set
+  gender = 'female',
+  interested_in = 'male'
+where id = ${uuidLiteral(viewer.id)};
+
 insert into private.user_roles(user_id, role, granted_by)
 values (${uuidLiteral(moderator.id)}, 'moderator', ${uuidLiteral(moderator.id)});
 
