@@ -110,6 +110,7 @@ jobs:
           test -f supabase/migrations/20260820113500_su_06_signup_looking_for_contract.sql
           test -f supabase/migrations/20260820124000_su_08_signup_headline_bio_contract.sql
           test -f supabase/migrations/20260820132500_su_09_selfie_completion_activation.sql
+          test -f supabase/migrations/20260824223000_ui_msg02_deleted_message_contract.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -134,6 +135,7 @@ jobs:
           test -f supabase/tests/su_06_signup_looking_for_contract.sql
           test -f supabase/tests/su_08_signup_headline_bio_contract.sql
           test -f supabase/tests/su_09_selfie_completion_activation.sql
+          test -f supabase/tests/ui_msg02_deleted_message_contract.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -204,6 +206,9 @@ jobs:
 
       - name: Run SU-09 Selfie completion activation contract
         run: supabase test db supabase/tests/su_09_selfie_completion_activation.sql --local
+
+      - name: Run UI-MSG02 deleted-message retention contract
+        run: supabase test db supabase/tests/ui_msg02_deleted_message_contract.sql --local
 
       - name: Run concurrent gift ledger test
         run: bash supabase/tests/09_concurrency.sh
