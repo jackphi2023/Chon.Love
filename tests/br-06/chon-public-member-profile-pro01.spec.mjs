@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
-const creator = { username: 'br06_creator', displayName: 'BR06 Creator' };
+const creator = { username: 'br06_creator', displayName: 'BR06 Creator', tier: 'diamond' };
+const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tier: 'premium' };
 
 async function login(page, email) {
   await page.goto('/auth?mode=login');
@@ -9,13 +10,49 @@ async function login(page, email) {
   await page.getByPlaceholder('email@example.com').fill(email);
   await page.getByPlaceholder('Nhập mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập bằng email' }).click();
-  await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
+  const expectedSearch = (page.viewportSize()?.width ?? 390) >= 1024 ? 'luxy-search-desktop' : 'luxy-search-mobile';
+  await expect(page.getByTestId(expectedSearch)).toBeVisible({ timeout: 30_000 });
 }
 
-async function openCreator(page) {
-  await page.goto(`/profile/${creator.username}`);
+async function openMember(page, member) {
+  await page.goto(`/profile/${member.username}`);
   await expect(page).toHaveURL(/\/thanh-vien\/id-[a-z0-9-]+/i, { timeout: 20_000 });
   await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('heading', { name: new RegExp(`^${member.displayName},`) })).toBeVisible();
+}
+
+async function expectMembershipArtwork(page, tier, expectedWidth) {
+  const badge = page.getByTestId(`chon-membership-badge-${tier}`).first();
+  await expect(badge).toBeVisible();
+  const image = badge.locator('img').first();
+  await expect(image).toHaveCount(1);
+  const naturalSize = await image.evaluate(async (node) => {
+    await node.decode();
+    return { complete: node.complete, width: node.naturalWidth, height: node.naturalHeight };
+  });
+  expect(naturalSize.complete).toBe(true);
+  expect(naturalSize.width).toBe(768);
+  expect(naturalSize.height).toBe(528);
+
+  const box = await badge.boundingBox();
+  expect(box, `${tier} badge should render`).not.toBeNull();
+  expect(Math.round(box.width), `${tier} badge width`).toBe(expectedWidth);
+  expect(Math.round(box.height), `${tier} badge 16:11 height`).toBe(Math.round((expectedWidth * 11) / 16));
+
+  const hero = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
+  expect(hero, 'profile hero should render').not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(hero.x);
+  expect(box.y).toBeGreaterThanOrEqual(hero.y);
+  expect(box.x + box.width).toBeLessThanOrEqual(hero.x + hero.width + 0.5);
+  expect(box.y + box.height).toBeLessThanOrEqual(hero.y + hero.height + 0.5);
+}
+
+async function expectNoHorizontalOverflow(page) {
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
 test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and mobile horizontal album for Free', async ({ browser }, testInfo) => {
@@ -23,11 +60,11 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
   const page = await context.newPage();
   try {
     await login(page, 'br06.outsider@example.test');
-    await openCreator(page);
+    await openMember(page, creator);
 
     await expect(page.getByTestId('chon-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByTestId(/chon-favorite-/)).toBeVisible();
-    await expect(page.getByTestId('chon-membership-badge-diamond')).toBeVisible();
+    await expectMembershipArtwork(page, creator.tier, 16);
     const verification = page.getByTestId('chon-member-verification-badges');
     await expect(verification).toBeVisible();
     await expect(verification.getByRole('button', { name: /^(Đã|Chưa) xác thực ảnh chụp cá nhân$/ })).toBeVisible();
@@ -48,12 +85,33 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toBeVisible();
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
     await expect(page.getByText('Sẵn sàng du lịch', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeHidden();
+    await expect(page.getByTestId('chon-profile-mobile-action-dock')).toBeVisible();
+    await expect(page.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
+    await expectNoHorizontalOverflow(page);
 
     await testInfo.attach('ui-pro01-free-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.getByTestId('chon-member-profile-photo-grid')).toBeVisible();
+    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeVisible();
+    await expectNoHorizontalOverflow(page);
     await testInfo.attach('ui-pro01-free-desktop', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+  } finally {
+    await context.close();
+  }
+});
+
+test('UI-PRO01 badge source stays 768x528 and 16:11 for both Diamond and Premium members', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await login(page, 'br06.outsider@example.test');
+    await openMember(page, creator);
+    await expectMembershipArtwork(page, creator.tier, 26);
+    await openMember(page, premiumMember);
+    await expectMembershipArtwork(page, premiumMember.tier, 26);
+    await expectNoHorizontalOverflow(page);
   } finally {
     await context.close();
   }
@@ -64,8 +122,8 @@ test('UI-PRO01 Premium viewer sees private media while Diamond member badge rema
   const page = await context.newPage();
   try {
     await login(page, 'br06.viewer@example.test');
-    await openCreator(page);
-    await expect(page.getByTestId('chon-membership-badge-diamond')).toBeVisible();
+    await openMember(page, creator);
+    await expectMembershipArtwork(page, creator.tier, 26);
     await expect(page.getByTestId('chon-private-photo-paid-tile')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toHaveCount(0);
   } finally {
