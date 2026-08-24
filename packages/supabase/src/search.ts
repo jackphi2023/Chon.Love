@@ -164,7 +164,8 @@ export function parseLuxySearchInput(input: SearchLuxyProfilesInput = {}) {
 }
 
 // Kept as a public helper for source compatibility. Locality fallback now lives
-// in Search V2 itself so the default Connect feed needs only one network round-trip.
+// in Search V2 itself; paid-badge presentation is enriched separately in one
+// batched lookup only when the Search page contains rows.
 export function resolveLuxySearchDefaultProvince(
   requestedProvinceId: number | null | undefined,
   sort: LuxySearchSort,
