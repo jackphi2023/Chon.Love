@@ -36,18 +36,15 @@ begin
     on p.id = requested.user_id
    and p.profile_status = 'active'::public.profile_status
    and p.deleted_at is null
+   and p.discovery_enabled
    and p.gender = 'male'::public.gender_identity
    and private.is_active_adult(p.id)
+   and not private.luxy_listing_hidden(p.id)
+   and not private.users_are_blocked(v_viewer_id, p.id)
   cross join lateral (
     select private.get_active_luxy_membership_tier(p.id) as tier
   ) membership
-  where membership.tier in ('premium'::public.luxy_membership_tier, 'diamond'::public.luxy_membership_tier)
-    and not exists (
-      select 1
-      from public.user_blocks b
-      where b.blocker_id = p.id
-        and b.blocked_id = v_viewer_id
-    );
+  where membership.tier in ('premium'::public.luxy_membership_tier, 'diamond'::public.luxy_membership_tier);
 end;
 $function$;
 
@@ -55,4 +52,4 @@ revoke all on function public.get_luxy_search_membership_badges(uuid[]) from pub
 grant execute on function public.get_luxy_search_membership_badges(uuid[]) to authenticated, service_role;
 
 comment on function public.get_luxy_search_membership_badges(uuid[]) is
-  'UI-C01 batched Connect-card presentation signal. Returns only Premium/Diamond badge tiers for active adult male profiles that have not blocked the authenticated viewer; does not grant membership entitlements.';
+  'UI-C01 batched Connect-card presentation signal. Returns only Premium/Diamond badge tiers for active, discoverable adult male profiles visible to the authenticated viewer; does not grant membership entitlements.';
