@@ -6,7 +6,7 @@ import {
   type LuxyInterestMember,
   type LuxyInterestScope,
 } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
+import { chonColors, luxyColors, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -26,12 +26,10 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const TABS: Array<{ key: LuxyInterestScope; label: string; empty: string }> = [
-  { key: 'viewed_me', label: 'Đã xem tôi', empty: 'Chưa có lượt xem hồ sơ nào trong 180 ngày gần đây.' },
   { key: 'favorites', label: 'Yêu thích', empty: 'Bạn chưa thêm ai vào danh sách Yêu thích.' },
   { key: 'favorited_me', label: 'Yêu thích tôi', empty: 'Chưa có thành viên nào yêu thích hồ sơ của bạn.' },
+  { key: 'viewed_me', label: 'Đã xem tôi', empty: 'Chưa có lượt xem hồ sơ nào trong 180 ngày gần đây.' },
 ];
-
-type InterestSort = 'newest' | 'oldest';
 
 function relativeInteraction(value: string): string {
   const time = Date.parse(value);
@@ -53,8 +51,7 @@ export default function FavoritesPage() {
   const client = getMobileSupabaseClient();
   const { width } = useWindowDimensions();
   const desktop = width >= 860;
-  const [scope, setScope] = useState<LuxyInterestScope>('viewed_me');
-  const [sort, setSort] = useState<InterestSort>('newest');
+  const [scope, setScope] = useState<LuxyInterestScope>('favorites');
 
   const query = useInfiniteQuery({
     queryKey: ['luxy-interests', auth.userId, scope],
@@ -94,10 +91,8 @@ export default function FavoritesPage() {
       seen.add(member.id);
       return true;
     });
-    return rows.sort((a, b) => sort === 'newest'
-      ? b.interaction_at.localeCompare(a.interaction_at)
-      : a.interaction_at.localeCompare(b.interaction_at));
-  }, [query.data?.pages, sort]);
+    return rows.sort((a, b) => b.interaction_at.localeCompare(a.interaction_at));
+  }, [query.data?.pages]);
 
   const activeTab = TABS.find((tab) => tab.key === scope) ?? TABS[0]!;
 
@@ -138,16 +133,6 @@ export default function FavoritesPage() {
               );
             })}
           </View>
-          <Pressable
-            accessibilityLabel="Đổi thứ tự danh sách quan tâm"
-            accessibilityRole="button"
-            onPress={() => setSort((value) => value === 'newest' ? 'oldest' : 'newest')}
-            style={({ pressed }) => [styles.sortButton, !desktop && styles.sortButtonMobile, pressed && styles.pressed]}
-            testID="luxy-interests-sort"
-          >
-            <Text style={styles.sortText}>{sort === 'newest' ? 'Sắp xếp: mới nhất' : 'Sắp xếp: cũ nhất'}</Text>
-            <Text style={styles.chevron}>⌄</Text>
-          </Pressable>
         </View>
 
         {query.isLoading && members.length === 0 ? (
@@ -204,7 +189,7 @@ function StatePanel({ children }: { children: React.ReactNode }) {
 
 function InterestRow({ member, scope, desktop }: { member: LuxyInterestMember; scope: LuxyInterestScope; desktop: boolean }) {
   const router = useRouter();
-  const name = member.display_name || member.username || 'Thành viên Luxy';
+  const name = member.display_name || member.username || 'Thành viên Chọn.Love';
   const interactionLabel = scope === 'viewed_me'
     ? `Đã xem bạn ${relativeInteraction(member.interaction_at)}`
     : scope === 'favorited_me'
@@ -234,14 +219,14 @@ function InterestRow({ member, scope, desktop }: { member: LuxyInterestMember; s
           <View style={styles.nameRow}>
             {member.is_online ? <View accessibilityLabel="Đang online" style={styles.onlineDot} /> : null}
             <Text numberOfLines={1} style={styles.name}>{name}</Text>
-            {member.is_match ? <Text style={styles.matchBadge}>♥</Text> : null}
           </View>
           {member.headline ? <Text numberOfLines={1} style={styles.headline}>{member.headline}</Text> : null}
           <Text style={styles.location}>{member.age}, {member.province_name || 'Việt Nam'}</Text>
-          <View style={styles.signalRow}>
-            {member.is_favorited_by ? <Text style={styles.signal}>♥ Đã thích bạn</Text> : null}
-            {member.is_match ? <Text style={styles.signal}>Tương hợp</Text> : null}
-          </View>
+          {member.is_favorited_by ? (
+            <View style={styles.signalRow}>
+              <Text style={styles.signal}>♥ Đã thích bạn</Text>
+            </View>
+          ) : null}
         </View>
       </Pressable>
 
@@ -291,20 +276,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   toolbar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
     minHeight: 64,
     paddingHorizontal: 16,
   },
-  toolbarMobile: {
-    alignItems: 'stretch',
-    flexDirection: 'column',
-    gap: 10,
-    paddingBottom: 12,
-    paddingHorizontal: 10,
-    paddingTop: 4,
-  },
+  toolbarMobile: { paddingHorizontal: 10 },
   tabs: { alignItems: 'stretch', flexDirection: 'row', minHeight: 64 },
   tabsMobile: { width: '100%' },
   tab: {
@@ -318,13 +294,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   tabMobile: { flex: 1, gap: 3, minWidth: 0, paddingHorizontal: 3 },
-  tabActive: { borderBottomColor: luxyColors.brandCoral },
+  tabActive: { borderBottomColor: chonColors.primaryRed },
   tabText: { color: '#979CA4', fontSize: 15 },
   tabTextMobile: { fontSize: 12 },
-  tabTextActive: { color: luxyColors.brandCoral, fontWeight: '500' },
+  tabTextActive: { color: chonColors.primaryRed, fontWeight: '500' },
   tabBadge: {
     alignItems: 'center',
-    backgroundColor: luxyColors.brandCoral,
+    backgroundColor: chonColors.primaryRed,
     borderRadius: 4,
     justifyContent: 'center',
     minHeight: 17,
@@ -332,20 +308,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   tabBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-  sortButton: {
-    alignItems: 'center',
-    borderColor: luxyColors.ink,
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 34,
-    minWidth: 240,
-    paddingHorizontal: 14,
-  },
-  sortButtonMobile: { minWidth: 0, width: '100%' },
-  sortText: { color: luxyColors.ink, fontSize: 14 },
-  chevron: { color: luxyColors.ink, fontSize: 15 },
   memberRow: {
     alignItems: 'center',
     borderTopColor: '#E1DFDD',
@@ -368,11 +330,10 @@ const styles = StyleSheet.create({
   nameRow: { alignItems: 'center', flexDirection: 'row', gap: 5 },
   onlineDot: { backgroundColor: '#65C778', borderRadius: 6, height: 11, width: 11 },
   name: { color: luxyColors.ink, flexShrink: 1, fontSize: 15, fontWeight: '700' },
-  matchBadge: { color: luxyColors.brandCoral, fontSize: 15 },
   headline: { color: '#2E3742', fontSize: 13, marginTop: 5 },
   location: { color: '#65707D', fontSize: 12, marginTop: 5 },
   signalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 9 },
-  signal: { color: luxyColors.brandCoral, fontSize: 11, fontWeight: '600' },
+  signal: { color: chonColors.primaryRed, fontSize: 11, fontWeight: '600' },
   detailFacts: { minWidth: 240, width: '24%' },
   factRow: { flexDirection: 'row', gap: 10, minHeight: 21 },
   factLabel: { color: luxyColors.ink, fontSize: 12, fontWeight: '700', width: 72 },
