@@ -12,9 +12,9 @@ export function useChonFavorite({
 }: {
   profileId: string;
   initialFavorited: boolean;
-  initialFavoritedBy?: boolean;
+  initialFavoritedBy?: boolean | undefined;
   invalidateKeys: QueryKey[];
-  onChanged?: (favorited: boolean) => void;
+  onChanged?: ((favorited: boolean) => void) | undefined;
 }) {
   const client = getMobileSupabaseClient();
   const queryClient = useQueryClient();
