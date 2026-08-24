@@ -19,8 +19,8 @@ begin
     raise exception using errcode = '28000', message = 'authentication_required';
   end if;
 
-  if not private.is_active_adult_account(v_viewer_id) then
-    raise exception using errcode = '42501', message = 'active_adult_account_required';
+  if not private.is_active_adult(v_viewer_id) then
+    raise exception using errcode = '42501', message = 'adult_onboarding_required';
   end if;
 
   if v_count > 40 then
