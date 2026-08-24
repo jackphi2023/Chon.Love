@@ -74,8 +74,9 @@ const lifestyleTagSchema = z.enum([
 ]);
 const viewStateSchema = z.enum(['viewed', 'unviewed']);
 const favoriteScopeSchema = z.enum(['favorites', 'favorited_me']);
+const membershipBadgeTierSchema = z.enum(['premium', 'diamond']);
 
-const luxySearchProfileSchema = z.object({
+const luxySearchProfileBaseSchema = z.object({
   id: z.string().uuid(),
   username: z.string().nullable(),
   display_name: z.string().nullable(),
@@ -108,6 +109,15 @@ const luxySearchProfileSchema = z.object({
   is_favorited: z.boolean(),
   is_favorited_by: z.boolean(),
   is_viewed: z.boolean(),
+});
+
+const luxySearchProfileSchema = luxySearchProfileBaseSchema.extend({
+  membership_badge_tier: membershipBadgeTierSchema.nullable(),
+});
+
+const membershipBadgeRowSchema = z.object({
+  user_id: z.string().uuid(),
+  badge_tier: membershipBadgeTierSchema,
 });
 
 const searchInputSchema = z.object({
@@ -200,7 +210,24 @@ export async function searchLuxyProfilesV2(
   };
   const { data, error } = await client.rpc('search_luxy_profiles_v2', args);
   if (error) throw error;
-  return z.array(luxySearchProfileSchema).parse(data ?? []);
+
+  const profiles = z.array(luxySearchProfileBaseSchema).parse(data ?? []);
+  if (profiles.length === 0) return [];
+
+  // One batched presentation lookup per Search page avoids N+1 membership reads
+  // and keeps the ranking RPC signature stable. The RPC itself exposes only the
+  // existing public badge rule (active paid male profiles), not entitlements.
+  const { data: badgeData, error: badgeError } = await client.rpc('get_luxy_search_membership_badges', {
+    p_user_ids: profiles.map((profile) => profile.id),
+  });
+  if (badgeError) throw badgeError;
+
+  const badgeRows = z.array(membershipBadgeRowSchema).parse(badgeData ?? []);
+  const badgeTierByUser = new Map(badgeRows.map((row) => [row.user_id, row.badge_tier] as const));
+  return profiles.map((profile) => luxySearchProfileSchema.parse({
+    ...profile,
+    membership_badge_tier: badgeTierByUser.get(profile.id) ?? null,
+  }));
 }
 
 export function formatLuxyDistance(distanceKm: number | null | undefined): string | null {
