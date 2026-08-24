@@ -1,5 +1,5 @@
 import {
-  blockUser,
+  CHAT_RETENTION_DELETED_PLACEHOLDER,
   createChatClientMessageId,
   createSafetyReport,
   filterExpiredChatMessages,
@@ -9,6 +9,7 @@ import {
   getOlderMessageCursor,
   getReadableChatError,
   getReadableSocialError,
+  hasRetentionDeletedMessages,
   hideMessageForMe,
   listConversationMessages,
   markConversationRead,
@@ -17,7 +18,6 @@ import {
   sendChatMessage,
   setConversationAutoDelete,
   subscribeToConversationMessages,
-  unblockUser,
   unsubscribeFromConversation,
   type ChatMessage,
   type ChatMessageCursor,
@@ -25,7 +25,7 @@ import {
   type ConversationRetention,
   type ReportReasonCode,
 } from '@myfan/supabase';
-import { colors, spacing } from '@myfan/ui';
+import { chonColors, colors, spacing } from '@myfan/ui';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +44,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
+import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { SocialAvatar } from '@/components/social-avatar';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -106,6 +108,7 @@ export default function ChatDetailPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [retentionBusy, setRetentionBusy] = useState(false);
+  const [giftModalVisible, setGiftModalVisible] = useState(false);
   const [expiryClock, setExpiryClock] = useState(() => Date.now());
   const [reportMessage, setReportMessage] = useState<ChatMessage | null>(null);
   const [reportReason, setReportReason] = useState<ReportReasonCode>('spam');
@@ -200,6 +203,7 @@ export default function ChatDetailPage() {
       setExpiryClock(Date.now());
       void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
       void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+      void queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] });
     }, delay);
     return () => clearTimeout(timer);
   }, [auth.userId, messagesQueryKey, queryClient, retentionQuery.data, stableMessages]);
@@ -217,6 +221,7 @@ export default function ChatDetailPage() {
         );
         setRealtimeMessages((current) => mergeChatMessagesNewestFirst([incoming, ...current]));
         void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+        void queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] });
       },
       onDelete: (messageId) => {
         if (!active) return;
@@ -224,6 +229,7 @@ export default function ChatDetailPage() {
         setOptimisticMessages((current) => current.filter((item) => item.id !== messageId));
         void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
         void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+        void queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] });
       },
       onReadChange: () => {
         if (!active) return;
@@ -235,7 +241,8 @@ export default function ChatDetailPage() {
         if (
           current?.auto_delete_enabled === retention.auto_delete_enabled &&
           current.auto_delete_after_days === retention.auto_delete_after_days &&
-          current.updated_at === retention.updated_at
+          current.updated_at === retention.updated_at &&
+          current.purged_at === retention.purged_at
         ) {
           return;
         }
@@ -243,6 +250,7 @@ export default function ChatDetailPage() {
         setExpiryClock(Date.now());
         void queryClient.invalidateQueries({ queryKey: messagesQueryKey });
         void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+        void queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] });
       },
       onStatus: (status) => {
         if (!active) return;
@@ -312,13 +320,27 @@ export default function ChatDetailPage() {
         current.filter((item) => item.client_message_id !== clientMessageId),
       );
       setRealtimeMessages((current) => mergeChatMessagesNewestFirst([sent, ...current]));
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['luxy-nav-messages', auth.userId] }),
+      ]);
     } catch (error) {
       setOptimisticMessages((current) => current.map((item) =>
         item.client_message_id === clientMessageId ? { ...item, delivery: 'failed' } : item,
       ));
       setErrorMessage(getReadableChatError(error));
     }
+  }
+
+  async function handleGiftSent() {
+    setGiftModalVisible(false);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: messagesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
+      queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] }),
+      queryClient.invalidateQueries({ queryKey: ['luxy-nav-messages', auth.userId] }),
+    ]);
   }
 
   async function handleRetentionChange(enabled: boolean) {
@@ -333,21 +355,23 @@ export default function ChatDetailPage() {
         auto_delete_enabled: result.auto_delete_enabled,
         auto_delete_after_days: result.auto_delete_after_days,
         updated_at: result.updated_at,
+        purged_at: result.purged_at ?? retentionQuery.data?.purged_at ?? null,
       });
       setExpiryClock(Date.now());
       setRealtimeMessages((current) => filterExpiredChatMessages(current, result, Date.now()));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: messagesQueryKey }),
         queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['luxy-mailbox', auth.userId] }),
       ]);
       if (enabled) {
         setSuccessMessage(
           result.deleted_messages > 0
-            ? `Đã bật tự động xóa sau 7 ngày và xóa ${result.deleted_messages} tin đã quá hạn khỏi server cho cả hai bên.`
-            : 'Đã bật tự động xóa sau 7 ngày cho cả hai bên.',
+            ? `Đã bật. ${result.deleted_messages} tin quá 7 ngày đã được xoá.`
+            : 'Đã bật tự động xoá sau 7 ngày.',
         );
       } else {
-        setSuccessMessage('Đã tắt tự động xóa. Tin đã bị xóa trước đó không thể khôi phục.');
+        setSuccessMessage('Đã tắt tự động xoá.');
       }
     } catch (error) {
       setErrorMessage(getReadableChatError(error));
@@ -358,10 +382,10 @@ export default function ChatDetailPage() {
 
   function confirmRetentionChange(enabled: boolean) {
     confirmCrossPlatform({
-      title: enabled ? 'Bật tự động xóa sau 7 ngày?' : 'Tắt tự động xóa?',
+      title: enabled ? 'Bật tự động xoá sau 7 ngày?' : 'Tắt tự động xoá?',
       message: enabled
-        ? 'Cài đặt áp dụng cho cả hai người. Tin nhắn đủ 7 ngày sẽ bị xóa vật lý khỏi server và không thể khôi phục. Tin đã quá 7 ngày sẽ bị xóa ngay khi bật.'
-        : 'Các tin còn lại sẽ được giữ cho đến khi bị ẩn, kiểm duyệt hoặc cài đặt này được bật lại. Tin đã xóa khỏi server không thể khôi phục.',
+        ? 'Áp dụng cho cả hai người. Tin đủ 7 ngày sẽ bị xoá khỏi server và không thể khôi phục.'
+        : 'Tin mới sẽ được giữ lại. Tin đã xoá không thể khôi phục.',
       confirmLabel: enabled ? 'Bật' : 'Tắt',
       destructive: !enabled,
       onConfirm: () => void handleRetentionChange(enabled),
@@ -383,7 +407,7 @@ export default function ChatDetailPage() {
   function confirmHide(message: ChatMessage) {
     confirmCrossPlatform({
       title: 'Ẩn tin nhắn?',
-      message: 'Tin nhắn chỉ bị ẩn khỏi tài khoản của bạn và không bị xóa khỏi tài khoản người còn lại.',
+      message: 'Tin nhắn chỉ bị ẩn khỏi tài khoản của bạn và không bị xoá khỏi tài khoản người còn lại.',
       confirmLabel: 'Ẩn',
       destructive: true,
       onConfirm: () => void handleHide(message),
@@ -411,46 +435,6 @@ export default function ChatDetailPage() {
     }
   }
 
-  async function toggleBlock() {
-    if (!client || !detailQuery.data) return;
-    setSafetyBusy(true);
-    setErrorMessage(null);
-    try {
-      if (detailQuery.data.blocked_by_viewer) {
-        await unblockUser(client, detailQuery.data.other_user_id);
-        setSuccessMessage('Đã bỏ chặn tài khoản. Quan hệ bạn bè cũ không được tự động khôi phục.');
-      } else {
-        await blockUser(client, detailQuery.data.other_user_id, 'chat_safety');
-        setSuccessMessage('Đã chặn tài khoản và ngắt khả năng gửi tin.');
-      }
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: detailQueryKey }),
-        queryClient.invalidateQueries({ queryKey: ['chat', 'conversations', auth.userId] }),
-        queryClient.invalidateQueries({ queryKey: ['social-connections', auth.userId] }),
-      ]);
-    } catch (error) {
-      setErrorMessage(getReadableSocialError(error));
-    } finally {
-      setSafetyBusy(false);
-    }
-  }
-
-  function confirmBlock() {
-    const detail = detailQuery.data;
-    if (!detail) return;
-    if (detail.blocked_by_viewer) {
-      void toggleBlock();
-      return;
-    }
-    confirmCrossPlatform({
-      title: 'Chặn tài khoản này?',
-      message: 'Hai tài khoản sẽ không thể tương tác, nhắn tin, tặng quà hoặc xem nội dung riêng tư của nhau.',
-      confirmLabel: 'Chặn',
-      destructive: true,
-      onConfirm: () => void toggleBlock(),
-    });
-  }
-
   if (detailQuery.isLoading) {
     return (
       <View style={styles.centered}>
@@ -476,6 +460,7 @@ export default function ChatDetailPage() {
   const displayName = detail.display_name || detail.username || 'Thành viên Chon.Love';
   const composerDisabled = !detail.can_send || safetyBusy;
   const retentionEnabled = retentionQuery.data?.auto_delete_enabled ?? false;
+  const retentionPurged = hasRetentionDeletedMessages(retentionQuery.data);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -484,7 +469,7 @@ export default function ChatDetailPage() {
         keyboardVerticalOffset={0}
         style={styles.flex}
       >
-        <View style={styles.header}>
+        <View style={styles.header} testID="chon-chat-header">
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
             <Text style={styles.backText}>‹</Text>
           </Pressable>
@@ -510,29 +495,20 @@ export default function ChatDetailPage() {
               </Text>
             </View>
           </Pressable>
-          {!detail.blocked_by_other ? (
-            <Pressable accessibilityRole="button" disabled={safetyBusy} onPress={confirmBlock} style={styles.headerAction}>
-              <Text style={detail.blocked_by_viewer ? styles.primaryActionText : styles.dangerActionText}>
-                {detail.blocked_by_viewer ? 'Bỏ chặn' : 'Chặn'}
-              </Text>
-            </Pressable>
-          ) : null}
         </View>
 
-        <View style={styles.retentionCard}>
+        <View style={styles.retentionCard} testID="chon-chat-retention-card">
           <View style={styles.retentionCopy}>
-            <Text style={styles.retentionTitle}>Tự động xóa tin nhắn sau 7 ngày</Text>
+            <Text style={styles.retentionTitle}>Tự động xoá sau 7 ngày</Text>
             <Text style={styles.retentionDescription}>
-              {retentionEnabled
-                ? 'Đang bật cho cả hai người. Tin đủ 7 ngày bị xóa khỏi server và không thể khôi phục.'
-                : 'Đang tắt. Bật riêng cho hội thoại này nếu hai bạn muốn tin được xóa khỏi server sau 7 ngày.'}
+              {retentionEnabled ? 'Đang bật cho cả hai người.' : 'Đang tắt cho cuộc trò chuyện này.'}
             </Text>
           </View>
           {retentionQuery.isLoading ? (
             <ActivityIndicator color={colors.primary} />
           ) : (
             <Switch
-              accessibilityLabel="Tự động xóa tin nhắn sau 7 ngày cho cả hai người"
+              accessibilityLabel="Tự động xoá tin nhắn sau 7 ngày cho cả hai người"
               disabled={retentionBusy || Boolean(retentionQuery.error)}
               onValueChange={confirmRetentionChange}
               value={retentionEnabled}
@@ -544,7 +520,7 @@ export default function ChatDetailPage() {
         {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
         {retentionQuery.error && !errorMessage ? (
           <View accessibilityLiveRegion="polite" style={styles.retentionErrorRow}>
-            <Text style={styles.retentionErrorText}>Không thể tải cài đặt tự động xóa. Tin nhắn và thao tác an toàn khác vẫn hoạt động.</Text>
+            <Text style={styles.retentionErrorText}>Không thể tải cài đặt tự động xoá. Tin nhắn và thao tác an toàn khác vẫn hoạt động.</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => void retentionQuery.refetch()}
@@ -565,6 +541,13 @@ export default function ChatDetailPage() {
               <View style={styles.emptyState}>
                 <ActivityIndicator color={colors.primary} />
                 <Text style={styles.muted}>Đang tải…</Text>
+              </View>
+            ) : retentionPurged ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle} testID="chat-retention-deleted-placeholder">
+                  {CHAT_RETENTION_DELETED_PLACEHOLDER}
+                </Text>
+                <Text style={styles.muted}>Cuộc trò chuyện vẫn được giữ để hai bạn có thể tiếp tục nhắn tin.</Text>
               </View>
             ) : (
               <View style={styles.emptyState}>
@@ -609,15 +592,27 @@ export default function ChatDetailPage() {
               value={composer}
             />
             <View style={styles.composerFooter}>
-              <Text style={styles.counter}>{composer.length}/{detail.message_max_characters}</Text>
               <Pressable
                 accessibilityRole="button"
-                disabled={composerDisabled || !composer.trim()}
-                onPress={() => void send(composer)}
-                style={[styles.sendButton, (composerDisabled || !composer.trim()) && styles.disabled]}
+                disabled={composerDisabled}
+                onPress={() => setGiftModalVisible(true)}
+                style={({ pressed }) => [styles.giftButton, pressed && styles.giftButtonPressed, composerDisabled && styles.disabled]}
+                testID="chon-chat-gift-button"
               >
-                <Text style={styles.sendText}>Gửi</Text>
+                <ChonBrandIcon name="gift" size={17} />
+                <Text style={styles.giftButtonText}>Tặng quà</Text>
               </Pressable>
+              <View style={styles.composerSendGroup}>
+                <Text style={styles.counter}>{composer.length}/{detail.message_max_characters}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={composerDisabled || !composer.trim()}
+                  onPress={() => void send(composer)}
+                  style={[styles.sendButton, (composerDisabled || !composer.trim()) && styles.disabled]}
+                >
+                  <Text style={styles.sendText}>Gửi</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         ) : (
@@ -641,6 +636,15 @@ export default function ChatDetailPage() {
         onSubmit={() => void handleReport()}
         reason={reportReason}
         visible={Boolean(reportMessage)}
+      />
+
+      <LuxyGiftModal
+        conversationId={conversationId}
+        onClose={() => setGiftModalVisible(false)}
+        onSent={() => void handleGiftSent()}
+        recipientId={detail.other_user_id}
+        recipientName={displayName}
+        visible={giftModalVisible}
       />
     </SafeAreaView>
   );
@@ -666,8 +670,14 @@ function MessageBubble({
         : item.body || 'Tin nhắn không còn hiển thị.';
 
   return (
-    <View style={[styles.messageRow, item.is_own ? styles.messageRowOwn : styles.messageRowOther]}>
-      <View style={[styles.bubble, item.is_own ? styles.ownBubble : styles.otherBubble]}>
+    <View
+      style={[styles.messageRow, item.is_own ? styles.messageRowOwn : styles.messageRowOther]}
+      testID={item.is_own ? 'chon-chat-own-message' : undefined}
+    >
+      <View
+        style={[styles.bubble, item.is_own ? styles.ownBubble : styles.otherBubble]}
+        testID={item.is_own ? 'chon-chat-own-bubble' : undefined}
+      >
         <Text style={[styles.messageBody, item.is_own && styles.ownMessageBody]}>{body}</Text>
         <View style={styles.messageMeta}>
           <Text style={[styles.messageTime, item.is_own && styles.ownMessageMeta]}>{formatTime(item.sent_at)}</Text>
@@ -763,9 +773,6 @@ const styles = StyleSheet.create({
   name: { flexShrink: 1, color: colors.text, fontSize: 16, fontWeight: '900' },
   creatorBadge: { color: colors.primary, fontSize: 10, fontWeight: '900' },
   connection: { color: '#166534', fontSize: 11, fontWeight: '700' },
-  headerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  primaryActionText: { color: colors.primary, fontSize: 13, fontWeight: '900' },
-  dangerActionText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
   errorText: { color: colors.danger },
   retentionCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: '#FFFBEB', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   retentionCopy: { flex: 1, gap: 2 },
@@ -779,33 +786,37 @@ const styles = StyleSheet.create({
   retentionRetryText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
   messageList: { paddingHorizontal: spacing.md, paddingVertical: spacing.md, flexGrow: 1 },
   emptyState: { minHeight: 260, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.xl, transform: [{ scaleY: -1 }] },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '900', textAlign: 'center' },
   loadOlder: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.lg, transform: [{ scaleY: -1 }] },
   messageRow: { width: '100%', marginVertical: 5 },
   messageRowOwn: { alignItems: 'flex-end' },
   messageRowOther: { alignItems: 'flex-start' },
   bubble: { maxWidth: '84%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, gap: 5 },
-  ownBubble: { backgroundColor: colors.primary, borderBottomRightRadius: 5 },
+  ownBubble: { backgroundColor: chonColors.warmSurface, borderBottomRightRadius: 5 },
   otherBubble: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderBottomLeftRadius: 5 },
   messageBody: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  ownMessageBody: { color: '#FFFFFF' },
+  ownMessageBody: { color: chonColors.ink },
   messageMeta: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 7 },
   messageTime: { color: colors.muted, fontSize: 10 },
-  ownMessageMeta: { color: '#FCE7F3' },
-  failedText: { color: '#FEE2E2', fontSize: 10, fontWeight: '900' },
+  ownMessageMeta: { color: chonColors.muted },
+  failedText: { color: chonColors.danger, fontSize: 10, fontWeight: '900' },
   messageActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 2 },
   messageActionText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
-  retryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  retryText: { color: chonColors.primaryRed, fontSize: 10, fontWeight: '900' },
   composerArea: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.sm },
   composer: { minHeight: 48, maxHeight: 132, borderWidth: 1, borderColor: colors.border, borderRadius: 16, color: colors.text, backgroundColor: colors.background, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, textAlignVertical: 'top' },
-  composerFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  composerFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  composerSendGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  giftButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: chonColors.gold, borderRadius: 13, backgroundColor: '#FFFFFF', paddingHorizontal: 12 },
+  giftButtonPressed: { backgroundColor: chonColors.warmSurfaceStrong },
+  giftButtonText: { color: chonColors.goldStrong, fontSize: 13, fontWeight: '800' },
   counter: { color: colors.muted, fontSize: 11 },
   sendButton: { minWidth: 82, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: colors.primary },
   sendText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
   disabled: { opacity: 0.5 },
   disabledComposer: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface, padding: spacing.md, gap: 4 },
   disabledComposerTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  muted: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  muted: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   modalCard: { maxHeight: '86%', borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: colors.surface, padding: spacing.lg, gap: spacing.md },
   modalTitle: { color: colors.text, fontSize: 21, fontWeight: '900' },
