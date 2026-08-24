@@ -1,5 +1,5 @@
 import { setProfileFavorite } from '@myfan/supabase';
-import { luxyColors } from '@myfan/ui';
+import { chonColors, chonShadows, luxyColors } from '@myfan/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
@@ -76,13 +76,18 @@ export function LuxyFavoriteButton({
       style={({ pressed }) => [
         styles.button,
         favorited && styles.buttonFavorited,
-        hovered && styles.buttonHovered,
+        hovered && !favorited && styles.buttonHovered,
+        hovered && favorited && styles.buttonFavoritedHovered,
         pressed && styles.pressed,
         busy && styles.busy,
       ]}
       testID={`luxy-favorite-${profileId}`}
     >
-      <ChonBrandIcon name="favorite" size={22} />
+      <ChonBrandIcon
+        name="favorite"
+        size={22}
+        style={{ tintColor: favorited ? chonColors.gold : '#FFFFFF' }}
+      />
       {match ? <Text style={styles.matchMark}>✓</Text> : null}
     </Pressable>
   );
@@ -101,18 +106,25 @@ const styles = StyleSheet.create({
     width: 44,
   },
   buttonFavorited: {
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderColor: luxyColors.surface,
+    backgroundColor: chonColors.primaryRed,
+    borderColor: chonColors.primaryRed,
   },
   buttonHovered: {
-    backgroundColor: luxyColors.surface,
-    borderColor: luxyColors.actionRed,
+    backgroundColor: 'rgba(8,23,38,0.72)',
+    borderColor: chonColors.gold,
+    ...chonShadows.hover,
+    transform: [{ scale: 1.04 }],
+  },
+  buttonFavoritedHovered: {
+    backgroundColor: chonColors.primaryRedHover,
+    borderColor: chonColors.gold,
+    ...chonShadows.hover,
     transform: [{ scale: 1.04 }],
   },
   matchMark: {
     backgroundColor: luxyColors.ink,
     borderRadius: 7,
-    color: luxyColors.surface,
+    color: chonColors.gold,
     fontSize: 8,
     fontWeight: '700',
     height: 14,
