@@ -1,10 +1,8 @@
-import { setProfileFavorite } from '@myfan/supabase';
 import { chonColors, chonShadows, luxyColors } from '@myfan/ui';
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
-import { getMobileSupabaseClient } from '@/lib/supabase';
+import { useChonFavorite } from '@/hooks/use-chon-favorite';
 
 export function LuxyFavoriteButton({
   profileId,
@@ -19,49 +17,30 @@ export function LuxyFavoriteButton({
   initialFavoritedBy?: boolean;
   onChanged?: (favorited: boolean) => void;
 }) {
-  const client = getMobileSupabaseClient();
-  const queryClient = useQueryClient();
-  const [favorited, setFavorited] = useState(initialFavorited);
-  const [favoritedBy, setFavoritedBy] = useState(initialFavoritedBy);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const {
+    available,
+    busy,
+    failed,
+    favorited,
+    favoritedBy,
+    match,
+    toggleFavorite,
+  } = useChonFavorite({
+    profileId,
+    initialFavorited,
+    initialFavoritedBy,
+    invalidateKeys: [
+      ['luxy-search', 'profiles'],
+      ['luxy-interests'],
+      ['profile-interest-state', profileId],
+    ],
+    onChanged,
+  });
 
-  useEffect(() => setFavorited(initialFavorited), [initialFavorited]);
-  useEffect(() => setFavoritedBy(initialFavoritedBy), [initialFavoritedBy]);
-
-  const match = favorited && favoritedBy;
   const accessibilityLabel = favorited
     ? `Bỏ yêu thích ${name}${match ? ', đang tương hợp' : ''}`
     : `Yêu thích ${name}${favoritedBy ? ', người này đã yêu thích bạn' : ''}`;
-
-  async function toggleFavorite() {
-    if (!client || busy) return;
-    const next = !favorited;
-    const previous = favorited;
-    setBusy(true);
-    setFailed(false);
-    setFavorited(next);
-    onChanged?.(next);
-
-    try {
-      const state = await setProfileFavorite(client, profileId, next);
-      setFavorited(state.is_favorited);
-      setFavoritedBy(state.is_favorited_by);
-      onChanged?.(state.is_favorited);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['luxy-search', 'profiles'] }),
-        queryClient.invalidateQueries({ queryKey: ['luxy-interests'] }),
-        queryClient.invalidateQueries({ queryKey: ['profile-interest-state', profileId] }),
-      ]);
-    } catch {
-      setFavorited(previous);
-      onChanged?.(previous);
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <Pressable
@@ -69,7 +48,7 @@ export function LuxyFavoriteButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ busy, selected: favorited }}
-      disabled={!client || busy}
+      disabled={!available || busy}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       onPress={() => void toggleFavorite()}
