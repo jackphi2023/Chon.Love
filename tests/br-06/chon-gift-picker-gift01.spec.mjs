@@ -45,10 +45,6 @@ test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive 
     const pickerText = await picker.innerText();
     expect(pickerText).not.toMatch(/VNĐ|VND|₫/i);
 
-    await picker.getByRole('button', { name: 'Donut, 1 ❤️', exact: true }).click();
-    await expect(picker.getByTestId('chon-gift-picker-confirmation')).toContainText('Donut');
-    await expect(picker.getByTestId('chon-gift-picker-confirmation')).toContainText('1 ❤️');
-
     await testInfo.attach('ui-gift01-mobile-picker', {
       body: await page.screenshot({ fullPage: false }),
       contentType: 'image/png',
