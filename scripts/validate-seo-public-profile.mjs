@@ -57,20 +57,22 @@ expect(!publicRoute.includes("pathname: '/profile/[username]'"), 'Canonical publ
 expect(
   richProfileScreen.includes('getLuxyMemberProfile') &&
     richProfileScreen.includes('getProfileViewer') &&
-    richProfileScreen.includes('getLuxyMemberVerificationBadges') &&
     richProfileScreen.includes('blockUser') &&
-    richProfileScreen.includes('createSafetyReport'),
-  'Chọn.Love rich member screen must preserve profile, verification, social and safety behavior.',
+    richProfileScreen.includes('createSafetyReport') &&
+    richProfileScreen.includes('ChonPrivatePhotoAccess') &&
+    richProfileScreen.includes('ChonFavoriteButton'),
+  'Chọn.Love rich member screen must preserve profile, social, safety, favorite and private-photo behavior.',
 );
 expect(
-  legacyRichProfileBridge.includes("from './chon-member-profile-screen'") && legacyRichProfileBridge.includes('ChonMemberProfileScreen'),
-  'Legacy rich-profile module must remain a compatibility bridge to the canonical Chọn.Love owner.',
+  legacyRichProfileBridge.includes("export { default } from './chon-member-profile-screen';"),
+  'Legacy rich-profile module must remain a minimal compatibility bridge to the canonical Chọn.Love owner.',
 );
 
 expect(canonicalProfileLayout.includes("export { default } from '../profile/_layout';"), 'Canonical member route must reuse the authenticated profile shell instead of silently dropping profile actions.');
 expect(sharedProfileLayout.includes('if (!auth.userId) return <Slot />;'), 'Shared member profile shell must stay clean for logged-out public profile visitors.');
 expect(sharedProfileLayout.includes('recordProfileViewByUsername(client, profile.username)'), 'Canonical profile views must keep analytics after resolving the opaque public ID to the existing username contract.');
 expect(verificationBadgesWeb.includes('(?:profile|thanh-vien)'), 'Verification badges must activate on both legacy and canonical member routes.');
+expect(verificationBadgesWeb.includes('getLuxyMemberVerificationBadges'), 'Verification sidecar must preserve the real server verification contract.');
 expect(mobileActionsWeb.includes('(?:profile|thanh-vien)'), 'Mobile member actions and the Free upgrade prompt must activate on both legacy and canonical member routes.');
 expect(verificationBadgesWeb.includes('chon-member-profile-hero-photo'), 'Verification sidecar must attach to the canonical Chọn.Love profile hero.');
 expect(mobileActionsWeb.includes('chon-member-profile-page') && mobileActionsWeb.includes('chon-member-profile-message-composer'), 'Mobile profile sidecar must target the canonical Chọn.Love profile owner.');
