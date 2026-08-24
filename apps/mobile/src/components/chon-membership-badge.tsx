@@ -1,4 +1,3 @@
-import type { LuxyMembershipTier } from '@myfan/supabase';
 import { Image, StyleSheet, View } from 'react-native';
 import {
   CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_DESKTOP,
@@ -40,7 +39,9 @@ export function ChonMembershipBadge({
   inset = 2,
   width,
 }: {
-  tier: LuxyMembershipTier | null | undefined;
+  // Public profile RPCs intentionally expose this field as a string. Keep the
+  // runtime boundary defensive and render only the two paid tiers we support.
+  tier: string | null | undefined;
   desktop: boolean;
   variant?: ChonMembershipBadgeVariant;
   inset?: number;
