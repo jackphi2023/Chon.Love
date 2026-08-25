@@ -41,9 +41,10 @@ test('UI-PRO02 /profile resolves to one Chon.Love editor with canonical public v
 
     await page.getByTestId('lx08-view-profile').click();
     await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i);
-    await expect(page.getByTestId('chon-member-profile-page')).toBeVisible();
-    await expect(page.getByText(updatedHeadline, { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
+    const publicProfile = page.getByTestId('chon-member-profile-page');
+    await expect(publicProfile).toBeVisible();
+    await expect(publicProfile.getByText(updatedHeadline, { exact: true }).last()).toBeVisible();
+    await expect(publicProfile.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
 
     await testInfo.attach('ui-pro02-my-profile-public-contract', {
       body: await page.screenshot({ fullPage: true }),
