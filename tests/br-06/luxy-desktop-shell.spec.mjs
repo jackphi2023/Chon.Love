@@ -44,7 +44,9 @@ async function expectCleanAccountMenu(page) {
   expect(menuBox.width).toBeLessThanOrEqual(160);
 
   const profileItem = menu.getByRole('menuitem', { name: 'Hồ sơ', exact: true });
-  await profileItem.hover();
+  // The item is already asserted visible. RN Web Pressable can move its hit target
+  // while hover state is applied, so force pointer placement and keep the visual check strict.
+  await profileItem.hover({ force: true });
   await expect(profileItem).toHaveCSS('background-color', 'rgb(255, 187, 0)');
 }
 
