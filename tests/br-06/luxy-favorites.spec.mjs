@@ -42,17 +42,13 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
   try {
     await Promise.all([login(viewerPage, actors.viewer), login(creatorPage, actors.creator)]);
 
-    // Playwright retries reuse the same local database. Normalize only this pair so the
-    // lifecycle remains deterministic without resetting unrelated fixture state.
     await normalizeNotFavorited(viewerPage, actors.creator);
 
-    // Viewer favorites Creator directly from Search.
     const favoriteCreator = viewerPage.getByRole('button', { name: `Yêu thích ${actors.creator.name}`, exact: true });
     await expect(favoriteCreator).toBeVisible();
     await favoriteCreator.click();
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
 
-    // Persistence survives a full reload and Favorites is the default first tab.
     await viewerPage.reload();
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 20_000 });
     await expect(viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) })).toBeVisible();
@@ -75,7 +71,8 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
     await expect(creatorBadge).toBeVisible();
     const creatorBadgeBox = await creatorBadge.boundingBox();
     expect(creatorBadgeBox).not.toBeNull();
-    expect(Math.abs(creatorBadgeBox.width - 16)).toBeLessThanOrEqual(1);
+    expect(Math.abs(creatorBadgeBox.height - 16)).toBeLessThanOrEqual(1);
+    expect(creatorBadgeBox.width).toBeLessThan(creatorBadgeBox.height);
 
     const messageButton = creatorRow.getByRole('button', { name: `Nhắn tin cho ${actors.creator.name}` });
     await expect(messageButton).toHaveCSS('background-color', 'rgb(255, 255, 255)');
@@ -85,14 +82,12 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
     await expect(savedButton).toHaveCSS('border-color', 'rgb(255, 187, 0)');
     await expect(savedButton.getByText('♥', { exact: true })).toHaveCSS('color', 'rgb(255, 187, 0)');
 
-    // Recipient sees the incoming signal under Favorited Me.
     await openInterests(creatorPage);
     const creatorFavoritedMeTab = creatorPage.getByTestId('luxy-interests-tab-favorited_me');
     await expect(creatorFavoritedMeTab).toBeVisible();
     await creatorFavoritedMeTab.click();
     await expect(creatorPage.getByText(actors.viewer.name, { exact: true })).toBeVisible({ timeout: 20_000 });
 
-    // A routed profile visit is recorded once by the route adapter and appears under Viewed Me.
     await creatorPage.goto(`/profile/${actors.viewer.username}`);
     await expect(creatorPage.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByRole('heading', { name: new RegExp(`^${actors.viewer.name},`) })).toBeVisible({ timeout: 20_000 });
@@ -101,7 +96,6 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
     await viewerPage.getByTestId('luxy-interests-tab-viewed_me').click();
     await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible({ timeout: 20_000 });
 
-    // Removing the favorite is persistent and removes the current Favorites row.
     await viewerPage.getByTestId('luxy-interests-tab-favorites').click();
     const removeFavorite = viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) });
     await expect(removeFavorite).toBeVisible();

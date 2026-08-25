@@ -50,10 +50,10 @@ test('UI-PRO01 desktop keeps compact 26px membership status badge, readable fact
     await expect(badge).toBeVisible();
     const badgeBox = await badge.boundingBox();
     expect(badgeBox).not.toBeNull();
-    expect(badgeBox.width).toBeGreaterThanOrEqual(25);
-    expect(badgeBox.width).toBeLessThanOrEqual(27);
+    expect(badgeBox.height).toBeGreaterThanOrEqual(25);
+    expect(badgeBox.height).toBeLessThanOrEqual(27);
+    expect(badgeBox.width).toBeLessThan(badgeBox.height);
 
-    // BR-06 uses province_id=1, which maps to Hà Nội in the canonical province table.
     await expect(page.getByTestId('chon-profile-fact-location')).toContainText('Hà Nội');
     await expect(page.getByTestId('chon-profile-fact-member-since')).toContainText('Thành viên từ');
     await expectFactTextReadable(page);
@@ -80,8 +80,9 @@ test('UI-PRO01 mobile keeps 16px membership badge, horizontal album and no overf
     await expect(badge).toBeVisible();
     const badgeBox = await badge.boundingBox();
     expect(badgeBox).not.toBeNull();
-    expect(badgeBox.width).toBeGreaterThanOrEqual(15);
-    expect(badgeBox.width).toBeLessThanOrEqual(17);
+    expect(badgeBox.height).toBeGreaterThanOrEqual(15);
+    expect(badgeBox.height).toBeLessThanOrEqual(17);
+    expect(badgeBox.width).toBeLessThan(badgeBox.height);
 
     await expect(page.getByTestId('chon-member-profile-photo-strip')).toBeVisible();
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toBeVisible();

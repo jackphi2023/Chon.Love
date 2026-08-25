@@ -32,8 +32,9 @@ export function HomepageHeroMedia({
   const heroSlides = slides ?? [];
 
   // Do not mount the YouTube component or its poster while an image slider is active.
-  // The slider prefetches its own responsive assets so an old fallback image never
-  // flashes underneath a newly configured Supabase slide.
+  // The slider prefetches the next responsive asset so an old fallback image never
+  // flashes underneath a newly configured Supabase slide without downloading the
+  // entire carousel during first paint.
   if (heroSlides.length > 0) {
     return <HomepageHeroSlider isPhone={isPhone} slides={heroSlides} style={style} />;
   }
@@ -66,16 +67,6 @@ function HomepageHeroSlider({
   }, [slidesKey]);
 
   useEffect(() => {
-    const responsiveUrls = slides
-      .map((slide) => (isPhone ? slide.mobile_url : slide.desktop_url))
-      .filter((url): url is string => Boolean(url));
-
-    for (const url of responsiveUrls) {
-      void Image.prefetch(url).catch(() => undefined);
-    }
-  }, [isPhone, slides]);
-
-  useEffect(() => {
     if (slides.length < 2) return undefined;
     const interval = setInterval(() => {
       setActiveIndex((current) => (current + 1) % slides.length);
@@ -93,6 +84,7 @@ function HomepageHeroSlider({
     const nextSlide = slides[(activeIndex + 1) % slides.length];
     if (!nextSlide) return;
     const nextUrl = isPhone ? nextSlide.mobile_url : nextSlide.desktop_url;
+    if (!nextUrl) return;
     void Image.prefetch(nextUrl).catch(() => undefined);
   }, [activeIndex, isPhone, slides]);
 

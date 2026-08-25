@@ -39,8 +39,10 @@ async function expectMembershipArtwork(page, tier, viewport) {
   const image = badge.getByTestId(`chon-membership-badge-image-${tier}`);
   await expect(image).toHaveCount(1);
   const naturalSize = await image.evaluate(async (node) => {
-    await node.decode();
-    return { complete: node.complete, width: node.naturalWidth, height: node.naturalHeight };
+    const renderedImage = node instanceof HTMLImageElement ? node : node.querySelector('img');
+    if (!(renderedImage instanceof HTMLImageElement)) throw new Error('Membership badge image element is missing.');
+    if (typeof renderedImage.decode === 'function') await renderedImage.decode();
+    return { complete: renderedImage.complete, width: renderedImage.naturalWidth, height: renderedImage.naturalHeight };
   });
   expect(naturalSize.complete).toBe(true);
   expect(naturalSize.width).toBe(expected.naturalWidth);

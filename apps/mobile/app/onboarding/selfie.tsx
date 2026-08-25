@@ -1,7 +1,7 @@
 import { getMyProfile, listMyMedia, type GenderIdentity } from '@myfan/supabase';
 import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LiveSelfieCamera } from '@/components/live-selfie-camera';
 import {
@@ -10,7 +10,6 @@ import {
   SignupSecondaryButton,
   SignupShell,
 } from '@/components/signup-shell';
-import { getAuthenticatedDestination } from '@/lib/auth';
 import {
   getMemberPhotoVerificationStatus,
   MEMBER_PHOTO_PENDING_MESSAGE,
@@ -24,8 +23,6 @@ import { clearSignupDraft } from '@/lib/signup-draft';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
-const ACTIVATION_RETRY_DELAYS_MS = [0, 200, 400] as const;
-
 function readableVerificationFailure(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (message.includes('profile_photo_required')) return 'Bạn cần tải lên ít nhất một ảnh hồ sơ trước khi chụp selfie xác minh.';
@@ -38,14 +35,6 @@ function readableVerificationFailure(error: unknown): string {
   return 'Xác minh ảnh tạm thời không thành công. Vui lòng thử lại; nếu lỗi tiếp tục, Chon.Love sẽ kiểm tra dịch vụ xác minh.';
 }
 
-async function waitForActivatedConnectDestination(): Promise<boolean> {
-  for (const delayMs of ACTIVATION_RETRY_DELAYS_MS) {
-    if (delayMs > 0) await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
-    if (await getAuthenticatedDestination() === '/(tabs)/connect') return true;
-  }
-  return false;
-}
-
 export default function SelfieVerificationOnboarding() {
   const router = useRouter();
   const auth = useAuth();
@@ -54,9 +43,22 @@ export default function SelfieVerificationOnboarding() {
   const [result, setResult] = useState<MemberPhotoVerificationResult | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const openConnectAfterApproval = useCallback(() => {
+    clearSignupDraft();
+    router.replace('/(tabs)/connect');
+
+    // The verification Edge Function only returns approved after the activation
+    // RPC has succeeded. Keep a bounded web fallback so stale Expo route-group
+    // state cannot strand an already-active member on step 8.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        if (window.location.pathname === '/onboarding/selfie') window.location.replace('/connect');
+      }, 500);
+    }
+  }, [router]);
 
   useEffect(() => {
     if (auth.isRestoring) return;
@@ -70,6 +72,10 @@ export default function SelfieVerificationOnboarding() {
         if (!active) return;
         setDeclaredGender(profile.gender);
         setResult(status);
+        if (status.state === 'approved') {
+          openConnectAfterApproval();
+          return;
+        }
         if (status.state !== 'not_started') return;
         const usablePhotoCount = mediaRows.filter(isUsableSignupProfilePhoto).length;
         if (usablePhotoCount < 1) { router.replace('/onboarding/photos'); return; }
@@ -82,7 +88,7 @@ export default function SelfieVerificationOnboarding() {
       .finally(() => { if (active) setIsChecking(false); });
 
     return () => { active = false; };
-  }, [auth.isRestoring, auth.userId, router]);
+  }, [auth.isRestoring, auth.userId, openConnectAfterApproval, router]);
 
   async function handleSubmit() {
     if (!selfie) return;
@@ -92,6 +98,7 @@ export default function SelfieVerificationOnboarding() {
       const verification = await submitMemberPhotoVerification(selfie, declaredGender);
       setResult(verification);
       setSelfie(null);
+      if (verification.state === 'approved') openConnectAfterApproval();
     } catch (error) {
       setErrorMessage(readableVerificationFailure(error));
     } finally {
@@ -99,33 +106,10 @@ export default function SelfieVerificationOnboarding() {
     }
   }
 
-  async function completeSignup() {
-    if (isCompleting) return;
-    setIsCompleting(true);
+  function retryVerification() {
+    setResult(null);
+    setSelfie(null);
     setErrorMessage(null);
-    try {
-      const activated = await waitForActivatedConnectDestination();
-      if (!activated) {
-        setErrorMessage('Xác minh đã thành công nhưng hồ sơ vẫn đang đồng bộ trạng thái kích hoạt. Hãy bấm Hoàn tất lại sau ít giây.');
-        return;
-      }
-
-      clearSignupDraft();
-      router.replace('/(tabs)/connect');
-
-      // Expo Router normally performs an in-app transition. On web, keep a
-      // bounded hard-navigation fallback so a stale route-group state cannot
-      // leave an already-active member stuck on the selfie success screen.
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.setTimeout(() => {
-          if (window.location.pathname === '/onboarding/selfie') window.location.replace('/connect');
-        }, 700);
-      }
-    } catch {
-      setErrorMessage('Không thể xác nhận trạng thái hồ sơ lúc này. Vui lòng bấm Hoàn tất để thử lại.');
-    } finally {
-      setIsCompleting(false);
-    }
   }
 
   async function leaveToHomepage() {
@@ -142,16 +126,15 @@ export default function SelfieVerificationOnboarding() {
 
   if (result?.state === 'approved') {
     return (
-      <SignupShell description="Ảnh selfie đã được xác minh. Hồ sơ của bạn đã được kích hoạt và sẵn sàng xuất hiện trong cộng đồng Chon.Love." step={8} testID="chon-selfie-approved" title="Xác minh thành công">
+      <SignupShell description="Ảnh selfie đã được xác minh. Hồ sơ đã kích hoạt và Chon.Love đang mở trang Kết nối." step={8} testID="chon-selfie-approved" title="Xác minh thành công">
         <View accessibilityLiveRegion="polite" style={styles.successCard}>
           <View accessible={false} style={styles.successIcon}><Text accessibilityElementsHidden style={styles.successIconText}>✓</Text></View>
           <View style={styles.successCopy}>
             <Text style={styles.successTitle}>Chào mừng bạn đến Chon.Love</Text>
-            <Text style={styles.successText}>Bấm Hoàn tất để xem các thành viên thật và nổi bật của Chọn.Love. Chúc bạn “Chọn đúng người, Yêu đúng Gu”</Text>
+            <Text style={styles.successText}>Tài khoản đã được kích hoạt. Bạn sẽ được chuyển tự động sang Kết nối để xem các thành viên phù hợp.</Text>
           </View>
         </View>
-        {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
-        <SignupPrimaryButton busy={isCompleting} disabled={isCompleting} label="Hoàn tất" onPress={() => void completeSignup()} />
+        <SignupPrimaryButton label="Vào Kết nối" onPress={openConnectAfterApproval} />
       </SignupShell>
     );
   }
@@ -160,11 +143,18 @@ export default function SelfieVerificationOnboarding() {
     return (
       <SignupShell description="Hồ sơ tạm thời chưa được kích hoạt trong khi Chon.Love kiểm tra ảnh xác minh." step={8} testID="chon-selfie-pending" title="Chúng tôi sẽ kiểm tra để xác nhận">
         <View style={styles.warningCard}>
-          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thủ công</Text>
+          <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warningTitle}>Cần xác minh thêm</Text>
           <Text style={styles.warningText}>{result.message || MEMBER_PHOTO_PENDING_MESSAGE}</Text>
           {typeof result.maxSimilarity === 'number' ? <Text style={styles.scoreText}>Độ tương đồng tự động: {result.maxSimilarity.toFixed(1)}%</Text> : null}
         </View>
-        <SignupPrimaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+        {result.retryable ? (
+          <>
+            <SignupPrimaryButton label="Chụp lại để xác minh" onPress={retryVerification} />
+            <SignupSecondaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+          </>
+        ) : (
+          <SignupPrimaryButton busy={isLeaving} label="Về trang chủ" onPress={() => void leaveToHomepage()} />
+        )}
       </SignupShell>
     );
   }

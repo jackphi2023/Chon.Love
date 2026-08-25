@@ -34,7 +34,7 @@ test('WEB-R03 authenticated core surfaces expose no legacy brand or phase labels
   for (const [path, marker] of [
     ['/', 'luxy-search-desktop'],
     [`/profile/${creator.username}`, 'chon-member-profile-page'],
-    ['/settings', 'luxy-settings-page'],
+    ['/settings', 'chon-settings-page'],
     ['/settings/membership', 'luxy-upgrade-billing'],
     ['/settings/private-photos', 'luxy-private-photo-settings'],
     ['/settings/verification', 'luxy-verification-settings'],

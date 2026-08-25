@@ -17,6 +17,15 @@ async function login(page) {
   await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
 
+async function getRenderedImageSource(locator) {
+  return locator.evaluate((node) => {
+    const image = node instanceof HTMLImageElement ? node : node.querySelector('img');
+    if (image instanceof HTMLImageElement) return image.currentSrc || image.getAttribute('src');
+    const backgroundImage = getComputedStyle(node).backgroundImage;
+    return backgroundImage && backgroundImage !== 'none' ? backgroundImage : null;
+  });
+}
+
 async function expectBadgeWidth(page, tier, expectedWidth) {
   const badge = page.getByTestId(`chon-membership-badge-${tier}`);
   await expect(badge).toBeVisible();
@@ -25,7 +34,7 @@ async function expectBadgeWidth(page, tier, expectedWidth) {
   expect(Math.round(box.width)).toBe(expectedWidth);
   const image = badge.getByTestId(`chon-membership-badge-image-${tier}`);
   await expect(image).toBeVisible();
-  const source = await image.getAttribute('src');
+  const source = await getRenderedImageSource(image);
   expect(source).toBeTruthy();
   return source;
 }

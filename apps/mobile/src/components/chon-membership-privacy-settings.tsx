@@ -117,7 +117,6 @@ function PrivacyRow({
       </View>
       <Switch
         accessibilityLabel={label}
-        accessibilityRole="switch"
         disabled={disabled}
         onValueChange={onChange}
         trackColor={{ false: chonColors.borderStrong, true: chonColors.gold }}

@@ -12,6 +12,15 @@ async function login(page) {
   await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
 
+async function getRenderedImageSource(locator) {
+  return locator.evaluate((node) => {
+    const image = node instanceof HTMLImageElement ? node : node.querySelector('img');
+    if (image instanceof HTMLImageElement) return image.currentSrc || image.getAttribute('src');
+    const backgroundImage = getComputedStyle(node).backgroundImage;
+    return backgroundImage && backgroundImage !== 'none' ? backgroundImage : null;
+  });
+}
+
 async function expectCompactPhotoCount(card) {
   const cardBox = await card.boundingBox();
   const badge = card.getByTestId('chon-photo-count');
@@ -53,7 +62,7 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     expect(mobileBadgeBox.width).toBeLessThan(mobileBadgeBox.height);
     const mobileBadgeImage = mobileBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(mobileBadgeImage).toBeVisible();
-    const mobileBadgeSource = await mobileBadgeImage.getAttribute('src');
+    const mobileBadgeSource = await getRenderedImageSource(mobileBadgeImage);
     expect(mobileBadgeSource).toBeTruthy();
 
     await expectCompactPhotoCount(mobileCreator);
@@ -92,7 +101,7 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     expect(desktopBadgeBox.width).toBeLessThan(desktopBadgeBox.height);
     const desktopBadgeImage = desktopBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(desktopBadgeImage).toBeVisible();
-    const desktopBadgeSource = await desktopBadgeImage.getAttribute('src');
+    const desktopBadgeSource = await getRenderedImageSource(desktopBadgeImage);
     expect(desktopBadgeSource).toBeTruthy();
     expect(desktopBadgeSource).not.toBe(mobileBadgeSource);
 

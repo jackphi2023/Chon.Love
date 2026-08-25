@@ -28,7 +28,7 @@ async function expectNoHorizontalOverflow(page) {
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
-test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging', async ({ browser }, testInfo) => {
+test('LX-16 interactions remain valid with UI-MSG01 unified mailbox', async ({ browser }, testInfo) => {
   const viewerSession = await createDesktopPage(browser);
   const creatorSession = await createDesktopPage(browser);
   const viewerPage = viewerSession.page;
@@ -68,13 +68,13 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
 
     await creatorPage.getByRole('button', { name: 'Tin nhắn', exact: true }).click();
     await expect(creatorPage.getByTestId('luxy-messages-page')).toBeVisible({ timeout: 20_000 });
-    await expect(creatorPage.getByRole('tab', { name: 'Tin nhắn đến', exact: true })).toBeVisible();
-    await expect(creatorPage.getByRole('tab', { name: 'Đã lọc', exact: true })).toBeVisible();
-    await expect(creatorPage.getByRole('tab', { name: 'Đã gửi', exact: true })).toBeVisible();
-    await expect(creatorPage.getByRole('tab', { name: 'Lưu trữ', exact: true })).toBeVisible();
+    for (const folder of ['inbox', 'filtered', 'sent', 'archive']) {
+      await expect(creatorPage.getByTestId(`luxy-mailbox-folder-${folder}`)).toHaveCount(0);
+    }
+    await expect(creatorPage.getByLabel('Tìm trong Tin nhắn')).toHaveCount(0);
+    await expect(creatorPage.getByTestId('luxy-mailbox-diamond-promo')).toHaveCount(0);
     await expect(creatorPage.getByTestId('luxy-mailbox-unread-only')).toBeVisible();
     await expect(creatorPage.getByTestId('luxy-mailbox-sort')).toBeVisible();
-    await expect(creatorPage.getByTestId('luxy-mailbox-diamond-promo')).toBeVisible();
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByText(message, { exact: true })).toBeVisible();
 
@@ -82,12 +82,6 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
       body: await creatorPage.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
-
-    await creatorPage.getByRole('button', { name: `Lưu trữ cuộc trò chuyện với ${actors.viewer.displayName}` }).click();
-    await expect(creatorPage.getByText(message, { exact: true })).toHaveCount(0, { timeout: 20_000 });
-    await creatorPage.getByRole('tab', { name: 'Lưu trữ', exact: true }).click();
-    await expect(creatorPage.getByText(message, { exact: true })).toBeVisible({ timeout: 20_000 });
-    await creatorPage.getByRole('button', { name: `Khôi phục cuộc trò chuyện với ${actors.viewer.displayName}` }).click();
 
     await creatorPage.setViewportSize({ width: 390, height: 844 });
     await creatorPage.goto('/favorites');
