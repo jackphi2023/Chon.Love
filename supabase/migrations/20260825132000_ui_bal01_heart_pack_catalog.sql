@@ -26,3 +26,26 @@ set heart_units = excluded.heart_units,
     is_active = excluded.is_active,
     sort_order = excluded.sort_order,
     updated_at = now();
+
+do $$
+declare
+  v_active integer[];
+begin
+  select array_agg(display_hearts order by sort_order, display_hearts)
+  into v_active
+  from public.heart_products
+  where is_active;
+
+  if v_active is distinct from array[10,50,100,200,500,1000] then
+    raise exception 'UI-BAL01 active heart catalog invariant failed: %', v_active;
+  end if;
+
+  if exists (
+    select 1
+    from public.heart_products
+    where is_active
+      and heart_units <> display_hearts * 100
+  ) then
+    raise exception 'UI-BAL01 active heart unit invariant failed';
+  end if;
+end $$;
