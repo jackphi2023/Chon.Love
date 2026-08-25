@@ -41,7 +41,8 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
     // Premium viewer opens a direct LX-15 conversation without relying on friendship and
     // sends one deterministic mailbox message. Visiting the profile also feeds Viewed Me.
     await viewerPage.goto(`/profile/${actors.creator.username}`);
-    await expect(viewerPage.getByTestId('luxy-member-profile-page')).toBeVisible();
+    await expect(viewerPage).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
+    await expect(viewerPage.getByTestId('chon-member-profile-page')).toBeVisible();
     await viewerPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
     const chatInput = viewerPage.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true });
     await expect(chatInput).toBeVisible();
@@ -49,13 +50,15 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
     await viewerPage.getByRole('button', { name: 'Gửi', exact: true }).click();
     await expect(viewerPage.getByText(message, { exact: true }).last()).toBeVisible();
 
-    // Interests follows the supplied Seeking screenshot: Viewed Me first, then Favorites,
-    // Favorited Me, right-side sort, row hierarchy and 180-day note.
+    // Interests keeps the simplified Chọn.Love order: Favorites is the default tab,
+    // while Viewed Me remains available with the Seeking-style list and 180-day note.
     await creatorPage.goto('/favorites');
     await expect(creatorPage.getByTestId('luxy-interests-page')).toBeVisible();
-    await expect(creatorPage.getByTestId('luxy-interests-tab-viewed_me')).toHaveAttribute('aria-selected', 'true');
+    await expect(creatorPage.getByTestId('luxy-interests-tab-favorites')).toHaveAttribute('aria-selected', 'true');
     await expect(creatorPage.getByRole('tab', { name: 'Yêu thích', exact: true })).toBeVisible();
     await expect(creatorPage.getByRole('tab', { name: 'Yêu thích tôi', exact: true })).toBeVisible();
+    await creatorPage.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
+    await expect(creatorPage.getByTestId('luxy-interests-tab-viewed_me')).toHaveAttribute('aria-selected', 'true');
     await expect(creatorPage.getByTestId('luxy-interests-sort')).toBeVisible();
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByText(/Lượt xem hồ sơ chỉ hiển thị trong 180 ngày gần nhất/)).toBeVisible();
