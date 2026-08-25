@@ -5,16 +5,15 @@ import {
   setMyProfilePhotoVisibility,
   type MyMediaItem,
 } from '@myfan/supabase';
-import { luxyColors, luxyRadii, luxySpacing } from '@myfan/ui';
+import { chonColors, luxyRadii, luxySpacing } from '@myfan/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useRouter } from 'expo-router';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import {
-  LuxySettingsPage,
+  ChonSettingsPage,
   SettingsAction,
-  SettingsNotice,
   SettingsSection,
-} from '@/components/luxy-settings-layout';
+} from '@/components/chon-settings-layout';
 import { getReadableProfileMediaError } from '@/lib/profile-media';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -64,23 +63,19 @@ export default function PrivatePhotosSettingsPage() {
   const error = photosQuery.error ?? visibilityMutation.error;
 
   return (
-    <LuxySettingsPage
-      description="Các ảnh bạn đã chọn Ẩn trong trang Hồ sơ. Premium và Diamond có thể xem; Free chỉ thấy khu vực ảnh bị khóa."
+    <ChonSettingsPage
+      description="Quản lý các ảnh bạn chủ động giữ riêng tư. Premium và Diamond có thể xem; Free chỉ thấy khu vực ảnh bị khóa."
       testID="luxy-private-photo-settings"
       title="Ảnh riêng tư"
     >
-      <SettingsNotice title="Ảnh mới luôn công khai trước">
-        Theo luồng Luxy V1, ảnh hồ sơ mới được upload ở trạng thái Công khai. Vào “Hồ sơ của tôi” và chọn “Ẩn” trên từng ảnh để đưa ảnh vào đây. Quà tặng hoặc các loại kết nối không mở khóa ảnh.
-      </SettingsNotice>
-
       <SettingsSection
-        description="Bạn có thể đưa bất kỳ ảnh riêng tư nào trở lại hồ sơ công khai ngay lập tức."
+        description="Ảnh hồ sơ mới được tải lên ở trạng thái công khai. Từ Hồ sơ của tôi, chọn Ẩn trên ảnh bạn muốn giữ riêng tư. Quà tặng không mở khóa ảnh."
         testID="private-photo-library"
         title={`Thư viện ảnh riêng tư${photosQuery.data?.length ? ` (${photosQuery.data.length})` : ''}`}
       >
         <View style={styles.content}>
           {photosQuery.isLoading ? (
-            <ActivityIndicator accessibilityLabel="Đang tải ảnh riêng tư" color={luxyColors.ink} />
+            <ActivityIndicator accessibilityLabel="Đang tải ảnh riêng tư" color={chonColors.primaryRed} />
           ) : photosQuery.data?.length ? (
             <View style={styles.gallery}>
               {photosQuery.data.map((photo) => (
@@ -101,9 +96,8 @@ export default function PrivatePhotosSettingsPage() {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptySymbol}>▣</Text>
               <Text style={styles.emptyTitle}>Chưa có ảnh riêng tư</Text>
-              <Text style={styles.emptyText}>Mở Hồ sơ của tôi, upload ảnh công khai rồi chọn “Ẩn” trên ảnh muốn bảo mật.</Text>
+              <Text style={styles.emptyText}>Mở Hồ sơ của tôi, tải ảnh công khai rồi chọn “Ẩn” trên ảnh bạn muốn giữ riêng tư.</Text>
               <SettingsAction label="Quản lý ảnh hồ sơ" onPress={() => router.push('/(tabs)/profile')} />
             </View>
           )}
@@ -111,7 +105,7 @@ export default function PrivatePhotosSettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        description="Quyền xem được kiểm tra lại ở server mỗi lần tải ảnh. Khi gói thành viên của viewer hết hạn, quyền xem ảnh riêng tư cũng hết ngay."
+        description="Quyền xem được kiểm tra lại ở server mỗi lần tải ảnh. Khi gói thành viên của người xem hết hạn, quyền xem ảnh riêng tư cũng hết ngay."
         title="Ai được xem?"
       >
         <View style={styles.rules}>
@@ -127,7 +121,7 @@ export default function PrivatePhotosSettingsPage() {
       <View style={styles.backRow}>
         <SettingsAction label="Quay lại Cài đặt" onPress={() => router.push('/settings')} secondary />
       </View>
-    </LuxySettingsPage>
+    </ChonSettingsPage>
   );
 }
 
@@ -143,17 +137,16 @@ const styles = StyleSheet.create({
   content: { gap: luxySpacing.lg, padding: luxySpacing.lg },
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: luxySpacing.md },
   photoWrap: { gap: 7, minWidth: 150, width: '31%' },
-  photoFrame: { aspectRatio: 0.78, backgroundColor: luxyColors.elevatedSubtle, borderRadius: luxyRadii.sm, overflow: 'hidden', position: 'relative', width: '100%' },
+  photoFrame: { aspectRatio: 0.78, backgroundColor: chonColors.warmSurface, borderRadius: luxyRadii.sm, overflow: 'hidden', position: 'relative', width: '100%' },
   photo: { height: '100%', width: '100%' },
-  privateBadge: { backgroundColor: 'rgba(8,23,38,0.82)', borderRadius: luxyRadii.pill, left: 7, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 7 },
-  privateBadgeText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' },
-  photoStatus: { color: luxyColors.muted, fontSize: 11.5 },
+  privateBadge: { backgroundColor: chonColors.overlay, borderRadius: luxyRadii.pill, left: 7, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 7 },
+  privateBadgeText: { color: chonColors.surface, fontSize: 10.5, fontWeight: '700' },
+  photoStatus: { color: chonColors.muted, fontSize: 11.5 },
   empty: { alignItems: 'center', gap: luxySpacing.sm, justifyContent: 'center', minHeight: 210 },
-  emptySymbol: { color: luxyColors.softMuted, fontSize: 36 },
-  emptyTitle: { color: luxyColors.text, fontSize: 15.5, fontWeight: '700' },
-  emptyText: { color: luxyColors.muted, fontSize: 12.5, lineHeight: 18, maxWidth: 420, textAlign: 'center' },
+  emptyTitle: { color: chonColors.text, fontSize: 15.5, fontWeight: '700' },
+  emptyText: { color: chonColors.muted, fontSize: 12.5, lineHeight: 18, maxWidth: 420, textAlign: 'center' },
   rules: { gap: 7, padding: luxySpacing.lg },
-  rule: { color: luxyColors.muted, fontSize: 13, lineHeight: 19 },
-  error: { color: luxyColors.danger, fontSize: 13.5, marginBottom: luxySpacing.lg },
+  rule: { color: chonColors.muted, fontSize: 13, lineHeight: 19 },
+  error: { color: chonColors.danger, fontSize: 13.5, marginBottom: luxySpacing.lg },
   backRow: { alignItems: 'flex-start', marginBottom: luxySpacing.xl },
 });
