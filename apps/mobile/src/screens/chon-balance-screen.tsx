@@ -14,7 +14,6 @@ import {
   markMyVietqrTransferSubmitted,
   vietqrQueryKeys,
   type VietqrHeartOrder,
-  type VietqrHeartProduct,
 } from '@myfan/supabase';
 import {
   chonBreakpoints,
@@ -27,9 +26,17 @@ import {
   luxySpacing,
 } from '@myfan/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Platform } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import {
   ChonPaymentAction,
   ChonPaymentModal,
