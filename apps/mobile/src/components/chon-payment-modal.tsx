@@ -124,7 +124,7 @@ export function ChonPaymentAction({
         styles.action,
         secondary && styles.actionSecondary,
         disabled && styles.disabled,
-        pressed && styles.pressed,
+        pressed && styles.actionPressed,
       ]}
       testID={testID}
     >
@@ -243,12 +243,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 18,
-    ...chonShadows.primaryHover,
+    ...chonShadows.primary,
   },
   actionSecondary: { backgroundColor: chonColors.surface, borderColor: chonColors.gold },
   actionText: { color: chonColors.surface, fontSize: 14, fontWeight: '800' },
   actionTextSecondary: { color: chonColors.text },
-  disabled: { opacity: 0.55 },
+  actionPressed: { opacity: chonInteraction.pressedOpacity, ...chonShadows.primaryHover },
+  disabled: { opacity: chonInteraction.disabledOpacity },
   pressed: { opacity: chonInteraction.pressedOpacity },
   state: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.border, borderRadius: 10, borderWidth: 1, gap: 4, padding: 14 },
   stateSuccess: { borderColor: chonColors.gold },
