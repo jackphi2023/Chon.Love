@@ -57,7 +57,7 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
     await expect(viewedMeTab).toBeVisible();
     await viewedMeTab.click();
     await expect(viewedMeTab).toHaveAttribute('aria-selected', 'true');
-    await expect(creatorPage.getByTestId('luxy-interests-sort')).toBeVisible();
+    await expect(creatorPage.getByTestId('luxy-interests-sort')).toHaveCount(0);
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByText(/Lượt xem hồ sơ chỉ hiển thị trong 180 ngày gần nhất/)).toBeVisible();
 
