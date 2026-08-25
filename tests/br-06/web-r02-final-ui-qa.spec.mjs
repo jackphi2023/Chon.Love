@@ -218,6 +218,8 @@ for (const viewport of viewports) {
 
       await page.goto('/favorites');
       await expect(page.getByTestId('luxy-interests-page')).toBeVisible();
+      await expect(page.getByTestId('luxy-interests-tab-favorites')).toHaveAttribute('aria-selected', 'true');
+      await page.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
       await expect(page.getByTestId('luxy-interests-tab-viewed_me')).toHaveAttribute('aria-selected', 'true');
       await capture(page, testInfo, viewport, 'interests-viewed-me');
 
