@@ -13,6 +13,18 @@ async function login(page) {
   await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
 
+async function openGiftPicker(page) {
+  await page.goto(`/profile/${creator.username}`);
+  await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
+  await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
+  const giftAction = page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
+  await expect(giftAction).toBeVisible();
+  await giftAction.click();
+  const picker = page.getByTestId('chon-gift-picker');
+  await expect(picker).toBeVisible();
+  return picker;
+}
+
 test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive Chon.Love picker', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -24,16 +36,7 @@ test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive 
 
   try {
     await login(page);
-    await page.goto(`/profile/${creator.username}`);
-    await expect(page).toHaveURL(/\/thanh-vien\/id-[a-z0-9-]+/i, { timeout: 20_000 });
-    await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
-
-    const giftAction = page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
-    await expect(giftAction).toBeVisible();
-    await giftAction.click();
-
-    const picker = page.getByTestId('chon-gift-picker');
-    await expect(picker).toBeVisible();
+    const picker = await openGiftPicker(page);
     await expect(picker.getByRole('heading', { name: 'Tặng quà', exact: true })).toBeVisible();
     await expect(picker.getByTestId('chon-gift-picker-balance')).toContainText('❤️');
     await expect(picker.getByText('Giá quà được hiển thị bằng ❤️.', { exact: true })).toBeVisible();
@@ -51,10 +54,14 @@ test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive 
       contentType: 'image/png',
     });
 
+    // Crossing the responsive breakpoint intentionally remounts page chrome/modal state.
+    // Reopen the same shared picker at desktop width instead of assuming mobile modal
+    // state survives a React Native Web layout-mode remount.
     await page.setViewportSize({ width: 1280, height: 900 });
-    await expect(picker).toBeVisible();
-    await expect(items).toHaveCount(20);
-    const desktopBox = await picker.boundingBox();
+    const desktopPicker = await openGiftPicker(page);
+    const desktopItems = desktopPicker.getByTestId('chon-gift-picker-item');
+    await expect(desktopItems).toHaveCount(20);
+    const desktopBox = await desktopPicker.boundingBox();
     expect(desktopBox).not.toBeNull();
     expect(desktopBox.width).toBeLessThanOrEqual(602);
 
