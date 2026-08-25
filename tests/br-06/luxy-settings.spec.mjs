@@ -65,7 +65,8 @@ async function assertVerificationControls(page) {
 async function assertPrivatePhotoSettings(page) {
   await expect(page.getByTestId('luxy-private-photo-settings')).toBeVisible();
   await expect(page.getByTestId('private-photo-library')).toBeVisible();
-  await expect(page.getByText(/ảnh hồ sơ mới được upload ở trạng thái Công khai/i)).toBeVisible();
+  await expect(page.getByText(/ảnh hồ sơ mới được tải lên ở trạng thái công khai/i)).toBeVisible();
+  await expect(page.getByText(/Theo luồng Luxy V1/i)).toHaveCount(0);
   await expect(page.getByText(/Premium: xem ảnh riêng tư/i)).toBeVisible();
   await expect(page.getByText(/Diamond: xem ảnh riêng tư/i)).toBeVisible();
   await expect(page.getByText(/Free: chỉ thấy số lượng\/khu vực ảnh bị khóa/i)).toBeVisible();
