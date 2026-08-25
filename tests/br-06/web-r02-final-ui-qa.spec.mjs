@@ -236,10 +236,12 @@ for (const viewport of viewports) {
       await expect(page.getByTestId('chon-member-profile-page')).toBeVisible();
       await openProfileMessage(page, viewport, creator.displayName);
       await expect(page.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true })).toBeVisible({ timeout: 20_000 });
-      const retentionSwitch = page.getByRole('switch', { name: 'Tự động xóa tin nhắn sau 7 ngày cho cả hai người' });
+      const retentionCard = page.getByTestId('chon-chat-retention-card');
+      await expect(retentionCard).toBeVisible({ timeout: 20_000 });
+      const retentionSwitch = retentionCard.getByRole('switch', { name: 'Tự động xoá tin nhắn sau 7 ngày cho cả hai người' });
       await expect(retentionSwitch).toBeVisible({ timeout: 20_000 });
       await expect(retentionSwitch).toBeEnabled({ timeout: 20_000 });
-      await expect(page.getByText('Không thể tải cài đặt tự động xóa', { exact: false })).toHaveCount(0);
+      await expect(page.getByText('Không thể tải cài đặt tự động xoá', { exact: false })).toHaveCount(0);
       await capture(page, testInfo, viewport, 'chat');
 
       await page.goto('/profile/edit');
