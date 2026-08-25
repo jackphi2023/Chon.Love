@@ -28,7 +28,8 @@ async function login(page, actor) {
 
 async function openCreatorProfile(page) {
   await page.goto(`/profile/${actors.creator.username}`);
-  await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
+  await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
+  await expect(page.getByTestId('chon-member-profile-page')).toBeVisible();
   await expect(page.getByRole('heading', { name: new RegExp(`^${actors.creator.displayName},`) })).toBeVisible();
   await expect(page.getByText(/Activity|Hoạt động & Album ảnh/, { exact: false })).toHaveCount(0);
 }
@@ -88,13 +89,13 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await favorite.click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-favorite')).toHaveCount(0);
 
-    await expect(outsiderPage.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
+    await expect(outsiderPage.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
     await outsiderPage.getByRole('button', { name: `Gửi tin nhắn cho ${actors.creator.displayName}`, exact: true }).click();
     await expect(outsiderPage).toHaveURL(/\/settings\/membership/);
     await expect(outsiderPage.getByTestId('luxy-upgrade-billing')).toBeVisible();
 
-    await outsiderPage.goto(`/profile/${actors.creator.username}`);
-    const privateEntitlement = outsiderPage.getByTestId('luxy-private-photo-entitlement-button');
+    await openCreatorProfile(outsiderPage);
+    const privateEntitlement = outsiderPage.getByTestId('chon-private-photo-entitlement-button');
     await expect(privateEntitlement).toBeVisible();
     await privateEntitlement.click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-private_photo')).toBeVisible();
@@ -103,7 +104,7 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
 
     // At desktop width the Free message composer keeps the inline paid-membership gate.
     await outsiderPage.setViewportSize({ width: 1280, height: 900 });
-    await outsiderPage.goto(`/profile/${actors.creator.username}`);
+    await openCreatorProfile(outsiderPage);
     await expect(outsiderPage.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
     await outsiderPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
