@@ -77,8 +77,8 @@ export function ChonAuthHeading({ title, description }: { title: string; descrip
 
 export function ChonAuthField({ label, help, error, ...inputProps }: TextInputProps & {
   label: string;
-  help?: string;
-  error?: string;
+  help?: string | undefined;
+  error?: string | undefined;
 }) {
   return (
     <View style={styles.fieldGroup}>
