@@ -124,7 +124,9 @@ test('UI-PRO01 Premium viewer sees private media while Diamond member badge rema
     await login(page, 'br06.viewer@example.test');
     await openMember(page, creator);
     await expectMembershipArtwork(page, creator.tier, 26);
-    await expect(page.getByTestId('chon-private-photo-paid-tile')).toBeVisible({ timeout: 20_000 });
+    const paidTiles = page.getByTestId('chon-private-photo-paid-tile');
+    expect(await paidTiles.count()).toBeGreaterThanOrEqual(1);
+    await expect(paidTiles.first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toHaveCount(0);
   } finally {
     await context.close();
