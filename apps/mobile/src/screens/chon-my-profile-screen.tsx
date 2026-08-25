@@ -362,7 +362,7 @@ export default function ChonMyProfileScreen() {
       if (bio !== (baseline.bio ?? '').trim()) signupBioSchema.parse(bio);
       if (lookingFor !== (baseline.looking_for ?? '').trim()) signupLookingForTextSchema.parse(lookingFor);
       if (!sameTags(lifestyleTags, baseline.lifestyle_tags ?? [])) signupLifestyleTagsSchema.parse(lifestyleTags);
-      if (heightCm !== null) signupHeightCmSchema.parse(heightCm);
+      if (heightCm !== baseline.height_cm && heightCm !== null) signupHeightCmSchema.parse(heightCm);
       if (weightKg !== null) weightKgSchema.parse(weightKg);
 
       const parsed = luxyProfileEditorSchema.safeParse({
