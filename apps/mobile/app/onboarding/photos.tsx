@@ -275,13 +275,6 @@ export default function OnboardingPhotos() {
       testID="chon-onboarding-photos"
       title="Thêm ảnh của bạn"
     >
-      <View style={styles.qualityCard}>
-        <Text style={styles.qualityTitle}>Ảnh rõ nét, không giảm chất lượng không cần thiết</Text>
-        <Text style={styles.qualityText}>
-          JPEG, PNG và WebP hợp lệ dưới 10 MB được giữ nguyên dữ liệu ảnh khi tải lên. Ảnh quá lớn hoặc định dạng khác chỉ được chuyển đổi ở chất lượng cao để đáp ứng giới hạn lưu trữ; hệ thống không phóng to ảnh nhỏ.
-        </Text>
-      </View>
-
       <View style={styles.summaryRow}>
         <Text style={styles.countText}>{totalCount}/{SIGNUP_PROFILE_PHOTO_LIMIT} ảnh</Text>
         <Text accessibilityLiveRegion="polite" style={[styles.recommendation, recommendedReached && styles.recommendationDone]}>
@@ -360,9 +353,6 @@ export default function OnboardingPhotos() {
 const styles = StyleSheet.create({
   loading: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
   muted: { color: colors.muted, fontSize: 14 },
-  qualityCard: { backgroundColor: '#FFF9EA', borderColor: '#E8D391', borderRadius: 12, borderWidth: 1, gap: 6, padding: spacing.md },
-  qualityTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  qualityText: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   summaryRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
   countText: { color: colors.text, fontSize: 15, fontWeight: '800' },
   recommendation: { color: colors.muted, fontSize: 12, fontWeight: '700' },

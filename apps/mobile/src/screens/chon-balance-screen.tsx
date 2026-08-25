@@ -99,6 +99,7 @@ export function ChonBalanceScreen() {
   });
 
   const order = orderQuery.data ?? createdOrder;
+  const orderActive = Boolean(order && ACTIVE_STATUSES.has(order.status));
   const products = useMemo(
     () => (productsQuery.data ?? []).filter((product) => FINAL_PACKS.has(product.display_hearts)),
     [productsQuery.data],
@@ -116,9 +117,11 @@ export function ChonBalanceScreen() {
   }, [orderQuery.data]);
 
   useEffect(() => {
+    if (!orderActive) return undefined;
+    setNowMs(Date.now());
     const timer = setInterval(() => setNowMs(Date.now()), 1_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [orderActive]);
 
   useEffect(() => {
     if (order?.status !== 'paid') return;
@@ -268,8 +271,10 @@ export function ChonBalanceScreen() {
                   <View style={styles.packGrid} testID="balance-pack-grid">
                     {products.map((product) => {
                       const selected = selectedId === product.product_id;
+                      const webRadioState = Platform.OS === 'web' ? { 'aria-checked': selected } : {};
                       return (
                         <Pressable
+                          {...webRadioState}
                           accessibilityLabel={`${formatVietqrHearts(product.display_hearts)}, ${formatVnd(product.amount_vnd)}`}
                           accessibilityRole="radio"
                           accessibilityState={{ checked: selected }}
