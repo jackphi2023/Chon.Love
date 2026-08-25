@@ -23,7 +23,7 @@ export function ChonAuthenticatedPageChrome({
 
   return (
     <View style={styles.shell} testID={testID}>
-      <View testID="chon-authenticated-navigation">
+      <View style={styles.navigationLayer} testID="chon-authenticated-navigation">
         {desktop ? <LuxyDesktopNavigation /> : <LuxyShellNavigation />}
       </View>
       <View style={styles.content}>{children}</View>
@@ -41,5 +41,6 @@ export function ChonAuthenticatedPageChrome({
 
 const styles = StyleSheet.create({
   shell: { backgroundColor: luxyColors.background, flex: 1, minHeight: 0 },
+  navigationLayer: { elevation: 20, position: 'relative', zIndex: 20 },
   content: { backgroundColor: luxyColors.background, flex: 1, minHeight: 0 },
 });
