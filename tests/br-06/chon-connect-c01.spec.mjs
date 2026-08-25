@@ -58,10 +58,13 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
 
     const favorite = mobileCreator.getByRole('button', { name: /^Yêu thích BR06 Creator/ });
     await favorite.click();
-    await expect(favorite).toHaveCSS('background-color', 'rgb(217, 45, 42)');
-    await expect(favorite).toHaveAttribute('aria-selected', 'true');
-    await favorite.click();
-    await expect(favorite).not.toHaveCSS('background-color', 'rgb(217, 45, 42)');
+    const savedFavorite = mobileCreator.getByRole('button', { name: /^Bỏ yêu thích BR06 Creator/ });
+    await expect(savedFavorite).toHaveCSS('background-color', 'rgb(217, 45, 42)');
+    await expect(savedFavorite).toHaveAttribute('aria-selected', 'true');
+    await savedFavorite.click();
+    const unsavedFavorite = mobileCreator.getByRole('button', { name: /^Yêu thích BR06 Creator/ });
+    await expect(unsavedFavorite).not.toHaveCSS('background-color', 'rgb(217, 45, 42)');
+    await expect(unsavedFavorite).toHaveAttribute('aria-selected', 'false');
 
     await page.getByTestId('luxy-search-mobile-filter-button').click();
     const mobileResults = page.getByTestId('luxy-search-mobile-filter-apply');
