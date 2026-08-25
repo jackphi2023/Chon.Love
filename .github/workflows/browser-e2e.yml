@@ -109,6 +109,22 @@ jobs:
           node scripts/br06/setup-local-fixtures.mjs
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
 
+          # BR-07 intentionally keeps production VietQR client access fail-closed.
+          # UI-BAL01 browser coverage needs the real RPC/order/QR flow, so enable it
+          # only inside this isolated localhost database. Nothing here is a migration.
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          update private.app_config
+          set value_json='true'::jsonb,
+              updated_at=now()
+          where key='vietqr_web_payments_enabled';
+
+          grant execute on function public.list_vietqr_heart_products() to authenticated;
+          grant execute on function public.create_vietqr_heart_order(uuid,uuid) to authenticated;
+          grant execute on function public.get_my_vietqr_heart_order(uuid) to authenticated;
+          grant execute on function public.mark_my_vietqr_transfer_submitted(uuid) to authenticated;
+          grant execute on function public.cancel_my_vietqr_heart_order(uuid) to authenticated;
+          SQL
+
           {
             echo "EXPO_PUBLIC_MYFAN_ENV=development"
             echo "EXPO_PUBLIC_SUPABASE_URL=$API_URL"
