@@ -117,6 +117,7 @@ export const luxyShadows = {
 } as const;
 export const chonShadows = {
   hover: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 4, elevation: 2 },
+  primary: { shadowColor: '#C81C1D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.14, shadowRadius: 4, elevation: 2 },
   primaryHover: { shadowColor: '#C81C1D', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.24, shadowRadius: 6, elevation: 3 },
   card: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
 } as const;
