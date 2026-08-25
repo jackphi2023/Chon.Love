@@ -53,7 +53,7 @@ export function SettingsSection({
 export function SettingsLinkRow({
   title,
   description,
-  symbol,
+  icon,
   status,
   onPress,
   disabled = false,
@@ -61,7 +61,7 @@ export function SettingsLinkRow({
 }: {
   title: string;
   description: string;
-  symbol: string;
+  icon: ReactNode;
   status?: string;
   onPress?: () => void;
   disabled?: boolean;
@@ -77,7 +77,7 @@ export function SettingsLinkRow({
       style={({ pressed }) => [styles.row, pressed && styles.pressedRow, disabled && styles.disabledRow]}
       testID={testID}
     >
-      <View accessibilityElementsHidden style={styles.icon}><Text style={styles.iconText}>{symbol}</Text></View>
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.icon}>{icon}</View>
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{title}</Text>
         <Text style={styles.rowDescription}>{description}</Text>
@@ -145,7 +145,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: chonColors.surface, borderColor: chonColors.border, borderRadius: luxyRadii.md, borderWidth: 1, overflow: 'hidden', ...chonShadows.card },
   row: { alignItems: 'center', borderBottomColor: chonColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: luxySpacing.md, minHeight: 82, paddingHorizontal: luxySpacing.lg, paddingVertical: luxySpacing.md },
   icon: { alignItems: 'center', backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: luxyRadii.pill, borderWidth: 1, height: 42, justifyContent: 'center', width: 42 },
-  iconText: { color: chonColors.goldStrong, fontSize: 17, fontWeight: '700' },
   rowText: { flex: 1, minWidth: 0 },
   rowTitle: { color: chonColors.text, fontSize: 14, fontWeight: '700' },
   rowDescription: { color: chonColors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
