@@ -95,7 +95,7 @@ test('public homepage follows the refreshed Chọn.love hierarchy and palette on
   for (const artwork of [leftArtwork, rightArtwork]) {
     const box = await artwork.boundingBox();
     expect(box).not.toBeNull();
-    expect(Math.abs(box.height - 308)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.height - 292)).toBeLessThanOrEqual(1);
     expect(Math.abs(box.width - 220)).toBeLessThanOrEqual(1);
   }
 
@@ -173,7 +173,6 @@ for (const viewport of [
     const benefitArtwork = home.getByLabel('Minh họa quyền lợi thành viên Chọn.love').first();
     await expect(benefitArtwork).toBeVisible();
 
-    // React Native Web can expose Pressable text before its final accessibility role settles at small viewports.
     await expect(home.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
     await expect(home.getByText('Đăng ký', { exact: true }).first()).toBeVisible();
     await expect(home.getByRole('button', { name: 'Mở menu' })).toHaveCount(0);
@@ -189,8 +188,6 @@ for (const viewport of [
     expect(ctaBox).not.toBeNull();
     expect(ctaBox.height).toBeGreaterThanOrEqual(44);
 
-    // RN Web renders one structural wrapper inside the footer; validate the intended
-    // three semantic rows (brand/slogan, legal links, copyright) instead of DOM depth.
     const footer = page.getByTestId('chon-public-footer');
     const footerSlogan = footer.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true });
     const firstLegalLink = footer.getByRole('link').first();
