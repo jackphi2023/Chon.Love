@@ -30,7 +30,7 @@ test('settings and membership share one authenticated page chrome without duplic
   try {
     await login(page);
     await page.goto('/settings');
-    await expect(page.getByTestId('luxy-settings-page')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('chon-settings-page')).toBeVisible({ timeout: 30_000 });
     await expectSingleStandaloneChrome(page);
     await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' })).toHaveCount(1);
 
