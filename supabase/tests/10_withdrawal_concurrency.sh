@@ -38,11 +38,21 @@ insert into private.kyc_profiles(user_id,legal_name_ciphertext,document_type,doc
 values('${CREATOR}','v1.AAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB','national_id','v1.CCCCCCCCCCCCCCCC.DDDDDDDDDDDDDDDD','1234','VN','approved','4c100000-0000-0000-0000-000000000002',now(),now(),'${CREATOR}',now()+interval '5 years');
 insert into private.bank_accounts(id,user_id,bank_code,account_number_ciphertext,account_number_last4,account_holder_ciphertext,status,is_default,submission_request_id,verified_at,verified_by)
 values('${BANK}','${CREATOR}','VCB','v1.EEEEEEEEEEEEEEEE.FFFFFFFFFFFFFFFF','1234','v1.GGGGGGGGGGGGGGGG.HHHHHHHHHHHHHHHH','verified',true,'4c100000-0000-0000-0000-000000000003',now(),'${CREATOR}');
-select * from public.record_verified_play_purchase('${SENDER}','myfan_hearts_020',repeat('e',64),'GPA.WITHDRAWAL.CONCURRENCY',encode(extensions.digest('${SENDER}','sha256'),'hex'),'VN',true,'4c200000-0000-0000-0000-000000000001',null);
+select * from public.record_verified_play_purchase(
+  '${SENDER}',
+  (select google_product_id from public.heart_products where is_active and heart_units >= 2000 order by heart_units, sort_order, id limit 1),
+  repeat('e',64),
+  'GPA.WITHDRAWAL.CONCURRENCY',
+  encode(extensions.digest('${SENDER}','sha256'),'hex'),
+  'VN',
+  true,
+  '4c200000-0000-0000-0000-000000000001',
+  null
+);
 begin;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"${SENDER}","role":"authenticated"}',true);
-select * from public.send_gift('${CREATOR}',(select id from public.gift_catalog where display_hearts=20),1,'4c200000-0000-0000-0000-000000000002',null,null);
+select * from public.send_gift('${CREATOR}',(select id from public.gift_catalog where display_hearts=20 and is_active order by sort_order, id limit 1),1,'4c200000-0000-0000-0000-000000000002',null,null);
 commit;
 update private.creator_reward_positions set available_at=now()-interval '1 second' where creator_id='${CREATOR}';
 select * from public.release_due_creator_rewards(10);
