@@ -44,9 +44,9 @@ async function expectCleanAccountMenu(page) {
   expect(menuBox.width).toBeLessThanOrEqual(160);
 
   const profileItem = menu.getByRole('menuitem', { name: 'Hồ sơ', exact: true });
-  await profileItem.dispatchEvent('pointerenter');
+  await profileItem.hover();
   await expect(profileItem).toHaveCSS('background-color', 'rgb(255, 187, 0)');
-  await profileItem.dispatchEvent('pointerleave');
+  await page.mouse.move(0, 0);
 }
 
 test('authenticated Free desktop shell follows refreshed Chon.Love navigation and 1024px breakpoint', async ({ browser }, testInfo) => {
