@@ -38,8 +38,6 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
   try {
     await Promise.all([login(viewerPage, actors.viewer), login(creatorPage, actors.creator)]);
 
-    // Premium viewer opens a direct LX-15 conversation without relying on friendship and
-    // sends one deterministic mailbox message. Visiting the profile also feeds Viewed Me.
     await viewerPage.goto(`/profile/${actors.creator.username}`);
     await expect(viewerPage).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
     await expect(viewerPage.getByTestId('chon-member-profile-page')).toBeVisible();
@@ -50,15 +48,15 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
     await viewerPage.getByRole('button', { name: 'Gửi', exact: true }).click();
     await expect(viewerPage.getByText(message, { exact: true }).last()).toBeVisible();
 
-    // Interests keeps the simplified Chọn.Love order: Favorites is the default tab,
-    // while Viewed Me remains available with the Seeking-style list and 180-day note.
     await creatorPage.goto('/favorites');
     await expect(creatorPage.getByTestId('luxy-interests-page')).toBeVisible();
     await expect(creatorPage.getByTestId('luxy-interests-tab-favorites')).toHaveAttribute('aria-selected', 'true');
-    await expect(creatorPage.getByRole('tab', { name: 'Yêu thích', exact: true })).toBeVisible();
-    await expect(creatorPage.getByRole('tab', { name: 'Yêu thích tôi', exact: true })).toBeVisible();
-    await creatorPage.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
-    await expect(creatorPage.getByTestId('luxy-interests-tab-viewed_me')).toHaveAttribute('aria-selected', 'true');
+    await expect(creatorPage.getByTestId('luxy-interests-tab-favorites')).toBeVisible();
+    await expect(creatorPage.getByTestId('luxy-interests-tab-favorited_me')).toBeVisible();
+    const viewedMeTab = creatorPage.getByTestId('luxy-interests-tab-viewed_me');
+    await expect(viewedMeTab).toBeVisible();
+    await viewedMeTab.click();
+    await expect(viewedMeTab).toHaveAttribute('aria-selected', 'true');
     await expect(creatorPage.getByTestId('luxy-interests-sort')).toBeVisible();
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByText(/Lượt xem hồ sơ chỉ hiển thị trong 180 ngày gần nhất/)).toBeVisible();
@@ -68,8 +66,6 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
       contentType: 'image/png',
     });
 
-    // Messages follows the supplied Seeking mailbox composition while preserving the
-    // Luxy LX-15 rule that incoming text is readable regardless of send entitlement.
     await creatorPage.getByRole('button', { name: 'Tin nhắn', exact: true }).click();
     await expect(creatorPage.getByTestId('luxy-messages-page')).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByRole('tab', { name: 'Tin nhắn đến', exact: true })).toBeVisible();
@@ -87,14 +83,12 @@ test('LX-16 clones Seeking Interests and Messages hierarchy on LX-15 messaging',
       contentType: 'image/png',
     });
 
-    // Archive is a real per-member mailbox state rather than a presentation-only fake.
     await creatorPage.getByRole('button', { name: `Lưu trữ cuộc trò chuyện với ${actors.viewer.displayName}` }).click();
     await expect(creatorPage.getByText(message, { exact: true })).toHaveCount(0, { timeout: 20_000 });
     await creatorPage.getByRole('tab', { name: 'Lưu trữ', exact: true }).click();
     await expect(creatorPage.getByText(message, { exact: true })).toBeVisible({ timeout: 20_000 });
     await creatorPage.getByRole('button', { name: `Khôi phục cuộc trò chuyện với ${actors.viewer.displayName}` }).click();
 
-    // The same hierarchy collapses without horizontal overflow at the required 390px mobile web viewport.
     await creatorPage.setViewportSize({ width: 390, height: 844 });
     await creatorPage.goto('/favorites');
     await expect(creatorPage.getByTestId('luxy-interests-page')).toBeVisible();
