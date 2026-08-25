@@ -59,7 +59,7 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     const favorite = mobileCreator.getByRole('button', { name: /^Yêu thích BR06 Creator/ });
     await favorite.click();
     const savedFavorite = mobileCreator.getByRole('button', { name: /^Bỏ yêu thích BR06 Creator/ });
-    await expect(savedFavorite).toHaveCSS('background-color', 'rgb(217, 45, 42)');
+    await expect(savedFavorite).toHaveCSS('background-color', 'rgb(233, 74, 71)');
     await expect(savedFavorite).toHaveAttribute('aria-selected', 'true');
     await savedFavorite.click();
     const unsavedFavorite = mobileCreator.getByRole('button', { name: /^Yêu thích BR06 Creator/ });
