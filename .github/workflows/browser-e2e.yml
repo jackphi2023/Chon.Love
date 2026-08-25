@@ -108,6 +108,7 @@ jobs:
 
           node scripts/br06/setup-local-fixtures.mjs
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/seed-local-heart-balance.sql
 
           # BR-07 intentionally keeps production VietQR client access fail-closed.
           # UI-BAL01 browser coverage needs the real RPC/order/QR flow, so enable it
@@ -160,6 +161,16 @@ jobs:
                 and ur.revoked_at is null
             ) then
               raise exception 'BR-06 local moderator fixture missing';
+            end if;
+            if not exists(
+              select 1
+              from private.heart_accounts ha
+              join auth.users u on u.id = ha.user_id
+              where u.email = 'br06.viewer@example.test'
+                and ha.available_units = 10000
+                and ha.lifetime_purchased_units = 10000
+            ) then
+              raise exception 'BR-06 viewer canonical heart purchase fixture missing';
             end if;
             if exists(select 1 from auth.users where email ~ '^myfan([1-9]|1[0-6])@gmail[.]com$') then
               raise exception 'controlled Beta accounts must not exist in the local BR-06 database';
