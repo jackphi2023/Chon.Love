@@ -26,7 +26,11 @@ async function openSettingsFromAccountMenu(page) {
   await page.getByRole('button', { name: accountButtonName, exact: true }).click();
   const settingsItem = page.getByRole('menuitem', { name: 'Cài đặt' });
   await expect(settingsItem).toBeVisible();
-  await settingsItem.click();
+  // React Native Web Pressable can re-layout the account popover between pointerdown
+  // and pointerup. Force the already-visible menu item so the test validates routing,
+  // rather than timing of RNW's transient hit target.
+  await settingsItem.click({ force: true });
+  await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByTestId('luxy-settings-page')).toBeVisible();
 }
 
