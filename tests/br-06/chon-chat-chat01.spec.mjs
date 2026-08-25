@@ -26,7 +26,8 @@ test('UI-CHAT01 keeps conversation chrome clean and uses the shared gift compose
   try {
     await login(page);
     await page.goto(`/profile/${creator.username}`);
-    await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
+    await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
+    await expect(page.getByTestId('chon-member-profile-page')).toBeVisible();
     await page.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}`, exact: true }).click();
 
     await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/i);
