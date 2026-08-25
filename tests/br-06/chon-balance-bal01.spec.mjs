@@ -70,14 +70,18 @@ test('UI-BAL01 uses server product id and amount in the shared payment popup', a
     await page.goto('/balance');
     await expect(page.getByTestId('chon-balance-screen')).toBeVisible({ timeout: 30_000 });
 
-    await page.getByTestId('balance-pack-10').click();
+    const pack = page.getByTestId('balance-pack-10');
+    const serverPrice = await pack.getByText(/VNĐ$/).innerText();
+    expect(serverPrice).toMatch(/^[0-9.]+ VNĐ$/);
+
+    await pack.click();
     await page.getByTestId('balance-checkout-cta').click();
     const modal = page.getByTestId('balance-payment-modal');
     await expect(modal).toBeVisible({ timeout: 30_000 });
     await expect(modal.getByText('Mã sản phẩm', { exact: true })).toBeVisible();
     await expect(modal.getByText('Số tiền', { exact: true })).toBeVisible();
     await expect(modal.getByText(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i)).toBeVisible();
-    await expect(modal.getByText('500.000 VNĐ', { exact: true })).toBeVisible();
+    await expect(modal.getByText(serverPrice, { exact: true })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await page.goto('/payments/vietqr');
