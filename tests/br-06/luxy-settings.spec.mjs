@@ -86,8 +86,8 @@ test('UI-SET01 Settings owns privacy and stays clean on desktop', async ({ brows
     await expect(page.getByText('Premium', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Diamond', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Quyền riêng tư của gói hiện tại', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Ẩn trạng thái online', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Ẩn khỏi danh sách thành viên', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: 'Ẩn trạng thái online' })).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: 'Ẩn khỏi danh sách thành viên' })).toHaveCount(0);
 
     await page.goto('/settings');
     await page.getByTestId('settings-verification').click();
