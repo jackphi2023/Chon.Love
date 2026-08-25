@@ -254,7 +254,7 @@ export function ChonBalanceScreen() {
               {productsQuery.isLoading ? (
                 <View style={styles.centerState}>
                   <ActivityIndicator color={chonColors.primaryRed} />
-                  <Text style={styles.med}>Đang tải các gói…</Text>
+                  <Text style={styles.muted}>Đang tải các gói…</Text>
                 </View>
               ) : productsQuery.error ? (
                 <View style={styles.centerState}>
@@ -441,9 +441,9 @@ const styles = StyleSheet.create({
     minHeight: chonLayout.primaryActionHeight,
     paddingHorizontal: 28,
     width: '100%',
-    ...chonShadows.primaryHover,
+    ...chonShadows.primary,
   },
-  primaryButtonPressed: { backgroundColor: chonColors.primaryRedHover, opacity: chonInteraction.pressedOpacity },
+  primaryButtonPressed: { backgroundColor: chonColors.primaryRedHover, opacity: chonInteraction.pressedOpacity, ...chonShadows.primaryHover },
   primaryButtonText: { color: chonColors.surface, fontSize: 14, fontWeight: '800' },
   secondaryButton: { alignItems: 'center', borderColor: chonColors.gold, borderRadius: luxyRadii.pill, borderWidth: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
   secondaryButtonText: { color: chonColors.text, fontSize: 13, fontWeight: '700' },
@@ -454,6 +454,6 @@ const styles = StyleSheet.create({
   errorBanner: { color: chonColors.danger, fontSize: 12, marginTop: 14, textAlign: 'center' },
   waiting: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', paddingVertical: 6 },
   notice: { color: chonColors.goldStrong, fontSize: 11.5, lineHeight: 17, textAlign: 'center' },
-  disabled: { opacity: 0.55 },
+  disabled: { opacity: chonInteraction.disabledOpacity },
   pressed: { opacity: chonInteraction.pressedOpacity },
 });
