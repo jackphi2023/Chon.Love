@@ -4,6 +4,17 @@ const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const creator = { username: 'br06_creator', displayName: 'BR06 Creator', tier: 'diamond' };
 const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tier: 'premium' };
 
+const BADGE_EXPECTATIONS = {
+  mobile: {
+    premium: { displayHeight: 16, naturalWidth: 29, naturalHeight: 40 },
+    diamond: { displayHeight: 16, naturalWidth: 31, naturalHeight: 41 },
+  },
+  desktop: {
+    premium: { displayHeight: 26, naturalWidth: 33, naturalHeight: 46 },
+    diamond: { displayHeight: 26, naturalWidth: 38, naturalHeight: 50 },
+  },
+};
+
 async function login(page, email) {
   await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
@@ -21,23 +32,26 @@ async function openMember(page, member) {
   await expect(page.getByRole('heading', { name: new RegExp(`^${member.displayName},`) })).toBeVisible();
 }
 
-async function expectMembershipArtwork(page, tier, expectedWidth) {
+async function expectMembershipArtwork(page, tier, viewport) {
+  const expected = BADGE_EXPECTATIONS[viewport][tier];
   const badge = page.getByTestId(`chon-membership-badge-${tier}`).first();
   await expect(badge).toBeVisible();
-  const image = badge.locator('img').first();
+  const image = badge.getByTestId(`chon-membership-badge-image-${tier}`);
   await expect(image).toHaveCount(1);
   const naturalSize = await image.evaluate(async (node) => {
     await node.decode();
     return { complete: node.complete, width: node.naturalWidth, height: node.naturalHeight };
   });
   expect(naturalSize.complete).toBe(true);
-  expect(naturalSize.width).toBe(768);
-  expect(naturalSize.height).toBe(528);
+  expect(naturalSize.width).toBe(expected.naturalWidth);
+  expect(naturalSize.height).toBe(expected.naturalHeight);
 
   const box = await badge.boundingBox();
   expect(box, `${tier} badge should render`).not.toBeNull();
-  expect(Math.round(box.width), `${tier} badge width`).toBe(expectedWidth);
-  expect(Math.round(box.height), `${tier} badge 16:11 height`).toBe(Math.round((expectedWidth * 11) / 16));
+  expect(Math.round(box.height), `${tier} badge height`).toBe(expected.displayHeight);
+  expect(Math.round(box.width), `${tier} badge aspect width`).toBe(
+    Math.round((expected.displayHeight * expected.naturalWidth) / expected.naturalHeight),
+  );
 
   const hero = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
   expect(hero, 'profile hero should render').not.toBeNull();
@@ -64,7 +78,7 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
 
     await expect(page.getByTestId('chon-member-profile-hero-photo')).toBeVisible();
     await expect(page.getByTestId(/chon-favorite-/)).toBeVisible();
-    await expectMembershipArtwork(page, creator.tier, 16);
+    await expectMembershipArtwork(page, creator.tier, 'mobile');
     const verification = page.getByTestId('chon-member-verification-badges');
     await expect(verification).toBeVisible();
     await expect(verification.getByRole('button', { name: /^(Đã|Chưa) xác thực ảnh chụp cá nhân$/ })).toBeVisible();
@@ -102,15 +116,15 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
   }
 });
 
-test('UI-PRO01 badge source stays 768x528 and 16:11 for both Diamond and Premium members', async ({ browser }) => {
+test('UI-PRO01 badge source and rendered height follow the Chon.Love Premium/Diamond asset contract', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
     await login(page, 'br06.outsider@example.test');
     await openMember(page, creator);
-    await expectMembershipArtwork(page, creator.tier, 26);
+    await expectMembershipArtwork(page, creator.tier, 'desktop');
     await openMember(page, premiumMember);
-    await expectMembershipArtwork(page, premiumMember.tier, 26);
+    await expectMembershipArtwork(page, premiumMember.tier, 'desktop');
     await expectNoHorizontalOverflow(page);
   } finally {
     await context.close();
@@ -123,7 +137,7 @@ test('UI-PRO01 Premium viewer sees private media while Diamond member badge rema
   try {
     await login(page, 'br06.viewer@example.test');
     await openMember(page, creator);
-    await expectMembershipArtwork(page, creator.tier, 26);
+    await expectMembershipArtwork(page, creator.tier, 'desktop');
     const paidTiles = page.getByTestId('chon-private-photo-paid-tile');
     expect(await paidTiles.count()).toBeGreaterThanOrEqual(1);
     await expect(paidTiles.first()).toBeVisible({ timeout: 20_000 });
