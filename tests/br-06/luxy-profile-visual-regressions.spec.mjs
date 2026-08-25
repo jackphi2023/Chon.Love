@@ -53,7 +53,8 @@ test('UI-PRO01 desktop keeps compact 26px membership status badge, readable fact
     expect(badgeBox.width).toBeGreaterThanOrEqual(25);
     expect(badgeBox.width).toBeLessThanOrEqual(27);
 
-    await expect(page.getByTestId('chon-profile-fact-location')).toContainText('Hồ Chí Minh');
+    // BR-06 uses province_id=1, which maps to Hà Nội in the canonical province table.
+    await expect(page.getByTestId('chon-profile-fact-location')).toContainText('Hà Nội');
     await expect(page.getByTestId('chon-profile-fact-member-since')).toContainText('Thành viên từ');
     await expectFactTextReadable(page);
     await expect(page.getByTestId('chon-member-profile-photo-grid')).toBeVisible();
