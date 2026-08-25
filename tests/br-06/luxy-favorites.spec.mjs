@@ -87,7 +87,9 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
 
     // Recipient sees the incoming signal under Favorited Me.
     await openInterests(creatorPage);
-    await creatorPage.getByRole('tab', { name: 'Yêu thích tôi', exact: true }).click();
+    const creatorFavoritedMeTab = creatorPage.getByTestId('luxy-interests-tab-favorited_me');
+    await expect(creatorFavoritedMeTab).toBeVisible();
+    await creatorFavoritedMeTab.click();
     await expect(creatorPage.getByText(actors.viewer.name, { exact: true })).toBeVisible({ timeout: 20_000 });
 
     // A routed profile visit is recorded once by the route adapter and appears under Viewed Me.
@@ -96,11 +98,11 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
     await expect(creatorPage.getByRole('heading', { name: new RegExp(`^${actors.viewer.name},`) })).toBeVisible({ timeout: 20_000 });
     await creatorPage.waitForTimeout(500);
 
-    await viewerPage.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
+    await viewerPage.getByTestId('luxy-interests-tab-viewed_me').click();
     await expect(viewerPage.getByText(actors.creator.name, { exact: true })).toBeVisible({ timeout: 20_000 });
 
     // Removing the favorite is persistent and removes the current Favorites row.
-    await viewerPage.getByRole('tab', { name: 'Yêu thích', exact: true }).click();
+    await viewerPage.getByTestId('luxy-interests-tab-favorites').click();
     const removeFavorite = viewerPage.getByRole('button', { name: new RegExp(`^Bỏ yêu thích ${actors.creator.name}`) });
     await expect(removeFavorite).toBeVisible();
     await removeFavorite.click();
@@ -108,7 +110,7 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
 
     await creatorPage.goto('/favorites');
     await expect(creatorPage.getByTestId('luxy-interests-page')).toBeVisible();
-    await creatorPage.getByRole('tab', { name: 'Yêu thích tôi', exact: true }).click();
+    await creatorPage.getByTestId('luxy-interests-tab-favorited_me').click();
     await expect(creatorPage.getByText(actors.viewer.name, { exact: true })).toHaveCount(0, { timeout: 20_000 });
 
     await testInfo.attach('ui-fav01-viewer-favorites', {
