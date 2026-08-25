@@ -176,6 +176,17 @@ export function resolveLuxySearchDefaultProvince(
   return requestedProvinceId ?? null;
 }
 
+function attachLuxySearchMembershipBadges(
+  profiles: z.infer<typeof luxySearchProfileBaseSchema>[],
+  badgeRows: z.infer<typeof membershipBadgeRowSchema>[] = [],
+): LuxySearchProfile[] {
+  const badgeTierByUser = new Map(badgeRows.map((row) => [row.user_id, row.badge_tier] as const));
+  return profiles.map((profile) => luxySearchProfileSchema.parse({
+    ...profile,
+    membership_badge_tier: badgeTierByUser.get(profile.id) ?? null,
+  }));
+}
+
 export async function searchLuxyProfilesV2(
   client: Client,
   input: SearchLuxyProfilesInput = {},
@@ -215,20 +226,19 @@ export async function searchLuxyProfilesV2(
   const profiles = z.array(luxySearchProfileBaseSchema).parse(data ?? []);
   if (profiles.length === 0) return [];
 
-  // One batched presentation lookup per Search page avoids N+1 membership reads
-  // and keeps the ranking RPC signature stable. The RPC itself exposes only the
-  // existing public badge rule (active paid male profiles), not entitlements.
+  // Membership badges are presentation-only enrichment. Core Connect results must
+  // remain usable if this companion RPC is temporarily unavailable (for example,
+  // during frontend/database deploy skew). Search/privacy failures above still fail
+  // closed; only badge decoration degrades to no badge.
   const { data: badgeData, error: badgeError } = await client.rpc('get_luxy_search_membership_badges', {
     p_user_ids: profiles.map((profile) => profile.id),
   });
-  if (badgeError) throw badgeError;
+  if (badgeError) return attachLuxySearchMembershipBadges(profiles);
 
-  const badgeRows = z.array(membershipBadgeRowSchema).parse(badgeData ?? []);
-  const badgeTierByUser = new Map(badgeRows.map((row) => [row.user_id, row.badge_tier] as const));
-  return profiles.map((profile) => luxySearchProfileSchema.parse({
-    ...profile,
-    membership_badge_tier: badgeTierByUser.get(profile.id) ?? null,
-  }));
+  const parsedBadgeRows = z.array(membershipBadgeRowSchema).safeParse(badgeData ?? []);
+  if (!parsedBadgeRows.success) return attachLuxySearchMembershipBadges(profiles);
+
+  return attachLuxySearchMembershipBadges(profiles, parsedBadgeRows.data);
 }
 
 export function formatLuxyDistance(distanceKm: number | null | undefined): string | null {
