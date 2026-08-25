@@ -1,0 +1,40 @@
+name: UI-ASSET01 Materialize Approved Badge Assets
+
+on:
+  push:
+    branches:
+      - agent/ui-home-nav-consistency-v1-asset01-staging
+    paths:
+      - '.github/ui-asset01/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ui-home-nav-consistency-v1-asset01-staging
+          fetch-depth: 0
+      - name: Decode exact approved PNG assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/mobile/assets/chon/membership-badges
+          cat .github/ui-asset01/premium-*.b64 | tr -d '\n' | base64 --decode > apps/mobile/assets/chon/membership-badges/premium-160.png
+          cat .github/ui-asset01/diamond-*.b64 | tr -d '\n' | base64 --decode > apps/mobile/assets/chon/membership-badges/diamond-160.png
+          test "$(git hash-object apps/mobile/assets/chon/membership-badges/premium-160.png)" = "d7c1a3416295a9a92e84f1a46bd22d80a6baf612"
+          test "$(git hash-object apps/mobile/assets/chon/membership-badges/diamond-160.png)" = "3d9c8841e8b29618c668760aa128add39b00368c"
+      - name: Commit only materialized badge assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/mobile/assets/chon/membership-badges/premium-160.png apps/mobile/assets/chon/membership-badges/diamond-160.png
+          git rm -r .github/ui-asset01
+          git rm .github/workflows/ui-asset01-materialize.yml
+          git commit -m "UI-ASSET01 staging: materialize approved 160px badge assets"
+          git push origin HEAD:agent/ui-home-nav-consistency-v1-asset01-staging
