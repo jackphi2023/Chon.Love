@@ -29,6 +29,12 @@ test('UI-PRO02 /profile resolves to one Chon.Love editor with canonical public v
     await expect(page.getByText('Ngôn ngữ', { exact: true })).toHaveCount(0);
     await expect(page.getByText(/Luxy\.Love/)).toHaveCount(0);
 
+    // The fixture deliberately carries a pre-V2 height of 225 cm. Editing an unrelated
+    // field must preserve this legacy value, while newly edited heights still use the
+    // Signup V2 120–220 cm validation in the application code.
+    const height = page.getByLabel('Chiều cao', { exact: true });
+    await expect(height).toHaveValue('225');
+
     const headline = page.getByLabel('Tiêu đề');
     await headline.fill('Ngắn');
     await page.getByTestId('lx08-save').click();
@@ -38,6 +44,7 @@ test('UI-PRO02 /profile resolves to one Chon.Love editor with canonical public v
     await headline.fill(updatedHeadline);
     await page.getByTestId('lx08-save').click();
     await expect(page.getByRole('alert')).toContainText('Đã lưu thay đổi hồ sơ Chọn.Love.');
+    await expect(height).toHaveValue('225');
 
     await page.getByTestId('lx08-view-profile').click();
     await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i);
