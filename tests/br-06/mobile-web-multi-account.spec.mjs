@@ -58,7 +58,6 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
       login(outsiderPage, actors.outsider),
     ]);
 
-    // Old Activity URLs are intentionally retained only as safe redirects.
     await viewerPage.goto('/activity');
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible();
     await viewerPage.goto(`/activity/${actors.creator.username}`);
@@ -66,7 +65,6 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await viewerPage.goto('/activity/create');
     await expect(viewerPage.getByTestId('luxy-search-mobile')).toBeVisible();
 
-    // Premium fixture uses the fixed mobile CTA for LX-15 direct messaging without friendship.
     await openCreatorProfile(viewerPage);
     await viewerPage.getByRole('button', { name: `Gửi tin nhắn cho ${actors.creator.displayName}`, exact: true }).click();
     const chatInput = viewerPage.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true });
@@ -75,14 +73,12 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await viewerPage.getByRole('button', { name: 'Gửi', exact: true }).click();
     await expect(viewerPage.getByText(message, { exact: true }).last()).toBeVisible();
 
-    // Recipient can read the incoming direct message even when their own send entitlement differs.
     await creatorPage.getByRole('button', { name: 'Tin nhắn', exact: true }).click();
     await expect(creatorPage.getByTestId('luxy-messages-page')).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByRole('heading', { name: 'Tin nhắn', exact: true })).toBeVisible();
     await expect(creatorPage.getByText(actors.viewer.displayName, { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByText(message, { exact: true })).toBeVisible();
 
-    // Free fixture can browse/favorite but messaging and Private Photos remain paid entitlements.
     await openCreatorProfile(outsiderPage);
     const favorite = outsiderPage.getByRole('button', { name: new RegExp(`^(Yêu thích|Bỏ yêu thích) ${actors.creator.displayName}`) });
     await expect(favorite).toBeVisible();
@@ -102,10 +98,9 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await expect(outsiderPage.getByText(/Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư/)).toBeVisible();
     await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
 
-    // At desktop width the Free message composer keeps the inline paid-membership gate.
     await outsiderPage.setViewportSize({ width: 1280, height: 900 });
     await openCreatorProfile(outsiderPage);
-    await expect(outsiderPage.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
+    await expect(outsiderPage.getByTestId('chon-member-profile-message-composer')).toBeVisible();
     await outsiderPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
     await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
