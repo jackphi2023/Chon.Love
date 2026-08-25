@@ -5,15 +5,12 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
-import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
+import { ChonAuthShell } from '@/components/chon-auth-shell';
 import { SignupSecondaryButton } from '@/components/signup-shell';
 import {
   resendEmailSignupOtp,
@@ -45,13 +42,11 @@ type WebKeyboardEvent = {
 };
 
 const googleAuthEnabled = process.env.EXPO_PUBLIC_FEATURE_GOOGLE_AUTH === 'true';
-const AUTH_COMPACT_BREAKPOINT = 768;
 
 export default function AuthHome() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const auth = useAuth();
-  const { width } = useWindowDimensions();
   const [initialDraft] = useState(() => readSignupDraft());
   const [mode, setMode] = useState<AuthMode>(params.mode === 'login' ? 'login' : 'join');
   const [joinStep, setJoinStep] = useState<JoinStep>(() => {
@@ -66,7 +61,6 @@ export default function AuthHome() {
   const [submitMode, setSubmitMode] = useState<SubmitMode>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const compact = width < AUTH_COMPACT_BREAKPOINT;
   const disabled = !auth.isConfigured || submitMode !== null;
   const googleDisabled = disabled || !googleAuthEnabled;
 
@@ -211,95 +205,79 @@ export default function AuthHome() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} testID="luxy-auth-screen">
-      <PublicHeader
-        actionLabel={mode === 'join' ? 'Đăng nhập' : 'Đăng ký'}
-        compact={compact}
-        onAction={() => switchMode(mode === 'join' ? 'login' : 'join')}
-        onHome={() => router.replace('/')}
-        prompt={mode === 'join' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
-        variant="solid"
-      />
-
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, compact && styles.scrollContentCompact]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.authPanel, compact && styles.authPanelCompact]} testID="signup-auth-panel">
-          {mode === 'join' ? (
-            joinStep === 'preferences' ? (
-              <JoinPreferences
-                errorMessage={errorMessage}
-                gender={gender}
-                interest={interest}
-                onContinue={continueFromPreferences}
-                onGender={setGender}
-                onInterest={setInterest}
-              />
-            ) : joinStep === 'account' ? (
-              <AccountForm
-                disabled={disabled}
-                email={email}
-                errorMessage={errorMessage}
-                googleDisabled={googleDisabled}
-                mode="join"
-                onBack={() => {
-                  setJoinStep('preferences');
-                  setErrorMessage(null);
-                  setPassword('');
-                }}
-                onEmail={setEmail}
-                onGoogle={handleGoogle}
-                onPassword={setPassword}
-                onSubmit={handleSignUp}
-                password={password}
-                submitMode={submitMode}
-              />
-            ) : (
-              <OtpForm
-                disabled={disabled}
-                email={email}
-                errorMessage={errorMessage}
-                onBack={() => {
-                  patchSignupDraft({ stage: 'account', updatedAt: Date.now() });
-                  setJoinStep('account');
-                  setErrorMessage(null);
-                  setOtp('');
-                  setPassword('');
-                }}
-                onOtp={(value) => setOtp(normalizeEmailOtp(value))}
-                onResend={() => void handleResendOtp()}
-                onSubmit={() => void handleVerifyOtp()}
-                otp={otp}
-                submitMode={submitMode}
-              />
-            )
-          ) : (
+    <ChonAuthShell
+      actionLabel={mode === 'join' ? 'Đăng nhập' : 'Đăng ký'}
+      onAction={() => switchMode(mode === 'join' ? 'login' : 'join')}
+      prompt={mode === 'join' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
+      testID="luxy-auth-screen"
+    >
+      <View testID="signup-auth-panel">
+        {mode === 'join' ? (
+          joinStep === 'preferences' ? (
+            <JoinPreferences
+              errorMessage={errorMessage}
+              gender={gender}
+              interest={interest}
+              onContinue={continueFromPreferences}
+              onGender={setGender}
+              onInterest={setInterest}
+            />
+          ) : joinStep === 'account' ? (
             <AccountForm
               disabled={disabled}
               email={email}
               errorMessage={errorMessage}
               googleDisabled={googleDisabled}
-              mode="login"
+              mode="join"
+              onBack={() => {
+                setJoinStep('preferences');
+                setErrorMessage(null);
+                setPassword('');
+              }}
               onEmail={setEmail}
-              onForgotPassword={() => router.push('/auth/forgot-password')}
               onGoogle={handleGoogle}
               onPassword={setPassword}
-              onSubmit={handleLogin}
+              onSubmit={handleSignUp}
               password={password}
               submitMode={submitMode}
             />
-          )}
-        </View>
-
-        <PublicFooter
-          compact={compact}
-          onCommunity={() => router.push('/legal/community-standards')}
-          onTerms={() => router.push('/legal/terms')}
-        />
-      </ScrollView>
-    </SafeAreaView>
+          ) : (
+            <OtpForm
+              disabled={disabled}
+              email={email}
+              errorMessage={errorMessage}
+              onBack={() => {
+                patchSignupDraft({ stage: 'account', updatedAt: Date.now() });
+                setJoinStep('account');
+                setErrorMessage(null);
+                setOtp('');
+                setPassword('');
+              }}
+              onOtp={(value) => setOtp(normalizeEmailOtp(value))}
+              onResend={() => void handleResendOtp()}
+              onSubmit={() => void handleVerifyOtp()}
+              otp={otp}
+              submitMode={submitMode}
+            />
+          )
+        ) : (
+          <AccountForm
+            disabled={disabled}
+            email={email}
+            errorMessage={errorMessage}
+            googleDisabled={googleDisabled}
+            mode="login"
+            onEmail={setEmail}
+            onForgotPassword={() => router.push('/auth/forgot-password')}
+            onGoogle={handleGoogle}
+            onPassword={setPassword}
+            onSubmit={handleLogin}
+            password={password}
+            submitMode={submitMode}
+          />
+        )}
+      </View>
+    </ChonAuthShell>
   );
 }
 
@@ -574,11 +552,6 @@ function OtpForm({
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  scrollContent: { flexGrow: 1, alignItems: 'center', paddingTop: 48, backgroundColor: '#FFFFFF' },
-  scrollContentCompact: { paddingTop: 28 },
-  authPanel: { width: '100%', maxWidth: 456, paddingHorizontal: 8, paddingBottom: 54, paddingVertical: 0 },
-  authPanelCompact: { paddingHorizontal: 24, paddingBottom: 38 },
   preferenceForm: { gap: 0 },
   heading: { color: luxyColors.ink, fontSize: 26, lineHeight: 34, fontWeight: '500', textAlign: 'center', marginBottom: 30 },
   subheading: { color: luxyColors.muted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: -18, marginBottom: 22 },

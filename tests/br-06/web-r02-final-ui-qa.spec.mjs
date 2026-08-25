@@ -11,7 +11,7 @@ const profileVisualFixture = `<svg xmlns="http://www.w3.org/2000/svg" width="320
   <circle cx="160" cy="135" r="66" fill="#7a858f"/>
   <rect x="55" y="195" width="210" height="205" rx="100" fill="#626e79"/>
   <path d="M270 28l22 22-22 22-22-22z" fill="none" stroke="#b58937" stroke-width="4"/>
-  <text x="18" y="28" font-family="Arial" font-size="14" fill="#444">Luxy QA</text>
+  <text x="18" y="28" font-family="Arial" font-size="14" fill="#444">Chọn.Love QA</text>
 </svg>`;
 
 const vietQrVisualFixture = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
@@ -205,19 +205,21 @@ for (const viewport of viewports) {
       }
 
       await freePage.goto(`/profile/${creator.username}`);
-      await expect(freePage.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
+      await expect(freePage.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
       await expect(freePage.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
       await expect(freePage.locator('button button'), 'Member Profile must not render nested interactive buttons').toHaveCount(0);
-      await expect(freePage.getByTestId('luxy-private-photo-entitlement-button')).toContainText('Nâng cấp');
-      await expect(freePage.getByTestId('luxy-member-verification-badges')).toBeVisible();
+      await expect(freePage.getByTestId('chon-private-photo-entitlement-button')).toContainText('Xem ảnh riêng tư');
+      await expect(freePage.getByTestId('chon-member-verification-badges')).toBeVisible();
       if (viewport.width < 1024) {
-        await expect(freePage.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
-        await expect(freePage.getByTestId('luxy-profile-mobile-action-dock')).toBeVisible();
+        await expect(freePage.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
+        await expect(freePage.getByTestId('chon-profile-mobile-action-dock')).toBeVisible();
       }
       await capture(freePage, testInfo, viewport, 'member-profile');
 
       await page.goto('/favorites');
       await expect(page.getByTestId('luxy-interests-page')).toBeVisible();
+      await expect(page.getByTestId('luxy-interests-tab-favorites')).toHaveAttribute('aria-selected', 'true');
+      await page.getByRole('tab', { name: 'Đã xem tôi', exact: true }).click();
       await expect(page.getByTestId('luxy-interests-tab-viewed_me')).toHaveAttribute('aria-selected', 'true');
       await capture(page, testInfo, viewport, 'interests-viewed-me');
 
@@ -231,22 +233,24 @@ for (const viewport of viewports) {
       await capture(page, testInfo, viewport, 'messages');
 
       await page.goto(`/profile/${creator.username}`);
-      await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
+      await expect(page.getByTestId('chon-member-profile-page')).toBeVisible();
       await openProfileMessage(page, viewport, creator.displayName);
       await expect(page.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true })).toBeVisible({ timeout: 20_000 });
-      const retentionSwitch = page.getByRole('switch', { name: 'Tự động xóa tin nhắn sau 7 ngày cho cả hai người' });
+      const retentionCard = page.getByTestId('chon-chat-retention-card');
+      await expect(retentionCard).toBeVisible({ timeout: 20_000 });
+      const retentionSwitch = retentionCard.getByRole('switch', { name: 'Tự động xoá tin nhắn sau 7 ngày cho cả hai người' });
       await expect(retentionSwitch).toBeVisible({ timeout: 20_000 });
       await expect(retentionSwitch).toBeEnabled({ timeout: 20_000 });
-      await expect(page.getByText('Không thể tải cài đặt tự động xóa', { exact: false })).toHaveCount(0);
+      await expect(page.getByText('Không thể tải cài đặt tự động xoá', { exact: false })).toHaveCount(0);
       await capture(page, testInfo, viewport, 'chat');
 
       await page.goto('/profile/edit');
-      await expect(page.getByTestId('lx08-edit-profile-page')).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('chon-my-profile-page')).toBeVisible({ timeout: 20_000 });
       await expect(page.getByTestId('lx08-profile-form')).toBeVisible({ timeout: 20_000 });
       await capture(page, testInfo, viewport, 'edit-profile');
 
       await page.goto('/settings');
-      await expect(page.getByTestId('luxy-settings-page')).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('chon-settings-page')).toBeVisible({ timeout: 20_000 });
       await capture(page, testInfo, viewport, 'settings');
 
       await page.goto('/settings/membership');
@@ -264,7 +268,7 @@ for (const viewport of viewports) {
       await capture(page, testInfo, viewport, 'private-photos');
 
       await freePage.goto(`/profile/${creator.username}`);
-      await expect(freePage.getByTestId('luxy-member-profile-page')).toBeVisible({ timeout: 20_000 });
+      await expect(freePage.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
       if (viewport.width < 1024) {
         await freePage.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}`, exact: true }).click();
         await expect(freePage).toHaveURL(/\/settings\/membership/);

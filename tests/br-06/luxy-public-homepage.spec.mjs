@@ -4,7 +4,7 @@ const homepageSeoTitle = 'Trang chủ | Chọn.love - Chọn đúng Người, Y�
 const colors = {
   red: 'rgb(217, 45, 42)',
   gold: 'rgb(255, 187, 0)',
-  pink: 'rgb(246, 216, 223)',
+  pink: 'rgb(250, 245, 242)',
 };
 const navLogoScale = 1.16;
 
@@ -40,6 +40,8 @@ async function assertPrimaryHomepageContent(page) {
   await expect(home.getByText('QUYỀN LỢI THÀNH VIÊN', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('QUYỀN LỢI THÀNH VIÊN:', { exact: true })).toHaveCount(0);
   await expect(home.getByText('SỨ MỆNH CỦA CHÚNG TÔI', { exact: true }).first()).toBeVisible();
+  await expect(home.getByRole('button', { name: 'Tham gia ngay', exact: true }).last()).toBeVisible();
+  await expect(home.getByText('Tham gia Chọn.love', { exact: true })).toHaveCount(0);
   await expect(home.getByText('VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true }).last()).toBeVisible();
   await expect(home.getByText('© 2026 Chon.Love', { exact: true })).toBeVisible();
@@ -58,11 +60,18 @@ async function assertHomepagePalette(home) {
     'VĂN HOÁ KẾT NỐI CỦA CHỌN.LOVE',
   ]) {
     await expect(home.getByText(heading, { exact: true }).first()).toHaveCSS('color', colors.gold);
+    await expect(home.getByText(heading, { exact: true }).first()).toHaveCSS('font-size', '26px');
   }
 
   const cultureHeart = home.getByText('♥', { exact: true }).first();
   await expect(cultureHeart).toHaveCSS('color', colors.gold);
   await expect(cultureHeart.locator('xpath=..')).toHaveCSS('background-color', colors.red);
+
+  const firstCultureItem = home.getByText('Hẹn hò xác thực thành viên.', { exact: true }).locator('xpath=../..');
+  await expect(firstCultureItem.getByText('01', { exact: true })).toHaveCount(0);
+
+  const firstBenefitNumber = home.getByText('01', { exact: true }).first();
+  await expect(firstBenefitNumber).toHaveCSS('color', colors.gold);
 
   const pinkSectionCount = await home.locator('*').evaluateAll(
     (nodes, pink) => nodes.filter((node) => getComputedStyle(node).backgroundColor === pink).length,
@@ -78,8 +87,25 @@ test('public homepage follows the refreshed Chọn.love hierarchy and palette on
   await expect(page).toHaveTitle(homepageSeoTitle);
   const home = await assertPrimaryHomepageContent(page);
   await assertHomepagePalette(home);
-  await expect(home.getByLabel('Minh họa kết nối Chọn.love')).toHaveCount(1);
-  await expect(home.getByLabel('Minh họa hẹn hò Chọn.love')).toHaveCount(1);
+
+  const leftArtwork = home.getByLabel('Minh họa kết nối Chọn.love');
+  const rightArtwork = home.getByLabel('Minh họa hẹn hò Chọn.love');
+  await expect(leftArtwork).toHaveCount(1);
+  await expect(rightArtwork).toHaveCount(1);
+  for (const artwork of [leftArtwork, rightArtwork]) {
+    const frame = artwork.locator('xpath=..');
+    const box = await frame.boundingBox();
+    expect(box).not.toBeNull();
+    expect(Math.abs(box.height - 296)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.width - 216)).toBeLessThanOrEqual(1);
+  }
+
+  const heroSlogan = home.getByText('Chọn đúng Người, Yêu đúng Gu', { exact: true }).first();
+  await expect(heroSlogan).toHaveCSS('font-size', '36px');
+  await expect(heroSlogan).toHaveCSS('margin-top', '8px');
+
+  const testimonialCard = home.getByText('Steven Nguyễn', { exact: true }).first().locator('xpath=..');
+  await expect(testimonialCard).toHaveCSS('background-color', 'rgba(255, 241, 200, 0.88)');
   await expect(home.getByText('Steven Nguyễn', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Thanh Hiền', { exact: true }).first()).toBeVisible();
   await expect(home.getByText('Hải Yến', { exact: true }).first()).toBeVisible();
@@ -145,7 +171,9 @@ for (const viewport of [
     await expect(home.getByLabel('Minh họa kết nối Chọn.love')).toHaveCount(0);
     await expect(home.getByLabel('Minh họa hẹn hò Chọn.love')).toHaveCount(0);
 
-    // React Native Web can expose Pressable text before its final accessibility role settles at small viewports.
+    const benefitArtwork = home.getByLabel('Minh họa quyền lợi thành viên Chọn.love').first();
+    await expect(benefitArtwork).toBeVisible();
+
     await expect(home.getByText('Đăng nhập', { exact: true }).first()).toBeVisible();
     await expect(home.getByText('Đăng ký', { exact: true }).first()).toBeVisible();
     await expect(home.getByRole('button', { name: 'Mở menu' })).toHaveCount(0);
@@ -162,17 +190,20 @@ for (const viewport of [
     expect(ctaBox.height).toBeGreaterThanOrEqual(44);
 
     const footer = page.getByTestId('chon-public-footer');
-    const footerRows = footer.locator(':scope > *');
-    await expect(footerRows).toHaveCount(3);
-    const rowBoxes = [];
-    for (let index = 0; index < 3; index += 1) {
-      const box = await footerRows.nth(index).boundingBox();
-      expect(box).not.toBeNull();
-      rowBoxes.push(box);
-      expect(Math.abs((box.x + box.width / 2) - (viewport.width / 2))).toBeLessThanOrEqual(6);
-    }
-    expect(rowBoxes[1].y).toBeGreaterThan(rowBoxes[0].y);
-    expect(rowBoxes[2].y).toBeGreaterThan(rowBoxes[1].y);
+    const footerSlogan = footer.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true });
+    const firstLegalLink = footer.getByRole('link').first();
+    const footerCopyright = footer.getByText('© 2026 Chon.Love', { exact: true });
+    await expect(footerSlogan).toBeVisible();
+    await expect(firstLegalLink).toBeVisible();
+    await expect(footerCopyright).toBeVisible();
+    const sloganBox = await footerSlogan.boundingBox();
+    const legalBox = await firstLegalLink.boundingBox();
+    const copyrightBox = await footerCopyright.boundingBox();
+    expect(sloganBox).not.toBeNull();
+    expect(legalBox).not.toBeNull();
+    expect(copyrightBox).not.toBeNull();
+    expect(legalBox.y).toBeGreaterThan(sloganBox.y);
+    expect(copyrightBox.y).toBeGreaterThan(legalBox.y);
     const footerBox = await footer.boundingBox();
     expect(footerBox).not.toBeNull();
     expect(footerBox.height).toBeLessThan(130);

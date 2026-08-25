@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   CHAT_AUTO_DELETE_MS,
+  CHAT_RETENTION_DELETED_PLACEHOLDER,
   createChatClientMessageId,
   filterExpiredChatMessages,
   formatConversationPreview,
   getConversationRetention,
   getNextChatExpiryMs,
   getOlderMessageCursor,
+  hasRetentionDeletedMessages,
   mergeChatMessagesNewestFirst,
   setConversationAutoDelete,
   type ChatMessage,
@@ -28,6 +30,7 @@ const conversation: ConversationSummary = {
   friendship_status: 'accepted',
   can_send: true,
   blocked: false,
+  retention_purged_at: null,
   last_message_id: null,
   last_message_type: null,
   last_message_body: null,
@@ -41,6 +44,7 @@ const retention: ConversationRetention = {
   auto_delete_enabled: true,
   auto_delete_after_days: 7,
   updated_at: '2026-07-30T07:00:00.000Z',
+  purged_at: null,
 };
 
 function message(overrides: Partial<ChatMessage> = {}): ChatMessage {
@@ -86,7 +90,7 @@ describe('chat helpers', () => {
     expect(mergeChatMessagesNewestFirst([optimistic, server])).toEqual([server]);
   });
 
-  it('normalizes a disabled SQL retention flag from null to false', async () => {
+  it('normalizes a disabled SQL retention flag from null to false and accepts pre-MSG02 responses', async () => {
     const disabledRow = {
       conversation_id: conversation.conversation_id,
       auto_delete_enabled: null,
@@ -127,10 +131,14 @@ describe('chat helpers', () => {
     expect(getNextChatExpiryMs([fresh], { ...retention, auto_delete_enabled: false, auto_delete_after_days: null }, now)).toBeNull();
   });
 
-  it('formats safe conversation previews', () => {
+  it('formats safe conversation previews and only uses the deleted placeholder after a server purge', () => {
     expect(formatConversationPreview(conversation)).toBe('Bắt đầu trò chuyện');
+    expect(formatConversationPreview({ ...conversation, retention_purged_at: '2026-08-24T15:20:00.000Z' }))
+      .toBe(CHAT_RETENTION_DELETED_PLACEHOLDER);
     expect(formatConversationPreview({ ...conversation, last_message_id: message().id, last_message_type: 'text', last_message_body: 'Chào bạn' })).toBe('Chào bạn');
     expect(formatConversationPreview({ ...conversation, last_message_id: message().id, last_message_type: 'text', last_message_body: null })).toBe('Tin nhắn không còn hiển thị');
     expect(formatConversationPreview({ ...conversation, last_message_id: message().id, last_message_type: 'gift' })).toBe('Đã gửi một món quà');
+    expect(hasRetentionDeletedMessages({ ...retention, purged_at: '2026-08-24T15:20:00.000Z' })).toBe(true);
+    expect(hasRetentionDeletedMessages(retention)).toBe(false);
   });
 });

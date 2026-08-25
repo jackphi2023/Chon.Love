@@ -4,7 +4,7 @@ import {
 } from '@myfan/supabase';
 import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Slot, useLocalSearchParams } from 'expo-router';
+import { Slot, useLocalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
@@ -23,6 +23,7 @@ function normalizeIdentifier(value: string | string[] | undefined): string {
 
 export default function MemberProfileRouteLayout() {
   const auth = useAuth();
+  const pathname = usePathname();
   const params = useLocalSearchParams<{ username?: string | string[] }>();
   const identifier = normalizeIdentifier(params.username).trim();
   const recordedKey = useRef<string | null>(null);
@@ -30,10 +31,11 @@ export default function MemberProfileRouteLayout() {
   const [giftOpen, setGiftOpen] = useState(false);
   const { width } = useWindowDimensions();
   const desktop = width >= luxyBreakpoints.desktop;
+  const isEditor = pathname === '/profile/edit';
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, identifier],
-    enabled: Boolean(client && auth.userId && identifier),
+    enabled: Boolean(!isEditor && client && auth.userId && identifier),
     staleTime: 30_000,
     queryFn: async () => {
       if (!client) throw new Error('supabase_not_configured');
@@ -44,7 +46,7 @@ export default function MemberProfileRouteLayout() {
   const profile = profileQuery.data;
 
   useEffect(() => {
-    if (!auth.userId || !client || !profile?.id || !profile.username) return;
+    if (isEditor || !auth.userId || !client || !profile?.id || !profile.username) return;
     const key = `${auth.userId}:${profile.id}`;
     if (recordedKey.current === key) return;
     recordedKey.current = key;
@@ -52,16 +54,13 @@ export default function MemberProfileRouteLayout() {
     void recordProfileViewByUsername(client, profile.username).catch((error) => {
       logger.error('Unable to record Chọn.love profile view', error);
     });
-  }, [auth.userId, client, profile?.id, profile?.username]);
+  }, [auth.userId, client, isEditor, profile?.id, profile?.username]);
 
-  // Public /thanh-vien/id-xxxxxx pages stay intentionally clean for guests.
-  // Authenticated members receive the same shell/actions as the legacy profile route.
   if (!auth.userId) return <Slot />;
+  if (isEditor) return <Slot />;
 
   const recipientName = profile?.display_name || profile?.username || 'thành viên này';
-  const canOfferGift = Boolean(
-    profile && profile.id !== auth.userId && !profile.blocked_by_viewer,
-  );
+  const canOfferGift = Boolean(profile && profile.id !== auth.userId && !profile.blocked_by_viewer);
 
   return (
     <View style={styles.root}>

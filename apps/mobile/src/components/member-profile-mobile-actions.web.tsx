@@ -3,7 +3,7 @@ import {
   getLuxyProfileConversation,
   getMyLuxyMembershipSnapshot,
 } from '@myfan/supabase';
-import { luxyBreakpoints, luxyColors, luxyLayout, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
+import { chonBreakpoints, chonColors, chonShadows, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,8 @@ import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
 import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
+
+const MOBILE_UPGRADE_PROMO_HEIGHT = 46;
 
 const fixedTopStyle = {
   left: 0,
@@ -30,7 +32,7 @@ const fixedBottomStyle = {
 
 const safeAreaPromptStyle = {
   boxSizing: 'border-box',
-  height: `calc(${luxyLayout.authenticatedPromoHeight}px + env(safe-area-inset-top))`,
+  height: `calc(${MOBILE_UPGRADE_PROMO_HEIGHT}px + env(safe-area-inset-top))`,
   paddingTop: 'env(safe-area-inset-top)',
 } as unknown as ViewStyle;
 
@@ -56,7 +58,7 @@ export function MemberProfileMobileActions() {
   const client = getMobileSupabaseClient();
   const { width } = useWindowDimensions();
   const identifier = getProfileIdentifier(pathname);
-  const mobileWeb = width < luxyBreakpoints.desktop;
+  const mobileWeb = width < chonBreakpoints.desktop;
   const enabled = Boolean(mobileWeb && identifier && auth.userId && client);
   const [giftOpen, setGiftOpen] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
@@ -99,12 +101,12 @@ export function MemberProfileMobileActions() {
     const element = document.createElement('style');
     element.dataset.chonLoveProfileMobileActions = 'true';
     element.textContent = `
-      @media (max-width: ${luxyBreakpoints.desktop - 1}px) {
-        [data-testid="luxy-member-profile-message-composer"] { display: none !important; }
-        [data-testid="luxy-member-profile-page"] {
+      @media (max-width: ${chonBreakpoints.desktop - 1}px) {
+        [data-testid="chon-member-profile-message-composer"] { display: none !important; }
+        [data-testid="chon-member-profile-page"] {
           box-sizing: border-box !important;
           padding-bottom: ${actionsVisible ? 'calc(84px + env(safe-area-inset-bottom))' : '0px'} !important;
-          padding-top: ${isFreeMembership ? `calc(${luxyLayout.authenticatedPromoHeight}px + env(safe-area-inset-top))` : '0px'} !important;
+          padding-top: ${isFreeMembership ? `calc(${MOBILE_UPGRADE_PROMO_HEIGHT}px + env(safe-area-inset-top))` : '0px'} !important;
         }
       }
     `;
@@ -143,7 +145,7 @@ export function MemberProfileMobileActions() {
           accessibilityRole="button"
           onPress={openMembership}
           style={({ pressed }) => [styles.upgradePrompt, fixedTopStyle, safeAreaPromptStyle, pressed && styles.pressed]}
-          testID="luxy-profile-free-upgrade-promo"
+          testID="chon-profile-free-upgrade-promo"
         >
           <Text style={styles.upgradePromptText}>
             <Text style={styles.upgradePromptStrong}>Nâng cấp ngay</Text> để gửi tin nhắn
@@ -151,7 +153,7 @@ export function MemberProfileMobileActions() {
         </Pressable>
       ) : null}
 
-      <View style={[styles.actionDock, fixedBottomStyle, safeAreaDockStyle]} testID="luxy-profile-mobile-action-dock">
+      <View style={[styles.actionDock, fixedBottomStyle, safeAreaDockStyle]} testID="chon-profile-mobile-action-dock">
         {actionError ? <Text accessibilityRole="alert" style={styles.actionError}>{actionError}</Text> : null}
         <View style={styles.actionRow}>
           <Pressable
@@ -159,7 +161,7 @@ export function MemberProfileMobileActions() {
             accessibilityRole="button"
             onPress={() => setGiftOpen(true)}
             style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
-            testID="luxy-profile-gift-button"
+            testID="chon-profile-gift-button"
           >
             <ChonBrandIcon name="gift" size={CHON_ICON_SIZE_MOBILE} />
             <Text style={styles.giftButtonText}>Tặng quà</Text>
@@ -170,7 +172,7 @@ export function MemberProfileMobileActions() {
             disabled={messageBusy}
             onPress={() => void openConversation()}
             style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
-            testID="luxy-profile-fixed-message-button"
+            testID="chon-profile-fixed-message-button"
           >
             <ChonBrandIcon name="message" size={CHON_ICON_SIZE_MOBILE} />
             <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
@@ -191,24 +193,24 @@ export function MemberProfileMobileActions() {
 const styles = StyleSheet.create({
   upgradePrompt: {
     alignItems: 'center',
-    backgroundColor: '#090909',
-    height: luxyLayout.authenticatedPromoHeight,
+    backgroundColor: chonColors.ink,
+    height: MOBILE_UPGRADE_PROMO_HEIGHT,
     justifyContent: 'center',
-    minHeight: luxyLayout.authenticatedPromoHeight,
-    paddingHorizontal: luxySpacing.lg,
+    minHeight: MOBILE_UPGRADE_PROMO_HEIGHT,
+    paddingHorizontal: 16,
     zIndex: 980,
   },
-  upgradePromptText: { color: luxyColors.surface, fontSize: 14, lineHeight: 18 },
-  upgradePromptStrong: { fontWeight: '800', textDecorationLine: 'underline' },
+  upgradePromptText: { color: chonColors.surface, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
+  upgradePromptStrong: { color: chonColors.gold, fontWeight: '800', textDecorationLine: 'underline' },
   actionDock: {
-    backgroundColor: luxyColors.surface,
-    borderTopColor: luxyColors.border,
+    backgroundColor: chonColors.surface,
+    borderTopColor: chonColors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingBottom: 10,
     paddingHorizontal: 10,
     paddingTop: 9,
     zIndex: 970,
-    ...luxyShadows.navigation,
+    ...chonShadows.card,
   },
   actionRow: {
     alignItems: 'stretch',
@@ -220,9 +222,9 @@ const styles = StyleSheet.create({
   },
   giftButton: {
     alignItems: 'center',
-    backgroundColor: luxyColors.surface,
-    borderColor: luxyColors.actionRed,
-    borderRadius: luxyRadii.sm,
+    backgroundColor: chonColors.surface,
+    borderColor: chonColors.gold,
+    borderRadius: 999,
     borderWidth: 1,
     flex: 0.42,
     flexDirection: 'row',
@@ -232,11 +234,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 10,
   },
-  giftButtonText: { color: luxyColors.actionRed, fontSize: 13, fontWeight: '700' },
+  giftButtonText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '700' },
   messageButton: {
     alignItems: 'center',
-    backgroundColor: luxyColors.actionRed,
-    borderRadius: luxyRadii.sm,
+    backgroundColor: chonColors.primaryRed,
+    borderRadius: 999,
     flex: 0.58,
     flexDirection: 'row',
     gap: 7,
@@ -245,8 +247,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 10,
   },
-  messageButtonText: { color: luxyColors.surface, fontSize: 14, fontWeight: '800' },
-  actionError: { color: luxyColors.danger, fontSize: 11, marginBottom: 7, textAlign: 'center' },
+  messageButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800' },
+  actionError: { color: chonColors.danger, fontSize: chonTypography.sizes.help, marginBottom: 7, textAlign: 'center' },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.76 },
 });

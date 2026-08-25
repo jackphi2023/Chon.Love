@@ -28,6 +28,30 @@ export const luxyColors = {
   photoGradientEnd: 'rgba(8, 23, 38, 0.88)',
 } as const;
 
+// Chọn.Love semantic presentation tokens. New UI should depend on these names
+// rather than reinterpreting the legacy Luxy/MyFan palette. Legacy exports stay
+// untouched until screens are migrated so this foundation cannot cause a
+// repository-wide visual regression.
+export const chonColors = {
+  primaryRed: '#D92D2A',
+  primaryRedHover: '#E94A47',
+  gold: '#FFBB00',
+  goldStrong: '#B87800',
+  warmSurface: '#FAF5F2',
+  warmSurfaceStrong: '#FFF1C8',
+  surface: '#FFFFFF',
+  text: '#151515',
+  ink: '#081726',
+  muted: '#545454',
+  softMuted: '#7E7E7E',
+  border: '#D9D9D9',
+  borderStrong: '#C4C4C4',
+  danger: '#CF0404',
+  online: '#4FAF61',
+  focus: '#337AB7',
+  overlay: 'rgba(8, 23, 38, 0.62)',
+} as const;
+
 export const luxySpacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48, huge: 64 } as const;
 export const luxyRadii = { none: 0, xs: 4, sm: 8, md: 12, lg: 16, pill: 999 } as const;
 export const luxyTypography = {
@@ -36,13 +60,27 @@ export const luxyTypography = {
   lineHeights: { caption: 16, small: 18, body: 22, navigation: 20, section: 26, title: 34, display: 50 },
   weights: { regular: '400', medium: '500', semibold: '600', bold: '700' },
 } as const;
+export const chonTypography = {
+  families: luxyTypography.families,
+  sizes: { help: 10, body: 12, h3: 16, h2: 26, h1Desktop: 36 },
+  lineHeights: { help: 14, body: 20, h3: 22, h2: 34, h1Desktop: 44 },
+  weights: { regular: '400', medium: '500', semibold: '600', bold: '700', strong: '800' },
+} as const;
+
 export const luxyBreakpoints = { compactPhone: 430, mobile: 768, desktop: 1024, wideDesktop: 1280 } as const;
+export const chonBreakpoints = { compactPhone: 430, mobile: 768, desktop: 1024, wideDesktop: 1280 } as const;
 export type LuxyShellMode = 'compact' | 'desktop';
 export type LuxyResponsiveShellMode = 'phone' | 'tablet' | 'desktop';
+export type ChonResponsiveMode = 'phone' | 'tablet' | 'desktop';
 export function resolveLuxyShellMode(width: number): LuxyShellMode { return width >= luxyBreakpoints.desktop ? 'desktop' : 'compact'; }
 export function resolveLuxyResponsiveShellMode(width: number): LuxyResponsiveShellMode {
   if (width >= luxyBreakpoints.desktop) return 'desktop';
   if (width >= luxyBreakpoints.mobile) return 'tablet';
+  return 'phone';
+}
+export function resolveChonResponsiveMode(width: number): ChonResponsiveMode {
+  if (width >= chonBreakpoints.desktop) return 'desktop';
+  if (width >= chonBreakpoints.mobile) return 'tablet';
   return 'phone';
 }
 export const luxyLayout = {
@@ -63,9 +101,53 @@ export const luxyLayout = {
   primaryActionHeight: 48,
   minimumTouchTarget: 44,
 } as const;
+export const chonLayout = {
+  minimumTouchTarget: 44,
+  preferredTouchTarget: 48,
+  contentHorizontalPaddingMobile: 16,
+  contentHorizontalPaddingDesktop: 24,
+  contentMaxWidth: 1440,
+  desktopContentMaxWidth: 1180,
+  formControlHeight: 48,
+  primaryActionHeight: 48,
+} as const;
 export const luxyShadows = {
   navigation: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   card: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
+} as const;
+export const chonShadows = {
+  hover: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 4, elevation: 2 },
+  primary: { shadowColor: '#C81C1D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.14, shadowRadius: 4, elevation: 2 },
+  primaryHover: { shadowColor: '#C81C1D', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.24, shadowRadius: 6, elevation: 3 },
+  card: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 },
+} as const;
+export const chonInteraction = {
+  pressedOpacity: 0.78,
+  disabledOpacity: 0.55,
+  hoverScale: 1.02,
+  ctaHoverScale: 1.03,
+  fastMs: 120,
+  normalMs: 200,
+} as const;
+export const chonButtons = {
+  primary: {
+    background: chonColors.primaryRed,
+    hoverBackground: chonColors.primaryRedHover,
+    text: '#FFFFFF',
+    border: chonColors.primaryRed,
+  },
+  goldOutline: {
+    background: chonColors.surface,
+    hoverBackground: chonColors.gold,
+    text: chonColors.text,
+    border: chonColors.gold,
+  },
+  goldFilled: {
+    background: chonColors.gold,
+    hoverBackground: '#FFC928',
+    text: chonColors.text,
+    border: chonColors.gold,
+  },
 } as const;
 export const luxyBrand = {
   productName:'Chon.Love',

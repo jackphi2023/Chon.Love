@@ -97,7 +97,7 @@ describe('Luxy Search V2 client contract', () => {
     expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_verified');
   });
 
-  it('loads the default Connect feed with one Search RPC and no province preflight', async () => {
+  it('loads an empty default Connect feed with one Search RPC and no province preflight', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
 
     await searchLuxyProfilesV2({ rpc } as never);
@@ -111,7 +111,7 @@ describe('Luxy Search V2 client contract', () => {
     expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty('p_province_id');
   });
 
-  it('validates and returns the privacy-safe result + LX-12 relationship state', async () => {
+  it('validates the privacy-safe result and enriches badge tiers with one batched RPC', async () => {
     const resultRow = {
       id: '19000000-0000-4000-8000-000000000002',
       username: 'lan',
@@ -146,9 +146,20 @@ describe('Luxy Search V2 client contract', () => {
       is_favorited_by: false,
       is_viewed: true,
     };
-    const rpc = vi.fn().mockResolvedValue({ error: null, data: [resultRow] });
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({ error: null, data: [resultRow] })
+      .mockResolvedValueOnce({
+        error: null,
+        data: [{ user_id: resultRow.id, badge_tier: 'diamond' }],
+      });
 
     const result = await searchLuxyProfilesV2({ rpc } as never);
+
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc.mock.calls[1]).toEqual([
+      'get_luxy_search_membership_badges',
+      { p_user_ids: [resultRow.id] },
+    ]);
     expect(result[0]).toMatchObject({
       age: 29,
       distance_km: 0.7,
@@ -156,10 +167,31 @@ describe('Luxy Search V2 client contract', () => {
       is_favorited: true,
       is_favorited_by: false,
       is_viewed: true,
+      membership_badge_tier: 'diamond',
     });
     expect(result[0]).not.toHaveProperty('date_of_birth');
     expect(result[0]).not.toHaveProperty('latitude');
     expect(result[0]).not.toHaveProperty('longitude');
+  });
+
+  it('returns a null badge tier when the batched presentation RPC returns no row', async () => {
+    const resultRow = {
+      id: '19000000-0000-4000-8000-000000000003',
+      username: 'mai', display_name: 'Mai', headline: null, bio: null, gender: 'female', age: 28,
+      province_id: 79, province_name: 'Thành phố Hồ Chí Minh', avatar_media_id: null,
+      avatar_storage_bucket: null, avatar_storage_path: null, photo_count: 0, interests: [],
+      height_cm: null, weight_kg: null, relationship_status: 'single', children_status: 'no_children',
+      smoking_status: 'never', drinking_status: 'never', education_level: 'bachelors', occupation: null,
+      looking_for: null, lifestyle_tags: [], languages: [], last_active_at: null, is_online: false,
+      distance_km: null, member_since: '2026-08-01T00:00:00.000Z', is_favorited: false,
+      is_favorited_by: false, is_viewed: false,
+    };
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({ error: null, data: [resultRow] })
+      .mockResolvedValueOnce({ error: null, data: [] });
+
+    const result = await searchLuxyProfilesV2({ rpc } as never);
+    expect(result[0]?.membership_badge_tier).toBeNull();
   });
 
   it('formats one-decimal Vietnamese distances including sub-kilometre results', () => {

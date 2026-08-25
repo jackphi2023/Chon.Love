@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CHAT_RETENTION_DELETED_PLACEHOLDER } from './chat';
 import {
   formatLuxyMailboxPreview,
   getReadableLuxyMailboxError,
@@ -29,6 +30,7 @@ const row = {
   can_send: false,
   blocked: false,
   is_archived: false,
+  retention_purged_at: null,
   last_message_id: '26000000-0000-4000-8000-000000000010',
   last_message_type: 'text',
   last_message_body: 'Xin chào Luxy',
@@ -64,5 +66,21 @@ describe('Luxy LX-16/LX-17 mailbox client contract', () => {
     expect(row.can_send).toBe(false);
     expect(getReadableLuxyMailboxError({ message: 'premium_membership_required' }))
       .toContain('Nâng cấp Premium hoặc Diamond để gửi tin nhắn');
+  });
+
+  it('shows the exact seven-day deletion placeholder only when the server purge marker exists', () => {
+    const physicallyPurged = {
+      ...row,
+      retention_purged_at: '2026-08-24T15:20:00.000Z',
+      last_message_id: null,
+      last_message_type: null,
+      last_message_body: null,
+      last_message_sender_id: null,
+      last_message_sent_at: null,
+      unread_count: 0,
+    } as const;
+    expect(formatLuxyMailboxPreview(physicallyPurged)).toBe(CHAT_RETENTION_DELETED_PLACEHOLDER);
+    expect(CHAT_RETENTION_DELETED_PLACEHOLDER).toBe('Tin nhắn đã xoá sau 7 ngày');
+    expect(formatLuxyMailboxPreview({ ...physicallyPurged, retention_purged_at: null })).toBe('Chưa có tin nhắn');
   });
 });

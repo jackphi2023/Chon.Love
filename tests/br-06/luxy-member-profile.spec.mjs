@@ -15,7 +15,8 @@ async function login(page, expectedSearchTestId) {
 
 async function openCreatorProfile(page) {
   await page.goto(`/profile/${creator.username}`);
-  await expect(page.getByTestId('luxy-member-profile-page')).toBeVisible();
+  await expect(page).toHaveURL(/\/thanh-vien\/id-[a-z0-9-]+/i, { timeout: 20_000 });
+  await expect(page.getByTestId('chon-member-profile-page')).toBeVisible();
   await expect(page.getByRole('heading', { name: new RegExp(`^${creator.displayName},`) })).toBeVisible();
 }
 
@@ -42,7 +43,7 @@ async function assertPaidPlanComparison(upgradeGate) {
 }
 
 async function assertFreePrivatePhotoMembershipGate(page) {
-  const entitlementButton = page.getByTestId('luxy-private-photo-entitlement-button');
+  const entitlementButton = page.getByTestId('chon-private-photo-entitlement-button');
   await expect(entitlementButton).toBeVisible();
   await expect(entitlementButton).toContainText('Xem ảnh riêng tư');
   await entitlementButton.click();
@@ -81,7 +82,7 @@ async function assertFreeFavoriteWorks(photoModal, page) {
 }
 
 async function assertVerificationBadges(page, hoverTooltips = true) {
-  const badges = page.getByTestId('luxy-member-verification-badges');
+  const badges = page.getByTestId('chon-member-verification-badges');
   await expect(badges).toBeVisible();
 
   const checks = [
@@ -102,7 +103,7 @@ async function assertVerificationBadges(page, hoverTooltips = true) {
   }
 }
 
-test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message behind Premium or Diamond', async ({ browser }, testInfo) => {
+test('UI-PRO01 desktop keeps Free Favorite while gating Private Photos and Message behind Premium or Diamond', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
 
@@ -110,26 +111,26 @@ test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message 
     await login(page, 'luxy-search-desktop');
     await openCreatorProfile(page);
 
-    await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
+    await expect(page.getByTestId('chon-membership-badge-diamond').first()).toBeVisible();
     await expect(page.getByText('Về tôi', { exact: true })).toBeVisible();
     await expect(page.getByText('Tôi đang tìm kiếm', { exact: true })).toBeVisible();
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeVisible();
+    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeVisible();
     await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
-    const heroPhoto = page.getByTestId('luxy-member-profile-hero-photo');
+    const heroPhoto = page.getByTestId('chon-member-profile-hero-photo');
     await expect(heroPhoto).toBeVisible();
-    await expect(heroPhoto.getByRole('img', { name: `Ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
+    await expect(heroPhoto.getByRole('button', { name: `Xem ảnh đại diện của ${creator.displayName}`, exact: true })).toBeVisible();
     await assertVerificationBadges(page);
 
     await assertFreePrivatePhotoMembershipGate(page);
     await expectNoHorizontalOverflow(page);
 
-    await testInfo.attach('lx20-desktop-member-profile-private-photo-gate', {
+    await testInfo.attach('ui-pro01-desktop-member-profile-private-photo-gate', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });
 
-    await heroPhoto.click();
+    await heroPhoto.getByRole('button', { name: `Xem ảnh đại diện của ${creator.displayName}`, exact: true }).click();
     const photoModal = page.getByTestId('luxy-profile-photo-modal');
     await expect(photoModal).toBeVisible();
     await expect(photoModal.getByRole('img', { name: `Ảnh của ${creator.displayName}`, exact: true })).toBeVisible();
@@ -145,7 +146,7 @@ test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message 
     await expect(messageGate.getByText(/Để gửi tin nhắn, hãy nâng cấp Premium hoặc Diamond/)).toBeVisible();
     await assertPaidPlanComparison(messageGate);
 
-    await testInfo.attach('lx20-desktop-message-upgrade-gate', {
+    await testInfo.attach('ui-pro01-desktop-message-upgrade-gate', {
       body: await page.screenshot({ fullPage: false }),
       contentType: 'image/png',
     });
@@ -158,7 +159,7 @@ test('LX-20 desktop keeps Free Favorite while gating Private Photos and Message 
   }
 });
 
-test('mobile profile shows verification badges, gift action, anchored message CTA and Free upgrade prompt on 390px web', async ({ browser }, testInfo) => {
+test('UI-PRO01 mobile profile keeps verification, gift action, anchored message CTA and Free upgrade prompt on 390px web', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -171,16 +172,16 @@ test('mobile profile shows verification badges, gift action, anchored message CT
     await login(page, 'luxy-search-mobile');
     await openCreatorProfile(page);
 
-    await expect(page.getByTestId('luxy-member-profile-hero-photo')).toBeVisible();
-    await expect(page.getByTestId('luxy-profile-free-upgrade-promo')).toBeVisible();
-    const mobileActionDock = page.getByTestId('luxy-profile-mobile-action-dock');
+    await expect(page.getByTestId('chon-member-profile-hero-photo')).toBeVisible();
+    await expect(page.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
+    const mobileActionDock = page.getByTestId('chon-profile-mobile-action-dock');
     await expect(mobileActionDock).toBeVisible();
     const giftAction = mobileActionDock.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` });
     const messageAction = mobileActionDock.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` });
     await expect(giftAction).toBeVisible();
     await expect(messageAction).toBeVisible();
-    await expect(page.getByTestId('luxy-member-profile-message-composer')).toBeHidden();
-    await expect(page.getByTestId('luxy-membership-badge-diamond').first()).toBeVisible();
+    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeHidden();
+    await expect(page.getByTestId('chon-membership-badge-diamond').first()).toBeVisible();
     await expect(page.getByText('Hoạt động & Album ảnh', { exact: true })).toHaveCount(0);
     await assertVerificationBadges(page, false);
 
@@ -192,7 +193,7 @@ test('mobile profile shows verification badges, gift action, anchored message CT
     await expect(page.getByText('Quà dành cho thành viên Cao cấp và Kim cương', { exact: true })).toBeVisible();
     await page.getByLabel('Đóng', { exact: true }).click();
 
-    await testInfo.attach('mobile-profile-verification-actions', {
+    await testInfo.attach('ui-pro01-mobile-profile-verification-actions', {
       body: await page.screenshot({ fullPage: true }),
       contentType: 'image/png',
     });

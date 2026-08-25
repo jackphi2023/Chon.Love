@@ -1,10 +1,8 @@
-import { colors, luxyBreakpoints, luxyColors, spacing } from '@myfan/ui';
+import { colors, luxyColors, spacing } from '@myfan/ui';
 import { Redirect, Slot, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
-import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
-import { LuxyShellNavigation } from '@/components/luxy-shell-navigation';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { ChonAuthenticatedPageChrome } from '@/components/chon-authenticated-page-chrome';
 import { getAuthenticatedDestination } from '@/lib/auth';
 import type { AuthenticatedRoute } from '@/lib/auth-routing';
 import { logger } from '@/lib/logger';
@@ -38,9 +36,7 @@ async function getProtectedDestination(): Promise<AuthenticatedRoute> {
 export default function AuthenticatedLuxyLayout() {
   const auth = useAuth();
   const pathname = usePathname();
-  const { width } = useWindowDimensions();
   const [destination, setDestination] = useState<AuthenticatedRoute | null>(null);
-  const desktop = width >= luxyBreakpoints.desktop;
 
   useEffect(() => {
     if (auth.isRestoring || !auth.userId) return;
@@ -65,11 +61,12 @@ export default function AuthenticatedLuxyLayout() {
   if (destination !== '/(tabs)/connect') return <Redirect href="/(onboarding)" />;
 
   return (
-    <View style={styles.shell}>
-      {desktop ? <LuxyDesktopNavigation /> : <LuxyShellNavigation />}
-      <View style={styles.routeContent}><Slot /></View>
-      {desktop && shouldShowDesktopFooter(pathname) ? <LuxyDesktopFooter /> : null}
-    </View>
+    <ChonAuthenticatedPageChrome
+      footer={shouldShowDesktopFooter(pathname) ? 'desktop' : 'none'}
+      testID="chon-tabs-page-chrome"
+    >
+      <Slot />
+    </ChonAuthenticatedPageChrome>
   );
 }
 
@@ -90,8 +87,6 @@ function RouteLoading() {
 }
 
 const styles = StyleSheet.create({
-  shell: { backgroundColor: luxyColors.background, flex: 1 },
-  routeContent: { backgroundColor: luxyColors.background, flex: 1, minHeight: 0 },
   loading: { alignItems: 'center', backgroundColor: luxyColors.background, flex: 1, gap: spacing.md, justifyContent: 'center' },
   loadingText: { color: colors.muted, fontSize: 14 },
 });

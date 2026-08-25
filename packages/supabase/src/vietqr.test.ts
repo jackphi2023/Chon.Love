@@ -12,10 +12,10 @@ import {
 
 const productRows = VIETQR_HEART_AMOUNTS.map((hearts, index) => ({
   product_id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
-  google_product_id: `myfan_hearts_${String(hearts).padStart(3, '0')}`,
+  google_product_id: `myfan_hearts_${hearts}`,
   display_hearts: hearts,
   heart_units: hearts * 100,
-  amount_vnd: hearts * 50_000,
+  amount_vnd: [500_000, 2_500_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000][index],
   sort_order: (index + 1) * 10,
 }));
 
@@ -24,9 +24,9 @@ const orderRow = {
   order_code: 'MFQ123456789ABC',
   status: 'pending',
   product_id: '00000000-0000-4000-8000-000000000002',
-  display_hearts: 20,
-  heart_units: 2_000,
-  amount_vnd: 1_000_000,
+  display_hearts: 10,
+  heart_units: 1_000,
+  amount_vnd: 500_000,
   bank_bin: '970436',
   bank_code: 'VCB',
   bank_name: 'Vietcombank',
@@ -34,7 +34,7 @@ const orderRow = {
   account_name: 'Tieu Vo Dinh Phi',
   transfer_content: 'MYFANMFQ123456789ABC',
   qr_image_url:
-    'https://img.vietqr.io/image/VCB-0011004000713-compact2.png?amount=1000000&addInfo=MYFANMFQ123456789ABC&accountName=TIEU%20VO%20DINH%20PHI',
+    'https://img.vietqr.io/image/VCB-0011004000713-compact2.png?amount=500000&addInfo=MYFANMFQ123456789ABC&accountName=TIEU%20VO%20DINH%20PHI',
   expires_at: '2026-07-31T10:30:00.000Z',
   submitted_at: null,
   paid_at: null,
@@ -42,15 +42,20 @@ const orderRow = {
 };
 
 describe('VietQR heart payment contract', () => {
-  it('accepts the seven existing heart packages and exact VND rate', () => {
+  it('uses the final six Chon.Love heart pack sizes', () => {
     const products = normalizeVietqrProducts([...productRows].reverse());
+    expect([...VIETQR_HEART_AMOUNTS]).toEqual([10, 50, 100, 200, 500, 1000]);
     expect(products.map((product) => product.display_hearts)).toEqual([...VIETQR_HEART_AMOUNTS]);
-    expect(products.at(-1)?.amount_vnd).toBe(25_000_000);
   });
 
-  it('rejects a product with a mismatched amount', () => {
-    expect(() => normalizeVietqrProducts([{ ...productRows[0], amount_vnd: 1 }])).toThrow(
-      'vietqr_product_amount_mismatch',
+  it('accepts positive server-provided pricing without recomputing it on the client', () => {
+    const serverPriced = [{ ...productRows[0], amount_vnd: 620_000 }];
+    expect(normalizeVietqrProducts(serverPriced)[0]?.amount_vnd).toBe(620_000);
+  });
+
+  it('still rejects inconsistent heart units', () => {
+    expect(() => normalizeVietqrProducts([{ ...productRows[0], heart_units: 1 }])).toThrow(
+      'vietqr_product_heart_units_mismatch',
     );
   });
 
@@ -60,9 +65,10 @@ describe('VietQR heart payment contract', () => {
     expect(isTrustedVietqrImageUrl('https://img.vietqr.io.evil.test/image/test.png')).toBe(false);
   });
 
-  it('validates order amount, account and transfer content snapshots', () => {
-    const order = parseVietqrOrder(orderRow);
-    expect(order.amount_vnd).toBe(1_000_000);
+  it('validates order account and transfer snapshots without recomputing server price', () => {
+    const serverPricedOrder = { ...orderRow, amount_vnd: 620_000 };
+    const order = parseVietqrOrder(serverPricedOrder);
+    expect(order.amount_vnd).toBe(620_000);
     expect(order.transfer_content).toBe('MYFANMFQ123456789ABC');
   });
 

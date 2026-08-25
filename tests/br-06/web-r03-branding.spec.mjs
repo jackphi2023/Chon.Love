@@ -33,13 +33,16 @@ test('WEB-R03 authenticated core surfaces expose no legacy brand or phase labels
   await login(page);
   for (const [path, marker] of [
     ['/', 'luxy-search-desktop'],
-    [`/profile/${creator.username}`, 'luxy-member-profile-page'],
-    ['/settings', 'luxy-settings-page'],
+    [`/profile/${creator.username}`, 'chon-member-profile-page'],
+    ['/settings', 'chon-settings-page'],
     ['/settings/membership', 'luxy-upgrade-billing'],
     ['/settings/private-photos', 'luxy-private-photo-settings'],
     ['/settings/verification', 'luxy-verification-settings'],
   ]) {
     await page.goto(path);
+    if (path.startsWith('/profile/')) {
+      await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 30_000 });
+    }
     await expect(page.getByTestId(marker)).toBeVisible({ timeout: 30_000 });
     await expectCleanBranding(page, path);
   }

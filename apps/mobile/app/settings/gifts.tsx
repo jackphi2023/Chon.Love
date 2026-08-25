@@ -33,16 +33,10 @@ export default function GiftSettingsPage() {
           title="Lịch sử quà tặng"
         />
         <SettingsLinkRow
-          description="Xem số dư hiện tại và các trạng thái giao dịch liên quan."
+          description="Xem số dư và nạp ❤️ bằng VietQR trên web."
           onPress={() => router.push('/(tabs)/balance')}
           symbol="₫"
           title="Số dư"
-        />
-        <SettingsLinkRow
-          description="Đi tới luồng thanh toán VietQR hiện có trên web khi cần nạp/mua theo sản phẩm được cho phép."
-          onPress={() => router.push('/payments/vietqr')}
-          symbol="QR"
-          title="Thanh toán VietQR"
         />
       </SettingsSection>
 

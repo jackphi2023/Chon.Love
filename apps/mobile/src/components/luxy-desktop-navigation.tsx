@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
 import { ChonLoveLogo } from '@/components/chon-love-logo';
+import { ChonMenuIcon } from '@/components/chon-menu-icon';
 import { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';
 import { logger } from '@/lib/logger';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -28,10 +29,10 @@ const primaryItems = [
 ] as const;
 
 const accountItems = [
-  { label: 'Hồ sơ', href: '/(tabs)/profile' as const },
-  { label: 'Quà', href: '/(tabs)/gifts' as const },
-  { label: 'Số dư', href: '/(tabs)/balance' as const },
-  { label: 'Cài đặt', href: '/settings' as const },
+  { label: 'Hồ sơ', icon: 'profile' as const, href: '/(tabs)/profile' as const },
+  { label: 'Quà tặng', icon: 'gift' as const, href: '/(tabs)/gifts' as const },
+  { label: 'Số dư', icon: 'balance' as const, href: '/(tabs)/balance' as const },
+  { label: 'Cài đặt', icon: 'settings' as const, href: '/settings' as const },
 ] as const;
 
 type PrimaryItem = (typeof primaryItems)[number];
@@ -210,7 +211,7 @@ export function LuxyDesktopNavigation() {
                   pressed && styles.pressed,
                 ]}
               >
-                <View style={styles.accountAvatar}><ChonUserAvatar size={34} /></View>
+                <View style={styles.accountAvatar}><ChonUserAvatar size={27} /></View>
                 <Text style={styles.accountLabel}>Tài khoản</Text>
               </Pressable>
 
@@ -234,6 +235,7 @@ export function LuxyDesktopNavigation() {
                           pressed && styles.menuItemPressed,
                         ]}
                       >
+                        <ChonMenuIcon name={item.icon} size={12} />
                         <Text style={styles.menuLabel}>{item.label}</Text>
                       </Pressable>
                     );
@@ -251,6 +253,7 @@ export function LuxyDesktopNavigation() {
                     ]}
                     testID="chon-navigation-logout"
                   >
+                    <ChonMenuIcon name="logout" size={12} />
                     <Text style={styles.menuLabel}>Đăng xuất</Text>
                   </Pressable>
                 </View>
@@ -357,12 +360,13 @@ const styles = StyleSheet.create({
     minWidth: 126,
   },
   upgradeItemHover: {
-    backgroundColor: '#E24A47',
+    backgroundColor: '#E94A47',
     shadowColor: '#C81C1D',
     shadowOffset: { height: 2, width: 0 },
     shadowOpacity: 0.22,
     shadowRadius: 5,
     elevation: 3,
+    transform: [{ scale: 1.02 }],
   },
   upgradeIcon: { color: CHON_GOLD },
   upgradeLabel: { color: luxyColors.surface, fontWeight: '700' },
@@ -387,9 +391,9 @@ const styles = StyleSheet.create({
   },
   accountAvatar: {
     alignItems: 'center',
-    height: 34,
+    height: 27,
     justifyContent: 'center',
-    width: 34,
+    width: 27,
   },
   accountLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600' },
   accountMenu: {
@@ -397,18 +401,19 @@ const styles = StyleSheet.create({
     borderColor: luxyColors.border,
     borderRadius: luxyRadii.md,
     borderWidth: 1,
-    minWidth: 220,
+    minWidth: 154,
     paddingVertical: luxySpacing.sm,
     position: 'absolute',
     right: 0,
     top: 61,
+    width: 154,
     zIndex: 160,
     ...luxyShadows.navigation,
   },
-  menuItem: { alignItems: 'center', minHeight: 44, paddingHorizontal: luxySpacing.lg, justifyContent: 'center' },
+  menuItem: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'flex-start', minHeight: 40, paddingHorizontal: 12 },
   menuItemHover: { backgroundColor: CHON_GOLD },
   menuItemPressed: { backgroundColor: 'rgba(255,187,0,0.82)' },
-  menuLabel: { color: luxyColors.charcoal, fontSize: 14, fontWeight: '600' },
+  menuLabel: { color: '#111111', fontSize: 12, fontWeight: '600', textAlign: 'left' },
   menuDivider: { backgroundColor: luxyColors.border, height: StyleSheet.hairlineWidth, marginVertical: luxySpacing.sm },
   loginButton: {
     alignItems: 'center',
@@ -428,6 +433,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 4,
     elevation: 2,
+    transform: [{ scale: 1.02 }],
   },
   loginText: { color: luxyColors.actionRed, fontSize: 14, fontWeight: '700' },
   pressed: { opacity: 0.78 },

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { CHAT_RETENTION_DELETED_PLACEHOLDER } from './chat';
 import type { Database } from './database.types';
 
 // LX-16 mailbox is a presentation/read-model layer over the LX-15 direct messaging contract.
@@ -27,6 +28,7 @@ const mailboxConversationSchema = z.object({
   can_send: z.boolean(),
   blocked: z.boolean(),
   is_archived: z.boolean(),
+  retention_purged_at: z.string().nullable().optional(),
   last_message_id: z.string().uuid().nullable(),
   last_message_type: z.enum(['text', 'gift', 'system']).nullable(),
   last_message_body: z.string().nullable(),
@@ -77,7 +79,10 @@ export async function openLuxyProfileConversation(
 }
 
 export function formatLuxyMailboxPreview(conversation: LuxyMailboxConversation): string {
-  if (!conversation.last_message_id) return conversation.can_send ? 'Bắt đầu trò chuyện' : 'Chưa có tin nhắn';
+  if (!conversation.last_message_id) {
+    if (conversation.retention_purged_at) return CHAT_RETENTION_DELETED_PLACEHOLDER;
+    return conversation.can_send ? 'Bắt đầu trò chuyện' : 'Chưa có tin nhắn';
+  }
   if (conversation.last_message_type === 'gift') return 'Đã gửi một món quà';
   if (conversation.last_message_type === 'system') return 'Thông báo hệ thống';
   return conversation.last_message_body?.trim() || 'Tin nhắn không còn hiển thị';

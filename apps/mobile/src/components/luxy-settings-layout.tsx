@@ -15,7 +15,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LuxyShellNavigation } from '@/components/luxy-shell-navigation';
 
 export function LuxySettingsPage({
   title,
@@ -29,7 +28,6 @@ export function LuxySettingsPage({
 }>) {
   return (
     <View style={styles.page} testID={testID}>
-      <LuxyShellNavigation />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic">
           <View style={styles.inner}>

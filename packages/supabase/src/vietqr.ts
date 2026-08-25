@@ -2,8 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { Database } from './database.types';
 
-export const VIETQR_HEART_AMOUNTS = [5, 10, 20, 50, 100, 200, 500] as const;
-export const VIETQR_VND_PER_HEART = 50_000;
+export const VIETQR_HEART_AMOUNTS = [10, 50, 100, 200, 500, 1000] as const;
 export const VIETQR_IMAGE_HOST = 'img.vietqr.io';
 
 const vietqrHeartProductSchema = z.object({
@@ -65,9 +64,6 @@ export function normalizeVietqrProducts(input: unknown): VietqrHeartProduct[] {
     if (product.heart_units !== product.display_hearts * 100) {
       throw new Error('vietqr_product_heart_units_mismatch');
     }
-    if (product.amount_vnd !== product.display_hearts * VIETQR_VND_PER_HEART) {
-      throw new Error('vietqr_product_amount_mismatch');
-    }
   }
   return products;
 }
@@ -77,9 +73,6 @@ export function parseVietqrOrder(input: unknown): VietqrHeartOrder {
   if (!isTrustedVietqrImageUrl(order.qr_image_url)) throw new Error('untrusted_vietqr_image_url');
   if (order.heart_units !== order.display_hearts * 100) {
     throw new Error('vietqr_order_heart_units_mismatch');
-  }
-  if (order.amount_vnd !== order.display_hearts * VIETQR_VND_PER_HEART) {
-    throw new Error('vietqr_order_amount_mismatch');
   }
   return order;
 }

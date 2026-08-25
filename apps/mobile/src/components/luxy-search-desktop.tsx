@@ -1,6 +1,4 @@
 import {
-  createPublicProfileMediaUrl,
-  formatLuxyDistance,
   getMyDiscoveryContext,
   getNextLuxySearchOffset,
   listActiveProvinces,
@@ -12,7 +10,6 @@ import {
   type DrinkingStatus,
   type EducationLevel,
   type LuxySearchFavoriteScope,
-  type LuxySearchProfile,
   type LuxySearchSort,
   type LuxySearchViewState,
   type ProfileLifestyleTag,
@@ -23,10 +20,10 @@ import {
 } from '@myfan/supabase';
 import { luxyColors, luxyLayout, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ChonConnectMemberCard } from '@/components/chon-connect-member-card';
+import { ChonViewResultsButton } from '@/components/chon-view-results-button';
 import { requestDiscoveryLocation } from '@/lib/location';
 import { getReadableLocationError } from '@/lib/location-errors';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -247,7 +244,7 @@ export function LuxySearchDesktop() {
           {profilesQuery.isLoading && profiles.length === 0 ? <State><ActivityIndicator color={luxyColors.ink} size="large" /><Text style={styles.stateText}>Đang tìm thành viên phù hợp…</Text></State>
             : profilesQuery.error ? <State><Text accessibilityRole="alert" style={styles.errorText}>Không thể tải kết quả tìm kiếm.</Text><Pressable accessibilityRole="button" onPress={() => void profilesQuery.refetch()} style={styles.retryButton}><Text style={styles.retryText}>Thử lại</Text></Pressable></State>
               : profiles.length === 0 ? <State><Text style={styles.emptyTitle}>Chưa có thành viên phù hợp</Text><Text style={styles.stateText}>Hãy nới khoảng cách hoặc đặt lại một vài bộ lọc.</Text></State>
-                : <View style={styles.memberGrid} testID="luxy-search-member-grid">{profiles.map((profile) => <LuxyDesktopMemberCard key={profile.id} profile={profile} />)}</View>}
+                : <View style={styles.memberGrid} testID="luxy-search-member-grid">{profiles.map((profile) => <ChonConnectMemberCard desktop key={profile.id} profile={profile} style={styles.memberCard} testID="luxy-search-member-card" />)}</View>}
 
           {profilesQuery.isFetchingNextPage ? <View style={styles.loadMoreState}><ActivityIndicator color={luxyColors.ink} /><Text style={styles.stateText}>Đang tải thêm…</Text></View>
             : profilesQuery.hasNextPage ? <Pressable accessibilityRole="button" onPress={() => void profilesQuery.fetchNextPage()} style={styles.loadMoreButton}><Text style={styles.loadMoreText}>Xem thêm thành viên</Text></Pressable>
@@ -259,7 +256,7 @@ export function LuxySearchDesktop() {
 }
 
 function SearchActions({ apply, reset }: { apply: () => void; reset: () => void }) {
-  return <><Pressable accessibilityRole="button" onPress={apply} style={styles.viewResultsButton}><Text style={styles.viewResultsText}>Xem kết quả</Text></Pressable><View style={styles.actionRow}><Pressable accessibilityHint="Lưu tìm kiếm chưa khả dụng trong phiên bản này" accessibilityRole="button" disabled style={[styles.secondaryAction, styles.disabledAction]}><Text style={styles.secondaryActionText}>Lưu tìm kiếm</Text></Pressable><Pressable accessibilityRole="button" onPress={reset} style={styles.resetAction}><Text style={styles.resetActionText}>Đặt lại</Text></Pressable></View></>;
+  return <><ChonViewResultsButton onPress={apply} style={styles.viewResultsButtonLayout} /><View style={styles.actionRow}><Pressable accessibilityHint="Lưu tìm kiếm chưa khả dụng trong phiên bản này" accessibilityRole="button" disabled style={[styles.secondaryAction, styles.disabledAction]}><Text style={styles.secondaryActionText}>Lưu tìm kiếm</Text></Pressable><Pressable accessibilityRole="button" onPress={reset} style={styles.resetAction}><Text style={styles.resetActionText}>Đặt lại</Text></Pressable></View></>;
 }
 function State({ children }: { children: React.ReactNode }) { return <View style={styles.centerState}>{children}</View>; }
 function FilterSection({ title, children, last = false }: { title: string; children: React.ReactNode; last?: boolean }) { return <View style={[styles.filterSection, last && styles.filterSectionLast]}><View style={styles.filterHeadingRow}><Text style={styles.filterHeading}>{title}</Text><Text style={styles.sectionChevron}>⌃</Text></View><View style={styles.filterBody}>{children}</View></View>; }
@@ -269,31 +266,6 @@ function CheckRow({ checked, label, onPress }: { checked: boolean; label: string
 function DisabledCheckRow({ label, suffix }: { label: string; suffix: string }) { return <View accessibilityState={{ disabled: true }} style={styles.checkRow}><View style={[styles.checkbox, styles.checkboxDisabled]} /><Text style={styles.disabledLabel}>{label}</Text><Text style={styles.comingSoon}>{suffix}</Text></View>; }
 function RangeInputs({ leftLabel, leftValue, rightLabel, rightValue, onLeftChange, onRightChange }: { leftLabel: string; leftValue: string; rightLabel: string; rightValue: string; onLeftChange: (value: string) => void; onRightChange: (value: string) => void }) { return <View style={styles.rangeRow}><View style={styles.rangeField}><Text style={styles.rangeLabel}>{leftLabel}</Text><TextInput keyboardType="number-pad" onChangeText={onLeftChange} style={styles.rangeInput} value={leftValue} /></View><Text style={styles.rangeDash}>–</Text><View style={styles.rangeField}><Text style={styles.rangeLabel}>{rightLabel}</Text><TextInput keyboardType="number-pad" onChangeText={onRightChange} style={styles.rangeInput} value={rightValue} /></View></View>; }
 
-function LuxyDesktopMemberCard({ profile }: { profile: LuxySearchProfile }) {
-  const router = useRouter();
-  const client = getMobileSupabaseClient();
-  const name = profile.display_name || profile.username || 'Thành viên Luxy';
-  const distance = formatLuxyDistance(profile.distance_km);
-  const location = [profile.province_name, distance].filter(Boolean).join(' · ');
-  const imageQuery = useQuery({
-    queryKey: ['luxy-search', 'member-photo', profile.avatar_media_id], enabled: Boolean(client && profile.avatar_media_id && profile.avatar_storage_bucket && profile.avatar_storage_path), staleTime: 35_000, gcTime: 5 * 60_000,
-    queryFn: async () => { if (!client || !profile.avatar_storage_bucket || !profile.avatar_storage_path) return null; return createPublicProfileMediaUrl(client, { storage_bucket: profile.avatar_storage_bucket, storage_path: profile.avatar_storage_path }); },
-  });
-
-  return (
-    <View style={styles.memberCard} testID="luxy-search-member-card">
-      <Pressable accessibilityLabel={`Xem hồ sơ ${name}, ${profile.age} tuổi${location ? `, ${location}` : ''}`} accessibilityRole="button" disabled={!profile.username} onPress={() => profile.username && router.push({ pathname: '/profile/[username]', params: { username: profile.username } })} style={({ pressed }) => [styles.cardPressable, pressed && styles.memberCardPressed]}>
-        <View style={styles.photoFrame}>
-          {imageQuery.data ? <Image accessibilityLabel={`Ảnh hồ sơ của ${name}`} resizeMode="cover" source={{ uri: imageQuery.data }} style={styles.memberPhoto} /> : <View style={styles.photoFallback}><Text style={styles.photoInitial}>{name.slice(0, 1).toUpperCase()}</Text></View>}
-          <View style={styles.photoCountBadge}><Text style={styles.photoCountText}>▣ {profile.photo_count}</Text></View>
-          <View style={styles.photoOverlay}><View style={styles.memberNameRow}>{profile.is_online ? <View accessibilityLabel="Đang online" style={styles.onlineDot} /> : null}<Text numberOfLines={1} style={styles.memberName}>{name}</Text><Text style={styles.memberAge}>{profile.age}</Text></View><Text numberOfLines={1} style={styles.memberLocation}>{location || 'Việt Nam'}</Text></View>
-        </View>
-      </Pressable>
-      <View style={styles.favoriteOverlay}><LuxyFavoriteButton initialFavorited={profile.is_favorited} initialFavoritedBy={profile.is_favorited_by} name={name} profileId={profile.id} /></View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   page: { minHeight: '100%', backgroundColor: luxyColors.background, paddingHorizontal: luxyLayout.contentHorizontalPaddingDesktop, paddingTop: luxySpacing.lg, paddingBottom: luxySpacing.huge },
   frame: { width: '100%', maxWidth: luxyLayout.contentMaxWidth, alignSelf: 'center', flexDirection: 'row', alignItems: 'flex-start', gap: luxyLayout.searchGap },
@@ -301,8 +273,7 @@ const styles = StyleSheet.create({
   filterTitle: { color: luxyColors.text, fontFamily: luxyTypography.families.display, fontSize: 26, lineHeight: 32, fontWeight: '400', marginBottom: luxySpacing.lg },
   savedSearchRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: luxyColors.border, marginBottom: luxySpacing.md },
   savedSearchText: { color: luxyColors.text, fontSize: 13 }, chevron: { color: luxyColors.muted, fontSize: 15 },
-  viewResultsButton: { minHeight: 44, borderRadius: luxyRadii.pill, backgroundColor: luxyColors.ink, alignItems: 'center', justifyContent: 'center', marginVertical: luxySpacing.sm },
-  viewResultsText: { color: luxyColors.surface, fontSize: 13, fontWeight: '600' },
+  viewResultsButtonLayout: { marginVertical: luxySpacing.sm },
   actionRow: { flexDirection: 'row', gap: luxySpacing.sm, marginBottom: luxySpacing.md },
   secondaryAction: { flex: 1, minHeight: 44, borderRadius: luxyRadii.pill, borderWidth: 1, borderColor: luxyColors.ink, alignItems: 'center', justifyContent: 'center' },
   disabledAction: { opacity: 0.58 }, secondaryActionText: { color: luxyColors.text, fontSize: 12, fontWeight: '500' },
@@ -320,6 +291,6 @@ const styles = StyleSheet.create({
   rangeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 }, rangeField: { flex: 1, gap: 4 }, rangeLabel: { color: luxyColors.softMuted, fontSize: 10 }, rangeInput: { minHeight: 40, borderWidth: 1, borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.xs, paddingHorizontal: luxySpacing.sm, color: luxyColors.text, fontSize: 12, backgroundColor: luxyColors.surface }, rangeDash: { color: luxyColors.softMuted, paddingBottom: 12 },
   textControl: { minHeight: 42, borderWidth: 1, borderColor: luxyColors.borderStrong, borderRadius: luxyRadii.xs, paddingHorizontal: luxySpacing.sm, paddingVertical: 8, color: luxyColors.text, fontSize: 12, backgroundColor: luxyColors.surface }, profileTextControl: { minHeight: 70, textAlignVertical: 'top' },
   results: { flex: 1, minWidth: 0 }, resultsToolbar: { minHeight: 48, zIndex: 5, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: luxySpacing.sm }, loadedCount: { color: luxyColors.muted, fontSize: 12, paddingTop: 12 }, sortWrap: { width: 196, position: 'relative', zIndex: 10 }, sortButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: luxySpacing.md, borderBottomWidth: 1, borderBottomColor: luxyColors.border, backgroundColor: luxyColors.surface }, sortButtonText: { color: luxyColors.text, fontSize: 12 }, sortPanel: { position: 'absolute', top: 44, right: 0, left: 0, borderWidth: 1, borderColor: luxyColors.border, backgroundColor: luxyColors.surface, shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 7, elevation: 4 }, sortOption: { minHeight: 40, justifyContent: 'center', paddingHorizontal: luxySpacing.md }, sortOptionActive: { backgroundColor: luxyColors.elevatedSubtle }, sortOptionText: { color: luxyColors.text, fontSize: 12 },
-  memberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }, memberCard: { flexBasis: '32%', maxWidth: '32.7%', flexGrow: 1, minWidth: 0, position: 'relative' }, cardPressable: { width: '100%' }, memberCardPressed: { opacity: 0.84 }, photoFrame: { width: '100%', aspectRatio: luxyLayout.memberCardAspectRatio, borderRadius: luxyRadii.sm, overflow: 'hidden', backgroundColor: luxyColors.elevatedSubtle, position: 'relative' }, memberPhoto: { width: '100%', height: '100%' }, photoFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E7E5E4' }, photoInitial: { color: luxyColors.muted, fontFamily: luxyTypography.families.display, fontSize: 52 }, photoCountBadge: { position: 'absolute', top: 8, left: 8, minHeight: 22, borderRadius: luxyRadii.xs, backgroundColor: 'rgba(8,23,38,0.76)', justifyContent: 'center', paddingHorizontal: 7 }, photoCountText: { color: luxyColors.surface, fontSize: 10, fontWeight: '600' }, photoOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 78, justifyContent: 'flex-end', paddingHorizontal: 9, paddingTop: 24, paddingBottom: 8, paddingRight: 58, backgroundColor: 'rgba(8,23,38,0.60)' }, memberNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 }, onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: luxyColors.online }, memberName: { maxWidth: '72%', color: luxyColors.surface, fontSize: 13, fontWeight: '600' }, memberAge: { color: luxyColors.surface, fontSize: 12 }, memberLocation: { color: '#F1F1F1', fontSize: 10, marginTop: 3 }, favoriteOverlay: { bottom: 8, position: 'absolute', right: 8, zIndex: 4 },
+  memberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }, memberCard: { flexBasis: '32%', maxWidth: '32.7%', flexGrow: 1, minWidth: 0 },
   centerState: { minHeight: 360, alignItems: 'center', justifyContent: 'center', gap: luxySpacing.md }, stateText: { color: luxyColors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' }, emptyTitle: { color: luxyColors.text, fontSize: 17, fontWeight: '600' }, retryButton: { minHeight: 44, borderRadius: luxyRadii.pill, backgroundColor: luxyColors.ink, justifyContent: 'center', paddingHorizontal: luxySpacing.xl }, retryText: { color: luxyColors.surface, fontSize: 12, fontWeight: '600' }, loadMoreButton: { alignSelf: 'center', minHeight: 44, borderRadius: luxyRadii.pill, borderWidth: 1, borderColor: luxyColors.ink, justifyContent: 'center', paddingHorizontal: luxySpacing.xl, marginTop: luxySpacing.xl }, loadMoreText: { color: luxyColors.text, fontSize: 12, fontWeight: '600' }, loadMoreState: { alignItems: 'center', gap: luxySpacing.sm, paddingVertical: luxySpacing.xl }, endText: { color: luxyColors.softMuted, fontSize: 11, textAlign: 'center', paddingVertical: luxySpacing.xl },
 });

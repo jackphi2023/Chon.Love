@@ -31,7 +31,7 @@ async function expectScaledNavigationLogo(brand) {
 async function expectCleanAccountMenu(page) {
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
-  for (const label of ['Hồ sơ', 'Quà', 'Số dư', 'Cài đặt', 'Đăng xuất']) {
+  for (const label of ['Hồ sơ', 'Quà tặng', 'Số dư', 'Cài đặt', 'Đăng xuất']) {
     await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible();
   }
   await expect(menu.getByRole('menuitem', { name: 'Hồ sơ của tôi', exact: true })).toHaveCount(0);
@@ -39,9 +39,14 @@ async function expectCleanAccountMenu(page) {
   await expect(menu.getByText('Hồ sơ & cài đặt tài khoản', { exact: true })).toHaveCount(0);
   await expect(menu.locator('img')).toHaveCount(0);
 
+  const menuBox = await menu.boundingBox();
+  expect(menuBox).not.toBeNull();
+  expect(menuBox.width).toBeLessThanOrEqual(160);
+
   const profileItem = menu.getByRole('menuitem', { name: 'Hồ sơ', exact: true });
   await profileItem.hover();
   await expect(profileItem).toHaveCSS('background-color', 'rgb(255, 187, 0)');
+  await page.mouse.move(0, 0);
 }
 
 test('authenticated Free desktop shell follows refreshed Chon.Love navigation and 1024px breakpoint', async ({ browser }, testInfo) => {
@@ -63,6 +68,7 @@ test('authenticated Free desktop shell follows refreshed Chon.Love navigation an
     const accountButton = page.getByRole('button', { name: 'Mở menu hồ sơ' });
 
     await expect(desktopNavigation).toBeVisible();
+    await expect(page.getByTestId('chon-authenticated-navigation')).toHaveCount(1);
     await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
     await expect(shellBrand).toBeVisible();
     await expectScaledNavigationLogo(shellBrand);
@@ -72,7 +78,14 @@ test('authenticated Free desktop shell follows refreshed Chon.Love navigation an
     await expect(upgradeNav).toBeVisible();
     await expect(accountButton).toBeVisible();
     await expect(accountButton).not.toContainText(/[⌃⌄v]/u);
-    await expect(page.getByTestId('chon-desktop-footer')).toBeVisible();
+    await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(1);
+
+    const avatar = accountButton.locator('img').first();
+    if (await avatar.count()) {
+      const avatarBox = await avatar.boundingBox();
+      expect(avatarBox).not.toBeNull();
+      expect(avatarBox.width).toBeLessThanOrEqual(28);
+    }
 
     const positions = await Promise.all([
       xPosition(shellBrand),
@@ -100,6 +113,7 @@ test('authenticated Free desktop shell follows refreshed Chon.Love navigation an
     expect(compactBrandBox).not.toBeNull();
     expect(compactBrandBox.height).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Kết nối', exact: true })).toBeVisible();
+    await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(0);
 
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByTestId('chon-desktop-navigation')).toBeVisible();
@@ -107,6 +121,7 @@ test('authenticated Free desktop shell follows refreshed Chon.Love navigation an
     const restoredBrand = page.getByRole('button', { name: 'Chon.Love — về Kết nối' });
     await expect(restoredBrand).toBeVisible();
     await expectScaledNavigationLogo(restoredBrand);
+    await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(1);
 
     await testInfo.attach('connection-free-desktop-shell-1280', {
       body: await page.screenshot({ fullPage: true }),

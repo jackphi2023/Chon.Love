@@ -1,15 +1,16 @@
-import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { View } from 'react-native';
 import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { Screen } from '@/components/screen';
+  ChonAuthAlert,
+  ChonAuthField,
+  ChonAuthHeading,
+  ChonAuthLink,
+  ChonAuthNotice,
+  ChonAuthPrimaryButton,
+  ChonAuthShell,
+  chonAuthStyles,
+} from '@/components/chon-auth-shell';
 import { requestPasswordReset } from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
 
@@ -19,12 +20,14 @@ export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const normalizedEmail = email.trim();
 
   async function handleSubmit() {
+    if (!normalizedEmail || isSubmitting) return;
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(normalizedEmail);
       setSent(true);
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
@@ -33,90 +36,60 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  function backToLogin() {
+    router.replace('/(auth)?mode=login');
+  }
+
   return (
-    <Screen
-      title="Khôi phục mật khẩu"
-      description="Nhập email tài khoản. Nếu email hợp lệ, Chon.Love sẽ gửi liên kết đặt lại mật khẩu."
+    <ChonAuthShell
+      actionLabel="Đăng nhập"
+      onAction={backToLogin}
+      prompt="Đã nhớ mật khẩu?"
+      testID="chon-forgot-password-screen"
     >
-      {sent ? (
-        <View style={styles.card}>
-          <Text style={styles.title}>Kiểm tra hộp thư</Text>
-          <Text style={styles.copy}>
-            Yêu cầu đã được tiếp nhận. Vì lý do bảo mật, Chon.Love luôn hiển thị thông báo này dù email có tồn tại hay không.
-          </Text>
-          <Pressable accessibilityRole="button" onPress={() => router.replace('/(auth)')} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Quay lại đăng nhập</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            onSubmitEditing={handleSubmit}
-            placeholder="email@example.com"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={email}
-          />
-          <Pressable
-            accessibilityRole="button"
-            disabled={isSubmitting}
-            onPress={handleSubmit}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, isSubmitting && styles.disabled]}
-          >
-            {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Gửi liên kết khôi phục</Text>}
-          </Pressable>
-          <Pressable accessibilityRole="link" onPress={() => router.replace('/(auth)')}>
-            <Text style={styles.link}>Quay lại đăng nhập</Text>
-          </Pressable>
-        </View>
-      )}
-      {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
-      <View style={styles.noticeCard}>
-        <Text style={styles.noticeTitle}>Lưu ý bảo mật</Text>
-        <Text style={styles.noticeCopy}>
-          Liên kết chỉ dùng một lần và có thời hạn. Sau khi đặt mật khẩu mới, Chon.Love sẽ thu hồi toàn bộ phiên đăng nhập để bạn đăng nhập lại.
-        </Text>
+      <View style={chonAuthStyles.form}>
+        <ChonAuthHeading
+          description="Nhập email tài khoản. Nếu email hợp lệ, Chon.Love sẽ gửi liên kết để bạn đặt mật khẩu mới."
+          title="Khôi phục mật khẩu"
+        />
+
+        {sent ? (
+          <>
+            <ChonAuthNotice success title="Kiểm tra hộp thư">
+              Yêu cầu đã được tiếp nhận. Vì lý do bảo mật, Chon.Love luôn hiển thị thông báo này dù email có tồn tại hay không.
+            </ChonAuthNotice>
+            <ChonAuthPrimaryButton label="Quay lại đăng nhập" onPress={backToLogin} testID="forgot-password-back-login" />
+          </>
+        ) : (
+          <>
+            <ChonAuthField
+              accessibilityLabel="Email khôi phục mật khẩu"
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              label="Email"
+              onChangeText={setEmail}
+              onSubmitEditing={() => void handleSubmit()}
+              placeholder="email@example.com"
+              returnKeyType="send"
+              value={email}
+            />
+            <ChonAuthAlert message={errorMessage} />
+            <ChonAuthPrimaryButton
+              busy={isSubmitting}
+              disabled={!normalizedEmail}
+              label="Gửi liên kết khôi phục"
+              onPress={() => void handleSubmit()}
+              testID="forgot-password-submit"
+            />
+            <ChonAuthLink label="Quay lại đăng nhập" onPress={backToLogin} />
+          </>
+        )}
+
+        <ChonAuthNotice title="Lưu ý bảo mật">
+          Liên kết chỉ dùng một lần và có thời hạn. Chon.Love không cho biết email có tồn tại hay không. Sau khi đặt mật khẩu mới, các phiên đăng nhập hiện tại sẽ bị thu hồi.
+        </ChonAuthNotice>
       </View>
-    </Screen>
+    </ChonAuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: spacing.sm },
-  label: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  input: {
-    minHeight: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: spacing.md,
-    color: colors.text,
-    backgroundColor: colors.surface,
-    fontSize: 16,
-  },
-  primaryButton: {
-    minHeight: 52,
-    marginTop: spacing.sm,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
-  link: { color: colors.primary, fontSize: 14, fontWeight: '800', textAlign: 'center', paddingVertical: spacing.sm },
-  pressed: { opacity: 0.78 },
-  disabled: { opacity: 0.5 },
-  error: { color: colors.danger, fontSize: 14, lineHeight: 21, marginTop: spacing.md },
-  card: { gap: spacing.md },
-  title: { color: colors.text, fontSize: 22, fontWeight: '900' },
-  copy: { color: colors.muted, fontSize: 15, lineHeight: 23 },
-  noticeCard: { marginTop: spacing.xl, borderRadius: 16, padding: spacing.md, backgroundColor: colors.background },
-  noticeTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  noticeCopy: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: spacing.xs },
-});

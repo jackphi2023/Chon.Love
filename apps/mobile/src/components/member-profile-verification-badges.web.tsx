@@ -1,5 +1,5 @@
 import { getLuxyMemberProfile, getLuxyMemberVerificationBadges } from '@myfan/supabase';
-import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows, luxySpacing } from '@myfan/ui';
+import { chonBreakpoints, chonColors, chonShadows, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'expo-router';
 import { createPortal } from 'react-dom';
@@ -45,7 +45,7 @@ export function MemberProfileVerificationBadges() {
   const ownerRef = useRef<symbol>(Symbol('chon-verification-badges'));
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
-  const verificationIconHeight = viewportWidth >= luxyBreakpoints.desktop
+  const verificationIconHeight = viewportWidth >= chonBreakpoints.desktop
     ? CHON_ICON_SIZE_DESKTOP
     : CHON_ICON_SIZE_MOBILE;
 
@@ -88,7 +88,7 @@ export function MemberProfileVerificationBadges() {
     let mounted = true;
 
     const attach = () => {
-      const hero = document.querySelector('[data-testid="luxy-member-profile-hero-photo"]');
+      const hero = document.querySelector('[data-testid="chon-member-profile-hero-photo"]');
       if (!hero?.parentElement) return false;
 
       let target = hero.parentElement.querySelector<HTMLElement>('[data-chon-love-verification-badges="true"]');
@@ -133,7 +133,7 @@ export function MemberProfileVerificationBadges() {
   };
 
   return createPortal(
-    <View style={styles.row} testID="luxy-member-verification-badges">
+    <View accessibilityLabel="Trạng thái xác thực" style={styles.row} testID="chon-member-verification-badges">
       {(Object.keys(verificationMeta) as VerificationKey[]).map((key) => {
         const verified = states[key];
         const tooltip = tooltipText(key, verified);
@@ -145,11 +145,11 @@ export function MemberProfileVerificationBadges() {
               onHoverIn={() => setHovered(key)}
               onHoverOut={() => setHovered((current) => (current === key ? null : current))}
               style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-              testID={`luxy-verification-${key}`}
+              testID={`chon-verification-${key}`}
             >
               <ChonVerificationIcon
                 height={verificationIconHeight}
-                testID={`luxy-verification-icon-${key}-${verified ? 'verified' : 'unverified'}`}
+                testID={`chon-verification-icon-${key}-${verified ? 'verified' : 'unverified'}`}
                 type={key}
                 verified={verified}
               />
@@ -177,30 +177,30 @@ export function MemberProfileVerificationBadges() {
 const styles = StyleSheet.create({
   row: {
     alignItems: 'flex-start',
-    backgroundColor: luxyColors.surface,
-    borderBottomColor: luxyColors.border,
+    backgroundColor: chonColors.surface,
+    borderBottomColor: chonColors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    gap: 4,
+    gap: 6,
     justifyContent: 'space-between',
     maxWidth: '100%',
-    paddingHorizontal: luxySpacing.xs,
+    paddingHorizontal: 4,
     paddingVertical: 10,
     width: '100%',
   },
   itemWrap: { alignItems: 'center', flex: 1, minWidth: 0, position: 'relative' },
   iconButton: {
     alignItems: 'center',
-    borderRadius: luxyRadii.pill,
+    borderRadius: 999,
     height: 44,
     justifyContent: 'center',
     width: 44,
   },
-  label: { color: '#7B818B', fontSize: 9.5, marginTop: 5, maxWidth: '100%', paddingHorizontal: 2, textAlign: 'center' },
-  labelVerified: { color: '#0B3B67', fontWeight: '700' },
+  label: { color: chonColors.softMuted, fontSize: chonTypography.sizes.help, marginTop: 4, maxWidth: '100%', paddingHorizontal: 2, textAlign: 'center' },
+  labelVerified: { color: chonColors.goldStrong, fontWeight: '700' },
   tooltip: {
-    backgroundColor: '#081726',
-    borderRadius: luxyRadii.sm,
+    backgroundColor: chonColors.ink,
+    borderRadius: 8,
     minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -208,11 +208,11 @@ const styles = StyleSheet.create({
     top: 58,
     width: 176,
     zIndex: 50,
-    ...luxyShadows.navigation,
+    ...chonShadows.card,
   },
   tooltipFirst: { left: 0 },
   tooltipMiddle: { left: -54 },
   tooltipLast: { right: 0 },
-  tooltipText: { color: luxyColors.surface, fontSize: 11, lineHeight: 15, textAlign: 'center' },
+  tooltipText: { color: chonColors.surface, fontSize: chonTypography.sizes.help, lineHeight: chonTypography.lineHeights.help, textAlign: 'center' },
   pressed: { opacity: 0.72 },
 });
