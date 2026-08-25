@@ -49,7 +49,12 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     await expect(mobileBadge).toBeVisible();
     const mobileBadgeBox = await mobileBadge.boundingBox();
     expect(mobileBadgeBox).not.toBeNull();
-    expect(Math.abs(mobileBadgeBox.width - 16)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mobileBadgeBox.height - 16)).toBeLessThanOrEqual(1);
+    expect(mobileBadgeBox.width).toBeLessThan(mobileBadgeBox.height);
+    const mobileBadgeImage = mobileBadge.getByTestId('chon-membership-badge-image-diamond');
+    await expect(mobileBadgeImage).toBeVisible();
+    const mobileBadgeSource = await mobileBadgeImage.getAttribute('src');
+    expect(mobileBadgeSource).toBeTruthy();
 
     await expectCompactPhotoCount(mobileCreator);
     const mobileOverlayBox = await mobileCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();
@@ -83,7 +88,13 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     const desktopBadge = desktopCreator.getByTestId('chon-membership-badge-diamond');
     const desktopBadgeBox = await desktopBadge.boundingBox();
     expect(desktopBadgeBox).not.toBeNull();
-    expect(Math.abs(desktopBadgeBox.width - 26)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopBadgeBox.height - 26)).toBeLessThanOrEqual(1);
+    expect(desktopBadgeBox.width).toBeLessThan(desktopBadgeBox.height);
+    const desktopBadgeImage = desktopBadge.getByTestId('chon-membership-badge-image-diamond');
+    await expect(desktopBadgeImage).toBeVisible();
+    const desktopBadgeSource = await desktopBadgeImage.getAttribute('src');
+    expect(desktopBadgeSource).toBeTruthy();
+    expect(desktopBadgeSource).not.toBe(mobileBadgeSource);
 
     await expectCompactPhotoCount(desktopCreator);
     const desktopOverlayBox = await desktopCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();

@@ -23,6 +23,11 @@ async function expectBadgeWidth(page, tier, expectedWidth) {
   const box = await badge.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.round(box.width)).toBe(expectedWidth);
+  const image = badge.getByTestId(`chon-membership-badge-image-${tier}`);
+  await expect(image).toBeVisible();
+  const source = await image.getAttribute('src');
+  expect(source).toBeTruthy();
+  return source;
 }
 
 test('UI-MEM01 keeps membership focused on Premium and Diamond with Chon.Love presentation', async ({ browser }) => {
@@ -51,14 +56,17 @@ test('UI-MEM01 keeps membership focused on Premium and Diamond with Chon.Love pr
     await expect(page.getByRole('switch')).toHaveCount(0);
     await expect(page.getByText('Ẩn khỏi danh sách thành viên', { exact: true })).toHaveCount(0);
 
-    await expectBadgeWidth(page, 'premium', 132);
-    await expectBadgeWidth(page, 'diamond', 132);
+    const premiumMobileSource = await expectBadgeWidth(page, 'premium', 132);
+    const diamondMobileSource = await expectBadgeWidth(page, 'diamond', 132);
+    expect(premiumMobileSource).not.toBe(diamondMobileSource);
 
     await page.setViewportSize({ width: 1024, height: 900 });
     await expect(page.getByTestId('chon-desktop-navigation')).toHaveCount(1);
     await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(1);
-    await expectBadgeWidth(page, 'premium', 160);
-    await expectBadgeWidth(page, 'diamond', 160);
+    const premiumDesktopSource = await expectBadgeWidth(page, 'premium', 160);
+    const diamondDesktopSource = await expectBadgeWidth(page, 'diamond', 160);
+    expect(premiumDesktopSource).toBe(premiumMobileSource);
+    expect(diamondDesktopSource).toBe(diamondMobileSource);
   } finally {
     await context.close();
   }

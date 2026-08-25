@@ -1,36 +1,12 @@
 import { Image, StyleSheet, View } from 'react-native';
 import {
-  CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_DESKTOP,
-  CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_MOBILE,
-  CHON_MEMBERSHIP_BADGE_ICON_WIDTH_DESKTOP,
-  CHON_MEMBERSHIP_BADGE_ICON_WIDTH_MOBILE,
-} from './chon-ui-sizing';
+  isChonMembershipBadgeTier,
+  resolveChonMembershipBadgeAsset,
+  type ChonMembershipBadgeVariant,
+} from './chon-membership-badge-assets';
 
-// React Native/Metro requires static require() for bundled raster assets.
-// These are the currently approved Chọn.Love badge assets; UI-ASSET01 owns any future asset swap.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PREMIUM_BADGE = require('../../assets/luxy/premium-badge-hq.png');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const DIAMOND_BADGE = require('../../assets/luxy/diamond-badge-hq.png');
-
-const BADGE_ASPECT_WIDTH = 16;
-const BADGE_ASPECT_HEIGHT = 11;
-
-export type ChonMembershipBadgeVariant = 'icon' | 'certificate';
-
-export function getChonMembershipBadgeWidth(input: {
-  desktop: boolean;
-  variant: ChonMembershipBadgeVariant;
-}): number {
-  if (input.variant === 'icon') {
-    return input.desktop
-      ? CHON_MEMBERSHIP_BADGE_ICON_WIDTH_DESKTOP
-      : CHON_MEMBERSHIP_BADGE_ICON_WIDTH_MOBILE;
-  }
-  return input.desktop
-    ? CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_DESKTOP
-    : CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_MOBILE;
-}
+export { getChonMembershipBadgeWidth } from './chon-membership-badge-assets';
+export type { ChonMembershipBadgeVariant } from './chon-membership-badge-assets';
 
 export function ChonMembershipBadge({
   tier,
@@ -47,9 +23,8 @@ export function ChonMembershipBadge({
   inset?: number;
   width?: number;
 }) {
-  if (tier !== 'premium' && tier !== 'diamond') return null;
-  const resolvedWidth = width ?? getChonMembershipBadgeWidth({ desktop, variant });
-  const height = Math.round((resolvedWidth * BADGE_ASPECT_HEIGHT) / BADGE_ASPECT_WIDTH);
+  if (!isChonMembershipBadgeTier(tier)) return null;
+  const resolved = resolveChonMembershipBadgeAsset({ desktop, tier, variant, width });
   const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
 
   return (
@@ -57,14 +32,18 @@ export function ChonMembershipBadge({
       accessibilityLabel={label}
       accessibilityRole="image"
       pointerEvents="none"
-      style={[styles.badge, { height, left: inset, top: inset, width: resolvedWidth }]}
+      style={[
+        styles.badge,
+        { height: resolved.height, left: inset, top: inset, width: resolved.width },
+      ]}
       testID={`chon-membership-badge-${tier}`}
     >
       <Image
         accessibilityIgnoresInvertColors
         resizeMode="contain"
-        source={tier === 'diamond' ? DIAMOND_BADGE : PREMIUM_BADGE}
+        source={resolved.source}
         style={styles.image}
+        testID={`chon-membership-badge-image-${tier}`}
       />
     </View>
   );
