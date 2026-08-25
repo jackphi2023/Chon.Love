@@ -1,12 +1,12 @@
 import { Redirect, useRouter } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { luxyColors, luxySpacing } from '@myfan/ui';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { chonColors } from '@myfan/ui';
 import {
-  LuxySettingsPage,
+  ChonSettingsPage,
   SettingsLinkRow,
-  SettingsNotice,
   SettingsSection,
-} from '@/components/luxy-settings-layout';
+} from '@/components/chon-settings-layout';
+import { ChonMembershipPrivacySettings } from '@/components/chon-membership-privacy-settings';
 import { useAuth } from '@/providers/auth-provider';
 
 export default function SettingsPage() {
@@ -16,35 +16,33 @@ export default function SettingsPage() {
   if (auth.isRestoring) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator accessibilityLabel="Đang tải cài đặt" color={luxyColors.ink} size="large" />
+        <ActivityIndicator accessibilityLabel="Đang tải cài đặt" color={chonColors.primaryRed} size="large" />
       </View>
     );
   }
   if (!auth.userId) return <Redirect href="/(auth)" />;
 
   return (
-    <LuxySettingsPage
-      description="Quản lý hồ sơ, quyền riêng tư, xác thực, gói thành viên và các cài đặt liên quan đến quà tặng từ một nơi."
-      testID="luxy-settings-page"
+    <ChonSettingsPage
+      description="Quản lý hồ sơ, quyền riêng tư, xác thực, gói thành viên và tài khoản."
+      testID="chon-settings-page"
       title="Cài đặt"
     >
-      <SettingsNotice title="Quyền riêng tư do bạn kiểm soát">
-        Ảnh hồ sơ mới mặc định công khai. Bạn có thể chọn Ẩn từng ảnh để chuyển sang Ảnh riêng tư; giấy tờ xác thực không bao giờ trở thành ảnh hồ sơ.
-      </SettingsNotice>
+      <ChonMembershipPrivacySettings />
 
       <SettingsSection
-        description="Thông tin xuất hiện trên hồ sơ và cách người khác tìm thấy bạn."
+        description="Thông tin xuất hiện trên hồ sơ và các ảnh bạn chủ động giữ riêng tư."
         testID="settings-profile-section"
-        title="Hồ sơ & quyền riêng tư"
+        title="Hồ sơ"
       >
         <SettingsLinkRow
-          description="Tên hiển thị, tiêu đề, vị trí, thông tin cá nhân, nhu cầu kết nối và hiển thị tìm kiếm."
+          description="Tên hiển thị, tiêu đề, vị trí, thông tin cá nhân và mong muốn tìm kiếm."
           onPress={() => router.push('/profile/edit')}
           symbol="◎"
           title="Chỉnh sửa hồ sơ"
         />
         <SettingsLinkRow
-          description="Các ảnh bạn đã chọn Ẩn. Premium/Diamond được xem; Free chỉ thấy khu vực ảnh bị khóa và yêu cầu nâng cấp."
+          description="Quản lý ảnh bạn chọn giữ riêng tư. Quyền xem phụ thuộc gói thành viên hiện tại."
           onPress={() => router.push('/settings/private-photos')}
           status="Riêng tư"
           symbol="▣"
@@ -59,7 +57,7 @@ export default function SettingsPage() {
         title="Xác thực"
       >
         <SettingsLinkRow
-          description="Selfie live, CCCD mặt trước/mặt sau và LinkedIn. Chỉ trạng thái badge được công khai."
+          description="Selfie live, CCCD mặt trước/mặt sau và LinkedIn. Chỉ trạng thái xác thực được công khai."
           onPress={() => router.push('/settings/verification')}
           symbol="✓"
           testID="settings-verification"
@@ -68,12 +66,12 @@ export default function SettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        description="Xem gói hiện tại và các quyền lợi của Premium / Diamond."
+        description="Xem gói hiện tại và quyền lợi của Premium / Diamond."
         testID="settings-membership-section"
         title="Gói dịch vụ"
       >
         <SettingsLinkRow
-          description="Free, Premium và Diamond; quyền xem ảnh riêng tư được kiểm tra trực tiếp từ trạng thái gói trên server."
+          description="Xem Free, Premium và Diamond; nâng cấp khi bạn cần thêm quyền kết nối hoặc quyền riêng tư."
           onPress={() => router.push('/settings/membership')}
           status="Xem gói"
           symbol="◇"
@@ -83,19 +81,19 @@ export default function SettingsPage() {
       </SettingsSection>
 
       <SettingsSection
-        description="Quản lý lịch sử quà, số dư và các nguyên tắc nhận/tặng quà."
+        description="Theo dõi quà tặng, số dư và các giao dịch hiện có."
         testID="settings-gifts-section"
         title="Quà tặng & số dư"
       >
         <SettingsLinkRow
-          description="Xem lịch sử và nguyên tắc quà tặng. Quà không mở khóa ảnh riêng tư hoặc quan hệ."
+          description="Xem lịch sử và nguyên tắc quà tặng. Quà không mở khóa ảnh riêng tư hoặc tạo nghĩa vụ phản hồi."
           onPress={() => router.push('/settings/gifts')}
           symbol="♡"
           testID="settings-gifts"
           title="Cài đặt quà tặng"
         />
         <SettingsLinkRow
-          description="Theo dõi số dư và các trạng thái liên quan đến giao dịch hiện có."
+          description="Theo dõi số dư và trạng thái các giao dịch hiện có."
           onPress={() => router.push('/(tabs)/balance')}
           symbol="₫"
           title="Số dư"
@@ -114,15 +112,10 @@ export default function SettingsPage() {
           title="Xóa tài khoản"
         />
       </SettingsSection>
-
-      <Text style={styles.footnote}>
-        Luxy Web V1 tập trung vào Tìm kiếm, Yêu thích, Tin nhắn, Hồ sơ, Premium/Diamond và Xác thực. Quà tặng không phải điều kiện để mở ảnh riêng tư, nhắn tin hoặc gặp mặt.
-      </Text>
-    </LuxySettingsPage>
+    </ChonSettingsPage>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { alignItems: 'center', backgroundColor: luxyColors.background, flex: 1, justifyContent: 'center' },
-  footnote: { color: luxyColors.muted, fontSize: 12.5, lineHeight: 19, marginBottom: luxySpacing.xl },
+  loading: { alignItems: 'center', backgroundColor: chonColors.surface, flex: 1, justifyContent: 'center' },
 });
