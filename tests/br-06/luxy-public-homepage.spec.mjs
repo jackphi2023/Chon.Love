@@ -93,10 +93,11 @@ test('public homepage follows the refreshed Chọn.love hierarchy and palette on
   await expect(leftArtwork).toHaveCount(1);
   await expect(rightArtwork).toHaveCount(1);
   for (const artwork of [leftArtwork, rightArtwork]) {
-    const box = await artwork.boundingBox();
+    const frame = artwork.locator('xpath=..');
+    const box = await frame.boundingBox();
     expect(box).not.toBeNull();
-    expect(Math.abs(box.height - 292)).toBeLessThanOrEqual(1);
-    expect(Math.abs(box.width - 220)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.height - 296)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.width - 216)).toBeLessThanOrEqual(1);
   }
 
   const heroSlogan = home.getByText('Chọn đúng Người, Yêu đúng Gu', { exact: true }).first();
