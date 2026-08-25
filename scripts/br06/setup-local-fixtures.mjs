@@ -144,7 +144,7 @@ set
   gender = 'male',
   interested_in = 'female',
   headline = 'Kết nối có chủ đích, sống tích cực và tôn trọng.',
-  height_cm = 178,
+  height_cm = 225,
   weight_kg = 74,
   relationship_status = 'single',
   children_status = 'no_children',
@@ -157,13 +157,20 @@ set
   languages = array['Tiếng Việt','English']::text[]
 where id = ${uuidLiteral(creator.id)};
 
--- Keep the Connect badge fixture valid under the real mutual-interest search contract:
--- the female viewer can discover the male creator, and the creator accepts female profiles.
+-- Keep Browser fixtures deterministic under the real mutual-interest search contract:
+-- the female viewer can discover three active male profiles (Creator, Fan, Outsider),
+-- while the creator keeps the legacy 225 cm value required by the UI-PRO02 soft-migration regression.
 update public.profiles
 set
   gender = 'female',
   interested_in = 'male'
 where id = ${uuidLiteral(viewer.id)};
+
+update public.profiles
+set
+  gender = 'male',
+  interested_in = 'female'
+where id in (${uuidLiteral(fan.id)}, ${uuidLiteral(outsider.id)});
 
 insert into private.user_roles(user_id, role, granted_by)
 values (${uuidLiteral(moderator.id)}, 'moderator', ${uuidLiteral(moderator.id)});
