@@ -250,7 +250,7 @@ for (const viewport of viewports) {
       await capture(page, testInfo, viewport, 'edit-profile');
 
       await page.goto('/settings');
-      await expect(page.getByTestId('luxy-settings-page')).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('chon-settings-page')).toBeVisible({ timeout: 20_000 });
       await capture(page, testInfo, viewport, 'settings');
 
       await page.goto('/settings/membership');
