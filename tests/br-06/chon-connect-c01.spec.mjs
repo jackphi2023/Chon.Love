@@ -44,6 +44,14 @@ async function expectResultsButton(button) {
   await expect(button).not.toHaveCSS('box-shadow', 'none');
 }
 
+async function normalizeCreatorNotFavorited(card) {
+  const saved = card.getByRole('button', { name: /^Bỏ yêu thích BR06 Creator/ });
+  if (await saved.count()) {
+    await saved.click();
+    await expect(card.getByRole('button', { name: /^Yêu thích BR06 Creator/ })).toBeVisible();
+  }
+}
+
 test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent across mobile and desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
@@ -53,6 +61,7 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
 
     const mobileCreator = page.getByTestId('luxy-search-mobile-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(mobileCreator).toBeVisible();
+    await normalizeCreatorNotFavorited(mobileCreator);
     await expect(mobileCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
     const mobileBadge = mobileCreator.getByTestId('chon-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
@@ -71,14 +80,15 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     expect(mobileOverlayBox.height).toBeLessThanOrEqual(61);
 
     const favorite = mobileCreator.getByRole('button', { name: /^Yêu thích BR06 Creator/ });
+    await expect(favorite).toHaveAttribute('aria-pressed', 'false');
     await favorite.click();
     const savedFavorite = mobileCreator.getByRole('button', { name: /^Bỏ yêu thích BR06 Creator/ });
     await expect(savedFavorite).toHaveCSS('background-color', 'rgb(233, 74, 71)');
-    await expect(savedFavorite).toHaveAttribute('aria-selected', 'true');
+    await expect(savedFavorite).toHaveAttribute('aria-pressed', 'true');
     await savedFavorite.click();
     const unsavedFavorite = mobileCreator.getByRole('button', { name: /^Yêu thích BR06 Creator/ });
     await expect(unsavedFavorite).not.toHaveCSS('background-color', 'rgb(217, 45, 42)');
-    await expect(unsavedFavorite).toHaveAttribute('aria-selected', 'false');
+    await expect(unsavedFavorite).toHaveAttribute('aria-pressed', 'false');
 
     await page.getByTestId('luxy-search-mobile-filter-button').click();
     const mobileResults = page.getByTestId('luxy-search-mobile-filter-apply');
