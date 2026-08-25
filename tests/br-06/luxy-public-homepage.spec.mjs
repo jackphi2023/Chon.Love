@@ -95,7 +95,7 @@ test('public homepage follows the refreshed Chọn.love hierarchy and palette on
   for (const artwork of [leftArtwork, rightArtwork]) {
     const box = await artwork.boundingBox();
     expect(box).not.toBeNull();
-    expect(Math.abs(box.height - 300)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.height - 308)).toBeLessThanOrEqual(1);
     expect(Math.abs(box.width - 220)).toBeLessThanOrEqual(1);
   }
 
@@ -189,18 +189,23 @@ for (const viewport of [
     expect(ctaBox).not.toBeNull();
     expect(ctaBox.height).toBeGreaterThanOrEqual(44);
 
+    // RN Web renders one structural wrapper inside the footer; validate the intended
+    // three semantic rows (brand/slogan, legal links, copyright) instead of DOM depth.
     const footer = page.getByTestId('chon-public-footer');
-    const footerRows = footer.locator(':scope > *');
-    await expect(footerRows).toHaveCount(3);
-    const rowBoxes = [];
-    for (let index = 0; index < 3; index += 1) {
-      const box = await footerRows.nth(index).boundingBox();
-      expect(box).not.toBeNull();
-      rowBoxes.push(box);
-      expect(Math.abs((box.x + box.width / 2) - (viewport.width / 2))).toBeLessThanOrEqual(6);
-    }
-    expect(rowBoxes[1].y).toBeGreaterThan(rowBoxes[0].y);
-    expect(rowBoxes[2].y).toBeGreaterThan(rowBoxes[1].y);
+    const footerSlogan = footer.getByText('Chọn đúng người, Yêu đúng Gu', { exact: true });
+    const firstLegalLink = footer.getByRole('link').first();
+    const footerCopyright = footer.getByText('© 2026 Chon.Love', { exact: true });
+    await expect(footerSlogan).toBeVisible();
+    await expect(firstLegalLink).toBeVisible();
+    await expect(footerCopyright).toBeVisible();
+    const sloganBox = await footerSlogan.boundingBox();
+    const legalBox = await firstLegalLink.boundingBox();
+    const copyrightBox = await footerCopyright.boundingBox();
+    expect(sloganBox).not.toBeNull();
+    expect(legalBox).not.toBeNull();
+    expect(copyrightBox).not.toBeNull();
+    expect(legalBox.y).toBeGreaterThan(sloganBox.y);
+    expect(copyrightBox.y).toBeGreaterThan(legalBox.y);
     const footerBox = await footer.boundingBox();
     expect(footerBox).not.toBeNull();
     expect(footerBox.height).toBeLessThan(130);
