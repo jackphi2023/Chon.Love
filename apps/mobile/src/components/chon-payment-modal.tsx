@@ -84,8 +84,8 @@ export function ChonPaymentModal({
               ) : null}
               {rows.length ? (
                 <View style={styles.summary}>
-                  {rows.map((row) => (
-                    <ChonPaymentRow key={row.key} {...row} />
+                  {rows.map(({ key, ...row }) => (
+                    <ChonPaymentRow key={key} {...row} />
                   ))}
                 </View>
               ) : null}
@@ -152,7 +152,7 @@ export function ChonPaymentState({
   );
 }
 
-function ChonPaymentRow({ label, value, onCopy, copied }: PaymentRow) {
+function ChonPaymentRow({ label, value, onCopy, copied }: Omit<PaymentRow, 'key'>) {
   return (
     <View style={styles.row}>
       <View style={styles.rowCopy}>
@@ -243,13 +243,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 18,
-    ...chonShadows.primary,
+    ...chonShadows.primaryHover,
   },
   actionSecondary: { backgroundColor: chonColors.surface, borderColor: chonColors.gold },
   actionText: { color: chonColors.surface, fontSize: 14, fontWeight: '800' },
   actionTextSecondary: { color: chonColors.text },
   disabled: { opacity: 0.55 },
-  pressed: { opacity: chonInteraction.pressedOpacity, transform: [{ scale: chonInteraction.pressedScale }] },
+  pressed: { opacity: chonInteraction.pressedOpacity },
   state: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.border, borderRadius: 10, borderWidth: 1, gap: 4, padding: 14 },
   stateSuccess: { borderColor: chonColors.gold },
   stateTitle: { color: chonColors.text, fontSize: 14, fontWeight: '800' },
