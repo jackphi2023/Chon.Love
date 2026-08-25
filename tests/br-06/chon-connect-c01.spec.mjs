@@ -45,7 +45,7 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     const mobileCreator = page.getByTestId('luxy-search-mobile-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(mobileCreator).toBeVisible();
     await expect(mobileCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
-    const mobileBadge = mobileCreator.getByTestId('luxy-membership-badge-diamond');
+    const mobileBadge = mobileCreator.getByTestId('chon-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
     const mobileBadgeBox = await mobileBadge.boundingBox();
     expect(mobileBadgeBox).not.toBeNull();
@@ -77,7 +77,7 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     const desktopCreator = page.getByTestId('luxy-search-member-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(desktopCreator).toBeVisible();
     await expect(desktopCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
-    const desktopBadge = desktopCreator.getByTestId('luxy-membership-badge-diamond');
+    const desktopBadge = desktopCreator.getByTestId('chon-membership-badge-diamond');
     const desktopBadgeBox = await desktopBadge.boundingBox();
     expect(desktopBadgeBox).not.toBeNull();
     expect(Math.abs(desktopBadgeBox.width - 26)).toBeLessThanOrEqual(1);
