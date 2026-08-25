@@ -122,11 +122,8 @@ export function ChonBalanceScreen() {
 
   useEffect(() => {
     if (order?.status !== 'paid') return;
-    void Promise.all([
-      queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.balance(auth.userId) }),
-      balanceQuery.refetch(),
-    ]);
-  }, [auth.userId, balanceQuery, order?.status, queryClient]);
+    void queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.balance(auth.userId) });
+  }, [auth.userId, order?.status, queryClient]);
 
   const remainingSeconds = order ? getVietqrRemainingSeconds(order.expires_at, nowMs) : 0;
   const countdown = useMemo(() => {
@@ -257,7 +254,7 @@ export function ChonBalanceScreen() {
               {productsQuery.isLoading ? (
                 <View style={styles.centerState}>
                   <ActivityIndicator color={chonColors.primaryRed} />
-                  <Text style={styles.muted}>Đang tải các gói…</Text>
+                  <Text style={styles.med}>Đang tải các gói…</Text>
                 </View>
               ) : productsQuery.error ? (
                 <View style={styles.centerState}>
@@ -444,7 +441,7 @@ const styles = StyleSheet.create({
     minHeight: chonLayout.primaryActionHeight,
     paddingHorizontal: 28,
     width: '100%',
-    ...chonShadows.primary,
+    ...chonShadows.primaryHover,
   },
   primaryButtonPressed: { backgroundColor: chonColors.primaryRedHover, opacity: chonInteraction.pressedOpacity },
   primaryButtonText: { color: chonColors.surface, fontSize: 14, fontWeight: '800' },
@@ -458,5 +455,5 @@ const styles = StyleSheet.create({
   waiting: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', paddingVertical: 6 },
   notice: { color: chonColors.goldStrong, fontSize: 11.5, lineHeight: 17, textAlign: 'center' },
   disabled: { opacity: 0.55 },
-  pressed: { opacity: chonInteraction.pressedOpacity, transform: [{ scale: chonInteraction.pressedScale }] },
+  pressed: { opacity: chonInteraction.pressedOpacity },
 });
