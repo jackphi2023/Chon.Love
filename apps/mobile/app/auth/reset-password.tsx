@@ -1,16 +1,17 @@
-import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { View } from 'react-native';
 import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { Screen } from '@/components/screen';
-import { updateCurrentPassword } from '@/lib/auth';
+  ChonAuthAlert,
+  ChonAuthField,
+  ChonAuthHeading,
+  ChonAuthLoading,
+  ChonAuthNotice,
+  ChonAuthPrimaryButton,
+  ChonAuthShell,
+  chonAuthStyles,
+} from '@/components/chon-auth-shell';
+import { MIN_PASSWORD_LENGTH, updateCurrentPassword } from '@/lib/auth';
 import { getReadableAuthError } from '@/lib/auth-routing';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -23,19 +24,38 @@ export default function ResetPasswordPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth.isRestoring && !auth.userId) router.replace('/(auth)');
+    if (!auth.isRestoring && !auth.userId) router.replace('/(auth)?mode=login');
   }, [auth.isRestoring, auth.userId, router]);
+
+  const confirmationError = useMemo(() => {
+    if (!confirmation || !password || confirmation === password) return undefined;
+    return 'Hai lần nhập mật khẩu chưa khớp.';
+  }, [confirmation, password]);
+  const passwordTooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+  const canSubmit = Boolean(
+    auth.userId
+    && password.length >= MIN_PASSWORD_LENGTH
+    && confirmation.length >= MIN_PASSWORD_LENGTH
+    && password === confirmation
+    && !isSubmitting,
+  );
 
   async function handleSubmit() {
     setErrorMessage(null);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMessage(`Mật khẩu cần ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`);
+      return;
+    }
     if (password !== confirmation) {
       setErrorMessage('Hai lần nhập mật khẩu chưa khớp.');
       return;
     }
+    if (!auth.userId || isSubmitting) return;
+
     setIsSubmitting(true);
     try {
       await updateCurrentPassword(password);
-      router.replace('/(auth)');
+      router.replace('/(auth)?mode=login');
     } catch (error) {
       setErrorMessage(getReadableAuthError(error));
     } finally {
@@ -43,96 +63,67 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (auth.isRestoring) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.copy}>Đang xác minh liên kết khôi phục…</Text>
-      </View>
-    );
+  function backToLogin() {
+    router.replace('/(auth)?mode=login');
   }
 
   return (
-    <Screen
-      title="Đặt mật khẩu mới"
-      description="Chọn mật khẩu mới cho tài khoản. Sau khi hoàn tất, tất cả phiên đăng nhập sẽ bị thu hồi."
+    <ChonAuthShell
+      actionLabel="Đăng nhập"
+      onAction={backToLogin}
+      prompt="Quay lại tài khoản?"
+      testID="chon-reset-password-screen"
     >
-      <View style={styles.form}>
-        <Text style={styles.label}>Mật khẩu mới</Text>
-        <TextInput
-          autoCapitalize="none"
-          autoComplete="new-password"
-          onChangeText={setPassword}
-          placeholder="Ít nhất 8 ký tự"
-          placeholderTextColor={colors.muted}
-          secureTextEntry
-          style={styles.input}
-          value={password}
-        />
-        <Text style={styles.label}>Nhập lại mật khẩu</Text>
-        <TextInput
-          autoCapitalize="none"
-          autoComplete="new-password"
-          onChangeText={setConfirmation}
-          onSubmitEditing={handleSubmit}
-          placeholder="Nhập lại mật khẩu mới"
-          placeholderTextColor={colors.muted}
-          secureTextEntry
-          style={styles.input}
-          value={confirmation}
-        />
-        <Pressable
-          accessibilityRole="button"
-          disabled={isSubmitting || !auth.userId}
-          onPress={handleSubmit}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.pressed,
-            (isSubmitting || !auth.userId) && styles.disabled,
-          ]}
-        >
-          {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Cập nhật và đăng xuất mọi thiết bị</Text>}
-        </Pressable>
-      </View>
-      {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
-      <View style={styles.noticeCard}>
-        <Text style={styles.noticeTitle}>Yêu cầu mật khẩu</Text>
-        <Text style={styles.copy}>
-          Dùng ít nhất 8 ký tự. Nên kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt; không tái sử dụng mật khẩu ở dịch vụ khác.
-        </Text>
-      </View>
-    </Screen>
+      {auth.isRestoring ? (
+        <ChonAuthLoading text="Đang xác minh liên kết khôi phục…" />
+      ) : (
+        <View style={chonAuthStyles.form}>
+          <ChonAuthHeading
+            description="Chọn mật khẩu mới cho tài khoản. Sau khi hoàn tất, Chon.Love sẽ thu hồi các phiên đăng nhập hiện tại."
+            title="Đặt mật khẩu mới"
+          />
+
+          <View style={chonAuthStyles.fieldStack}>
+            <ChonAuthField
+              accessibilityLabel="Mật khẩu mới"
+              autoCapitalize="none"
+              autoComplete="new-password"
+              error={passwordTooShort ? `Mật khẩu cần ít nhất ${MIN_PASSWORD_LENGTH} ký tự.` : undefined}
+              help={`Dùng ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`}
+              label="Mật khẩu mới"
+              onChangeText={setPassword}
+              placeholder={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự`}
+              secureTextEntry
+              value={password}
+            />
+            <ChonAuthField
+              accessibilityLabel="Nhập lại mật khẩu mới"
+              autoCapitalize="none"
+              autoComplete="new-password"
+              error={confirmationError}
+              label="Nhập lại mật khẩu"
+              onChangeText={setConfirmation}
+              onSubmitEditing={() => void handleSubmit()}
+              placeholder="Nhập lại mật khẩu mới"
+              secureTextEntry
+              value={confirmation}
+            />
+          </View>
+
+          <ChonAuthAlert message={errorMessage} />
+          <ChonAuthPrimaryButton
+            busy={isSubmitting}
+            disabled={!canSubmit}
+            label="Cập nhật mật khẩu"
+            onPress={() => void handleSubmit()}
+            testID="reset-password-submit"
+          />
+
+          <ChonAuthNotice title="Bảo vệ tài khoản">
+            Không tái sử dụng mật khẩu ở dịch vụ khác. Sau khi cập nhật thành công, bạn sẽ được đưa về màn đăng nhập và cần đăng nhập lại bằng mật khẩu mới.
+          </ChonAuthNotice>
+        </View>
+      )}
+    </ChonAuthShell>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.background },
-  form: { gap: spacing.sm },
-  label: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: spacing.xs },
-  input: {
-    minHeight: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: spacing.md,
-    color: colors.text,
-    backgroundColor: colors.surface,
-    fontSize: 16,
-  },
-  primaryButton: {
-    minHeight: 54,
-    marginTop: spacing.md,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', textAlign: 'center' },
-  pressed: { opacity: 0.78 },
-  disabled: { opacity: 0.5 },
-  error: { color: colors.danger, fontSize: 14, lineHeight: 21, marginTop: spacing.md },
-  noticeCard: { marginTop: spacing.xl, borderRadius: 16, padding: spacing.md, backgroundColor: colors.background },
-  noticeTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  copy: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-});
