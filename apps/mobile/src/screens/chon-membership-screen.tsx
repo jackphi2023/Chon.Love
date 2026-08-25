@@ -9,7 +9,6 @@ import {
   listMyLuxyMembershipOrders,
   luxyMembershipQueryKeys,
   markLuxyMembershipOrderSubmitted,
-  type LuxyMembershipCheckout,
   type LuxyMembershipPeriodCount,
   type LuxyMembershipPlanOption,
   type LuxyMembershipTier,
@@ -17,6 +16,7 @@ import {
 import {
   chonBreakpoints,
   chonColors,
+  chonInteraction,
   chonShadows,
   chonTypography,
   luxyRadii,
@@ -25,7 +25,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Platform,
   Pressable,
   SafeAreaView,
@@ -36,7 +35,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { ChonMembershipBadge } from '@/components/chon-membership-badge';
-import { LuxyModalLayer } from '@/components/luxy-modal-layer';
+import {
+  ChonPaymentAction,
+  ChonPaymentModal,
+  ChonPaymentState,
+} from '@/components/chon-payment-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -148,9 +151,8 @@ export function ChonMembershipScreen() {
   });
 
   useEffect(() => {
-    if (!checkoutQuery.data) return;
-    if (!['approved', 'rejected', 'cancelled'].includes(checkoutQuery.data.status)) return;
-
+    const checkout = checkoutQuery.data;
+    if (!checkout || !['approved', 'rejected', 'cancelled'].includes(checkout.status)) return;
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: luxyMembershipQueryKeys.snapshot(auth.userId) }),
       queryClient.invalidateQueries({ queryKey: luxyMembershipQueryKeys.orders(auth.userId) }),
@@ -162,6 +164,7 @@ export function ChonMembershipScreen() {
   const selectedOption = plansQuery.data?.find(
     (option) => option.tier === selectedTier && option.period_count === selectedPeriod,
   );
+  const checkout = checkoutQuery.data;
 
   async function startCheckout() {
     if (!client || !selectedOption || Platform.OS !== 'web') return;
@@ -186,12 +189,12 @@ export function ChonMembershipScreen() {
   }
 
   async function submitTransfer() {
-    if (!client || !checkoutQuery.data) return;
+    if (!client || !checkout) return;
     setBusy('submit');
     setNotice(null);
     setErrorMessage(null);
     try {
-      await markLuxyMembershipOrderSubmitted(client, checkoutQuery.data.order_id);
+      await markLuxyMembershipOrderSubmitted(client, checkout.order_id);
       await checkoutQuery.refetch();
       await queryClient.invalidateQueries({ queryKey: luxyMembershipQueryKeys.orders(auth.userId) });
       setNotice('Đã ghi nhận. Admin sẽ đối soát giao dịch trước khi kích hoạt gói.');
@@ -203,7 +206,6 @@ export function ChonMembershipScreen() {
   }
 
   async function cancelCheckout() {
-    const checkout = checkoutQuery.data;
     if (!client || !checkout || checkout.status !== 'awaiting_payment') return;
     setBusy('cancel');
     setErrorMessage(null);
@@ -226,11 +228,45 @@ export function ChonMembershipScreen() {
     try {
       await globalThis.navigator.clipboard.writeText(value);
       setCopied(key);
-      setTimeout(() => setCopied((current) => (current === key ? null : current)), 1800);
+      setTimeout(() => setCopied((current) => (current === key ? null : current)), 1_800);
     } catch {
       setErrorMessage('Không thể sao chép. Hãy sao chép thủ công.');
     }
   }
+
+  const checkoutRows = checkout ? [
+    {
+      key: 'plan',
+      label: 'Gói',
+      value: `${PLAN_COPY[checkout.tier].title} · ${checkout.period_count} kỳ`,
+    },
+    { key: 'bank', label: 'Ngân hàng', value: `${checkout.bank_name} (${checkout.bank_code})` },
+    {
+      key: 'account',
+      label: 'Số tài khoản',
+      value: checkout.account_no,
+      copied: copied === 'account',
+      onCopy: () => void copyValue('account', checkout.account_no),
+    },
+    { key: 'owner', label: 'Chủ tài khoản', value: checkout.account_name },
+    {
+      key: 'amount',
+      label: 'Số tiền',
+      value: formatLuxyMembershipAmount(checkout.amount_due_vnd),
+      copied: copied === 'amount',
+      onCopy: () => void copyValue('amount', String(checkout.amount_due_vnd)),
+    },
+    {
+      key: 'content',
+      label: 'Nội dung',
+      value: checkout.transfer_content,
+      copied: copied === 'content',
+      onCopy: () => void copyValue('content', checkout.transfer_content),
+    },
+    ...(checkout.tier === 'diamond'
+      ? [{ key: 'hearts', label: '❤️ sau khi duyệt', value: `${checkout.heart_credit_display} ❤️` }]
+      : []),
+  ] : [];
 
   return (
     <SafeAreaView style={styles.safeArea} testID="luxy-upgrade-billing">
@@ -240,9 +276,7 @@ export function ChonMembershipScreen() {
             <Text accessibilityRole="header" style={[styles.title, desktop && styles.titleDesktop]}>
               Nâng cấp trải nghiệm của bạn
             </Text>
-            <Text style={styles.subtitle}>
-              Chọn gói phù hợp để kết nối chủ động hơn trên Chon.Love.
-            </Text>
+            <Text style={styles.subtitle}>Chọn gói phù hợp để kết nối chủ động hơn trên Chon.Love.</Text>
             <View style={styles.currentPill}>
               <Text style={styles.currentText}>
                 Gói hiện tại: {currentName}
@@ -253,15 +287,11 @@ export function ChonMembershipScreen() {
 
           {plansQuery.isLoading ? (
             <View style={styles.loading}>
-              <ActivityIndicator color={chonColors.ink} />
+              <ActivityIndicator color={chonColors.primaryRed} />
               <Text style={styles.muted}>Đang tải bảng giá…</Text>
             </View>
           ) : null}
-          {plansQuery.isError ? (
-            <Text accessibilityRole="alert" style={styles.error}>
-              Không thể tải bảng giá.
-            </Text>
-          ) : null}
+          {plansQuery.isError ? <Text accessibilityRole="alert" style={styles.error}>Không thể tải bảng giá.</Text> : null}
 
           {(plansQuery.data ?? []).length ? (
             <>
@@ -292,21 +322,15 @@ export function ChonMembershipScreen() {
             <View style={styles.rowBetween}>
               <View style={styles.flexOne}>
                 <Text style={styles.eyebrow}>BẠN ĐÃ CHỌN</Text>
-                <Text style={styles.ctaPlan}>
-                  {PLAN_COPY[selectedTier].title} · {selectedPeriod} kỳ
-                </Text>
+                <Text style={styles.ctaPlan}>{PLAN_COPY[selectedTier].title} · {selectedPeriod} kỳ</Text>
               </View>
               <Text style={styles.ctaAmount}>
                 {selectedOption ? formatLuxyMembershipAmount(selectedOption.amount_due_vnd) : '—'}
               </Text>
             </View>
-            {selectedPeriod === 3 ? (
-              <Text style={styles.discountText}>Đã áp dụng giảm 20% cho 3 kỳ.</Text>
-            ) : null}
+            {selectedPeriod === 3 ? <Text style={styles.discountText}>Đã áp dụng giảm 20% cho 3 kỳ.</Text> : null}
             {selectedTier === 'diamond' && selectedOption ? (
-              <Text style={styles.heartText}>
-                Sau khi Admin xác nhận: +{selectedOption.heart_credit_display} ❤️ từ 80% tiền gói.
-              </Text>
+              <Text style={styles.heartText}>Sau khi Admin xác nhận: +{selectedOption.heart_credit_display} ❤️ từ 80% tiền gói.</Text>
             ) : null}
             <Pressable
               accessibilityRole="button"
@@ -319,20 +343,10 @@ export function ChonMembershipScreen() {
               ]}
               testID="membership-checkout-cta"
             >
-              {busy === 'create' ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Tiếp tục thanh toán</Text>
-              )}
+              {busy === 'create' ? <ActivityIndicator color={chonColors.surface} /> : <Text style={styles.primaryButtonText}>Tiếp tục thanh toán</Text>}
             </Pressable>
-            {Platform.OS !== 'web' ? (
-              <Text style={styles.note}>
-                VietQR chỉ mở trên web. Thanh toán Google Play chưa được hỗ trợ trong phiên bản này.
-              </Text>
-            ) : null}
-            <Text style={styles.note}>
-              Thanh toán không tự kích hoạt. Admin phải đối soát đúng giao dịch và số tiền.
-            </Text>
+            {Platform.OS !== 'web' ? <Text style={styles.note}>VietQR hiện được hỗ trợ trên web.</Text> : null}
+            <Text style={styles.note}>Thanh toán không tự kích hoạt. Admin phải đối soát đúng giao dịch và số tiền.</Text>
           </View>
 
           <CompareTable />
@@ -341,56 +355,77 @@ export function ChonMembershipScreen() {
             <View style={styles.section} testID="membership-order-history">
               <Text style={styles.sectionTitle}>Yêu cầu gần đây</Text>
               {ordersQuery.data.map((order) => (
-                <Pressable
-                  key={order.order_id}
-                  onPress={() => setCheckoutOrderId(order.order_id)}
-                  style={styles.historyRow}
-                >
+                <Pressable key={order.order_id} onPress={() => setCheckoutOrderId(order.order_id)} style={styles.historyRow}>
                   <View style={styles.flexOne}>
-                    <Text style={styles.historyTitle}>
-                      {PLAN_COPY[order.tier].title} · {order.period_count} kỳ
-                    </Text>
-                    <Text style={styles.historyMeta}>
-                      {order.order_code} · {formatDate(order.created_at)}
-                    </Text>
+                    <Text style={styles.historyTitle}>{PLAN_COPY[order.tier].title} · {order.period_count} kỳ</Text>
+                    <Text style={styles.historyMeta}>{order.order_code} · {formatDate(order.created_at)}</Text>
                   </View>
                   <View style={styles.historyRight}>
-                    <Text style={styles.historyTitle}>
-                      {formatLuxyMembershipAmount(order.amount_due_vnd)}
-                    </Text>
-                    <Text style={styles.historyMeta}>
-                      {getLuxyMembershipOrderStatusLabel(order.status)}
-                    </Text>
+                    <Text style={styles.historyTitle}>{formatLuxyMembershipAmount(order.amount_due_vnd)}</Text>
+                    <Text style={styles.historyMeta}>{getLuxyMembershipOrderStatusLabel(order.status)}</Text>
                   </View>
                 </Pressable>
               ))}
             </View>
           ) : null}
 
-          {errorMessage ? (
-            <Text accessibilityRole="alert" style={styles.errorBanner}>
-              {errorMessage}
-            </Text>
-          ) : null}
+          {errorMessage ? <Text accessibilityRole="alert" style={styles.errorBanner}>{errorMessage}</Text> : null}
         </View>
       </ScrollView>
 
-      <CheckoutModal
-        busy={busy}
-        checkout={checkoutQuery.data}
-        copied={copied}
+      <ChonPaymentModal
+        eyebrow={checkout?.order_code ?? null}
         error={checkoutQuery.isError ? 'Không thể tải chi tiết thanh toán.' : null}
+        footerNote="Admin là đường duy nhất kích hoạt Premium/Diamond; xác nhận của thành viên không tự cấp quyền hoặc tự cộng ❤️."
         loading={Boolean(checkoutOrderId) && checkoutQuery.isLoading}
-        notice={notice}
-        onCancel={() => void cancelCheckout()}
         onClose={() => {
           setCheckoutOrderId(null);
           setNotice(null);
           setErrorMessage(null);
         }}
-        onCopy={(key, value) => void copyValue(key, value)}
-        onSubmit={() => void submitTransfer()}
-      />
+        qrAccessibilityLabel="Mã VietQR thanh toán gói thành viên"
+        qrImageUrl={checkout?.status === 'awaiting_payment' ? checkout.qr_image_url : null}
+        rows={checkoutRows}
+        status={checkout ? getLuxyMembershipOrderStatusLabel(checkout.status) : null}
+        testID="membership-payment-modal"
+        title={checkout ? `Thanh toán ${PLAN_COPY[checkout.tier].title}` : 'Thanh toán gói thành viên'}
+        visible={Boolean(checkoutOrderId) || checkoutQuery.isLoading || checkoutQuery.isError}
+      >
+        {checkout?.status === 'awaiting_payment' ? (
+          <>
+            <Text style={styles.note}>Chuyển đúng số tiền và giữ nguyên nội dung.</Text>
+            <ChonPaymentAction
+              disabled={busy !== null}
+              label="Tôi đã chuyển khoản"
+              loading={busy === 'submit'}
+              onPress={() => void submitTransfer()}
+              testID="membership-transfer-submitted"
+            />
+            <ChonPaymentAction
+              disabled={busy !== null}
+              label={busy === 'cancel' ? 'Đang hủy…' : 'Hủy yêu cầu'}
+              onPress={() => void cancelCheckout()}
+              secondary
+            />
+          </>
+        ) : null}
+        {checkout?.status === 'awaiting_confirmation' ? (
+          <View style={styles.waiting}>
+            <ActivityIndicator color={chonColors.primaryRed} />
+            <Text style={styles.muted}>Đang chờ Admin đối soát. Tự kiểm tra lại mỗi 10 giây.</Text>
+          </View>
+        ) : null}
+        {checkout?.status === 'approved' ? (
+          <ChonPaymentState success text="Quyền thành viên đã cập nhật theo thời hạn được duyệt." title="Gói đã được kích hoạt" />
+        ) : null}
+        {checkout?.status === 'rejected' ? (
+          <ChonPaymentState text="Vui lòng liên hệ hỗ trợ nếu bạn đã chuyển khoản." title="Giao dịch chưa được xác nhận" />
+        ) : null}
+        {checkout?.status === 'cancelled' ? (
+          <ChonPaymentState text="Bạn có thể tạo một yêu cầu mới." title="Yêu cầu đã hủy" />
+        ) : null}
+        {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
+      </ChonPaymentModal>
     </SafeAreaView>
   );
 }
@@ -409,7 +444,6 @@ function PlanSection({
   desktop: boolean;
 }) {
   const copy = PLAN_COPY[tier];
-
   return (
     <View style={styles.planSection} testID={`plan-${tier}`}>
       <View style={[styles.certificateStage, desktop && styles.certificateStageDesktop]}>
@@ -419,11 +453,7 @@ function PlanSection({
       <Text style={styles.planTitle}>{copy.title}</Text>
       <Text style={styles.planDescription}>{copy.description}</Text>
       <View style={styles.features}>
-        {copy.features.map((feature) => (
-          <Text key={feature} style={styles.feature}>
-            ✓ {feature}
-          </Text>
-        ))}
+        {copy.features.map((feature) => <Text key={feature} style={styles.feature}>✓ {feature}</Text>)}
       </View>
       <View style={styles.planOptions}>
         {([1, 3] as LuxyMembershipPeriodCount[]).map((period) => {
@@ -436,26 +466,12 @@ function PlanSection({
               accessibilityState={{ checked: selected }}
               key={period}
               onPress={() => onSelect(period)}
-              style={({ pressed }) => [
-                styles.planOption,
-                selected && styles.planOptionSelected,
-                pressed && styles.planOptionPressed,
-              ]}
+              style={({ pressed }) => [styles.planOption, selected && styles.planOptionSelected, pressed && styles.pressed]}
             >
-              <View style={[styles.radio, selected && styles.radioSelected]}>
-                {selected ? <View style={styles.radioDot} /> : null}
-              </View>
+              <View style={[styles.radio, selected && styles.radioSelected]}>{selected ? <View style={styles.radioDot} /> : null}</View>
               <View style={styles.flexOne}>
-                <View style={styles.optionTitleRow}>
-                  <Text style={styles.optionTitle}>{period} kỳ</Text>
-                  {period === 3 ? <Text style={styles.discountBadge}>GIẢM 20%</Text> : null}
-                </View>
-                <Text style={styles.optionMeta}>
-                  {formatLuxyMembershipAmount(Math.round(option.amount_due_vnd / period))} / tháng
-                </Text>
-                {tier === 'diamond' ? (
-                  <Text style={styles.optionHeart}>+ {option.heart_credit_display} ❤️ sau khi duyệt</Text>
-                ) : null}
+                <Text style={styles.optionTitle}>{period} kỳ{period === 3 ? ' · GIẢM 20%' : ''}</Text>
+                {tier === 'diamond' ? <Text style={styles.optionHeart}>+ {option.heart_credit_display} ❤️ sau khi duyệt</Text> : null}
               </View>
               <Text style={styles.optionAmount}>{formatLuxyMembershipAmount(option.amount_due_vnd)}</Text>
             </Pressable>
@@ -482,182 +498,6 @@ function CompareTable() {
           <Text style={styles.compareValue}>{diamond}</Text>
         </View>
       ))}
-    </View>
-  );
-}
-
-function CheckoutModal({
-  checkout,
-  loading,
-  error,
-  busy,
-  notice,
-  copied,
-  onCopy,
-  onSubmit,
-  onCancel,
-  onClose,
-}: {
-  checkout: LuxyMembershipCheckout | undefined;
-  loading: boolean;
-  error: string | null;
-  busy: BusyAction;
-  notice: string | null;
-  copied: string | null;
-  onCopy: (key: string, value: string) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-  onClose: () => void;
-}) {
-  const visible = loading || Boolean(checkout) || Boolean(error);
-  if (!visible) return null;
-
-  return (
-    <LuxyModalLayer onRequestClose={onClose} visible={visible}>
-      <View style={styles.backdrop}>
-        <View style={styles.modalCard}>
-          <Pressable accessibilityLabel="Đóng" onPress={onClose} style={styles.close}>
-            <Text style={styles.closeText}>×</Text>
-          </Pressable>
-          {loading ? (
-            <View style={styles.loading}>
-              <ActivityIndicator color={chonColors.ink} />
-              <Text style={styles.muted}>Đang tạo thông tin thanh toán…</Text>
-            </View>
-          ) : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          {checkout ? (
-            <ScrollView contentContainerStyle={styles.checkoutContent}>
-              <Text style={[styles.eyebrow, styles.centerText]}>{checkout.order_code}</Text>
-              <Text style={styles.checkoutTitle}>Thanh toán {PLAN_COPY[checkout.tier].title}</Text>
-              <Text style={styles.checkoutStatus}>
-                {getLuxyMembershipOrderStatusLabel(checkout.status)}
-              </Text>
-              {checkout.status === 'awaiting_payment' ? (
-                <Image
-                  accessibilityLabel="Mã VietQR thanh toán gói thành viên"
-                  resizeMode="contain"
-                  source={{ uri: checkout.qr_image_url }}
-                  style={styles.qrImage}
-                />
-              ) : null}
-              <View style={styles.checkoutSummary}>
-                <CheckoutRow
-                  label="Gói"
-                  value={`${PLAN_COPY[checkout.tier].title} · ${checkout.period_count} kỳ`}
-                />
-                <CheckoutRow label="Ngân hàng" value={`${checkout.bank_name} (${checkout.bank_code})`} />
-                <CheckoutRow
-                  copied={copied === 'account'}
-                  label="Số tài khoản"
-                  onCopy={() => onCopy('account', checkout.account_no)}
-                  value={checkout.account_no}
-                />
-                <CheckoutRow label="Chủ tài khoản" value={checkout.account_name} />
-                <CheckoutRow
-                  copied={copied === 'amount'}
-                  label="Số tiền"
-                  onCopy={() => onCopy('amount', String(checkout.amount_due_vnd))}
-                  value={formatLuxyMembershipAmount(checkout.amount_due_vnd)}
-                />
-                <CheckoutRow
-                  copied={copied === 'content'}
-                  label="Nội dung"
-                  onCopy={() => onCopy('content', checkout.transfer_content)}
-                  value={checkout.transfer_content}
-                />
-                {checkout.tier === 'diamond' ? (
-                  <CheckoutRow label="❤️ sau khi duyệt" value={`${checkout.heart_credit_display} ❤️`} />
-                ) : null}
-              </View>
-              {checkout.status === 'awaiting_payment' ? (
-                <>
-                  <Text style={styles.note}>Chuyển đúng số tiền và giữ nguyên nội dung.</Text>
-                  <Pressable
-                    disabled={busy !== null}
-                    onPress={onSubmit}
-                    style={[styles.primaryButton, busy !== null && styles.disabled]}
-                  >
-                    {busy === 'submit' ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.primaryButtonText}>Tôi đã chuyển khoản</Text>
-                    )}
-                  </Pressable>
-                  <Pressable disabled={busy !== null} onPress={onCancel} style={styles.secondaryButton}>
-                    <Text style={styles.secondaryButtonText}>
-                      {busy === 'cancel' ? 'Đang hủy…' : 'Hủy yêu cầu'}
-                    </Text>
-                  </Pressable>
-                </>
-              ) : null}
-              {checkout.status === 'awaiting_confirmation' ? (
-                <View style={styles.waiting}>
-                  <ActivityIndicator color={chonColors.ink} />
-                  <Text style={styles.muted}>
-                    Đang chờ Admin đối soát. Tự kiểm tra lại mỗi 10 giây; chưa kích hoạt gói.
-                  </Text>
-                </View>
-              ) : null}
-              {checkout.status === 'approved' ? (
-                <StateBox
-                  success
-                  text="Quyền thành viên đã cập nhật theo thời hạn được duyệt."
-                  title="Gói đã được kích hoạt"
-                />
-              ) : null}
-              {checkout.status === 'rejected' ? (
-                <StateBox
-                  text="Vui lòng liên hệ hỗ trợ nếu bạn đã chuyển khoản."
-                  title="Giao dịch chưa được xác nhận"
-                />
-              ) : null}
-              {checkout.status === 'cancelled' ? (
-                <StateBox text="Bạn có thể tạo một yêu cầu mới." title="Yêu cầu đã hủy" />
-              ) : null}
-              {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-              <Text style={styles.footnote}>
-                Admin là đường duy nhất kích hoạt Premium/Diamond. Nút xác nhận của thành viên không tự cấp quyền và không tự cộng ❤️.
-              </Text>
-            </ScrollView>
-          ) : null}
-        </View>
-      </View>
-    </LuxyModalLayer>
-  );
-}
-
-function CheckoutRow({
-  label,
-  value,
-  onCopy,
-  copied,
-}: {
-  label: string;
-  value: string;
-  onCopy?: () => void;
-  copied?: boolean;
-}) {
-  return (
-    <View style={styles.checkoutRow}>
-      <View style={styles.flexOne}>
-        <Text style={styles.checkoutLabel}>{label}</Text>
-        <Text selectable style={styles.checkoutValue}>{value}</Text>
-      </View>
-      {onCopy ? (
-        <Pressable onPress={onCopy} style={styles.copyButton}>
-          <Text style={styles.copyText}>{copied ? 'Đã chép' : 'Sao chép'}</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-function StateBox({ title, text, success = false }: { title: string; text: string; success?: boolean }) {
-  return (
-    <View style={[styles.stateBox, success && styles.stateSuccess]}>
-      <Text style={styles.historyTitle}>{title}</Text>
-      <Text style={styles.historyMeta}>{text}</Text>
     </View>
   );
 }
@@ -690,254 +530,56 @@ const styles = StyleSheet.create({
   page: { alignSelf: 'center', maxWidth: 600, paddingHorizontal: 20, width: '100%' },
   pageCompact: { paddingHorizontal: 16 },
   headingBlock: { alignItems: 'center', paddingBottom: 30, paddingTop: 32 },
-  title: {
-    color: chonColors.goldStrong,
-    fontFamily: chonTypography.families.display,
-    fontSize: chonTypography.sizes.h2,
-    lineHeight: chonTypography.lineHeights.h2,
-    textAlign: 'center',
-  },
+  title: { color: chonColors.goldStrong, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, lineHeight: chonTypography.lineHeights.h2, textAlign: 'center' },
   titleDesktop: { fontSize: chonTypography.sizes.h1Desktop, lineHeight: chonTypography.lineHeights.h1Desktop },
-  subtitle: {
-    color: chonColors.muted,
-    fontSize: chonTypography.sizes.body,
-    lineHeight: chonTypography.lineHeights.body,
-    marginTop: 8,
-    maxWidth: 470,
-    textAlign: 'center',
-  },
-  currentPill: {
-    backgroundColor: chonColors.warmSurface,
-    borderColor: chonColors.gold,
-    borderRadius: luxyRadii.pill,
-    borderWidth: 1,
-    marginTop: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
+  subtitle: { color: chonColors.muted, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginTop: 8, maxWidth: 470, textAlign: 'center' },
+  currentPill: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: luxyRadii.pill, borderWidth: 1, marginTop: 14, paddingHorizontal: 14, paddingVertical: 7 },
   currentText: { color: chonColors.text, fontSize: 12, fontWeight: '600' },
-  planSection: {
-    alignItems: 'center',
-    borderBottomColor: chonColors.border,
-    borderBottomWidth: 1,
-    marginBottom: 30,
-    paddingBottom: 30,
-  },
+  planSection: { alignItems: 'center', borderBottomColor: chonColors.border, borderBottomWidth: 1, marginBottom: 30, paddingBottom: 30 },
   certificateStage: { height: 91, marginBottom: 10, position: 'relative', width: 132 },
   certificateStageDesktop: { height: 110, width: 160 },
   eyebrow: { color: chonColors.goldStrong, fontSize: 10, fontWeight: '800', letterSpacing: 1.3 },
-  planTitle: {
-    color: chonColors.text,
-    fontFamily: chonTypography.families.display,
-    fontSize: chonTypography.sizes.h2,
-    lineHeight: chonTypography.lineHeights.h2,
-    marginTop: 2,
-  },
-  planDescription: {
-    color: chonColors.muted,
-    fontSize: chonTypography.sizes.body,
-    lineHeight: chonTypography.lineHeights.body,
-    marginTop: 8,
-    textAlign: 'center',
-  },
+  planTitle: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, lineHeight: chonTypography.lineHeights.h2, marginTop: 2 },
+  planDescription: { color: chonColors.muted, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, marginTop: 8, textAlign: 'center' },
   features: { alignSelf: 'stretch', gap: 5, marginTop: 14 },
   feature: { color: chonColors.text, fontSize: 12, lineHeight: 18 },
   planOptions: { alignSelf: 'stretch', gap: 10, marginTop: 18 },
-  planOption: {
-    alignItems: 'center',
-    backgroundColor: chonColors.surface,
-    borderColor: chonColors.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    minHeight: 76,
-    padding: 13,
-  },
-  planOptionSelected: {
-    backgroundColor: chonColors.warmSurfaceStrong,
-    borderColor: chonColors.gold,
-    borderWidth: 1.5,
-  },
-  planOptionPressed: { opacity: 0.82 },
-  radio: {
-    alignItems: 'center',
-    borderColor: chonColors.softMuted,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    height: 20,
-    justifyContent: 'center',
-    width: 20,
-  },
+  planOption: { alignItems: 'center', backgroundColor: chonColors.surface, borderColor: chonColors.border, borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 12, minHeight: 76, padding: 13 },
+  planOptionSelected: { backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold, borderWidth: 1.5, ...chonShadows.card },
+  radio: { alignItems: 'center', borderColor: chonColors.borderStrong, borderRadius: 99, borderWidth: 1.5, height: 20, justifyContent: 'center', width: 20 },
   radioSelected: { borderColor: chonColors.primaryRed },
-  radioDot: { backgroundColor: chonColors.primaryRed, borderRadius: 5, height: 10, width: 10 },
-  optionTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  optionTitle: { color: chonColors.text, fontSize: 14, fontWeight: '700' },
-  discountBadge: {
-    backgroundColor: chonColors.primaryRed,
-    borderRadius: 3,
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: '800',
-    overflow: 'hidden',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  optionMeta: { color: chonColors.muted, fontSize: 11, marginTop: 3 },
-  optionHeart: { color: chonColors.text, fontSize: 11, fontWeight: '600', marginTop: 4 },
-  optionAmount: { color: chonColors.text, fontSize: 14, fontWeight: '700' },
-  ctaCard: {
-    backgroundColor: chonColors.surface,
-    borderColor: chonColors.gold,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 34,
-    padding: 18,
-    ...chonShadows.card,
-  },
+  radioDot: { backgroundColor: chonColors.primaryRed, borderRadius: 99, height: 10, width: 10 },
+  optionTitle: { color: chonColors.text, fontSize: 13, fontWeight: '700' },
+  optionHeart: { color: chonColors.goldStrong, fontSize: 11, fontWeight: '600', marginTop: 4 },
+  optionAmount: { color: chonColors.text, fontSize: 13, fontWeight: '800' },
+  ctaCard: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 12, borderWidth: 1, gap: 10, marginBottom: 30, padding: 16, ...chonShadows.card },
   rowBetween: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
-  flexOne: { flex: 1 },
-  ctaPlan: { color: chonColors.text, fontSize: 16, fontWeight: '700', marginTop: 3 },
-  ctaAmount: { color: chonColors.text, fontSize: 18, fontWeight: '700' },
-  discountText: { color: chonColors.primaryRed, fontSize: 12, fontWeight: '700', marginTop: 10 },
-  heartText: { color: chonColors.text, fontSize: 12, marginTop: 7 },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: chonColors.primaryRed,
-    borderRadius: luxyRadii.pill,
-    justifyContent: 'center',
-    marginTop: 16,
-    minHeight: 48,
-    paddingHorizontal: 20,
-  },
-  primaryButtonPressed: { backgroundColor: chonColors.primaryRedHover, ...chonShadows.primaryHover },
-  primaryButtonText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
-  secondaryButton: {
-    alignItems: 'center',
-    backgroundColor: chonColors.surface,
-    borderColor: chonColors.gold,
-    borderRadius: luxyRadii.pill,
-    borderWidth: 1,
-    justifyContent: 'center',
-    marginTop: 13,
-    minHeight: 46,
-    paddingHorizontal: 18,
-  },
-  secondaryButtonText: { color: chonColors.text, fontSize: 13, fontWeight: '700' },
-  disabled: { opacity: 0.5 },
-  note: { color: chonColors.muted, fontSize: 11, lineHeight: 17, marginTop: 10, textAlign: 'center' },
-  section: { marginBottom: 34 },
-  sectionTitle: {
-    color: chonColors.text,
-    fontFamily: chonTypography.families.display,
-    fontSize: chonTypography.sizes.h3,
-    lineHeight: chonTypography.lineHeights.h3,
-    marginBottom: 14,
-  },
-  compareHeader: {
-    backgroundColor: chonColors.warmSurface,
-    borderBottomColor: chonColors.border,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    minHeight: 46,
-    paddingHorizontal: 8,
-  },
-  compareRow: {
-    borderBottomColor: chonColors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    minHeight: 54,
-    paddingHorizontal: 8,
-  },
-  compareFeature: { alignSelf: 'center', color: chonColors.text, flex: 1.35, fontSize: 11.5 },
-  compareValueHead: {
-    alignSelf: 'center',
-    color: chonColors.text,
-    flex: 0.8,
-    fontSize: 11.5,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  compareValue: { alignSelf: 'center', color: chonColors.text, flex: 0.8, fontSize: 11, textAlign: 'center' },
-  historyRow: {
-    alignItems: 'center',
-    borderBottomColor: chonColors.border,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    minHeight: 70,
-    paddingVertical: 9,
-  },
+  flexOne: { flex: 1, minWidth: 0 },
+  ctaPlan: { color: chonColors.text, fontSize: 16, fontWeight: '800', marginTop: 3 },
+  ctaAmount: { color: chonColors.primaryRed, fontSize: 16, fontWeight: '900' },
+  discountText: { color: chonColors.goldStrong, fontSize: 11.5, fontWeight: '600' },
+  heartText: { color: chonColors.goldStrong, fontSize: 11.5, fontWeight: '600' },
+  primaryButton: { alignItems: 'center', backgroundColor: chonColors.primaryRed, borderRadius: luxyRadii.pill, justifyContent: 'center', minHeight: 48, paddingHorizontal: 22, ...chonShadows.primary },
+  primaryButtonPressed: { backgroundColor: chonColors.primaryRedHover, opacity: chonInteraction.pressedOpacity },
+  primaryButtonText: { color: chonColors.surface, fontSize: 14, fontWeight: '800' },
+  note: { color: chonColors.muted, fontSize: 10.5, lineHeight: 16, textAlign: 'center' },
+  section: { marginBottom: 30 },
+  sectionTitle: { color: chonColors.text, fontSize: 16, fontWeight: '800', marginBottom: 10 },
+  compareHeader: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.border, borderTopLeftRadius: 8, borderTopRightRadius: 8, borderWidth: 1, flexDirection: 'row', padding: 10 },
+  compareRow: { borderBottomColor: chonColors.border, borderBottomWidth: 1, borderLeftColor: chonColors.border, borderLeftWidth: 1, borderRightColor: chonColors.border, borderRightWidth: 1, flexDirection: 'row', padding: 10 },
+  compareFeature: { color: chonColors.text, flex: 1.45, fontSize: 11.5 },
+  compareValueHead: { color: chonColors.goldStrong, flex: 0.8, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  compareValue: { color: chonColors.muted, flex: 0.8, fontSize: 11, textAlign: 'center' },
+  historyRow: { alignItems: 'center', borderBottomColor: chonColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 10, minHeight: 64, paddingVertical: 8 },
   historyRight: { alignItems: 'flex-end' },
-  historyTitle: { color: chonColors.text, fontSize: 13, fontWeight: '700' },
-  historyMeta: { color: chonColors.muted, fontSize: 10.5, lineHeight: 16, marginTop: 3 },
-  loading: { alignItems: 'center', gap: 10, justifyContent: 'center', minHeight: 120 },
+  historyTitle: { color: chonColors.text, fontSize: 12.5, fontWeight: '700' },
+  historyMeta: { color: chonColors.muted, fontSize: 10.5, marginTop: 2 },
+  loading: { alignItems: 'center', gap: 8, justifyContent: 'center', minHeight: 100 },
   muted: { color: chonColors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  error: { color: chonColors.danger, fontSize: 12, padding: 14, textAlign: 'center' },
-  errorBanner: {
-    backgroundColor: '#FFF4F4',
-    borderColor: '#F3B4B4',
-    borderWidth: 1,
-    color: chonColors.danger,
-    fontSize: 12,
-    marginBottom: 24,
-    padding: 12,
-  },
-  backdrop: {
-    alignItems: 'center',
-    backgroundColor: chonColors.overlay,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    backgroundColor: chonColors.surface,
-    borderRadius: 8,
-    maxHeight: '92%',
-    maxWidth: 466,
-    minHeight: 240,
-    position: 'relative',
-    width: '100%',
-    ...chonShadows.card,
-  },
-  close: {
-    alignItems: 'center',
-    height: 44,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 4,
-    top: 4,
-    width: 44,
-    zIndex: 10,
-  },
-  closeText: { color: chonColors.ink, fontSize: 28, fontWeight: '300' },
-  checkoutContent: { padding: 26, paddingTop: 34 },
-  checkoutTitle: {
-    color: chonColors.text,
-    fontFamily: chonTypography.families.display,
-    fontSize: 27,
-    textAlign: 'center',
-  },
-  checkoutStatus: { color: chonColors.muted, fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: 'center' },
-  qrImage: { alignSelf: 'center', height: 248, marginVertical: 14, width: 248 },
-  checkoutSummary: { borderTopColor: chonColors.border, borderTopWidth: 1, marginTop: 8 },
-  checkoutRow: {
-    alignItems: 'center',
-    borderBottomColor: chonColors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    gap: 8,
-    minHeight: 55,
-    paddingVertical: 8,
-  },
-  checkoutLabel: { color: chonColors.muted, fontSize: 10.5 },
-  checkoutValue: { color: chonColors.text, fontSize: 13, fontWeight: '600', marginTop: 2 },
-  copyButton: { borderColor: chonColors.border, borderRadius: 4, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 6 },
-  copyText: { color: chonColors.ink, fontSize: 10.5, fontWeight: '700' },
-  waiting: { alignItems: 'center', backgroundColor: chonColors.warmSurface, gap: 9, marginTop: 16, padding: 16 },
-  stateBox: { backgroundColor: '#FFFBEB', borderColor: chonColors.gold, borderWidth: 1, marginTop: 16, padding: 14 },
-  stateSuccess: { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' },
-  notice: { color: chonColors.text, fontSize: 11.5, marginTop: 12, textAlign: 'center' },
-  footnote: { color: chonColors.muted, fontSize: 10.5, lineHeight: 16, marginTop: 14, textAlign: 'center' },
-  centerText: { textAlign: 'center' },
+  error: { color: chonColors.danger, fontSize: 12, textAlign: 'center' },
+  errorBanner: { color: chonColors.danger, fontSize: 12, marginBottom: 20, textAlign: 'center' },
+  waiting: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', paddingVertical: 6 },
+  notice: { color: chonColors.goldStrong, fontSize: 11.5, lineHeight: 17, textAlign: 'center' },
+  disabled: { opacity: 0.55 },
+  pressed: { opacity: chonInteraction.pressedOpacity },
 });
