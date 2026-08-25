@@ -71,7 +71,7 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
     await expect(creatorRow).toBeVisible();
     await expect(creatorRow.getByTestId('chon-seeking-member-photo')).toBeVisible();
     await expect(creatorRow.getByTestId('chon-photo-count')).toBeVisible();
-    const creatorBadge = creatorRow.getByTestId('luxy-membership-badge-diamond');
+    const creatorBadge = creatorRow.getByTestId('chon-membership-badge-diamond');
     await expect(creatorBadge).toBeVisible();
     const creatorBadgeBox = await creatorBadge.boundingBox();
     expect(creatorBadgeBox).not.toBeNull();
@@ -92,6 +92,7 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
 
     // A routed profile visit is recorded once by the route adapter and appears under Viewed Me.
     await creatorPage.goto(`/profile/${actors.viewer.username}`);
+    await expect(creatorPage.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
     await expect(creatorPage.getByRole('heading', { name: new RegExp(`^${actors.viewer.name},`) })).toBeVisible({ timeout: 20_000 });
     await creatorPage.waitForTimeout(500);
 
