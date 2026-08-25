@@ -140,7 +140,7 @@ export function ChonAuthAlert({ message }: { message: string | null }) {
   return <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.alert}>{message}</Text>;
 }
 
-export function ChonAuthNotice({ title, children, success = false }: { title: string; children: ReactNode; success?: boolean }) {
+export function ChonAuthNotice({ title, children, success = false }: { title: string; children: string; success?: boolean }) {
   return (
     <View style={[styles.notice, success && styles.noticeSuccess]}>
       <Text style={styles.noticeTitle}>{title}</Text>
