@@ -25,6 +25,22 @@ async function openGiftPicker(page) {
   return picker;
 }
 
+async function assertFinalGiftPresentation(picker) {
+  const items = picker.getByTestId('chon-gift-picker-item');
+  await expect(items).toHaveCount(20);
+  await expect(picker.getByTestId('chon-gift-catalog-icon')).toHaveCount(20);
+
+  const donut = picker.getByRole('button', { name: 'Donut, 1 ❤️', exact: true });
+  await donut.click();
+  await expect(donut).toHaveCSS('background-color', 'rgb(184, 120, 0)');
+  await expect(donut).toHaveCSS('border-color', 'rgb(217, 45, 42)');
+  await expect(picker.getByRole('button', { name: 'Tặng quà', exact: true })).toBeVisible();
+  await expect(picker.getByText('Gửi quà', { exact: true })).toHaveCount(0);
+
+  const selectedText = await donut.innerText();
+  expect(selectedText).not.toMatch(/[🍩🌹👑🎁]/u);
+}
+
 test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive Chon.Love picker', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -40,27 +56,20 @@ test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive 
     await expect(picker.getByRole('heading', { name: 'Tặng quà', exact: true })).toBeVisible();
     await expect(picker.getByTestId('chon-gift-picker-balance')).toContainText('❤️');
     await expect(picker.getByText('Giá quà được hiển thị bằng ❤️.', { exact: true })).toBeVisible();
-
-    const items = picker.getByTestId('chon-gift-picker-item');
-    await expect(items).toHaveCount(20);
-    await expect(picker.getByRole('button', { name: 'Donut, 1 ❤️', exact: true })).toBeVisible();
     await expect(picker.getByRole('button', { name: 'Vương miện, 20 ❤️', exact: true })).toBeVisible();
 
     const pickerText = await picker.innerText();
     expect(pickerText).not.toMatch(/VNĐ|VND|₫/i);
+    await assertFinalGiftPresentation(picker);
 
     await testInfo.attach('ui-gift01-mobile-picker', {
       body: await page.screenshot({ fullPage: false }),
       contentType: 'image/png',
     });
 
-    // Crossing the responsive breakpoint intentionally remounts page chrome/modal state.
-    // Reopen the same shared picker at desktop width instead of assuming mobile modal
-    // state survives a React Native Web layout-mode remount.
     await page.setViewportSize({ width: 1280, height: 900 });
     const desktopPicker = await openGiftPicker(page);
-    const desktopItems = desktopPicker.getByTestId('chon-gift-picker-item');
-    await expect(desktopItems).toHaveCount(20);
+    await expect(desktopPicker.getByTestId('chon-gift-picker-item')).toHaveCount(20);
     const desktopBox = await desktopPicker.boundingBox();
     expect(desktopBox).not.toBeNull();
     expect(desktopBox.width).toBeLessThanOrEqual(602);
