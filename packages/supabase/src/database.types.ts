@@ -207,6 +207,7 @@ export type Database = {
           friendship_id: string | null
           id: string
           last_message_at: string | null
+          message_retention_purged_at: string | null
           message_retention_updated_at: string | null
           message_retention_updated_by: string | null
           updated_at: string
@@ -220,6 +221,7 @@ export type Database = {
           friendship_id?: string | null
           id?: string
           last_message_at?: string | null
+          message_retention_purged_at?: string | null
           message_retention_updated_at?: string | null
           message_retention_updated_by?: string | null
           updated_at?: string
@@ -233,6 +235,7 @@ export type Database = {
           friendship_id?: string | null
           id?: string
           last_message_at?: string | null
+          message_retention_purged_at?: string | null
           message_retention_updated_at?: string | null
           message_retention_updated_by?: string | null
           updated_at?: string
@@ -2223,6 +2226,7 @@ export type Database = {
           auto_delete_after_days: number
           auto_delete_enabled: boolean
           conversation_id: string
+          purged_at: string
           updated_at: string
         }[]
       }
@@ -2806,6 +2810,7 @@ export type Database = {
           membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
           other_user_id: string
           province_name: string
+          retention_purged_at: string
           unread_count: number
           username: string
         }[]
@@ -3846,6 +3851,7 @@ export type Database = {
           auto_delete_enabled: boolean
           conversation_id: string
           deleted_messages: number
+          purged_at: string
           updated_at: string
         }[]
       }
