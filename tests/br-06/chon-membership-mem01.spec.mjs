@@ -48,7 +48,7 @@ test('UI-MEM01 keeps membership focused on Premium and Diamond with Chon.Love pr
     await expect(page.getByText('Một lần', { exact: true })).toHaveCount(0);
     await expect(page.getByText('ULTIMATE ACCESS', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Quyền riêng tư của gói hiện tại', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Ẩn trạng thái online', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('switch')).toHaveCount(0);
     await expect(page.getByText('Ẩn khỏi danh sách thành viên', { exact: true })).toHaveCount(0);
 
     await expectBadgeWidth(page, 'premium', 132);
