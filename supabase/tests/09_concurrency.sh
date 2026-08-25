@@ -25,10 +25,24 @@ update public.profiles set
   province_id=1
 where id::text like '4a000000-0000-0000-0000-00000000000%';
 insert into public.creator_profiles(user_id,creator_status,fan_threshold_units,approved_at) values('4a000000-0000-0000-0000-000000000002','approved',1000,now());
-select * from public.record_verified_play_purchase('4a000000-0000-0000-0000-000000000001','myfan_hearts_005',repeat('b',64),'GPA.CONCURRENCY',encode(extensions.digest('4a000000-0000-0000-0000-000000000001','sha256'),'hex'),'VN',true,'4a100000-0000-0000-0000-000000000001',null);
+select * from public.record_verified_play_purchase(
+  '4a000000-0000-0000-0000-000000000001',
+  (select google_product_id from public.heart_products where is_active order by display_hearts, sort_order, id limit 1),
+  repeat('b',64),
+  'GPA.CONCURRENCY',
+  encode(extensions.digest('4a000000-0000-0000-0000-000000000001','sha256'),'hex'),
+  'VN',
+  true,
+  '4a100000-0000-0000-0000-000000000001',
+  null
+);
 SQL
 
-GIFT_ID=$(psql "$DB_URL" -Atc "select id from public.gift_catalog where display_hearts=5 and is_active order by sort_order limit 1")
+GIFT_ID=$(psql "$DB_URL" -Atc "select gc.id from public.gift_catalog gc where gc.display_hearts=(select min(hp.display_hearts) from public.heart_products hp where hp.is_active) and gc.is_active order by gc.sort_order limit 1")
+if [[ -z "${GIFT_ID}" ]]; then
+  echo "Expected an active gift matching the smallest active heart package" >&2
+  exit 1
+fi
 run_gift() {
   local request_id="$1"
   psql "$DB_URL" -v ON_ERROR_STOP=1 -c "begin; set local role authenticated; select set_config('request.jwt.claims','{\"sub\":\"${SENDER}\",\"role\":\"authenticated\"}',true); select * from public.send_gift('${CREATOR}','${GIFT_ID}',1,'${request_id}',null,null); commit;" >/tmp/"${request_id}".out 2>/tmp/"${request_id}".err
@@ -41,7 +55,7 @@ wait "$pid2"; rc2=$?
 set -e
 if [[ $(( (rc1==0) + (rc2==0) )) -ne 1 ]]; then
   echo "Expected exactly one successful concurrent gift, got rc1=${rc1} rc2=${rc2}" >&2
-  cat /tmp/4a200000-0000-0000-0000-000000000001.err /tmp/4a200000-0000-0000-0000-000000000002.err >&2 || true
+  cat /tmp/4a200000-0000-0000-0000-000000000001.err /tmp/4a200000-0000-0000-000000000002.err >&2 || true
   exit 1
 fi
 psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc "select case when (select available_units from private.heart_accounts where user_id='${SENDER}')=0 and (select count(*) from public.gift_transactions where sender_id='${SENDER}')=1 and (select count(*) from private.heart_ledger where user_id='${SENDER}' and entry_type='gift_debit')=1 then 'ok' else 'fail' end" | grep -qx ok
