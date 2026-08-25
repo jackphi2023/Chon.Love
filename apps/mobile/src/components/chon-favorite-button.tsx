@@ -36,10 +36,11 @@ export function ChonFavoriteButton({
 
   return (
     <Pressable
+      aria-pressed={favorited}
       accessibilityHint={failed ? 'Không thể cập nhật yêu thích. Chạm để thử lại.' : undefined}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
-      accessibilityState={{ busy, selected: favorited }}
+      accessibilityState={{ busy }}
       disabled={!available || busy}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
