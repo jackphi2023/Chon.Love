@@ -71,7 +71,7 @@ async function expectNoHorizontalOverflow(page) {
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
-test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and mobile horizontal album for Free', async ({ browser }, testInfo) => {
+test('UI-PRO01 canonical member profile uses shared Chon.Love shell, ordered facts and mobile horizontal album for Free', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   try {
@@ -102,19 +102,77 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
     await expect(page.getByText('Sẵn sàng du lịch', { exact: true })).toBeVisible();
     await expect(page.getByTestId('chon-member-profile-message-composer')).toBeHidden();
+
+    const logo = page.getByTestId('chon-love-wordmark').first();
+    const canonicalPromo = page.getByTestId('luxy-free-upgrade-promo');
+    await expect(logo).toBeVisible();
+    await expect(canonicalPromo).toBeVisible();
+    await expect(page.getByTestId('chon-profile-free-upgrade-promo')).toHaveCount(0);
     await expect(page.getByTestId('chon-profile-mobile-action-dock')).toBeVisible();
-    await expect(page.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
+    const logoBox = await logo.boundingBox();
+    const promoBox = await canonicalPromo.boundingBox();
+    expect(logoBox).not.toBeNull();
+    expect(promoBox).not.toBeNull();
+    expect(promoBox.y).toBeGreaterThanOrEqual(logoBox.y + logoBox.height - 1);
     await expectNoHorizontalOverflow(page);
 
     await testInfo.attach('ui-pro01-free-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
-
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await expect(page.getByTestId('chon-member-profile-photo-grid')).toBeVisible();
-    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-    await testInfo.attach('ui-pro01-free-desktop', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   } finally {
     await context.close();
+  }
+});
+
+test('UI-PRO01 Free private photo upgrade routes directly to Membership without private-photo popup', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  try {
+    await login(page, 'br06.outsider@example.test');
+    await openMember(page, creator);
+    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    const lockedTile = page.getByTestId('chon-private-photo-locked-tile');
+    await expect(lockedTile).toBeVisible();
+    await expect(page.getByTestId('luxy-upgrade-gate-private_photo')).toHaveCount(0);
+    await lockedTile.click();
+    await expect(page).toHaveURL(/\/settings\/membership(?:\?|$)/, { timeout: 20_000 });
+    expect(page.url()).toContain('source=member_profile_private_photo');
+    await expect(page.getByTestId('luxy-upgrade-gate-private_photo')).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('UI-PRO01 public shared profile uses canonical logo, horizontal gallery and large photo lightbox', async ({ browser }) => {
+  const authenticatedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const authenticatedPage = await authenticatedContext.newPage();
+  let publicPath;
+  try {
+    await login(authenticatedPage, 'br06.outsider@example.test');
+    await openMember(authenticatedPage, creator);
+    publicPath = new URL(authenticatedPage.url()).pathname;
+  } finally {
+    await authenticatedContext.close();
+  }
+
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const guestPage = await guestContext.newPage();
+  try {
+    await guestPage.goto(publicPath);
+    await expect(guestPage.getByTestId('public-member-profile-page')).toBeVisible({ timeout: 20_000 });
+    const logoButton = guestPage.getByTestId('public-member-profile-logo');
+    await expect(logoButton).toBeVisible();
+    await expect(logoButton.getByTestId('chon-love-wordmark')).toBeVisible();
+    const gallery = guestPage.getByTestId('public-member-profile-gallery');
+    await expect(gallery).toBeVisible();
+    const firstPhoto = guestPage.getByTestId('public-member-profile-photo-tile').first();
+    await expect(firstPhoto).toBeVisible();
+    await firstPhoto.click();
+    await expect(guestPage.getByTestId('public-member-profile-photo-lightbox')).toBeVisible();
+    await expect(guestPage.getByTestId('public-member-profile-photo-lightbox-image')).toBeVisible();
+    await guestPage.getByRole('button', { name: 'Đóng', exact: true }).click();
+    await expect(guestPage.getByTestId('public-member-profile-photo-lightbox')).toHaveCount(0);
+    await expectNoHorizontalOverflow(guestPage);
+  } finally {
+    await guestContext.close();
   }
 });
 

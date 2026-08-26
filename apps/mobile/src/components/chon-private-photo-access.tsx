@@ -1,5 +1,4 @@
 import {
-  createLuxyUpgradeIntent,
   createPrivateMediaUrl,
   getMyLuxyMembershipSnapshot,
   getPrivatePhotoAccessState,
@@ -9,9 +8,7 @@ import {
 import { chonColors, chonShadows, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -34,8 +31,6 @@ export function ChonPrivatePhotoAccess({
   const client = getMobileSupabaseClient();
   const auth = useAuth();
   const router = useRouter();
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const [upgradeBusy, setUpgradeBusy] = useState(false);
 
   const membershipQuery = useQuery({
     queryKey: ['luxy-membership', auth.userId],
@@ -77,16 +72,8 @@ export function ChonPrivatePhotoAccess({
 
   if (privatePhotoCount <= 0) return null;
 
-  async function handleUpgrade() {
-    if (!client) return;
-    setUpgradeBusy(true);
-    try {
-      await createLuxyUpgradeIntent(client, 'premium', 'member_profile_private_photo');
-      setShowUpgrade(false);
-      router.push({ pathname: '/settings/membership', params: { plan: 'premium', source: 'member_profile_private_photo' } });
-    } finally {
-      setUpgradeBusy(false);
-    }
+  function openMembership() {
+    router.push({ pathname: '/settings/membership', params: { plan: 'premium', source: 'member_profile_private_photo' } });
   }
 
   const error = accessQuery.error ?? privateMediaQuery.error;
@@ -112,7 +99,7 @@ export function ChonPrivatePhotoAccess({
             accessibilityLabel={isPaid ? `Đang tải ${count} ảnh riêng tư của ${displayName}` : `${count} ảnh riêng tư, cần nâng cấp để xem`}
             accessibilityRole="button"
             disabled={isPaid || membershipQuery.isLoading}
-            onPress={() => setShowUpgrade(true)}
+            onPress={openMembership}
             style={({ pressed }) => [styles.privateTile, pressed && !isPaid && styles.pressed]}
             testID="chon-private-photo-locked-tile"
           >
@@ -126,7 +113,6 @@ export function ChonPrivatePhotoAccess({
             {error ? <Text accessibilityRole="alert" style={styles.error}>{getReadablePrivatePhotoError(error)}</Text> : null}
           </Pressable>
         )}
-        <LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} reason="private_photo" visible={showUpgrade} />
       </>
     );
   }
@@ -136,7 +122,7 @@ export function ChonPrivatePhotoAccess({
       <Pressable
         accessibilityRole="button"
         disabled={isPaid || membershipQuery.isLoading}
-        onPress={() => setShowUpgrade(true)}
+        onPress={openMembership}
         style={({ pressed }) => [styles.privateRequestButton, pressed && !isPaid && styles.pressed]}
         testID="chon-private-photo-entitlement-button"
       >
@@ -145,7 +131,6 @@ export function ChonPrivatePhotoAccess({
         </Text>
       </Pressable>
       {error ? <Text accessibilityRole="alert" style={styles.errorInline}>{getReadablePrivatePhotoError(error)}</Text> : null}
-      <LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} reason="private_photo" visible={showUpgrade} />
     </>
   );
 }
@@ -177,7 +162,6 @@ const styles = StyleSheet.create({
   },
   lockMark: { borderColor: chonColors.goldStrong, borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
   lockMarkText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.help, fontWeight: '800', letterSpacing: 0.7 },
-  privateTileTitle: { color: chonColors.text, fontSize: chonTypography.sizes.h3, fontWeight: '700', textAlign: 'center' },
   privateTileBody: { color: chonColors.muted, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, textAlign: 'center' },
   privateTileButton: { color: chonColors.primaryRed, fontSize: chonTypography.sizes.body, fontWeight: '700', textAlign: 'center' },
   approvedTile: { backgroundColor: chonColors.ink, borderRadius: 12, minHeight: 250, overflow: 'hidden', position: 'relative', width: 240 },

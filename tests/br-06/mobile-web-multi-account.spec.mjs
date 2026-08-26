@@ -85,26 +85,26 @@ test('WEB-R01 mobile multi-account validates no-Activity V1 and LX-15 direct mes
     await favorite.click();
     await expect(outsiderPage.getByTestId('luxy-upgrade-gate-favorite')).toHaveCount(0);
 
-    await expect(outsiderPage.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
+    await expect(outsiderPage.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    await expect(outsiderPage.getByTestId('chon-profile-free-upgrade-promo')).toHaveCount(0);
     await outsiderPage.getByRole('button', { name: `Gửi tin nhắn cho ${actors.creator.displayName}`, exact: true }).click();
     await expect(outsiderPage).toHaveURL(/\/settings\/membership/);
     await expect(outsiderPage.getByTestId('luxy-upgrade-billing')).toBeVisible();
+    await expect(outsiderPage.getByTestId('luxy-upgrade-gate-message')).toHaveCount(0);
 
     await openCreatorProfile(outsiderPage);
     const privateEntitlement = outsiderPage.getByTestId('chon-private-photo-entitlement-button');
     await expect(privateEntitlement).toBeVisible();
     await privateEntitlement.click();
-    await expect(outsiderPage.getByTestId('luxy-upgrade-gate-private_photo')).toBeVisible();
-    await expect(outsiderPage.getByText(/Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư/)).toBeVisible();
-    await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
+    await expect(outsiderPage).toHaveURL(/\/settings\/membership(?:\?|$)/);
+    await expect(outsiderPage.getByTestId('luxy-upgrade-billing')).toBeVisible();
+    await expect(outsiderPage.getByTestId('luxy-upgrade-gate-private_photo')).toHaveCount(0);
+    await expect(outsiderPage.getByText(/Premium hoặc Diamond tự động được xem đầy đủ ảnh riêng tư/)).toHaveCount(0);
 
-    await outsiderPage.setViewportSize({ width: 1280, height: 900 });
     await openCreatorProfile(outsiderPage);
-    await expect(outsiderPage.getByTestId('chon-member-profile-message-composer')).toBeVisible();
-    await outsiderPage.getByRole('button', { name: 'Nhắn tin', exact: true }).click();
-    await expect(outsiderPage.getByTestId('luxy-upgrade-gate-message')).toBeVisible();
-    await outsiderPage.getByRole('button', { name: 'Để sau' }).click();
-    await outsiderPage.setViewportSize({ width: 390, height: 844 });
+    await expect(outsiderPage.getByTestId('chon-member-profile-message-composer')).toBeHidden();
+    await expect(outsiderPage.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
+    await expect(outsiderPage.getByTestId('chon-profile-mobile-action-dock')).toBeVisible();
 
     await Promise.all([
       expectNoHorizontalOverflow(creatorPage),

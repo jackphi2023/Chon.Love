@@ -211,7 +211,7 @@ for (const viewport of viewports) {
       await expect(freePage.getByTestId('chon-private-photo-entitlement-button')).toContainText('Xem ảnh riêng tư');
       await expect(freePage.getByTestId('chon-member-verification-badges')).toBeVisible();
       if (viewport.width < 1024) {
-        await expect(freePage.getByTestId('chon-profile-free-upgrade-promo')).toBeVisible();
+        await expect(freePage.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
         await expect(freePage.getByTestId('chon-profile-mobile-action-dock')).toBeVisible();
       }
       await capture(freePage, testInfo, viewport, 'member-profile');

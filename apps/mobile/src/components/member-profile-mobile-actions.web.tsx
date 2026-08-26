@@ -14,26 +14,11 @@ import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
-const MOBILE_UPGRADE_PROMO_HEIGHT = 46;
-
-const fixedTopStyle = {
-  left: 0,
-  position: 'fixed',
-  right: 0,
-  top: 0,
-} as unknown as ViewStyle;
-
 const fixedBottomStyle = {
   bottom: 0,
   left: 0,
   position: 'fixed',
   right: 0,
-} as unknown as ViewStyle;
-
-const safeAreaPromptStyle = {
-  boxSizing: 'border-box',
-  height: `calc(${MOBILE_UPGRADE_PROMO_HEIGHT}px + env(safe-area-inset-top))`,
-  paddingTop: 'env(safe-area-inset-top)',
 } as unknown as ViewStyle;
 
 const safeAreaDockStyle = {
@@ -87,7 +72,6 @@ export function MemberProfileMobileActions() {
 
   const profile = profileQuery.data;
   const membership = membershipQuery.data;
-  const isFreeMembership = membership?.tier === 'free';
   const displayName = profile?.display_name || profile?.username || 'thành viên này';
   const actionsVisible = Boolean(enabled && profile && !profile.blocked_by_viewer);
 
@@ -106,13 +90,12 @@ export function MemberProfileMobileActions() {
         [data-testid="chon-member-profile-page"] {
           box-sizing: border-box !important;
           padding-bottom: ${actionsVisible ? 'calc(84px + env(safe-area-inset-bottom))' : '0px'} !important;
-          padding-top: ${isFreeMembership ? `calc(${MOBILE_UPGRADE_PROMO_HEIGHT}px + env(safe-area-inset-top))` : '0px'} !important;
         }
       }
     `;
     document.head.appendChild(element);
     return () => element.remove();
-  }, [actionsVisible, identifier, isFreeMembership, mobileWeb]);
+  }, [actionsVisible, identifier, mobileWeb]);
 
   if (!actionsVisible || !profile) return null;
 
@@ -139,20 +122,6 @@ export function MemberProfileMobileActions() {
 
   return (
     <>
-      {isFreeMembership ? (
-        <Pressable
-          accessibilityLabel="Nâng cấp ngay để gửi tin nhắn"
-          accessibilityRole="button"
-          onPress={openMembership}
-          style={({ pressed }) => [styles.upgradePrompt, fixedTopStyle, safeAreaPromptStyle, pressed && styles.pressed]}
-          testID="chon-profile-free-upgrade-promo"
-        >
-          <Text style={styles.upgradePromptText}>
-            <Text style={styles.upgradePromptStrong}>Nâng cấp ngay</Text> để gửi tin nhắn
-          </Text>
-        </Pressable>
-      ) : null}
-
       <View style={[styles.actionDock, fixedBottomStyle, safeAreaDockStyle]} testID="chon-profile-mobile-action-dock">
         {actionError ? <Text accessibilityRole="alert" style={styles.actionError}>{actionError}</Text> : null}
         <View style={styles.actionRow}>
@@ -191,17 +160,6 @@ export function MemberProfileMobileActions() {
 }
 
 const styles = StyleSheet.create({
-  upgradePrompt: {
-    alignItems: 'center',
-    backgroundColor: chonColors.ink,
-    height: MOBILE_UPGRADE_PROMO_HEIGHT,
-    justifyContent: 'center',
-    minHeight: MOBILE_UPGRADE_PROMO_HEIGHT,
-    paddingHorizontal: 16,
-    zIndex: 980,
-  },
-  upgradePromptText: { color: chonColors.surface, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
-  upgradePromptStrong: { color: chonColors.gold, fontWeight: '800', textDecorationLine: 'underline' },
   actionDock: {
     backgroundColor: chonColors.surface,
     borderTopColor: chonColors.border,
