@@ -102,10 +102,10 @@ export default function CanonicalMemberProfilePage() {
   );
   const publicMedia = useMemo(() => {
     if (!client || !code || !profile) return [];
-    return profile.public_media_ids.map((mediaId) => ({
-      mediaId,
-      url: publicProfileMediaUrl(client, code, mediaId),
-    }));
+    return profile.public_media_ids.flatMap((mediaId) => {
+      const url = publicProfileMediaUrl(client, code, mediaId);
+      return url ? [{ mediaId, url }] : [];
+    });
   }, [client, code, profile]);
   useMemberSeo(profile, avatarUrl);
 
