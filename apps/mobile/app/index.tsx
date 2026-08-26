@@ -196,7 +196,7 @@ export default function HomeScreen() {
           <Text accessibilityRole="header" style={[styles.sectionHeading, styles.goldSectionHeading, isPhone && styles.sectionHeadingPhone]}>
             NỀN TẢNG HẸN HÒ THỰC CHẤT VÀ THÚ VỊ
           </Text>
-          <Text style={styles.centerBody}>Chọn.love là nền tảng hẹn hò, kết nối người dùng thật gần bạn với một cộng đồng kết nối văn minh và thú vị.</Text>
+          <Text style={styles.centerBody}>Chọn.love là nền tảng hẹn hò tiên phong tại Việt Nam, kết nối người dùng thật gần bạn với một cộng đồng kết nối văn minh và thú vị.</Text>
           <Text style={styles.centerBody}>Chọn.love được thiết kế nhằm thúc đẩy sự kết nối chân thực giữa các thành viên, hướng tới những mối quan hệ bền vững và tình yêu được xây dựng trên nền tảng mong muốn chung: một cuộc sống đầy khát vọng và trọn vẹn.</Text>
           <Pressable
             accessibilityRole="button"
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   positioningCopy: { alignItems: 'center', maxWidth: 620, width: '45%', zIndex: 2 },
   positioningCopyCompact: { maxWidth: 720, width: '100%' },
   positioningCopyPhone: { width: '100%' },
-  sideArtwork: { backgroundColor: '#FFFFFF', borderColor: CHON_GOLD, borderRadius: 18, borderWidth: 2, height: 296, overflow: 'hidden', position: 'absolute', top: 60, width: 216 },
+  sideArtwork: { height: 360, position: 'absolute', top: 30, width: 216 },
   sideArtworkLeft: { left: 80 },
   sideArtworkRight: { right: 80 },
   fillImage: { height: '100%', width: '100%' },
