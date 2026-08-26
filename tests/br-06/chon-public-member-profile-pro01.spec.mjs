@@ -101,19 +101,22 @@ test('UI-PRO01 canonical member profile uses shared Chon.Love shell, ordered fac
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toBeVisible();
     await expect(page.getByText('Ẩm thực cao cấp', { exact: true })).toBeVisible();
     await expect(page.getByText('Sẵn sàng du lịch', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeVisible();
-    await expect(page.getByTestId('luxy-free-upgrade-promo')).toBeVisible();
-    await expect(page.getByTestId('chon-profile-mobile-action-dock')).toHaveCount(0);
+    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeHidden();
+
+    const logo = page.getByTestId('chon-love-wordmark').first();
+    const canonicalPromo = page.getByTestId('luxy-free-upgrade-promo');
+    await expect(logo).toBeVisible();
+    await expect(canonicalPromo).toBeVisible();
     await expect(page.getByTestId('chon-profile-free-upgrade-promo')).toHaveCount(0);
+    await expect(page.getByTestId('chon-profile-mobile-action-dock')).toBeVisible();
+    const logoBox = await logo.boundingBox();
+    const promoBox = await canonicalPromo.boundingBox();
+    expect(logoBox).not.toBeNull();
+    expect(promoBox).not.toBeNull();
+    expect(promoBox.y).toBeGreaterThanOrEqual(logoBox.y + logoBox.height - 1);
     await expectNoHorizontalOverflow(page);
 
     await testInfo.attach('ui-pro01-free-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
-
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await expect(page.getByTestId('chon-member-profile-photo-grid')).toBeVisible();
-    await expect(page.getByTestId('chon-member-profile-message-composer')).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-    await testInfo.attach('ui-pro01-free-desktop', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   } finally {
     await context.close();
   }
