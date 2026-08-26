@@ -1,0 +1,41 @@
+name: Agent sync generated database contract
+
+on:
+  push:
+    branches:
+      - agent/ui-profile-connect-messaging-polish-v1
+    paths:
+      - .github/workflows/agent-sync-db-types.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ui-profile-connect-messaging-polish-v1
+          fetch-depth: 2
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+      - name: Generate exact public contract from clean migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase start
+          supabase db reset --local
+          supabase gen types typescript --local --schema public > /tmp/database.types.ts
+          node scripts/filter-internal-database-types.mjs /tmp/database.types.ts
+          cp /tmp/database.types.ts packages/supabase/src/database.types.ts
+          rm .github/workflows/agent-sync-db-types.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore(db): sync generated public contract"
+          git push origin HEAD:agent/ui-profile-connect-messaging-polish-v1
