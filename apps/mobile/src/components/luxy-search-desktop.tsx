@@ -1,4 +1,5 @@
 import {
+  countLuxyProfilesV2,
   getMyDiscoveryContext,
   getNextLuxySearchOffset,
   listActiveProvinces,
@@ -156,6 +157,17 @@ export function LuxySearchDesktop() {
     getNextPageParam: (_lastPage, pages) => getNextLuxySearchOffset(pages.map((page) => page.length), LUXY_SEARCH_DEFAULT_PAGE_SIZE, LUXY_SEARCH_MAX_RESULTS),
   });
 
+  const countQuery = useQuery({
+    queryKey: ['luxy-search', 'count', auth.userId, applied],
+    enabled: Boolean(client && auth.userId),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    queryFn: async () => {
+      if (!client) throw new Error('supabase_not_configured');
+      return countLuxyProfilesV2(client, applied);
+    },
+  });
+
   const profiles = useMemo(() => {
     const seen = new Set<string>();
     return (profilesQuery.data?.pages.flat() ?? []).filter((profile) => { if (seen.has(profile.id)) return false; seen.add(profile.id); return true; });
@@ -177,7 +189,10 @@ export function LuxySearchDesktop() {
     try {
       const location = await requestDiscoveryLocation();
       await setMyDiscoveryLocation(client, location); await contextQuery.refetch();
-      await queryClient.invalidateQueries({ queryKey: ['luxy-search', 'profiles', auth.userId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['luxy-search', 'profiles', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['luxy-search', 'count', auth.userId] }),
+      ]);
       setLocationMessage('Đã cập nhật vị trí. Kết quả Gần nhất đã được làm mới.');
     } catch (error) { setLocationError(getReadableLocationError(error)); }
     finally { setLocationBusy(false); }
@@ -234,7 +249,7 @@ export function LuxySearchDesktop() {
 
         <View style={styles.results} testID="luxy-search-results">
           <View style={styles.resultsToolbar}>
-            <Text style={styles.loadedCount}>{profiles.length ? `${profiles.length} thành viên` : 'Tìm kiếm thành viên'}</Text>
+            <Text style={styles.loadedCount}>{countQuery.data !== undefined ? `${countQuery.data} thành viên` : countQuery.isError ? 'Thành viên phù hợp' : 'Đang đếm thành viên…'}</Text>
             <View style={styles.sortWrap}>
               <Pressable accessibilityRole="button" onPress={() => setSortOpen((value) => !value)} style={styles.sortButton}><Text style={styles.sortButtonText}>{activeSort.label}</Text><Text style={styles.chevron}>⌄</Text></Pressable>
               {sortOpen ? <View style={styles.sortPanel}>{SORT_OPTIONS.map((option) => <Pressable accessibilityRole="button" key={option.value} onPress={() => { setSort(option.value); setSortOpen(false); applyFilters(draft, option.value); }} style={[styles.sortOption, option.value === sort && styles.sortOptionActive]}><Text style={styles.sortOptionText}>{option.label}</Text></Pressable>)}</View> : null}

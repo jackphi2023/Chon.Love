@@ -1,4 +1,5 @@
 import {
+  countLuxyProfilesV2,
   getMyDiscoveryContext,
   getNextLuxySearchOffset,
   listActiveProvinces,
@@ -264,6 +265,17 @@ export function LuxySearchMobile() {
     ),
   });
 
+  const countQuery = useQuery({
+    queryKey: ['luxy-search', 'count', auth.userId, applied],
+    enabled: Boolean(client && auth.userId),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    queryFn: async () => {
+      if (!client) throw new Error('supabase_not_configured');
+      return countLuxyProfilesV2(client, applied);
+    },
+  });
+
   const profiles = useMemo(() => {
     const seen = new Set<string>();
     return (profilesQuery.data?.pages.flat() ?? []).filter((profile) => {
@@ -312,7 +324,10 @@ export function LuxySearchMobile() {
       const location = await requestDiscoveryLocation();
       await setMyDiscoveryLocation(client, location);
       await contextQuery.refetch();
-      await queryClient.invalidateQueries({ queryKey: ['luxy-search', 'profiles', auth.userId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['luxy-search', 'profiles', auth.userId] }),
+        queryClient.invalidateQueries({ queryKey: ['luxy-search', 'count', auth.userId] }),
+      ]);
       setLocationMessage('Đã cập nhật vị trí. Kết quả Gần nhất đã được làm mới.');
     } catch (error) {
       setLocationError(getReadableLocationError(error));
@@ -327,7 +342,7 @@ export function LuxySearchMobile() {
         <View style={styles.toolbar} testID="luxy-search-mobile-toolbar">
           <View style={styles.toolbarTitleBlock}>
             <Text accessibilityRole="header" style={styles.title}>Kết nối</Text>
-            <Text style={styles.resultCount}>{profiles.length ? `${profiles.length} thành viên` : 'Khám phá thành viên phù hợp'}</Text>
+            <Text style={styles.resultCount}>{countQuery.data !== undefined ? `${countQuery.data} thành viên` : countQuery.isError ? 'Khám phá thành viên phù hợp' : 'Đang đếm thành viên…'}</Text>
           </View>
           <View style={styles.toolbarActions}>
             <Pressable

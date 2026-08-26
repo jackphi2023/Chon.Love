@@ -117,11 +117,10 @@ export function ChonPrivatePhotoAccess({
             testID="chon-private-photo-locked-tile"
           >
             {membershipQuery.isLoading || accessQuery.isLoading ? <ActivityIndicator color={chonColors.ink} /> : (
-              <View style={styles.lockMark}><Text style={styles.lockMarkText}>RIÊNG TƯ</Text></View>
+              <View style={styles.lockMark}><Text style={styles.lockMarkText}>Ảnh riêng tư ({count})</Text></View>
             )}
-            <Text style={styles.privateTileTitle}>Ảnh riêng tư ({count})</Text>
             <Text style={styles.privateTileBody}>
-              {isPaid ? 'Đang tải ảnh dành cho thành viên trả phí…' : 'Premium và Diamond được xem đầy đủ.'}
+              {isPaid ? 'Đang tải ảnh dành cho thành viên trả phí…' : 'Thành viên Premium và Diamond được xem đầy đủ.'}
             </Text>
             {!isPaid ? <Text style={styles.privateTileButton}>Nâng cấp để xem</Text> : null}
             {error ? <Text accessibilityRole="alert" style={styles.error}>{getReadablePrivatePhotoError(error)}</Text> : null}

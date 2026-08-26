@@ -14,6 +14,8 @@ export function ChonMembershipBadge({
   variant = 'icon',
   inset = 2,
   width,
+  placement = 'top-left',
+  size,
 }: {
   // Public profile RPCs intentionally expose this field as a string. Keep the
   // runtime boundary defensive and render only the two paid tiers we support.
@@ -22,9 +24,13 @@ export function ChonMembershipBadge({
   variant?: ChonMembershipBadgeVariant;
   inset?: number;
   width?: number;
+  placement?: 'top-left' | 'top-right';
+  size?: 'small' | 'medium' | 'large';
 }) {
   if (!isChonMembershipBadgeTier(tier)) return null;
-  const resolved = resolveChonMembershipBadgeAsset({ desktop, tier, variant, width });
+  const resolvedVariant = size === 'large' ? 'certificate' : size ? 'icon' : variant;
+  const resolvedDesktop = size ? size !== 'small' : desktop;
+  const resolved = resolveChonMembershipBadgeAsset({ desktop: resolvedDesktop, tier, variant: resolvedVariant, width });
   const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
 
   return (
@@ -34,7 +40,8 @@ export function ChonMembershipBadge({
       pointerEvents="none"
       style={[
         styles.badge,
-        { height: resolved.height, left: inset, top: inset, width: resolved.width },
+        { height: resolved.height, top: inset, width: resolved.width },
+        placement === 'top-right' ? { right: inset } : { left: inset },
       ]}
       testID={`chon-membership-badge-${tier}`}
     >

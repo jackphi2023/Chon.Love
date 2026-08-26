@@ -24,6 +24,9 @@ export function ChonMemberPhoto({
   photoCountPlacement = 'top-right',
   showZeroPhotoCount = false,
   badgeInset,
+  membershipBadgePlacement = 'top-left',
+  membershipBadgeSize,
+  photoCountTopOffset,
   fallbackFontSize,
   style,
   children,
@@ -39,6 +42,9 @@ export function ChonMemberPhoto({
   photoCountPlacement?: PhotoCountPlacement | undefined;
   showZeroPhotoCount?: boolean | undefined;
   badgeInset?: number | undefined;
+  membershipBadgePlacement?: 'top-left' | 'top-right' | undefined;
+  membershipBadgeSize?: 'small' | 'medium' | 'large' | undefined;
+  photoCountTopOffset?: number | undefined;
   fallbackFontSize?: number | undefined;
   style?: StyleProp<ViewStyle> | undefined;
   children?: ReactNode | undefined;
@@ -82,6 +88,8 @@ export function ChonMemberPhoto({
       <ChonMembershipBadge
         desktop={desktop}
         inset={badgeInset ?? (desktop ? 8 : 7)}
+        placement={membershipBadgePlacement}
+        size={membershipBadgeSize}
         tier={membershipTier}
         variant="icon"
       />
@@ -92,6 +100,7 @@ export function ChonMemberPhoto({
             styles.photoCount,
             photoCountPlacement === 'bottom-right' ? styles.photoCountBottom : styles.photoCountTop,
             desktop && photoCountPlacement === 'top-right' ? styles.photoCountTopDesktop : null,
+            photoCountPlacement === 'top-right' && photoCountTopOffset !== undefined ? { top: photoCountTopOffset } : null,
           ]}
         >
           <ChonPhotoCount count={photoCount} />

@@ -22,6 +22,7 @@ import {
   luxyRadii,
 } from '@myfan/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -35,6 +36,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { ChonMembershipBadge } from '@/components/chon-membership-badge';
+import { ChonSiteFooter } from '@/components/chon-site-footer';
 import {
   ChonPaymentAction,
   ChonPaymentModal,
@@ -95,6 +97,7 @@ const COMPARE_ROWS = [
 
 export function ChonMembershipScreen() {
   const auth = useAuth();
+  const router = useRouter();
   const client = getMobileSupabaseClient();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
@@ -238,7 +241,7 @@ export function ChonMembershipScreen() {
     {
       key: 'plan',
       label: 'Gói',
-      value: `${PLAN_COPY[checkout.tier].title} · ${checkout.period_count} kỳ`,
+      value: `${PLAN_COPY[checkout.tier].title} · ${checkout.period_count} tháng`,
     },
     { key: 'bank', label: 'Ngân hàng', value: `${checkout.bank_name} (${checkout.bank_code})` },
     {
@@ -328,7 +331,7 @@ export function ChonMembershipScreen() {
                 {selectedOption ? formatLuxyMembershipAmount(selectedOption.amount_due_vnd) : '—'}
               </Text>
             </View>
-            {selectedPeriod === 3 ? <Text style={styles.discountText}>Đã áp dụng giảm 20% cho 3 kỳ.</Text> : null}
+            {selectedPeriod === 3 ? <Text style={styles.discountText}>Đã áp dụng giảm 20% cho 3 tháng.</Text> : null}
             {selectedTier === 'diamond' && selectedOption ? (
               <Text style={styles.heartText}>Sau khi Admin xác nhận: +{selectedOption.heart_credit_display} ❤️ từ 80% tiền gói.</Text>
             ) : null}
@@ -371,6 +374,12 @@ export function ChonMembershipScreen() {
 
           {errorMessage ? <Text accessibilityRole="alert" style={styles.errorBanner}>{errorMessage}</Text> : null}
         </View>
+        <ChonSiteFooter
+          compact={!desktop}
+          onCommunity={() => router.push('/legal/community-standards')}
+          onTerms={() => router.push('/legal/terms')}
+          testID="chon-membership-footer"
+        />
       </ScrollView>
 
       <ChonPaymentModal
@@ -470,7 +479,7 @@ function PlanSection({
             >
               <View style={[styles.radio, selected && styles.radioSelected]}>{selected ? <View style={styles.radioDot} /> : null}</View>
               <View style={styles.flexOne}>
-                <Text style={styles.optionTitle}>{period} kỳ{period === 3 ? ' · GIẢM 20%' : ''}</Text>
+                <Text style={styles.optionTitle}>{period} tháng{period === 3 ? ' · GIẢM 20%' : ''}</Text>
                 {tier === 'diamond' ? <Text style={styles.optionHeart}>+ {option.heart_credit_display} ❤️ sau khi duyệt</Text> : null}
               </View>
               <Text style={styles.optionAmount}>{formatLuxyMembershipAmount(option.amount_due_vnd)}</Text>

@@ -1,9 +1,10 @@
 import {
   CHON_PUBLIC_PROFILE_DESCRIPTION,
-  getPublicChonProfile,
+  getPublicChonProfileV2,
   publicProfileAvatarUrl,
   publicProfileCodeFromRouteId,
-  type PublicChonProfile,
+  publicProfileMediaUrl,
+  type PublicChonProfileV2,
 } from '@myfan/supabase';
 import { chonColors, chonShadows, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
@@ -43,7 +44,7 @@ function upsertMeta(selector: string, attribute: 'name' | 'property', key: strin
   element.content = content;
 }
 
-function useMemberSeo(profile: PublicChonProfile | null, avatarUrl: string | null) {
+function useMemberSeo(profile: PublicChonProfileV2 | null, avatarUrl: string | null) {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined' || !profile) return;
     const title = `Thành viên ${profile.display_name} | ${TITLE_SUFFIX}`;
@@ -87,7 +88,7 @@ export default function CanonicalMemberProfilePage() {
     staleTime: 60_000,
     queryFn: async () => {
       if (!client || !code) return null;
-      return getPublicChonProfile(client, code);
+      return getPublicChonProfileV2(client, code);
     },
   });
 
@@ -107,56 +108,89 @@ export default function CanonicalMemberProfilePage() {
   return (
     <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="public-member-profile-page">
       <View style={[styles.topbar, isCompact && styles.topbarCompact]}>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/')}>
-          <Text style={[styles.brand, isCompact && styles.brandCompact]}>Chọn.love</Text>
-        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/')}><Text style={[styles.brand, isCompact && styles.brandCompact]}>Chọn.love</Text></Pressable>
         <View style={styles.topActions}>
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.linkButton, isCompact && styles.linkButtonCompact]}>
-            <Text style={styles.linkButtonText}>Đăng nhập</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primarySmall, isCompact && styles.primarySmallCompact]}>
-            <Text style={styles.primarySmallText}>Đăng ký</Text>
-          </Pressable>
+<Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.linkButton, isCompact && styles.linkButtonCompact]}><Text style={styles.linkButtonText}>Đăng nhập</Text></Pressable>
+<Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primarySmall, isCompact && styles.primarySmallCompact]}><Text style={styles.primarySmallText}>Đăng ký</Text></Pressable>
         </View>
       </View>
 
       <View style={[styles.profileCard, isCompact && styles.profileCardCompact]}>
         <View style={[styles.photoColumn, isCompact && styles.photoColumnCompact]}>
-          <View style={[styles.photoFrame, isCompact && styles.photoFrameCompact]}>
-            {avatarUrl ? (
-              <Image accessibilityLabel={`Ảnh đại diện của ${profile.display_name}`} resizeMode="cover" source={{ uri: avatarUrl }} style={styles.photo} />
-            ) : (
-              <View style={styles.photoFallback}><Text style={styles.photoFallbackText}>{profile.display_name.slice(0, 1).toUpperCase()}</Text></View>
-            )}
-            {profile.membership_badge_visible ? (
-              <ChonMembershipBadge desktop={!isCompact} inset={10} tier={profile.membership_tier} variant="icon" />
-            ) : null}
-          </View>
+<View style={[styles.photoFrame, isCompact && styles.photoFrameCompact]}>
+  {avatarUrl ? <Image accessibilityLabel={`Ảnh đại diện của ${profile.display_name}`} resizeMode="cover" source={{ uri: avatarUrl }} style={styles.photo} /> : <View style={styles.photoFallback}><Text style={styles.photoFallbackText}>{profile.display_name.slice(0, 1).toUpperCase()}</Text></View>}
+  {profile.membership_badge_visible ? <ChonMembershipBadge desktop={!isCompact} inset={10} placement="top-left" size="large" tier={profile.membership_tier} /> : null}
+</View>
         </View>
 
         <View style={styles.profileCopy}>
-          <Text accessibilityRole="header" style={[styles.name, isCompact && styles.nameCompact]}>{profile.display_name}, {profile.age}</Text>
-          <Text style={styles.location}>{profile.province_name ?? 'Việt Nam'}</Text>
-          {profile.headline ? <Text style={styles.headline}>{profile.headline}</Text> : null}
-          {profile.bio ? <ProfileSection title="Giới thiệu"><Text style={styles.body}>{profile.bio}</Text></ProfileSection> : null}
-          {profile.looking_for ? <ProfileSection title="Đang tìm kiếm"><Text style={styles.body}>{profile.looking_for}</Text></ProfileSection> : null}
-          {profile.interests.length > 0 ? (
-            <ProfileSection title="Sở thích">
-              <View style={styles.tags}>{profile.interests.map((interest) => <View key={interest} style={styles.tag}><Text style={styles.tagText}>{interest}</Text></View>)}</View>
-            </ProfileSection>
-          ) : null}
-          <View style={styles.joinCard}>
-            <Text style={styles.joinTitle}>Kết nối với những người thật trên Chọn.love</Text>
-            <Text style={styles.joinCopy}>{CHON_PUBLIC_PROFILE_DESCRIPTION}</Text>
-            <View style={styles.joinActions}>
-              <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primaryButton, isCompact && styles.fullWidthButton]}><Text style={styles.primaryButtonText}>Đăng ký miễn phí</Text></Pressable>
-              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.outlineButton, isCompact && styles.fullWidthButton]}><Text style={styles.outlineButtonText}>Đăng nhập</Text></Pressable>
-            </View>
-          </View>
+<Text accessibilityRole="header" style={[styles.name, isCompact && styles.nameCompact]}>{profile.display_name}, {profile.age}</Text>
+<Text style={styles.location}>{profile.province_name ?? 'Việt Nam'}</Text>
+{profile.headline ? <Text style={styles.headline}>{profile.headline}</Text> : null}
+
+{profile.public_media_ids.length > 0 || profile.private_photo_count > 0 ? (
+  <View style={styles.publicGallery} testID="public-member-profile-gallery">
+    {profile.public_media_ids.map((mediaId) => {
+      const mediaUrl = client && code ? publicProfileMediaUrl(client, code, mediaId) : null;
+      return mediaUrl ? <Image accessibilityLabel={`Ảnh của ${profile.display_name}`} key={mediaId} resizeMode="cover" source={{ uri: mediaUrl }} style={styles.publicGalleryImage} /> : null;
+    })}
+    {profile.private_photo_count > 0 ? (
+      <View style={styles.privateLockedTile} testID="public-member-private-photo-lock">
+        <View style={styles.privateLockMark}><Text style={styles.privateLockMarkText}>Ảnh riêng tư ({profile.private_photo_count})</Text></View>
+        <Text style={styles.privateLockText}>Thành viên Premium và Diamond được xem đầy đủ.</Text>
+      </View>
+    ) : null}
+  </View>
+) : null}
+
+<ProfileSection title="Về tôi">
+  <Text style={styles.body}>{profile.bio || 'Chưa có phần giới thiệu.'}</Text>
+  {profile.interests.length ? <Text style={styles.metaText}>Sở thích: {profile.interests.join(' · ')}</Text> : null}
+</ProfileSection>
+
+<View style={styles.section}>
+  <View style={styles.publicSeekingHeading}><Text style={styles.sectionTitle}>Tôi đang tìm kiếm</Text><Text style={styles.publicSeekingValue}>{publicInterestedInLabel(profile.interested_in)}</Text></View>
+  <Text style={styles.body}>{profile.looking_for || 'Một kết nối chất lượng, tôn trọng và có chủ đích.'}</Text>
+  {profile.lifestyle_tags.length ? <View style={styles.tags}>{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{tag.replaceAll('_', ' ')}</Text></View>)}</View> : null}
+</View>
+
+<View style={styles.publicInfoList} testID="public-member-profile-info-list">
+  {publicProfileFacts(profile).map(([label, value]) => <View key={label} style={styles.publicInfoRow}><Text style={styles.publicInfoLabel}>{label}</Text><Text style={styles.publicInfoValue}>{value}</Text></View>)}
+</View>
+
+<View style={styles.joinCard}>
+  <Text style={styles.joinTitle}>Kết nối với những người thật trên Chọn.love</Text>
+  <Text style={styles.joinCopy}>{CHON_PUBLIC_PROFILE_DESCRIPTION}</Text>
+  <View style={styles.joinActions}>
+    <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primaryButton, isCompact && styles.fullWidthButton]}><Text style={styles.primaryButtonText}>Đăng ký miễn phí</Text></Pressable>
+    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.outlineButton, isCompact && styles.fullWidthButton]}><Text style={styles.outlineButtonText}>Đăng nhập</Text></Pressable>
+  </View>
+</View>
         </View>
       </View>
     </ScrollView>
   );
+}
+
+function publicInterestedInLabel(value: PublicChonProfileV2['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }
+function publicProfileFacts(profile: PublicChonProfileV2): Array<[string, string]> {
+  const labels: Record<string, string> = {
+    single: 'Độc thân', divorced: 'Đã ly hôn', widowed: 'Goá', open: 'Quan hệ mở', complicated: 'Phức tạp', prefer_not_to_say: 'Chưa chia sẻ',
+    no_children: 'Chưa có con', has_children: 'Đã có con', never: 'Không', socially: 'Xã giao', regularly: 'Thường xuyên', trying_to_quit: 'Đang cố bỏ',
+    high_school: 'THPT', vocational: 'Trung cấp / nghề', college: 'Cao đẳng', bachelors: 'Đại học', masters: 'Thạc sĩ', doctorate: 'Tiến sĩ', other: 'Khác',
+    female: 'Nữ', male: 'Nam', non_binary: 'Phi nhị nguyên',
+  };
+  return [
+    ['Chiều cao', profile.height_cm ? `${profile.height_cm} cm` : 'Chưa chia sẻ'],
+    ['Cân nặng', profile.weight_kg ? `${profile.weight_kg} kg` : 'Chưa chia sẻ'],
+    ['Tình trạng mối quan hệ', labels[profile.relationship_status ?? ''] ?? 'Chưa chia sẻ'],
+    ['Giới tính', labels[profile.gender ?? ''] ?? 'Chưa chia sẻ'],
+    ['Con cái', labels[profile.children_status] ?? 'Chưa chia sẻ'],
+    ['Học vấn', labels[profile.education_level ?? ''] ?? 'Chưa chia sẻ'],
+    ['Hút thuốc', labels[profile.smoking_status] ?? 'Chưa chia sẻ'],
+    ['Uống rượu bia', labels[profile.drinking_status] ?? 'Chưa chia sẻ'],
+    ['Nghề nghiệp', profile.occupation || 'Chưa chia sẻ'],
+  ];
 }
 
 function ProfileSection({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
@@ -198,6 +232,19 @@ const styles = StyleSheet.create({
   section: { borderTopColor: chonColors.border, borderTopWidth: 1, gap: 9, marginTop: 22, paddingTop: 18 },
   sectionTitle: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '600' },
   body: { color: chonColors.text, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
+  publicGallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 22 },
+  publicGalleryImage: { aspectRatio: 0.8, borderRadius: 12, minWidth: 150, width: '31%' },
+  privateLockedTile: { alignItems: 'center', aspectRatio: 0.8, backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 12, borderWidth: 1, gap: 10, justifyContent: 'center', minWidth: 150, padding: 12, width: '31%' },
+  privateLockMark: { borderColor: chonColors.goldStrong, borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
+  privateLockMarkText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.help, fontWeight: '800', textAlign: 'center' },
+  privateLockText: { color: chonColors.muted, fontSize: chonTypography.sizes.help, lineHeight: chonTypography.lineHeights.help, textAlign: 'center' },
+  metaText: { color: chonColors.muted, fontSize: chonTypography.sizes.help, lineHeight: chonTypography.lineHeights.help },
+  publicSeekingHeading: { alignItems: 'baseline', flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
+  publicSeekingValue: { color: chonColors.goldStrong, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '600', lineHeight: chonTypography.lineHeights.h2, marginLeft: 'auto', textAlign: 'right' },
+  publicInfoList: { gap: 2, marginTop: 22 },
+  publicInfoRow: { alignItems: 'center', flexDirection: 'row', gap: 14, justifyContent: 'space-between', minHeight: 38, paddingVertical: 6 },
+  publicInfoLabel: { color: chonColors.text, flex: 1, fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  publicInfoValue: { color: chonColors.text, flex: 1, fontSize: chonTypography.sizes.body, textAlign: 'right' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: { backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
   tagText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.body, fontWeight: '700' },

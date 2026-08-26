@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ChonVerificationIcon } from '@/components/chon-verification-icon';
-import { CHON_ICON_SIZE_DESKTOP, CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -45,9 +44,7 @@ export function MemberProfileVerificationBadges() {
   const ownerRef = useRef<symbol>(Symbol('chon-verification-badges'));
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState<VerificationKey | null>(null);
-  const verificationIconHeight = viewportWidth >= chonBreakpoints.desktop
-    ? CHON_ICON_SIZE_DESKTOP
-    : CHON_ICON_SIZE_MOBILE;
+  const verificationIconHeight = viewportWidth >= chonBreakpoints.desktop ? 44 : 38;
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, identifier],
@@ -192,9 +189,9 @@ const styles = StyleSheet.create({
   iconButton: {
     alignItems: 'center',
     borderRadius: 999,
-    height: 44,
+    height: 52,
     justifyContent: 'center',
-    width: 44,
+    width: 52,
   },
   label: { color: chonColors.softMuted, fontSize: chonTypography.sizes.help, marginTop: 4, maxWidth: '100%', paddingHorizontal: 2, textAlign: 'center' },
   labelVerified: { color: chonColors.goldStrong, fontWeight: '700' },

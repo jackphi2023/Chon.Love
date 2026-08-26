@@ -276,6 +276,9 @@ export default function ChonMemberProfileScreen() {
             <ChonMemberPhoto
               desktop={desktop}
               mediaId={profile.avatar_media_id}
+              badgeInset={10}
+              membershipBadgePlacement="top-left"
+              membershipBadgeSize="large"
               membershipTier={profile.membership_badge_visible ? profile.membership_tier : null}
               name={displayName}
               photoCount={profile.public_photo_count + profile.private_photo_count}
@@ -356,6 +359,11 @@ export default function ChonMemberProfileScreen() {
             </View>
           ) : (
             <>
+              {!membershipQuery.isLoading && !membershipQuery.data?.can_message ? (
+                <Pressable accessibilityRole="button" onPress={() => setShowUpgrade(true)} style={styles.upgradeMessageBanner}>
+                  <Text style={styles.upgradeMessageBannerText}>Nâng cấp ngay để gửi tin nhắn</Text>
+                </Pressable>
+              ) : null}
               <View style={styles.messageComposer} testID="chon-member-profile-message-composer">
                 <TextInput
                   accessibilityLabel={`Nội dung tin nhắn cho ${displayName}`}
@@ -498,7 +506,6 @@ function ProfileStorySection({ profile }: { profile: LuxyMemberProfile }) {
       <View style={styles.storySection}>
         <Text style={styles.sectionTitle}>Về tôi</Text>
         <Text style={styles.storyText}>{profile.bio || 'Chưa có phần giới thiệu.'}</Text>
-        {profile.languages.length ? <Text style={styles.storyMeta}>Ngôn ngữ: {profile.languages.join(' · ')}</Text> : null}
         {profile.interests.length ? <Text style={styles.storyMeta}>Sở thích: {profile.interests.join(' · ')}</Text> : null}
       </View>
       <View style={styles.storySection}>
@@ -602,6 +609,8 @@ const styles = StyleSheet.create({
   profileMessageInput: { backgroundColor: chonColors.surface, borderColor: chonColors.border, borderRadius: 8, borderWidth: 1, color: chonColors.text, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, minHeight: 82, padding: 12, textAlignVertical: 'top' },
   messageButton: { alignItems: 'center', alignSelf: 'flex-end', backgroundColor: chonColors.primaryRed, borderRadius: 999, justifyContent: 'center', minHeight: 44, minWidth: 118, paddingHorizontal: 20 },
   messageButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  upgradeMessageBanner: { alignItems: 'center', backgroundColor: chonColors.primaryRed, borderRadius: 10, justifyContent: 'center', marginBottom: 10, minHeight: 44, paddingHorizontal: 16 },
+  upgradeMessageBannerText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800', textAlign: 'center' },
   galleryDesktop: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 },
   galleryMobile: { marginHorizontal: -chonLayout.contentHorizontalPaddingMobile, marginBottom: 20 },
   galleryMobileContent: { gap: 10, paddingHorizontal: chonLayout.contentHorizontalPaddingMobile },
@@ -612,16 +621,16 @@ const styles = StyleSheet.create({
   photoHeart: { backgroundColor: 'rgba(255,255,255,0.88)', borderRadius: 18, bottom: 8, padding: 6, position: 'absolute', right: 8 },
   storyWrap: { gap: 24 },
   storySection: { borderTopColor: chonColors.border, borderTopWidth: 1, gap: 8, paddingTop: 18 },
-  sectionHeadingRow: { alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sectionHeadingRow: { alignItems: 'baseline', flexDirection: 'row', gap: 12, justifyContent: 'space-between', width: '100%' },
   sectionTitle: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '600', lineHeight: chonTypography.lineHeights.h2 },
   storyText: { color: chonColors.text, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
   storyMeta: { color: chonColors.muted, fontSize: chonTypography.sizes.help, lineHeight: chonTypography.lineHeights.help },
-  interestedIn: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  interestedIn: { color: chonColors.goldStrong, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '600', lineHeight: chonTypography.lineHeights.h2, marginLeft: 'auto', textAlign: 'right' },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   tag: { backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 7 },
   tagText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.body, fontWeight: '700' },
-  infoList: { borderColor: chonColors.border, borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  infoRow: { alignItems: 'center', borderBottomColor: chonColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 14, justifyContent: 'space-between', minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },
+  infoList: { gap: 2 },
+  infoRow: { alignItems: 'center', flexDirection: 'row', gap: 14, justifyContent: 'space-between', minHeight: 38, paddingVertical: 6 },
   infoLabel: { color: chonColors.text, flex: 1, fontSize: chonTypography.sizes.body, fontWeight: '700', lineHeight: chonTypography.lineHeights.body },
   infoValue: { color: chonColors.text, flex: 1, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, textAlign: 'right' },
   warningCard: { backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 12, borderWidth: 1, gap: 10, padding: 16 },

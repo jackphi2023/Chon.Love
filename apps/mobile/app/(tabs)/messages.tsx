@@ -220,7 +220,7 @@ function MailboxRow({
           <Text numberOfLines={1} style={[styles.preview, item.unread_count > 0 && styles.previewUnread]}>{preview}</Text>
           <View style={styles.statusRow}>
             {item.is_archived ? <Text style={styles.archived} testID="luxy-mailbox-archived-status">Đã lưu trữ</Text> : null}
-            {!item.can_send && !item.blocked ? <Text style={styles.readOnly}>Bạn vẫn đọc được tin đến · Nâng cấp để trả lời</Text> : null}
+            {!item.can_send && !item.blocked ? <Text style={styles.readOnly}>Nâng cấp để trả lời</Text> : null}
             {item.blocked ? <Text style={styles.blocked}>Cuộc trò chuyện bị hạn chế do chặn</Text> : null}
           </View>
         </View>
