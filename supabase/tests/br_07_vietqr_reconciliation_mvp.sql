@@ -7,10 +7,10 @@ select ok(to_regclass('private.vietqr_reconciliation_events') is not null,'VietQ
 select is((select value_json#>>'{}' from private.app_config where key='vietqr_reconciliation_enabled'),'false','reconciliation is disabled by default');
 select is((select value_json#>>'{}' from private.app_config where key='vietqr_manual_settlement_enabled'),'false','manual settlement is disabled by default');
 select is((select value_json#>>'{}' from private.app_config where key='vietqr_auto_settlement_enabled'),'false','automatic settlement remains disabled');
-select is((select value_json#>>'{}' from private.app_config where key='vietqr_web_payments_enabled'),'false','VietQR heart ordering is disabled at the database boundary');
-select ok(not has_function_privilege('authenticated','public.create_vietqr_heart_order(uuid,uuid)','EXECUTE'),'authenticated users cannot create VietQR heart orders');
-select ok(not has_function_privilege('authenticated','public.list_vietqr_heart_products()','EXECUTE'),'authenticated users cannot list VietQR heart products');
-select ok(not has_function_privilege('authenticated','public.mark_my_vietqr_transfer_submitted(uuid)','EXECUTE'),'authenticated users cannot submit VietQR transfers');
+select is((select value_json#>>'{}' from private.app_config where key='vietqr_web_payments_enabled'),'false','legacy VietQR web-payment config remains false and is not the owner-facing RPC ACL boundary');
+select ok(has_function_privilege('authenticated','public.create_vietqr_heart_order(uuid,uuid)','EXECUTE'),'authenticated users can create bounded VietQR heart orders');
+select ok(has_function_privilege('authenticated','public.list_vietqr_heart_products()','EXECUTE'),'authenticated users can list canonical VietQR heart products');
+select ok(has_function_privilege('authenticated','public.mark_my_vietqr_transfer_submitted(uuid)','EXECUTE'),'authenticated users can submit their VietQR transfer state');
 select ok(not has_function_privilege('service_role','public.record_verified_vietqr_payment(uuid,text,bigint,uuid)','EXECUTE'),'service role cannot bypass reconciliation to credit hearts directly');
 select ok(has_function_privilege('service_role','public.admin_import_vietqr_bank_transaction(uuid,text,text,bigint,text,timestamptz,text,uuid)','EXECUTE'),'service role can call the audited import RPC');
 select ok(has_function_privilege('service_role','public.admin_list_vietqr_reconciliation_queue(uuid,text,integer,integer)','EXECUTE'),'service role can call the finance queue RPC');
