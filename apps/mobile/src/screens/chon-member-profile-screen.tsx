@@ -359,11 +359,6 @@ export default function ChonMemberProfileScreen() {
             </View>
           ) : (
             <>
-              {!desktop && !membershipQuery.isLoading && !membershipQuery.data?.can_message ? (
-                <Pressable accessibilityRole="button" onPress={() => setShowUpgrade(true)} style={styles.upgradeMessageBanner}>
-                  <Text style={styles.upgradeMessageBannerText}>Nâng cấp ngay để gửi tin nhắn</Text>
-                </Pressable>
-              ) : null}
               <View style={styles.messageComposer} testID="chon-member-profile-message-composer">
                 <TextInput
                   accessibilityLabel={`Nội dung tin nhắn cho ${displayName}`}
@@ -609,8 +604,6 @@ const styles = StyleSheet.create({
   profileMessageInput: { backgroundColor: chonColors.surface, borderColor: chonColors.border, borderRadius: 8, borderWidth: 1, color: chonColors.text, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body, minHeight: 82, padding: 12, textAlignVertical: 'top' },
   messageButton: { alignItems: 'center', alignSelf: 'flex-end', backgroundColor: chonColors.primaryRed, borderRadius: 999, justifyContent: 'center', minHeight: 44, minWidth: 118, paddingHorizontal: 20 },
   messageButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '700' },
-  upgradeMessageBanner: { alignItems: 'center', backgroundColor: chonColors.primaryRed, borderRadius: 10, justifyContent: 'center', marginBottom: 10, minHeight: 44, paddingHorizontal: 16 },
-  upgradeMessageBannerText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800', textAlign: 'center' },
   galleryDesktop: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 },
   galleryMobile: { marginHorizontal: -chonLayout.contentHorizontalPaddingMobile, marginBottom: 20 },
   galleryMobileContent: { gap: 10, paddingHorizontal: chonLayout.contentHorizontalPaddingMobile },
