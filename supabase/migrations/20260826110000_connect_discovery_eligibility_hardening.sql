@@ -26,13 +26,13 @@ as $$
             from public.moderation_cases mc
             where mc.reported_user_id = p.id
               and 'member_photo_verification' = any(mc.rule_codes)
-              and mc.status in ('open', 'queued', 'in_review')
+              and mc.status::text in ('open', 'queued', 'in_review')
           )
       ) then true
       when private.get_active_luxy_membership_tier(p_user_id) = 'diamond'
       then coalesce((
         select s.hide_from_listing
-        from private.luxy_membership_settings s
+        from private.luxy_membership_privacy s
         where s.user_id = p_user_id
       ), false)
       else false
