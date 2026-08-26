@@ -1,7 +1,7 @@
 -- Fail closed for Connect/Search listing eligibility.
--- A member must be active across profile, account, Auth, and signup photo review
--- before any Search V2 surface can expose them. Diamond hide-from-listing remains
--- an additional privacy control after the account is otherwise eligible.
+-- A member must be active and discoverable across Chon.Love-owned profile/account
+-- state and must not have an unresolved signup photo-verification case. Diamond
+-- hide-from-listing remains an additional privacy control after eligibility.
 
 create or replace function private.luxy_listing_hidden(p_user_id uuid)
 returns boolean
@@ -16,14 +16,11 @@ as $$
         select 1
         from public.profiles p
         join private.user_identity i on i.user_id = p.id
-        join auth.users u on u.id = p.id
         where p.id = p_user_id
           and p.profile_status = 'active'
           and p.deleted_at is null
           and p.discovery_enabled
           and i.account_status = 'active'
-          and u.deleted_at is null
-          and (u.banned_until is null or u.banned_until <= now())
           and not exists (
             select 1
             from public.moderation_cases mc
@@ -43,4 +40,4 @@ as $$
 $$;
 
 comment on function private.luxy_listing_hidden(uuid) is
-  'Returns true when a member must be excluded from Connect/Search due to inactive/hidden profile, inactive identity, Auth ban/deletion, unresolved signup photo verification, or Diamond hide-from-listing privacy.';
+  'Returns true when a member must be excluded from Connect/Search due to inactive/hidden profile, inactive identity, unresolved signup photo verification, or Diamond hide-from-listing privacy.';
