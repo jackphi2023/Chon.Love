@@ -359,7 +359,7 @@ export default function ChonMemberProfileScreen() {
             </View>
           ) : (
             <>
-              {!membershipQuery.isLoading && !membershipQuery.data?.can_message ? (
+              {!desktop && !membershipQuery.isLoading && !membershipQuery.data?.can_message ? (
                 <Pressable accessibilityRole="button" onPress={() => setShowUpgrade(true)} style={styles.upgradeMessageBanner}>
                   <Text style={styles.upgradeMessageBannerText}>Nâng cấp ngay để gửi tin nhắn</Text>
                 </Pressable>

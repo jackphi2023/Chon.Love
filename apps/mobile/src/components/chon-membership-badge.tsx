@@ -25,7 +25,7 @@ export function ChonMembershipBadge({
   inset?: number;
   width?: number;
   placement?: 'top-left' | 'top-right';
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | undefined;
 }) {
   if (!isChonMembershipBadgeTier(tier)) return null;
   const resolvedVariant = size === 'large' ? 'certificate' : size ? 'icon' : variant;

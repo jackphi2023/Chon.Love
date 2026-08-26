@@ -151,7 +151,7 @@ export default function CanonicalMemberProfilePage() {
 <View style={styles.section}>
   <View style={styles.publicSeekingHeading}><Text style={styles.sectionTitle}>Tôi đang tìm kiếm</Text><Text style={styles.publicSeekingValue}>{publicInterestedInLabel(profile.interested_in)}</Text></View>
   <Text style={styles.body}>{profile.looking_for || 'Một kết nối chất lượng, tôn trọng và có chủ đích.'}</Text>
-  {profile.lifestyle_tags.length ? <View style={styles.tags}>{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{tag.replaceAll('_', ' ')}</Text></View>)}</View> : null}
+  {profile.lifestyle_tags.length ? <View style={styles.tags}>{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{publicLifestyleLabel(tag)}</Text></View>)}</View> : null}
 </View>
 
 <View style={styles.publicInfoList} testID="public-member-profile-info-list">
@@ -173,6 +173,10 @@ export default function CanonicalMemberProfilePage() {
 }
 
 function publicInterestedInLabel(value: PublicChonProfileV2['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }
+function publicLifestyleLabel(value: string): string {
+  const labels: Record<string, string> = { true_love: 'Tình yêu đích thực', luxury_lifestyle: 'Phong cách sống cao cấp', active_lifestyle: 'Năng động', flexible_schedule: 'Lịch trình linh hoạt', emotional_connection: 'Kết nối cảm xúc', refined: 'Tinh tế', fine_dining: 'Ẩm thực cao cấp', friendship: 'Bạn bè', long_term: 'Lâu dài', marriage_minded: 'Hướng đến hôn nhân', monogamous: 'Một vợ một chồng', romantic: 'Lãng mạn', ready_to_travel: 'Sẵn sàng du lịch', travel_companion: 'Bạn đồng hành du lịch', vacation: 'Kỳ nghỉ', entertainment_events: 'Giải trí & sự kiện', platonic: 'Thuần bạn bè' };
+  return labels[value] ?? value;
+}
 function publicProfileFacts(profile: PublicChonProfileV2): Array<[string, string]> {
   const labels: Record<string, string> = {
     single: 'Độc thân', divorced: 'Đã ly hôn', widowed: 'Goá', open: 'Quan hệ mở', complicated: 'Phức tạp', prefer_not_to_say: 'Chưa chia sẻ',

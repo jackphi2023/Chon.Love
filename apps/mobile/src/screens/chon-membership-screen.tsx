@@ -325,7 +325,7 @@ export function ChonMembershipScreen() {
             <View style={styles.rowBetween}>
               <View style={styles.flexOne}>
                 <Text style={styles.eyebrow}>BẠN ĐÃ CHỌN</Text>
-                <Text style={styles.ctaPlan}>{PLAN_COPY[selectedTier].title} · {selectedPeriod} kỳ</Text>
+                <Text style={styles.ctaPlan}>{PLAN_COPY[selectedTier].title} · {selectedPeriod} tháng</Text>
               </View>
               <Text style={styles.ctaAmount}>
                 {selectedOption ? formatLuxyMembershipAmount(selectedOption.amount_due_vnd) : '—'}
@@ -360,7 +360,7 @@ export function ChonMembershipScreen() {
               {ordersQuery.data.map((order) => (
                 <Pressable key={order.order_id} onPress={() => setCheckoutOrderId(order.order_id)} style={styles.historyRow}>
                   <View style={styles.flexOne}>
-                    <Text style={styles.historyTitle}>{PLAN_COPY[order.tier].title} · {order.period_count} kỳ</Text>
+                    <Text style={styles.historyTitle}>{PLAN_COPY[order.tier].title} · {order.period_count} tháng</Text>
                     <Text style={styles.historyMeta}>{order.order_code} · {formatDate(order.created_at)}</Text>
                   </View>
                   <View style={styles.historyRight}>

@@ -8,6 +8,7 @@ import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
+import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';
 import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
 import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
@@ -69,7 +70,7 @@ export default function MemberProfileRouteLayout() {
         <View style={styles.mobileHeader} testID="chon-member-profile-mobile-header">
           <View style={styles.mobileHeaderSide} />
           <Pressable accessibilityLabel="Chọn.love" accessibilityRole="button" onPress={() => router.push('/(tabs)/connect')} style={styles.mobileBrandButton}>
-            <Text style={styles.mobileBrand}>Chọn.love</Text>
+            <ChonLoveLogo height={28} width={112} />
           </Pressable>
           <Pressable accessibilityLabel="Hồ sơ của tôi" accessibilityRole="button" onPress={() => router.push('/(tabs)/profile')} style={styles.mobileHeaderSide}>
             <ChonUserAvatar size={32} />
@@ -111,7 +112,6 @@ const styles = StyleSheet.create({
   mobileHeader: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', minHeight: 58, paddingHorizontal: 10 },
   mobileHeaderSide: { alignItems: 'center', justifyContent: 'center', minHeight: 44, width: 44 },
   mobileBrandButton: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 44 },
-  mobileBrand: { color: luxyColors.actionRed, fontSize: 22, fontWeight: '800' },
   giftButton: {
     alignItems: 'center',
     backgroundColor: luxyColors.surface,
