@@ -95,15 +95,14 @@ select is(
 reset role;
 update auth.users set banned_until=null where id='26000000-0000-0000-0000-000000000002';
 insert into public.moderation_cases(
-  id, source, reported_user_id, status, priority, rule_codes, reason_code
+  id, source, reported_user_id, status, priority, rule_codes
 ) values (
   '26000000-0000-0000-0000-000000000099',
   'automated_scan',
   '26000000-0000-0000-0000-000000000002',
   'open',
   60,
-  array['member_photo_verification']::text[],
-  'signup_selfie_manual_review'
+  array['member_photo_verification']::text[]
 );
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"26000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
