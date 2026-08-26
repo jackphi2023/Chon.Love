@@ -21,19 +21,41 @@ async function getRenderedImageSource(locator) {
   });
 }
 
-async function expectCompactPhotoCount(card) {
+async function expectCompactPhotoCount(card, photo, membershipBadge) {
   const cardBox = await card.boundingBox();
+  const photoBox = await photo.boundingBox();
+  const membershipBadgeBox = await membershipBadge.boundingBox();
   const badge = card.getByTestId('chon-photo-count');
   const badgeBox = await badge.boundingBox();
   const iconBox = await badge.getByTestId('chon-photo-count-icon').boundingBox();
   expect(cardBox).not.toBeNull();
+  expect(photoBox).not.toBeNull();
+  expect(membershipBadgeBox).not.toBeNull();
   expect(badgeBox).not.toBeNull();
   expect(iconBox).not.toBeNull();
   expect(iconBox.width).toBeGreaterThanOrEqual(7);
   expect(iconBox.width).toBeLessThanOrEqual(9);
   expect(badgeBox.x).toBeGreaterThan(cardBox.x + cardBox.width / 2);
   expect((cardBox.x + cardBox.width) - (badgeBox.x + badgeBox.width)).toBeLessThanOrEqual(12);
-  expect(badgeBox.y - cardBox.y).toBeLessThanOrEqual(14);
+  const topOffset = badgeBox.y - photoBox.y;
+  expect(topOffset).toBeGreaterThanOrEqual(40);
+  expect(topOffset).toBeLessThanOrEqual(44);
+  expect(badgeBox.y).toBeGreaterThanOrEqual(membershipBadgeBox.y + membershipBadgeBox.height + 4);
+  expect(badgeBox.y + badgeBox.height).toBeLessThanOrEqual(photoBox.y + photoBox.height);
+}
+
+async function expectMediumTopRightMembershipBadge(photo, badge) {
+  const photoBox = await photo.boundingBox();
+  const badgeBox = await badge.boundingBox();
+  expect(photoBox).not.toBeNull();
+  expect(badgeBox).not.toBeNull();
+  expect(Math.abs(badgeBox.height - 26)).toBeLessThanOrEqual(1);
+  expect(badgeBox.width).toBeLessThan(badgeBox.height);
+  const rightInset = (photoBox.x + photoBox.width) - (badgeBox.x + badgeBox.width);
+  expect(rightInset).toBeGreaterThanOrEqual(0);
+  expect(rightInset).toBeLessThanOrEqual(14);
+  expect(badgeBox.y - photoBox.y).toBeGreaterThanOrEqual(0);
+  expect(badgeBox.y - photoBox.y).toBeLessThanOrEqual(14);
 }
 
 async function expectResultsButton(button) {
@@ -52,7 +74,7 @@ async function normalizeCreatorNotFavorited(card) {
   }
 }
 
-test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent across mobile and desktop', async ({ browser }, testInfo) => {
+test('UI-C01/C02 keeps shared Connect cards compact with Medium top-right membership badges across mobile and desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -62,19 +84,17 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     const mobileCreator = page.getByTestId('luxy-search-mobile-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(mobileCreator).toBeVisible();
     await normalizeCreatorNotFavorited(mobileCreator);
-    await expect(mobileCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
+    const mobilePhoto = mobileCreator.getByTestId('chon-connect-member-photo');
+    await expect(mobilePhoto).toBeVisible();
     const mobileBadge = mobileCreator.getByTestId('chon-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
-    const mobileBadgeBox = await mobileBadge.boundingBox();
-    expect(mobileBadgeBox).not.toBeNull();
-    expect(Math.abs(mobileBadgeBox.height - 16)).toBeLessThanOrEqual(1);
-    expect(mobileBadgeBox.width).toBeLessThan(mobileBadgeBox.height);
+    await expectMediumTopRightMembershipBadge(mobilePhoto, mobileBadge);
     const mobileBadgeImage = mobileBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(mobileBadgeImage).toBeVisible();
     const mobileBadgeSource = await getRenderedImageSource(mobileBadgeImage);
     expect(mobileBadgeSource).toBeTruthy();
 
-    await expectCompactPhotoCount(mobileCreator);
+    await expectCompactPhotoCount(mobileCreator, mobilePhoto, mobileBadge);
     const mobileOverlayBox = await mobileCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();
     expect(mobileOverlayBox).not.toBeNull();
     expect(mobileOverlayBox.height).toBeLessThanOrEqual(61);
@@ -103,19 +123,17 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     await expect(page.getByTestId('luxy-search-desktop')).toBeVisible();
     const desktopCreator = page.getByTestId('luxy-search-member-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(desktopCreator).toBeVisible();
-    await expect(desktopCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
+    const desktopPhoto = desktopCreator.getByTestId('chon-connect-member-photo');
+    await expect(desktopPhoto).toBeVisible();
     const desktopBadge = desktopCreator.getByTestId('chon-membership-badge-diamond');
-    const desktopBadgeBox = await desktopBadge.boundingBox();
-    expect(desktopBadgeBox).not.toBeNull();
-    expect(Math.abs(desktopBadgeBox.height - 26)).toBeLessThanOrEqual(1);
-    expect(desktopBadgeBox.width).toBeLessThan(desktopBadgeBox.height);
+    await expectMediumTopRightMembershipBadge(desktopPhoto, desktopBadge);
     const desktopBadgeImage = desktopBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(desktopBadgeImage).toBeVisible();
     const desktopBadgeSource = await getRenderedImageSource(desktopBadgeImage);
     expect(desktopBadgeSource).toBeTruthy();
-    expect(desktopBadgeSource).not.toBe(mobileBadgeSource);
+    expect(desktopBadgeSource).toBe(mobileBadgeSource);
 
-    await expectCompactPhotoCount(desktopCreator);
+    await expectCompactPhotoCount(desktopCreator, desktopPhoto, desktopBadge);
     const desktopOverlayBox = await desktopCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();
     expect(desktopOverlayBox).not.toBeNull();
     expect(desktopOverlayBox.height).toBeLessThanOrEqual(63);

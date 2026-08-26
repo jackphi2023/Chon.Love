@@ -31,17 +31,20 @@ async function assertFinalGiftPresentation(picker) {
   await expect(picker.getByTestId('chon-gift-catalog-icon')).toHaveCount(20);
 
   const donut = picker.getByRole('button', { name: 'Donut, 1 ❤️', exact: true });
+  await expect(donut).toContainText('🍩');
   await donut.click();
   await expect(donut).toHaveCSS('background-color', 'rgb(184, 120, 0)');
   await expect(donut).toHaveCSS('border-color', 'rgb(217, 45, 42)');
   await expect(picker.getByRole('button', { name: 'Tặng quà', exact: true })).toBeVisible();
   await expect(picker.getByText('Gửi quà', { exact: true })).toHaveCount(0);
 
+  const crown = picker.getByRole('button', { name: 'Vương miện, 20 ❤️', exact: true });
+  await expect(crown).toContainText('👑');
   const selectedText = await donut.innerText();
-  expect(selectedText).not.toMatch(/[🍩🌹👑🎁]/u);
+  expect(selectedText).toMatch(/🍩/u);
 }
 
-test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive Chon.Love picker', async ({ browser }, testInfo) => {
+test('UI-GIFT01 keeps the 20-gift heart catalog and restores each catalog-specific emoji in one responsive Chon.Love picker', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -69,7 +72,7 @@ test('UI-GIFT01 keeps the 20-gift heart catalog while presenting one responsive 
 
     await page.setViewportSize({ width: 1280, height: 900 });
     const desktopPicker = await openGiftPicker(page);
-    await expect(desktopPicker.getByTestId('chon-gift-picker-item')).toHaveCount(20);
+    await assertFinalGiftPresentation(desktopPicker);
     const desktopBox = await desktopPicker.boundingBox();
     expect(desktopBox).not.toBeNull();
     expect(desktopBox.width).toBeLessThanOrEqual(602);

@@ -12,13 +12,24 @@ async function login(page) {
   await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
 
-async function expectSingleStandaloneChrome(page) {
+async function expectSharedNavigation(page) {
   await expect(page.getByTestId('chon-settings-page-chrome')).toHaveCount(1);
   await expect(page.getByTestId('chon-authenticated-navigation')).toHaveCount(1);
-  await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(1);
 }
 
-test('settings and membership share one authenticated page chrome without duplicate headers', async ({ browser }) => {
+async function expectSettingsChrome(page) {
+  await expectSharedNavigation(page);
+  await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(1);
+  await expect(page.getByTestId('chon-membership-footer')).toHaveCount(0);
+}
+
+async function expectMembershipChrome(page) {
+  await expectSharedNavigation(page);
+  await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(0);
+  await expect(page.getByTestId('chon-membership-footer')).toHaveCount(1);
+}
+
+test('settings and membership share authenticated navigation while membership owns one in-scroll footer without duplicate chrome', async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -31,20 +42,19 @@ test('settings and membership share one authenticated page chrome without duplic
     await login(page);
     await page.goto('/settings');
     await expect(page.getByTestId('chon-settings-page')).toBeVisible({ timeout: 30_000 });
-    await expectSingleStandaloneChrome(page);
+    await expectSettingsChrome(page);
     await expect(page.getByRole('button', { name: 'Chọn.love — về Kết nối' })).toHaveCount(1);
 
     await page.getByTestId('settings-membership').click();
     await expect(page).toHaveURL(/\/settings\/membership$/);
     await expect(page.getByTestId('luxy-upgrade-billing')).toBeVisible({ timeout: 30_000 });
-    await expectSingleStandaloneChrome(page);
+    await expectMembershipChrome(page);
     await expect(page.getByRole('button', { name: 'Quay lại' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Nâng cấp trải nghiệm của bạn' })).toHaveCount(1);
 
     await page.setViewportSize({ width: 1024, height: 768 });
     await expect(page.getByTestId('chon-desktop-navigation')).toHaveCount(1);
-    await expect(page.getByTestId('chon-authenticated-navigation')).toHaveCount(1);
-    await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(1);
+    await expectMembershipChrome(page);
   } finally {
     await context.close();
   }

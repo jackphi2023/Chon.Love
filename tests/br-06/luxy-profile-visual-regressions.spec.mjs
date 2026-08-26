@@ -39,21 +39,29 @@ async function expectFactTextReadable(page) {
   expect(Number.parseFloat(style.fontSize)).toBeGreaterThanOrEqual(11.5);
 }
 
-test('UI-PRO01 desktop keeps compact 26px membership status badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
+async function expectLargeProfileBadge(page) {
+  const badge = page.getByTestId('chon-membership-badge-diamond').first();
+  await expect(badge).toBeVisible();
+  const badgeBox = await badge.boundingBox();
+  const heroBox = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
+  expect(badgeBox).not.toBeNull();
+  expect(heroBox).not.toBeNull();
+  expect(Math.abs(badgeBox.height - 110)).toBeLessThanOrEqual(1);
+  expect(Math.abs(badgeBox.width - 160)).toBeLessThanOrEqual(1);
+  expect(badgeBox.x - heroBox.x).toBeGreaterThanOrEqual(0);
+  expect(badgeBox.x - heroBox.x).toBeLessThanOrEqual(14);
+  expect(badgeBox.y - heroBox.y).toBeGreaterThanOrEqual(0);
+  expect(badgeBox.y - heroBox.y).toBeLessThanOrEqual(14);
+}
+
+test('UI-PRO01 desktop keeps the Large top-left membership badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
     await login(page, 'luxy-search-desktop');
     await openProfile(page);
 
-    const badge = page.getByTestId('chon-membership-badge-diamond').first();
-    await expect(badge).toBeVisible();
-    const badgeBox = await badge.boundingBox();
-    expect(badgeBox).not.toBeNull();
-    expect(badgeBox.height).toBeGreaterThanOrEqual(25);
-    expect(badgeBox.height).toBeLessThanOrEqual(27);
-    expect(badgeBox.width).toBeLessThan(badgeBox.height);
-
+    await expectLargeProfileBadge(page);
     await expect(page.getByTestId('chon-profile-fact-location')).toContainText('Hà Nội');
     await expect(page.getByTestId('chon-profile-fact-member-since')).toContainText('Thành viên từ');
     await expectFactTextReadable(page);
@@ -69,21 +77,14 @@ test('UI-PRO01 desktop keeps compact 26px membership status badge, readable fact
   }
 });
 
-test('UI-PRO01 mobile keeps 16px membership badge, horizontal album and no overflow at 390px', async ({ browser }, testInfo) => {
+test('UI-PRO01 mobile keeps the Large top-left membership badge, horizontal album and no overflow at 390px', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   try {
     await login(page, 'luxy-search-mobile', 'br06.outsider@example.test');
     await openProfile(page);
 
-    const badge = page.getByTestId('chon-membership-badge-diamond').first();
-    await expect(badge).toBeVisible();
-    const badgeBox = await badge.boundingBox();
-    expect(badgeBox).not.toBeNull();
-    expect(badgeBox.height).toBeGreaterThanOrEqual(15);
-    expect(badgeBox.height).toBeLessThanOrEqual(17);
-    expect(badgeBox.width).toBeLessThan(badgeBox.height);
-
+    await expectLargeProfileBadge(page);
     await expect(page.getByTestId('chon-member-profile-photo-strip')).toBeVisible();
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toBeVisible();
     await expectFactTextReadable(page);

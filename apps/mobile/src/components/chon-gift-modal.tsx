@@ -171,7 +171,7 @@ export function ChonGiftModal({
           {!membershipQuery.isLoading && !canGift ? (
             <View style={[styles.lockedBox, compact && styles.lockedBoxCompact]}>
               <Text style={styles.lockedTitle}>Quà dành cho thành viên Cao cấp và Kim cương</Text>
-              <Text style={styles.lockedBody}>Quà không mở ảnh riêng tư, không tạo quan hệ và không bắt buộc người nhận phản hồi.</Text>
+              <Text style={styles.lockedBody}>Tặng quà giúp tạo thiện cảm ban đầu và giúp xây dựng một mối quan hệ mới</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => {
@@ -230,7 +230,7 @@ export function ChonGiftModal({
                         testID="chon-gift-picker-item"
                       >
                         <View style={[styles.giftIconRing, selected && styles.giftIconRingSelected]} testID="chon-gift-catalog-icon">
-                          <ChonBrandIcon name="gift" size={compact ? 25 : 28} />
+                          <Text style={styles.giftIcon}>{gift.icon_emoji}</Text>
                         </View>
                         <Text numberOfLines={1} style={[styles.giftName, selected && styles.giftTextSelected]}>{gift.name_vi}</Text>
                         <Text style={[styles.giftPrice, selected && styles.giftTextSelected, !affordable && styles.giftPriceUnaffordable]}>{formatGiftHeartPrice(gift)}</Text>
@@ -244,7 +244,7 @@ export function ChonGiftModal({
 
           {selectedGift ? (
             <View style={[styles.confirmation, compact && styles.confirmationCompact]} testID="chon-gift-picker-confirmation">
-              <View style={styles.confirmationIcon}><ChonBrandIcon name="gift" size={22} /></View>
+              <View style={styles.confirmationIcon}><Text style={styles.confirmationGiftIcon}>{selectedGift.icon_emoji}</Text></View>
               <View style={styles.confirmationCopy}>
                 <Text style={styles.confirmationTitle}>{selectedGift.name_vi}</Text>
                 <Text style={styles.confirmationBody}>
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
   giftUnaffordable: { opacity: 0.58 },
   giftIconRing: { alignItems: 'center', backgroundColor: 'transparent', borderColor: chonColors.gold, borderRadius: 32, borderWidth: 2, height: 58, justifyContent: 'center', width: 58 },
   giftIconRingSelected: { borderColor: chonColors.surface },
+  giftIcon: { fontSize: 32, lineHeight: 38 },
   giftName: { color: chonColors.ink, fontSize: 11, fontWeight: '700', marginTop: 7, maxWidth: '100%' },
   giftPrice: { color: chonColors.goldStrong, fontSize: 10.5, fontWeight: '700', marginTop: 3 },
   giftTextSelected: { color: chonColors.surface },
@@ -330,6 +331,7 @@ const styles = StyleSheet.create({
   confirmation: { alignItems: 'center', backgroundColor: chonColors.warmSurface, borderTopColor: chonColors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: luxySpacing.md, paddingHorizontal: luxySpacing.xl, paddingVertical: 14 },
   confirmationCompact: { alignItems: 'stretch', flexDirection: 'column', gap: 10, paddingHorizontal: chonLayout.contentHorizontalPaddingMobile },
   confirmationIcon: { alignItems: 'center', borderColor: chonColors.gold, borderRadius: 22, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
+  confirmationGiftIcon: { fontSize: 24, lineHeight: 30 },
   confirmationCopy: { flex: 1 },
   confirmationTitle: { color: chonColors.ink, fontSize: 13, fontWeight: '700' },
   confirmationBody: { color: chonColors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },

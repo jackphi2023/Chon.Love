@@ -4,10 +4,11 @@ import {
 } from '@myfan/supabase';
 import { luxyBreakpoints, luxyColors, luxyRadii, luxyShadows } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Slot, useLocalSearchParams, usePathname } from 'expo-router';
+import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { ChonBrandIcon } from '@/components/chon-brand-icon';
+import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';
+import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { CHON_ICON_SIZE_DESKTOP } from '@/components/chon-ui-sizing';
 import { LuxyDesktopFooter } from '@/components/luxy-desktop-footer';
 import { LuxyDesktopNavigation } from '@/components/luxy-desktop-navigation';
@@ -23,6 +24,7 @@ function normalizeIdentifier(value: string | string[] | undefined): string {
 
 export default function MemberProfileRouteLayout() {
   const auth = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
   const params = useLocalSearchParams<{ username?: string | string[] }>();
   const identifier = normalizeIdentifier(params.username).trim();
@@ -64,7 +66,17 @@ export default function MemberProfileRouteLayout() {
 
   return (
     <View style={styles.root}>
-      {desktop ? <LuxyDesktopNavigation /> : null}
+      {desktop ? <LuxyDesktopNavigation /> : (
+        <View style={styles.mobileHeader} testID="chon-member-profile-mobile-header">
+          <View style={styles.mobileHeaderSide} />
+          <Pressable accessibilityLabel="Chọn.love" accessibilityRole="button" onPress={() => router.push('/(tabs)/connect')} style={styles.mobileBrandButton}>
+            <ChonLoveLogo height={28} width={112} />
+          </Pressable>
+          <Pressable accessibilityLabel="Hồ sơ của tôi" accessibilityRole="button" onPress={() => router.push('/(tabs)/profile')} style={styles.mobileHeaderSide}>
+            <ChonUserAvatar size={32} />
+          </Pressable>
+        </View>
+      )}
       <View style={styles.profileStage}>
         <Slot />
         <MemberProfileVerificationBadges />
@@ -97,6 +109,9 @@ export default function MemberProfileRouteLayout() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   profileStage: { flex: 1, minHeight: 0, position: 'relative' },
+  mobileHeader: { alignItems: 'center', backgroundColor: luxyColors.surface, borderBottomColor: luxyColors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', minHeight: 58, paddingHorizontal: 10 },
+  mobileHeaderSide: { alignItems: 'center', justifyContent: 'center', minHeight: 44, width: 44 },
+  mobileBrandButton: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 44 },
   giftButton: {
     alignItems: 'center',
     backgroundColor: luxyColors.surface,

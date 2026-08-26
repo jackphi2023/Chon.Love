@@ -599,7 +599,7 @@ export default function ChatDetailPage() {
                 style={({ pressed }) => [styles.giftButton, pressed && styles.giftButtonPressed, composerDisabled && styles.disabled]}
                 testID="chon-chat-gift-button"
               >
-                <ChonBrandIcon name="gift" size={17} />
+                <ChonBrandIcon name="gift" size={17} style={styles.giftIcon} />
                 <Text style={styles.giftButtonText}>Tặng quà</Text>
               </Pressable>
               <View style={styles.composerSendGroup}>
@@ -621,7 +621,7 @@ export default function ChatDetailPage() {
             <Text style={styles.muted}>
               {detail.blocked_by_viewer || detail.blocked_by_other
                 ? 'Một trong hai tài khoản đã chặn người kia.'
-                : 'Chat chỉ hoạt động khi hai tài khoản vẫn là bạn bè và đang hoạt động.'}
+                : 'Chỉ thành viên Premium và Diamond mới được nhắn tin để chống spam. Hãy nâng cấp để nhắn tin'}
             </Text>
           </View>
         )}
@@ -810,6 +810,7 @@ const styles = StyleSheet.create({
   giftButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: chonColors.gold, borderRadius: 13, backgroundColor: '#FFFFFF', paddingHorizontal: 12 },
   giftButtonPressed: { backgroundColor: chonColors.warmSurfaceStrong },
   giftButtonText: { color: chonColors.goldStrong, fontSize: 13, fontWeight: '800' },
+  giftIcon: { tintColor: chonColors.goldStrong },
   counter: { color: colors.muted, fontSize: 11 },
   sendButton: { minWidth: 82, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: colors.primary },
   sendText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },

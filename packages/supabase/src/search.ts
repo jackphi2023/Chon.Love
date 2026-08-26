@@ -241,6 +241,42 @@ export async function searchLuxyProfilesV2(
   return attachLuxySearchMembershipBadges(profiles, parsedBadgeRows.data);
 }
 
+
+export async function countLuxyProfilesV2(
+  client: Client,
+  input: SearchLuxyProfilesInput = {},
+): Promise<number> {
+  const parsed = parseLuxySearchInput(input);
+  const args = {
+    p_min_age: parsed.minAge,
+    p_max_age: parsed.maxAge,
+    ...(parsed.provinceId == null ? {} : { p_province_id: parsed.provinceId }),
+    ...(parsed.maxDistanceKm == null ? {} : { p_max_distance_km: parsed.maxDistanceKm }),
+    ...(parsed.genders?.length ? { p_genders: parsed.genders } : {}),
+    ...(parsed.minHeightCm == null ? {} : { p_min_height_cm: parsed.minHeightCm }),
+    ...(parsed.maxHeightCm == null ? {} : { p_max_height_cm: parsed.maxHeightCm }),
+    ...(parsed.minWeightKg == null ? {} : { p_min_weight_kg: parsed.minWeightKg }),
+    ...(parsed.maxWeightKg == null ? {} : { p_max_weight_kg: parsed.maxWeightKg }),
+    ...(parsed.relationshipStatuses?.length ? { p_relationship_statuses: parsed.relationshipStatuses } : {}),
+    ...(parsed.childrenStatuses?.length ? { p_children_statuses: parsed.childrenStatuses } : {}),
+    ...(parsed.smokingStatuses?.length ? { p_smoking_statuses: parsed.smokingStatuses } : {}),
+    ...(parsed.drinkingStatuses?.length ? { p_drinking_statuses: parsed.drinkingStatuses } : {}),
+    ...(parsed.educationLevels?.length ? { p_education_levels: parsed.educationLevels } : {}),
+    ...(parsed.lifestyleTags?.length ? { p_lifestyle_tags: parsed.lifestyleTags } : {}),
+    ...(parsed.languages?.length ? { p_languages: parsed.languages } : {}),
+    ...(parsed.interests?.length ? { p_interests: parsed.interests } : {}),
+    ...(parsed.hasPhoto == null ? {} : { p_has_photo: parsed.hasPhoto }),
+    ...(parsed.onlineNow == null ? {} : { p_online_now: parsed.onlineNow }),
+    ...(parsed.occupationText ? { p_occupation_text: parsed.occupationText } : {}),
+    ...(parsed.profileText ? { p_profile_text: parsed.profileText } : {}),
+    ...(parsed.viewState ? { p_view_state: parsed.viewState } : {}),
+    ...(parsed.favoriteScope ? { p_favorite_scope: parsed.favoriteScope } : {}),
+  };
+  const { data, error } = await client.rpc('count_luxy_profiles_v2', args);
+  if (error) throw error;
+  return z.coerce.number().int().nonnegative().parse(data ?? 0);
+}
+
 export function formatLuxyDistance(distanceKm: number | null | undefined): string | null {
   if (distanceKm === null || distanceKm === undefined || !Number.isFinite(distanceKm) || distanceKm < 0) return null;
   return `${distanceKm.toFixed(1).replace('.', ',')} km`;

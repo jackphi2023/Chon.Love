@@ -196,29 +196,28 @@ expect(
 
 const profileBadgeE2e = read('tests/br-06/chon-public-member-profile-pro01.spec.mjs');
 expect(
-  profileBadgeE2e.includes('displayHeight: 16') && profileBadgeE2e.includes('displayHeight: 26'),
-  'UI-PRO01 browser regression must enforce UI-ASSET01 16px/26px compact badge heights.',
+  profileBadgeE2e.includes('displayWidth: 160') && profileBadgeE2e.includes('displayHeight: 110'),
+  'UI-PRO01 browser regression must enforce the Large 160x110 profile badge slot.',
 );
 expect(
-  profileBadgeE2e.includes('naturalWidth: 29') && profileBadgeE2e.includes('naturalHeight: 40') &&
-    profileBadgeE2e.includes('naturalWidth: 31') && profileBadgeE2e.includes('naturalHeight: 41') &&
-    profileBadgeE2e.includes('naturalWidth: 33') && profileBadgeE2e.includes('naturalHeight: 46') &&
-    profileBadgeE2e.includes('naturalWidth: 38') && profileBadgeE2e.includes('naturalHeight: 50'),
-  'UI-PRO01 browser regression must decode the tier/context-specific approved compact PNG sources.',
+  profileBadgeE2e.includes('naturalWidth: 179') && profileBadgeE2e.includes('naturalHeight: 199') &&
+    profileBadgeE2e.includes('naturalWidth: 180') && profileBadgeE2e.includes('naturalHeight: 208'),
+  'UI-PRO01 browser regression must decode the approved Premium/Diamond 160-class certificate PNG sources.',
 );
 expect(
-  profileBadgeE2e.includes("getByTestId('chon-member-profile-hero-photo')") && profileBadgeE2e.includes('chon-membership-badge-image-'),
-  'UI-PRO01 browser regression must keep the canonical badge source inside the Chọn.Love hero frame.',
+  profileBadgeE2e.includes("getByTestId('chon-member-profile-hero-photo')") && profileBadgeE2e.includes('chon-membership-badge-image-') &&
+    profileBadgeE2e.includes('box.x - hero.x') && profileBadgeE2e.includes('box.y - hero.y'),
+  'UI-PRO01 browser regression must keep the Large badge inside the Chọn.Love hero frame at the top-left.',
 );
 
 const connectBadgeE2e = read('tests/br-06/chon-connect-c01.spec.mjs');
 expect(
-  connectBadgeE2e.includes('mobileBadgeBox.height - 16') && connectBadgeE2e.includes('desktopBadgeBox.height - 26'),
-  'UI-C01 browser regression must enforce compact mobile/desktop badge heights.',
+  connectBadgeE2e.includes('badgeBox.height - 26') && connectBadgeE2e.includes('rightInset'),
+  'UI-C01 browser regression must enforce the Medium 26px top-right Connect badge contract.',
 );
 expect(
-  connectBadgeE2e.includes('not.toBe(mobileBadgeSource)'),
-  'UI-C01 browser regression must prove mobile and desktop cards route to different approved source assets.',
+  connectBadgeE2e.includes('desktopBadgeSource).toBe(mobileBadgeSource)'),
+  'UI-C01 browser regression must prove mobile and desktop Connect cards route Medium badges to the same approved 26px source asset.',
 );
 
 const membershipBadgeE2e = read('tests/br-06/chon-membership-mem01.spec.mjs');

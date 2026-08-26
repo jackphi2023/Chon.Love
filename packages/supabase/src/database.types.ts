@@ -1942,6 +1942,34 @@ export type Database = {
           user_id: string
         }[]
       }
+      count_luxy_profiles_v2: {
+        Args: {
+          p_children_statuses?: Database["public"]["Enums"]["children_status"][]
+          p_drinking_statuses?: Database["public"]["Enums"]["drinking_status"][]
+          p_education_levels?: Database["public"]["Enums"]["education_level"][]
+          p_favorite_scope?: string
+          p_genders?: Database["public"]["Enums"]["gender_identity"][]
+          p_has_photo?: boolean
+          p_interests?: string[]
+          p_languages?: string[]
+          p_lifestyle_tags?: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          p_max_age?: number
+          p_max_distance_km?: number
+          p_max_height_cm?: number
+          p_max_weight_kg?: number
+          p_min_age?: number
+          p_min_height_cm?: number
+          p_min_weight_kg?: number
+          p_occupation_text?: string
+          p_online_now?: boolean
+          p_profile_text?: string
+          p_province_id?: number
+          p_relationship_statuses?: Database["public"]["Enums"]["relationship_status"][]
+          p_smoking_statuses?: Database["public"]["Enums"]["smoking_status"][]
+          p_view_state?: string
+        }
+        Returns: number
+      }
       create_album: {
         Args: {
           p_album_type: Database["public"]["Enums"]["album_type"]
@@ -2598,6 +2626,35 @@ export type Database = {
           updated_at: string
           value_json: Json
           value_type: string
+        }[]
+      }
+      get_public_chon_profile_v2: {
+        Args: { p_code: string }
+        Returns: {
+          age: number
+          avatar_available: boolean
+          bio: string
+          children_status: Database["public"]["Enums"]["children_status"]
+          display_name: string
+          drinking_status: Database["public"]["Enums"]["drinking_status"]
+          education_level: Database["public"]["Enums"]["education_level"]
+          gender: Database["public"]["Enums"]["gender_identity"]
+          headline: string
+          height_cm: number
+          interested_in: Database["public"]["Enums"]["dating_interest"]
+          interests: string[]
+          lifestyle_tags: Database["public"]["Enums"]["profile_lifestyle_tag"][]
+          looking_for: string
+          member_since: string
+          membership_badge_visible: boolean
+          membership_tier: Database["public"]["Enums"]["luxy_membership_tier"]
+          occupation: string
+          private_photo_count: number
+          province_name: string
+          public_media_ids: string[]
+          relationship_status: Database["public"]["Enums"]["relationship_status"]
+          smoking_status: Database["public"]["Enums"]["smoking_status"]
+          weight_kg: number
         }[]
       }
       hide_message_for_me: { Args: { p_message_id: string }; Returns: boolean }

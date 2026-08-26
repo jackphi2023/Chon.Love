@@ -26,6 +26,18 @@ export type PublicChonProfile = {
   avatar_available: boolean;
 };
 
+
+export type PublicChonProfileV2 = PublicChonProfile & {
+  interested_in: 'female' | 'male' | 'everyone';
+  weight_kg: number | null;
+  children_status: string;
+  smoking_status: string;
+  drinking_status: string;
+  lifestyle_tags: string[];
+  public_media_ids: string[];
+  private_photo_count: number;
+};
+
 export type ChonMemberRouteResolution = {
   public_profile_code: string;
   username: string;
@@ -40,6 +52,14 @@ type PublicProfileRpcClient = {
     functionName: 'get_public_chon_profile',
     args: { p_code: string },
   ) => Promise<PublicProfileRpcResult>;
+  supabaseUrl?: string;
+};
+
+type PublicProfileV2RpcClient = {
+  rpc: (
+    functionName: 'get_public_chon_profile_v2',
+    args: { p_code: string },
+  ) => Promise<{ data: PublicChonProfileV2[] | PublicChonProfileV2 | null; error: RpcError }>;
   supabaseUrl?: string;
 };
 
@@ -82,6 +102,33 @@ export async function getPublicChonProfile(
 
   const rpcClient = client as unknown as PublicProfileRpcClient;
   const { data, error } = await rpcClient.rpc('get_public_chon_profile', { p_code: code });
+  if (error) throw new Error(error.message || 'public_profile_unavailable');
+  if (Array.isArray(data)) return data[0] ?? null;
+  return data ?? null;
+}
+
+
+export function publicProfileMediaUrl(
+  client: SupabaseClient<Database>,
+  code: string,
+  mediaId: string,
+): string | null {
+  const normalized = code.trim().toLowerCase();
+  if (!/^[0-9a-f]{6}$/u.test(normalized) || !/^[0-9a-f-]{36}$/iu.test(mediaId)) return null;
+  const supabaseUrl = (client as unknown as PublicProfileV2RpcClient).supabaseUrl;
+  if (!supabaseUrl) return null;
+  return `${supabaseUrl.replace(/\/$/u, '')}/functions/v1/public-profile-media?code=${encodeURIComponent(normalized)}&media=${encodeURIComponent(mediaId)}`;
+}
+
+export async function getPublicChonProfileV2(
+  client: SupabaseClient<Database>,
+  routeIdOrCode: string,
+): Promise<PublicChonProfileV2 | null> {
+  const normalized = routeIdOrCode.trim().toLowerCase();
+  const code = publicProfileCodeFromRouteId(normalized) ?? (/^[0-9a-f]{6}$/u.test(normalized) ? normalized : null);
+  if (!code) return null;
+  const rpcClient = client as unknown as PublicProfileV2RpcClient;
+  const { data, error } = await rpcClient.rpc('get_public_chon_profile_v2', { p_code: code });
   if (error) throw new Error(error.message || 'public_profile_unavailable');
   if (Array.isArray(data)) return data[0] ?? null;
   return data ?? null;

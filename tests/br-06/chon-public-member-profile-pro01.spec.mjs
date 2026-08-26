@@ -6,12 +6,12 @@ const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tie
 
 const BADGE_EXPECTATIONS = {
   mobile: {
-    premium: { displayHeight: 16, naturalWidth: 29, naturalHeight: 40 },
-    diamond: { displayHeight: 16, naturalWidth: 31, naturalHeight: 41 },
+    premium: { displayWidth: 160, displayHeight: 110, naturalWidth: 179, naturalHeight: 199 },
+    diamond: { displayWidth: 160, displayHeight: 110, naturalWidth: 180, naturalHeight: 208 },
   },
   desktop: {
-    premium: { displayHeight: 26, naturalWidth: 33, naturalHeight: 46 },
-    diamond: { displayHeight: 26, naturalWidth: 38, naturalHeight: 50 },
+    premium: { displayWidth: 160, displayHeight: 110, naturalWidth: 179, naturalHeight: 199 },
+    diamond: { displayWidth: 160, displayHeight: 110, naturalWidth: 180, naturalHeight: 208 },
   },
 };
 
@@ -50,15 +50,15 @@ async function expectMembershipArtwork(page, tier, viewport) {
 
   const box = await badge.boundingBox();
   expect(box, `${tier} badge should render`).not.toBeNull();
+  expect(Math.round(box.width), `${tier} badge width`).toBe(expected.displayWidth);
   expect(Math.round(box.height), `${tier} badge height`).toBe(expected.displayHeight);
-  expect(Math.round(box.width), `${tier} badge aspect width`).toBe(
-    Math.round((expected.displayHeight * expected.naturalWidth) / expected.naturalHeight),
-  );
 
   const hero = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
   expect(hero, 'profile hero should render').not.toBeNull();
   expect(box.x).toBeGreaterThanOrEqual(hero.x);
   expect(box.y).toBeGreaterThanOrEqual(hero.y);
+  expect(box.x - hero.x).toBeLessThanOrEqual(14);
+  expect(box.y - hero.y).toBeLessThanOrEqual(14);
   expect(box.x + box.width).toBeLessThanOrEqual(hero.x + hero.width + 0.5);
   expect(box.y + box.height).toBeLessThanOrEqual(hero.y + hero.height + 0.5);
 }
@@ -118,7 +118,7 @@ test('UI-PRO01 canonical member profile uses Chon.Love owner, ordered facts and 
   }
 });
 
-test('UI-PRO01 badge source and rendered height follow the Chon.Love Premium/Diamond asset contract', async ({ browser }) => {
+test('UI-PRO01 badge source and rendered size follow the Chon.Love Large Premium/Diamond asset contract', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
@@ -133,7 +133,7 @@ test('UI-PRO01 badge source and rendered height follow the Chon.Love Premium/Dia
   }
 });
 
-test('UI-PRO01 Premium viewer sees private media while Diamond member badge remains a server-controlled status signal', async ({ browser }) => {
+test('UI-PRO01 Premium viewer sees private media while Diamond Large badge remains a server-controlled status signal', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
