@@ -36,6 +36,20 @@ async function expectCompactPhotoCount(card) {
   expect(badgeBox.y - cardBox.y).toBeLessThanOrEqual(14);
 }
 
+async function expectMediumTopRightMembershipBadge(photo, badge) {
+  const photoBox = await photo.boundingBox();
+  const badgeBox = await badge.boundingBox();
+  expect(photoBox).not.toBeNull();
+  expect(badgeBox).not.toBeNull();
+  expect(Math.abs(badgeBox.height - 26)).toBeLessThanOrEqual(1);
+  expect(badgeBox.width).toBeLessThan(badgeBox.height);
+  const rightInset = (photoBox.x + photoBox.width) - (badgeBox.x + badgeBox.width);
+  expect(rightInset).toBeGreaterThanOrEqual(0);
+  expect(rightInset).toBeLessThanOrEqual(14);
+  expect(badgeBox.y - photoBox.y).toBeGreaterThanOrEqual(0);
+  expect(badgeBox.y - photoBox.y).toBeLessThanOrEqual(14);
+}
+
 async function expectResultsButton(button) {
   await expect(button).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(button).toHaveCSS('border-color', 'rgb(255, 187, 0)');
@@ -52,7 +66,7 @@ async function normalizeCreatorNotFavorited(card) {
   }
 }
 
-test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent across mobile and desktop', async ({ browser }, testInfo) => {
+test('UI-C01/C02 keeps shared Connect cards compact with Medium top-right membership badges across mobile and desktop', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -62,13 +76,11 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     const mobileCreator = page.getByTestId('luxy-search-mobile-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(mobileCreator).toBeVisible();
     await normalizeCreatorNotFavorited(mobileCreator);
-    await expect(mobileCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
+    const mobilePhoto = mobileCreator.getByTestId('chon-connect-member-photo');
+    await expect(mobilePhoto).toBeVisible();
     const mobileBadge = mobileCreator.getByTestId('chon-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
-    const mobileBadgeBox = await mobileBadge.boundingBox();
-    expect(mobileBadgeBox).not.toBeNull();
-    expect(Math.abs(mobileBadgeBox.height - 16)).toBeLessThanOrEqual(1);
-    expect(mobileBadgeBox.width).toBeLessThan(mobileBadgeBox.height);
+    await expectMediumTopRightMembershipBadge(mobilePhoto, mobileBadge);
     const mobileBadgeImage = mobileBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(mobileBadgeImage).toBeVisible();
     const mobileBadgeSource = await getRenderedImageSource(mobileBadgeImage);
@@ -103,17 +115,15 @@ test('UI-C01/C02 keeps shared Connect cards compact, branded and consistent acro
     await expect(page.getByTestId('luxy-search-desktop')).toBeVisible();
     const desktopCreator = page.getByTestId('luxy-search-member-card').filter({ hasText: 'BR06 Creator' }).first();
     await expect(desktopCreator).toBeVisible();
-    await expect(desktopCreator.getByTestId('chon-connect-member-photo')).toBeVisible();
+    const desktopPhoto = desktopCreator.getByTestId('chon-connect-member-photo');
+    await expect(desktopPhoto).toBeVisible();
     const desktopBadge = desktopCreator.getByTestId('chon-membership-badge-diamond');
-    const desktopBadgeBox = await desktopBadge.boundingBox();
-    expect(desktopBadgeBox).not.toBeNull();
-    expect(Math.abs(desktopBadgeBox.height - 26)).toBeLessThanOrEqual(1);
-    expect(desktopBadgeBox.width).toBeLessThan(desktopBadgeBox.height);
+    await expectMediumTopRightMembershipBadge(desktopPhoto, desktopBadge);
     const desktopBadgeImage = desktopBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(desktopBadgeImage).toBeVisible();
     const desktopBadgeSource = await getRenderedImageSource(desktopBadgeImage);
     expect(desktopBadgeSource).toBeTruthy();
-    expect(desktopBadgeSource).not.toBe(mobileBadgeSource);
+    expect(desktopBadgeSource).toBe(mobileBadgeSource);
 
     await expectCompactPhotoCount(desktopCreator);
     const desktopOverlayBox = await desktopCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();
