@@ -9,10 +9,11 @@ import {
 import { chonColors, chonShadows, chonTypography } from '@myfan/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -21,6 +22,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { ChonLoveLogo } from '@/components/chon-love-logo';
 import { ChonMembershipBadge } from '@/components/chon-membership-badge';
 import ChonMemberProfileScreen from '@/screens/chon-member-profile-screen';
 import { getMobileSupabaseClient } from '@/lib/supabase';
@@ -81,6 +83,7 @@ export default function CanonicalMemberProfilePage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompact = width < 720;
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
 
   const profileQuery = useQuery({
     queryKey: ['public-chon-profile', code],
@@ -97,6 +100,13 @@ export default function CanonicalMemberProfilePage() {
     () => (client && code && profile?.avatar_available ? publicProfileAvatarUrl(client, code) : null),
     [client, code, profile?.avatar_available],
   );
+  const publicMedia = useMemo(() => {
+    if (!client || !code || !profile) return [];
+    return profile.public_media_ids.map((mediaId) => ({
+      mediaId,
+      url: publicProfileMediaUrl(client, code, mediaId),
+    }));
+  }, [client, code, profile]);
   useMemberSeo(profile, avatarUrl);
 
   if (!code) return <Redirect href="/" />;
@@ -106,69 +116,126 @@ export default function CanonicalMemberProfilePage() {
   if (auth.userId) return <ChonMemberProfileScreen />;
 
   return (
-    <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="public-member-profile-page">
-      <View style={[styles.topbar, isCompact && styles.topbarCompact]}>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/')}><Text style={[styles.brand, isCompact && styles.brandCompact]}>Chọn.love</Text></Pressable>
-        <View style={styles.topActions}>
-<Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.linkButton, isCompact && styles.linkButtonCompact]}><Text style={styles.linkButtonText}>Đăng nhập</Text></Pressable>
-<Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primarySmall, isCompact && styles.primarySmallCompact]}><Text style={styles.primarySmallText}>Đăng ký</Text></Pressable>
+    <>
+      <ScrollView contentContainerStyle={styles.pageContent} style={styles.page} testID="public-member-profile-page">
+        <View style={[styles.topbar, isCompact && styles.topbarCompact]}>
+          <Pressable
+            accessibilityLabel="Chọn.love — về trang chủ"
+            accessibilityRole="button"
+            onPress={() => router.push('/')}
+            style={styles.logoButton}
+            testID="public-member-profile-logo"
+          >
+            <ChonLoveLogo height={isCompact ? 34 : 42} width={isCompact ? 112 : 140} />
+          </Pressable>
+          <View style={styles.topActions}>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.linkButton, isCompact && styles.linkButtonCompact]}><Text style={styles.linkButtonText}>Đăng nhập</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primarySmall, isCompact && styles.primarySmallCompact]}><Text style={styles.primarySmallText}>Đăng ký</Text></Pressable>
+          </View>
+        </View>
+
+        <View style={[styles.profileCard, isCompact && styles.profileCardCompact]}>
+          <View style={[styles.photoColumn, isCompact && styles.photoColumnCompact]}>
+            <View style={[styles.photoFrame, isCompact && styles.photoFrameCompact]}>
+              {avatarUrl ? <Image accessibilityLabel={`Ảnh đại diện của ${profile.display_name}`} resizeMode="cover" source={{ uri: avatarUrl }} style={styles.photo} /> : <View style={styles.photoFallback}><Text style={styles.photoFallbackText}>{profile.display_name.slice(0, 1).toUpperCase()}</Text></View>}
+              {profile.membership_badge_visible ? <ChonMembershipBadge desktop={!isCompact} inset={10} placement="top-left" size="large" tier={profile.membership_tier} /> : null}
+            </View>
+          </View>
+
+          <View style={styles.profileCopy}>
+            <Text accessibilityRole="header" style={[styles.name, isCompact && styles.nameCompact]}>{profile.display_name}, {profile.age}</Text>
+            <Text style={styles.location}>{profile.province_name ?? 'Việt Nam'}</Text>
+            {profile.headline ? <Text style={styles.headline}>{profile.headline}</Text> : null}
+
+            {publicMedia.length > 0 || profile.private_photo_count > 0 ? (
+              <ScrollView
+                contentContainerStyle={styles.publicGalleryContent}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.publicGallery}
+                testID="public-member-profile-gallery"
+              >
+                {publicMedia.map(({ mediaId, url }) => (
+                  <Pressable
+                    accessibilityLabel={`Xem ảnh của ${profile.display_name}`}
+                    accessibilityRole="button"
+                    key={mediaId}
+                    onPress={() => setSelectedPhotoUrl(url)}
+                    style={({ pressed }) => [styles.publicGalleryTile, isCompact && styles.publicGalleryTileCompact, pressed && styles.pressed]}
+                    testID="public-member-profile-photo-tile"
+                  >
+                    <Image accessibilityLabel={`Ảnh của ${profile.display_name}`} resizeMode="cover" source={{ uri: url }} style={styles.publicGalleryImage} />
+                  </Pressable>
+                ))}
+                {profile.private_photo_count > 0 ? (
+                  <View style={[styles.privateLockedTile, isCompact && styles.privateLockedTileCompact]} testID="public-member-private-photo-lock">
+                    <View style={styles.privateLockMark}><Text style={styles.privateLockMarkText}>Ảnh riêng tư ({profile.private_photo_count})</Text></View>
+                    <Text style={styles.privateLockText}>Thành viên Premium và Diamond được xem đầy đủ.</Text>
+                  </View>
+                ) : null}
+              </ScrollView>
+            ) : null}
+
+            <ProfileSection title="Về tôi">
+              <Text style={styles.body}>{profile.bio || 'Chưa có phần giới thiệu.'}</Text>
+              {profile.interests.length ? <Text style={styles.metaText}>Sở thích: {profile.interests.join(' · ')}</Text> : null}
+            </ProfileSection>
+
+            <View style={styles.section}>
+              <View style={styles.publicSeekingHeading}><Text style={styles.sectionTitle}>Tôi đang tìm kiếm</Text><Text style={styles.publicSeekingValue}>{publicInterestedInLabel(profile.interested_in)}</Text></View>
+              <Text style={styles.body}>{profile.looking_for || 'Một kết nối chất lượng, tôn trọng và có chủ đích.'}</Text>
+              {profile.lifestyle_tags.length ? <View style={styles.tags}>{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{publicLifestyleLabel(tag)}</Text></View>)}</View> : null}
+            </View>
+
+            <View style={styles.publicInfoList} testID="public-member-profile-info-list">
+              {publicProfileFacts(profile).map(([label, value]) => <View key={label} style={styles.publicInfoRow}><Text style={styles.publicInfoLabel}>{label}</Text><Text style={styles.publicInfoValue}>{value}</Text></View>)}
+            </View>
+
+            <View style={styles.joinCard}>
+              <Text style={styles.joinTitle}>Kết nối với những người thật trên Chọn.love</Text>
+              <Text style={styles.joinCopy}>{CHON_PUBLIC_PROFILE_DESCRIPTION}</Text>
+              <View style={styles.joinActions}>
+                <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primaryButton, isCompact && styles.fullWidthButton]}><Text style={styles.primaryButtonText}>Đăng ký miễn phí</Text></Pressable>
+                <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.outlineButton, isCompact && styles.fullWidthButton]}><Text style={styles.outlineButtonText}>Đăng nhập</Text></Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+      <PublicProfilePhotoLightbox
+        displayName={profile.display_name}
+        imageUrl={selectedPhotoUrl}
+        onClose={() => setSelectedPhotoUrl(null)}
+      />
+    </>
+  );
+}
+
+function PublicProfilePhotoLightbox({ displayName, imageUrl, onClose }: { displayName: string; imageUrl: string | null; onClose: () => void }) {
+  const { height, width } = useWindowDimensions();
+  const imageHeight = Math.max(320, Math.min(height - 56, 920));
+  const cardWidth = Math.max(280, Math.min(width - 24, 1180));
+
+  return (
+    <Modal animationType="fade" onRequestClose={onClose} transparent visible={Boolean(imageUrl)}>
+      <View style={styles.lightboxBackdrop} testID="public-member-profile-photo-lightbox">
+        <Pressable accessibilityLabel="Đóng ảnh" accessibilityRole="button" onPress={onClose} style={styles.lightboxDismiss} />
+        <View accessibilityViewIsModal style={[styles.lightboxCard, { width: cardWidth }]}>
+          <Pressable accessibilityLabel="Đóng" accessibilityRole="button" onPress={onClose} style={styles.lightboxClose}>
+            <Text style={styles.lightboxCloseText}>×</Text>
+          </Pressable>
+          {imageUrl ? (
+            <Image
+              accessibilityLabel={`Ảnh lớn của ${displayName}`}
+              resizeMode="contain"
+              source={{ uri: imageUrl }}
+              style={[styles.lightboxImage, { height: imageHeight }]}
+              testID="public-member-profile-photo-lightbox-image"
+            />
+          ) : null}
         </View>
       </View>
-
-      <View style={[styles.profileCard, isCompact && styles.profileCardCompact]}>
-        <View style={[styles.photoColumn, isCompact && styles.photoColumnCompact]}>
-<View style={[styles.photoFrame, isCompact && styles.photoFrameCompact]}>
-  {avatarUrl ? <Image accessibilityLabel={`Ảnh đại diện của ${profile.display_name}`} resizeMode="cover" source={{ uri: avatarUrl }} style={styles.photo} /> : <View style={styles.photoFallback}><Text style={styles.photoFallbackText}>{profile.display_name.slice(0, 1).toUpperCase()}</Text></View>}
-  {profile.membership_badge_visible ? <ChonMembershipBadge desktop={!isCompact} inset={10} placement="top-left" size="large" tier={profile.membership_tier} /> : null}
-</View>
-        </View>
-
-        <View style={styles.profileCopy}>
-<Text accessibilityRole="header" style={[styles.name, isCompact && styles.nameCompact]}>{profile.display_name}, {profile.age}</Text>
-<Text style={styles.location}>{profile.province_name ?? 'Việt Nam'}</Text>
-{profile.headline ? <Text style={styles.headline}>{profile.headline}</Text> : null}
-
-{profile.public_media_ids.length > 0 || profile.private_photo_count > 0 ? (
-  <View style={styles.publicGallery} testID="public-member-profile-gallery">
-    {profile.public_media_ids.map((mediaId) => {
-      const mediaUrl = client && code ? publicProfileMediaUrl(client, code, mediaId) : null;
-      return mediaUrl ? <Image accessibilityLabel={`Ảnh của ${profile.display_name}`} key={mediaId} resizeMode="cover" source={{ uri: mediaUrl }} style={styles.publicGalleryImage} /> : null;
-    })}
-    {profile.private_photo_count > 0 ? (
-      <View style={styles.privateLockedTile} testID="public-member-private-photo-lock">
-        <View style={styles.privateLockMark}><Text style={styles.privateLockMarkText}>Ảnh riêng tư ({profile.private_photo_count})</Text></View>
-        <Text style={styles.privateLockText}>Thành viên Premium và Diamond được xem đầy đủ.</Text>
-      </View>
-    ) : null}
-  </View>
-) : null}
-
-<ProfileSection title="Về tôi">
-  <Text style={styles.body}>{profile.bio || 'Chưa có phần giới thiệu.'}</Text>
-  {profile.interests.length ? <Text style={styles.metaText}>Sở thích: {profile.interests.join(' · ')}</Text> : null}
-</ProfileSection>
-
-<View style={styles.section}>
-  <View style={styles.publicSeekingHeading}><Text style={styles.sectionTitle}>Tôi đang tìm kiếm</Text><Text style={styles.publicSeekingValue}>{publicInterestedInLabel(profile.interested_in)}</Text></View>
-  <Text style={styles.body}>{profile.looking_for || 'Một kết nối chất lượng, tôn trọng và có chủ đích.'}</Text>
-  {profile.lifestyle_tags.length ? <View style={styles.tags}>{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{publicLifestyleLabel(tag)}</Text></View>)}</View> : null}
-</View>
-
-<View style={styles.publicInfoList} testID="public-member-profile-info-list">
-  {publicProfileFacts(profile).map(([label, value]) => <View key={label} style={styles.publicInfoRow}><Text style={styles.publicInfoLabel}>{label}</Text><Text style={styles.publicInfoValue}>{value}</Text></View>)}
-</View>
-
-<View style={styles.joinCard}>
-  <Text style={styles.joinTitle}>Kết nối với những người thật trên Chọn.love</Text>
-  <Text style={styles.joinCopy}>{CHON_PUBLIC_PROFILE_DESCRIPTION}</Text>
-  <View style={styles.joinActions}>
-    <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={[styles.primaryButton, isCompact && styles.fullWidthButton]}><Text style={styles.primaryButtonText}>Đăng ký miễn phí</Text></Pressable>
-    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/auth', params: { mode: 'login' } })} style={[styles.outlineButton, isCompact && styles.fullWidthButton]}><Text style={styles.outlineButtonText}>Đăng nhập</Text></Pressable>
-  </View>
-</View>
-        </View>
-      </View>
-    </ScrollView>
+    </Modal>
   );
 }
 
@@ -210,8 +277,7 @@ const styles = StyleSheet.create({
   pageContent: { alignItems: 'center', minHeight: '100%', paddingBottom: 64 },
   topbar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', maxWidth: 1180, paddingHorizontal: 20, paddingVertical: 18, width: '100%' },
   topbarCompact: { paddingHorizontal: 14, paddingVertical: 13 },
-  brand: { color: chonColors.primaryRed, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '700' },
-  brandCompact: { fontSize: 22 },
+  logoButton: { alignItems: 'flex-start', justifyContent: 'center', minHeight: 44, minWidth: 112 },
   topActions: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   linkButton: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
   linkButtonCompact: { paddingHorizontal: 7 },
@@ -236,9 +302,13 @@ const styles = StyleSheet.create({
   section: { borderTopColor: chonColors.border, borderTopWidth: 1, gap: 9, marginTop: 22, paddingTop: 18 },
   sectionTitle: { color: chonColors.text, fontFamily: chonTypography.families.display, fontSize: chonTypography.sizes.h2, fontWeight: '600' },
   body: { color: chonColors.text, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
-  publicGallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 22 },
-  publicGalleryImage: { aspectRatio: 0.8, borderRadius: 12, minWidth: 150, width: '31%' },
-  privateLockedTile: { alignItems: 'center', aspectRatio: 0.8, backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 12, borderWidth: 1, gap: 10, justifyContent: 'center', minWidth: 150, padding: 12, width: '31%' },
+  publicGallery: { marginHorizontal: -4, marginTop: 22 },
+  publicGalleryContent: { gap: 10, paddingHorizontal: 4, paddingVertical: 2 },
+  publicGalleryTile: { backgroundColor: chonColors.warmSurface, borderRadius: 12, height: 288, overflow: 'hidden', width: 230 },
+  publicGalleryTileCompact: { height: 270, width: 216 },
+  publicGalleryImage: { height: '100%', width: '100%' },
+  privateLockedTile: { alignItems: 'center', backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 12, borderWidth: 1, gap: 10, height: 288, justifyContent: 'center', padding: 12, width: 230 },
+  privateLockedTileCompact: { height: 270, width: 216 },
   privateLockMark: { borderColor: chonColors.goldStrong, borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
   privateLockMarkText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.help, fontWeight: '800', textAlign: 'center' },
   privateLockText: { color: chonColors.muted, fontSize: chonTypography.sizes.help, lineHeight: chonTypography.lineHeights.help, textAlign: 'center' },
@@ -263,4 +333,11 @@ const styles = StyleSheet.create({
   fullWidthButton: { width: '100%' },
   centered: { alignItems: 'center', backgroundColor: chonColors.warmSurface, flex: 1, gap: 12, justifyContent: 'center', padding: 24 },
   muted: { color: chonColors.muted, fontSize: chonTypography.sizes.body },
+  lightboxBackdrop: { alignItems: 'center', backgroundColor: chonColors.overlay, flex: 1, justifyContent: 'center', padding: 12 },
+  lightboxDismiss: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
+  lightboxCard: { backgroundColor: '#070707', borderRadius: 14, maxWidth: '100%', overflow: 'hidden', position: 'relative', ...chonShadows.card },
+  lightboxClose: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 22, height: 44, justifyContent: 'center', position: 'absolute', right: 10, top: 10, width: 44, zIndex: 4 },
+  lightboxCloseText: { color: chonColors.text, fontSize: 32, fontWeight: '300', lineHeight: 34 },
+  lightboxImage: { backgroundColor: '#070707', width: '100%' },
+  pressed: { opacity: 0.78 },
 });
