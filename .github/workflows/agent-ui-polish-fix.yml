@@ -1,0 +1,83 @@
+name: Agent UI polish final fixes
+
+on:
+  push:
+    branches:
+      - agent/ui-profile-connect-messaging-polish-v1
+    paths:
+      - .github/workflows/agent-ui-polish-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ui-profile-connect-messaging-polish-v1
+          fetch-depth: 2
+      - name: Apply exact fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def rep(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              found = text.count(old)
+              if found != count:
+                  raise SystemExit(f'{path}: expected {count} matches, found {found}: {old!r}')
+              p.write_text(text.replace(old, new, count))
+
+          rep('apps/mobile/src/components/chon-membership-badge.tsx',
+              "  size?: 'small' | 'medium' | 'large';",
+              "  size?: 'small' | 'medium' | 'large' | undefined;")
+
+          rep('apps/mobile/src/screens/chon-membership-screen.tsx',
+              "<Text style={styles.ctaPlan}>{PLAN_COPY[selectedTier].title} · {selectedPeriod} kỳ</Text>",
+              "<Text style={styles.ctaPlan}>{PLAN_COPY[selectedTier].title} · {selectedPeriod} tháng</Text>")
+          rep('apps/mobile/src/screens/chon-membership-screen.tsx',
+              "<Text style={styles.historyTitle}>{PLAN_COPY[order.tier].title} · {order.period_count} kỳ</Text>",
+              "<Text style={styles.historyTitle}>{PLAN_COPY[order.tier].title} · {order.period_count} tháng</Text>")
+
+          rep('apps/mobile/src/screens/chon-member-profile-screen.tsx',
+              "              {!membershipQuery.isLoading && !membershipQuery.data?.can_message ? (",
+              "              {!desktop && !membershipQuery.isLoading && !membershipQuery.data?.can_message ? (")
+
+          rep('apps/mobile/app/profile/_layout.tsx',
+              "import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';",
+              "import { ChonBrandIcon, ChonUserAvatar } from '@/components/chon-brand-icon';\nimport { ChonLoveLogo } from '@/components/chon-love-logo';")
+          rep('apps/mobile/app/profile/_layout.tsx',
+              "            <Text style={styles.mobileBrand}>Chọn.love</Text>",
+              "            <ChonLoveLogo height={28} width={112} />")
+          rep('apps/mobile/app/profile/_layout.tsx',
+              "  mobileBrand: { color: luxyColors.actionRed, fontSize: 22, fontWeight: '800' },\n",
+              "")
+
+          # Public share should present the same Vietnamese lifestyle labels as signed-in profile.
+          p = Path('apps/mobile/app/thanh-vien/[username].tsx')
+          text = p.read_text()
+          old = "{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{tag.replaceAll('_', ' ')}</Text></View>)}"
+          new = "{profile.lifestyle_tags.map((tag) => <View key={tag} style={styles.tag}><Text style={styles.tagText}>{publicLifestyleLabel(tag)}</Text></View>)}"
+          if text.count(old) != 1:
+              raise SystemExit('public lifestyle render marker mismatch')
+          text = text.replace(old, new, 1)
+          marker = "function publicInterestedInLabel(value: PublicChonProfileV2['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }\n"
+          labels = marker + "function publicLifestyleLabel(value: string): string {\n  const labels: Record<string, string> = { true_love: 'Tình yêu đích thực', luxury_lifestyle: 'Phong cách sống cao cấp', active_lifestyle: 'Năng động', flexible_schedule: 'Lịch trình linh hoạt', emotional_connection: 'Kết nối cảm xúc', refined: 'Tinh tế', fine_dining: 'Ẩm thực cao cấp', friendship: 'Bạn bè', long_term: 'Lâu dài', marriage_minded: 'Hướng đến hôn nhân', monogamous: 'Một vợ một chồng', romantic: 'Lãng mạn', ready_to_travel: 'Sẵn sàng du lịch', travel_companion: 'Bạn đồng hành du lịch', vacation: 'Kỳ nghỉ', entertainment_events: 'Giải trí & sự kiện', platonic: 'Thuần bạn bè' };\n  return labels[value] ?? value;\n}\n"
+          if text.count(marker) != 1:
+              raise SystemExit('public lifestyle helper marker mismatch')
+          p.write_text(text.replace(marker, labels, 1))
+
+          Path('.github/workflows/agent-ui-polish-fix.yml').unlink()
+          PY
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(ui): close profile and membership polish gaps"
+          git push origin HEAD:agent/ui-profile-connect-messaging-polish-v1
