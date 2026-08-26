@@ -96,7 +96,7 @@ test('public homepage follows the refreshed Chọn.love hierarchy and palette on
     const frame = artwork.locator('xpath=..');
     const box = await frame.boundingBox();
     expect(box).not.toBeNull();
-    expect(Math.abs(box.height - 296)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.height - 360)).toBeLessThanOrEqual(1);
     expect(Math.abs(box.width - 216)).toBeLessThanOrEqual(1);
   }
 
