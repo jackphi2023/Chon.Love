@@ -21,19 +21,27 @@ async function getRenderedImageSource(locator) {
   });
 }
 
-async function expectCompactPhotoCount(card) {
+async function expectCompactPhotoCount(card, photo, membershipBadge) {
   const cardBox = await card.boundingBox();
+  const photoBox = await photo.boundingBox();
+  const membershipBadgeBox = await membershipBadge.boundingBox();
   const badge = card.getByTestId('chon-photo-count');
   const badgeBox = await badge.boundingBox();
   const iconBox = await badge.getByTestId('chon-photo-count-icon').boundingBox();
   expect(cardBox).not.toBeNull();
+  expect(photoBox).not.toBeNull();
+  expect(membershipBadgeBox).not.toBeNull();
   expect(badgeBox).not.toBeNull();
   expect(iconBox).not.toBeNull();
   expect(iconBox.width).toBeGreaterThanOrEqual(7);
   expect(iconBox.width).toBeLessThanOrEqual(9);
   expect(badgeBox.x).toBeGreaterThan(cardBox.x + cardBox.width / 2);
   expect((cardBox.x + cardBox.width) - (badgeBox.x + badgeBox.width)).toBeLessThanOrEqual(12);
-  expect(badgeBox.y - cardBox.y).toBeLessThanOrEqual(14);
+  const topOffset = badgeBox.y - photoBox.y;
+  expect(topOffset).toBeGreaterThanOrEqual(40);
+  expect(topOffset).toBeLessThanOrEqual(44);
+  expect(badgeBox.y).toBeGreaterThanOrEqual(membershipBadgeBox.y + membershipBadgeBox.height + 4);
+  expect(badgeBox.y + badgeBox.height).toBeLessThanOrEqual(photoBox.y + photoBox.height);
 }
 
 async function expectMediumTopRightMembershipBadge(photo, badge) {
@@ -86,7 +94,7 @@ test('UI-C01/C02 keeps shared Connect cards compact with Medium top-right member
     const mobileBadgeSource = await getRenderedImageSource(mobileBadgeImage);
     expect(mobileBadgeSource).toBeTruthy();
 
-    await expectCompactPhotoCount(mobileCreator);
+    await expectCompactPhotoCount(mobileCreator, mobilePhoto, mobileBadge);
     const mobileOverlayBox = await mobileCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();
     expect(mobileOverlayBox).not.toBeNull();
     expect(mobileOverlayBox.height).toBeLessThanOrEqual(61);
@@ -125,7 +133,7 @@ test('UI-C01/C02 keeps shared Connect cards compact with Medium top-right member
     expect(desktopBadgeSource).toBeTruthy();
     expect(desktopBadgeSource).toBe(mobileBadgeSource);
 
-    await expectCompactPhotoCount(desktopCreator);
+    await expectCompactPhotoCount(desktopCreator, desktopPhoto, desktopBadge);
     const desktopOverlayBox = await desktopCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();
     expect(desktopOverlayBox).not.toBeNull();
     expect(desktopOverlayBox.height).toBeLessThanOrEqual(63);
