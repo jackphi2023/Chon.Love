@@ -22,6 +22,20 @@ type UserItem = {
   blocks_received: number;
 };
 
+type ListingReviewItem = {
+  user_id: string;
+  public_profile_code: string | null;
+  username: string | null;
+  display_name: string | null;
+  listing_status: 'pending';
+  listing_submitted_at: string | null;
+  membership_tier: 'free' | 'premium' | 'diamond';
+  is_paid_override: boolean;
+  discovery_preference_enabled: boolean;
+  effective_discoverable: boolean;
+  updated_at: string;
+};
+
 type Detail = {
   account?: Record<string, unknown>;
   profile?: Record<string, unknown>;
@@ -35,13 +49,16 @@ type Detail = {
 
 export function UserAdmin() {
   const [items, setItems] = useState<UserItem[]>([]);
+  const [listingItems, setListingItems] = useState<ListingReviewItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [selected, setSelected] = useState<UserItem | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [tier, setTier] = useState('');
   const [busy, setBusy] = useState(false);
+  const [listingBusy, setListingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [listingError, setListingError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const client = getAdminSupabaseClient();
@@ -59,7 +76,24 @@ export function UserAdmin() {
     } finally { setBusy(false); }
   }, [query, status, tier]);
 
+  const loadListingQueue = useCallback(async () => {
+    const client = getAdminSupabaseClient();
+    if (!client) { setListingError('Supabase Admin chưa được cấu hình.'); return; }
+    setListingBusy(true);
+    setListingError(null);
+    try {
+      const { data, error: invokeError } = await client.functions.invoke('user-admin', {
+        body: { action: 'listing_queue', limit: 100, offset: 0 },
+      });
+      if (invokeError) throw invokeError;
+      setListingItems((data?.items ?? []) as ListingReviewItem[]);
+    } catch {
+      setListingError('Không thể tải hàng chờ duyệt hồ sơ mới.');
+    } finally { setListingBusy(false); }
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void loadListingQueue(); }, [loadListingQueue]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,6 +114,37 @@ export function UserAdmin() {
     finally { setBusy(false); }
   }
 
+  async function reviewListing(item: ListingReviewItem, reviewAction: 'approve' | 'reject') {
+    const actionLabel = reviewAction === 'approve' ? 'duyệt hiển thị hồ sơ' : 'từ chối hiển thị hồ sơ';
+    if (!window.confirm(`Xác nhận ${actionLabel} của ${item.display_name || item.username || item.user_id}?`)) return;
+    const suggested = reviewAction === 'approve' ? 'admin_approved' : 'admin_rejected';
+    const reasonCode = window.prompt('Reason code cho audit:', suggested)?.trim() || suggested;
+    if (!/^[a-z][a-z0-9_]{1,63}$/u.test(reasonCode)) {
+      setListingError('Reason code không hợp lệ.');
+      return;
+    }
+
+    const client = getAdminSupabaseClient();
+    if (!client) return;
+    setListingBusy(true);
+    setListingError(null);
+    try {
+      const { error: invokeError } = await client.functions.invoke('user-admin', {
+        body: {
+          action: 'listing_review',
+          userId: item.user_id,
+          reviewAction,
+          reasonCode,
+          requestId: crypto.randomUUID(),
+        },
+      });
+      if (invokeError) throw invokeError;
+      await Promise.all([loadListingQueue(), load()]);
+    } catch {
+      setListingError('Không thể lưu quyết định duyệt hiển thị hồ sơ.');
+    } finally { setListingBusy(false); }
+  }
+
   async function mutate(item: UserItem, action: 'status' | 'discovery', payload: Record<string, unknown>) {
     const reason = window.prompt('Lý do bắt buộc cho audit log:', 'support_review')?.trim();
     if (!reason) return;
@@ -94,13 +159,45 @@ export function UserAdmin() {
       if (invokeError) throw invokeError;
       setDetail(null);
       setSelected(null);
-      await load();
+      await Promise.all([load(), loadListingQueue()]);
     } catch { setError('Thao tác thất bại hoặc tài khoản không có quyền super_admin.'); }
     finally { setBusy(false); }
   }
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gap: 22 }}>
+      <section style={{ border: '1px solid #fecaca', borderRadius: 12, display: 'grid', gap: 12, padding: 14 }}>
+        <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Duyệt hiển thị hồ sơ mới</h2>
+            <p style={{ margin: '5px 0 0' }}>Chỉ Free đã hoàn tất xác thực tin cậy nhưng chưa được duyệt hiển thị trong Connect. Premium/Diamond không vào hàng chờ này.</p>
+          </div>
+          <button disabled={listingBusy} onClick={() => void loadListingQueue()} type="button">
+            {listingBusy ? 'Đang tải…' : `Làm mới (${listingItems.length})`}
+          </button>
+        </div>
+        {listingError ? <p role="alert" style={{ color: '#b91c1c', margin: 0 }}>{listingError}</p> : null}
+        {!listingBusy && listingItems.length === 0 ? <p style={{ margin: 0 }}>Không có hồ sơ mới đang chờ duyệt.</p> : null}
+        {listingItems.map((item) => (
+          <article key={item.user_id} style={{ borderTop: '1px solid #fee2e2', display: 'grid', gap: 8, paddingTop: 12 }}>
+            <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <strong>{item.display_name || item.username || item.user_id}</strong>
+              <span style={{ background: '#fee2e2', borderRadius: 999, color: '#b91c1c', fontSize: 12, fontWeight: 700, padding: '4px 8px' }}>
+                User mới cần duyệt
+              </span>
+            </div>
+            <div style={{ fontSize: 13 }}>
+              @{item.username || '—'} · ID {item.public_profile_code ? `id-${item.public_profile_code}` : item.user_id.slice(0, 8)} · Free
+              {item.listing_submitted_at ? ` · Gửi ${new Date(item.listing_submitted_at).toLocaleString('vi-VN')}` : ''}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button disabled={listingBusy} onClick={() => void reviewListing(item, 'approve')} type="button">Duyệt hiển thị</button>
+              <button disabled={listingBusy} onClick={() => void reviewListing(item, 'reject')} type="button">Từ chối</button>
+            </div>
+          </article>
+        ))}
+      </section>
+
       <form onSubmit={submit} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         <input aria-label="Tìm thành viên" onChange={(event) => setQuery(event.target.value)} placeholder="Email, username, tên hiển thị" style={{ minWidth: 260, padding: 10 }} value={query} />
         <select aria-label="Trạng thái" onChange={(event) => setStatus(event.target.value)} value={status}>
