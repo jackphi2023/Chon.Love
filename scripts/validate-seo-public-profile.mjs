@@ -25,6 +25,7 @@ const sharedIndex = read('packages/supabase/src/index.ts');
 const routeMigration = read('supabase/migrations/20260819153018_chon_public_member_route_resolution.sql');
 const viewerCompatMigration = read('supabase/migrations/20260819153533_chon_profile_viewer_public_id_compat.sql');
 const netlifySeo = read('netlify/edge-functions/seo.ts');
+const netlifyBuild = read('scripts/build-netlify-web.sh');
 const supabaseSeo = read('supabase/functions/public-profile-seo/index.ts');
 const supabaseConfig = read('supabase/config.toml');
 const browserTest = read('tests/br-09/observability-accessibility-resilience.spec.mjs');
@@ -42,6 +43,7 @@ expect(rootHtml.includes(description), 'Default HTML metadata must use the appro
 expect(rootHtml.includes(homepageThumbnailUrl), 'Default HTML metadata must use the dedicated homepage social thumbnail on the production www.chon.love domain.');
 expect(rootHtml.includes('og:title') && rootHtml.includes('og:description') && rootHtml.includes('og:image'), 'Default HTML must expose Open Graph metadata.');
 expect(rootHtml.includes('twitter:card') && rootHtml.includes('twitter:image'), 'Default HTML must expose Twitter/X card metadata.');
+expect(rootHtml.includes('og:image:width') && rootHtml.includes('content="480"') && rootHtml.includes('og:image:height') && rootHtml.includes('content="360"'), 'Default HTML metadata must publish the optimized homepage thumbnail dimensions.');
 expect(rootHtml.includes(`Trang chủ | ${titleSuffix}`), 'Homepage must use the requested title convention.');
 
 expect(sharedPublicProfile.includes('/^id-([0-9a-f]{6})$/u'), 'Public member route IDs must use id-xxxxxx public codes, never usernames or auth UUIDs.');
@@ -90,6 +92,10 @@ expect(rootLayout.includes('Đăng ký |') && rootLayout.includes('Đăng nhập
 expect(netlifySeo.includes("'/thanh-vien/*'") && netlifySeo.includes("'/profile/*'"), 'Netlify Edge SEO must cover canonical member routes and reject legacy username routes.');
 expect(netlifySeo.includes("url.pathname.startsWith('/profile/')") && netlifySeo.includes("Response.redirect(new URL('/', url), 302)"), 'Legacy username profile deep links must redirect guests/crawlers to homepage.');
 expect(netlifySeo.includes(`const PRODUCTION_ORIGIN = '${productionOrigin}'`), 'Crawler metadata must canonicalize every public page to www.chon.love.');
+expect(netlifySeo.includes("`${PRODUCTION_ORIGIN}/seo/chonlove-homepage-thumbnail.jpg`"), 'Netlify Edge SEO static pages must use the dedicated homepage thumbnail URL.');
+expect(!netlifySeo.includes('/seo/chonlove-thumbnail.jpg'), 'Netlify Edge SEO must not use the retired global thumbnail.');
+expect(netlifySeo.includes('imageUrl: STATIC_SOCIAL_IMAGE') && netlifySeo.includes('imageWidth: 480') && netlifySeo.includes('imageHeight: 360'), 'Netlify Edge SEO static metadata must publish the optimized homepage thumbnail and dimensions.');
+expect(netlifyBuild.includes('apps/mobile/dist/seo/chonlove-homepage-thumbnail.jpg') && netlifyBuild.includes('[[ ! -s "${HOMEPAGE_SOCIAL_THUMBNAIL}" ]]'), 'Canonical Netlify build must fail if the homepage thumbnail is missing from the publish output.');
 expect(netlifySeo.includes('context.next()'), 'Netlify Edge SEO must decorate the canonical Expo Web response rather than introduce a second web app.');
 expect(netlifySeo.includes('public-profile-seo') && netlifySeo.includes('profile.avatar_url'), 'Member crawler metadata must resolve safe public data and use the member-specific avatar returned by Supabase.');
 expect(netlifySeo.includes('og:title') && netlifySeo.includes('og:image') && netlifySeo.includes('twitter:image') && netlifySeo.includes('canonical'), 'Crawler response must include Open Graph, Twitter/X and canonical metadata.');
@@ -115,4 +121,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.warn('Chọn.love public profile SEO validation passed: canonical id routes, Chọn.Love rich-profile ownership, legacy username redirects, shared authenticated profile shell, member-specific social images, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
+console.warn('Chọn.love public profile SEO validation passed: canonical id routes, Chọn.Love rich-profile ownership, legacy username redirects, shared authenticated profile shell, member-specific social images, optimized homepage thumbnail delivery, production-domain canonical metadata, least-privilege crawler metadata, public-page metadata, and guest route protection are present.');
