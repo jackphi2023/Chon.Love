@@ -162,8 +162,8 @@ select is(
 set local role anon;
 select is(
   (select count(*) from public.get_public_chon_profile_v2('a1b2c3')),
-  0::bigint,
-  'admin-hidden moderation state blocks the direct public profile'
+  1::bigint,
+  'admin-hidden listing state preserves the direct public profile while excluding Connect discovery'
 );
 reset role;
 
@@ -171,8 +171,8 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000097","role":"authenticated"}',true);
 select is(
   (select count(*) from public.resolve_chon_member_route('chonmediaowner')),
-  0::bigint,
-  'admin-hidden moderation state blocks authenticated member route resolution'
+  1::bigint,
+  'admin-hidden listing state preserves authenticated direct route resolution'
 );
 reset role;
 
