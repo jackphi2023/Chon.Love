@@ -34,12 +34,13 @@ export function ChonMembershipBadge({
 
   // `size` remains only as a compatibility bridge for callers not yet migrated.
   // New Chọn.Love surfaces use semantic contexts so Connect/Profile/Mini geometry
-  // cannot silently drift apart. Every resolved box is derived from the selected
-  // tier asset's intrinsic dimensions, never from a square slot or the other tier.
+  // cannot silently drift apart. A legacy "large" badge over a member photo means
+  // the 20px profile status icon; certificate artwork is selected explicitly through
+  // variant="certificate" or context="certificate".
   const compatibilityContext: ChonMembershipBadgeContext | undefined = size === 'small'
     ? 'mini'
     : size === 'large'
-      ? 'certificate'
+      ? variant === 'certificate' ? 'certificate' : 'profile'
       : undefined;
   const resolvedContext = context ?? compatibilityContext;
   const resolvedVariant = resolvedContext === 'certificate' ? 'certificate' : variant;
