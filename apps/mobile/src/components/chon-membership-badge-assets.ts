@@ -1,7 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 import {
-  CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_DESKTOP,
-  CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_MOBILE,
+  CHON_MEMBERSHIP_BADGE_CERTIFICATE_HEIGHT_DESKTOP,
+  CHON_MEMBERSHIP_BADGE_CERTIFICATE_HEIGHT_MOBILE,
   CHON_MEMBERSHIP_BADGE_ICON_HEIGHT_DESKTOP,
   CHON_MEMBERSHIP_BADGE_ICON_HEIGHT_MOBILE,
 } from './chon-ui-sizing';
@@ -120,10 +120,10 @@ export function resolveChonMembershipBadgeAsset(input: {
   }
 
   if (input.context === 'certificate' || input.variant === 'certificate') {
-    const width = input.desktop
-      ? CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_DESKTOP
-      : CHON_MEMBERSHIP_BADGE_CERTIFICATE_WIDTH_MOBILE;
-    return dimensionsFromWidth(asset, width);
+    const height = input.desktop
+      ? CHON_MEMBERSHIP_BADGE_CERTIFICATE_HEIGHT_DESKTOP
+      : CHON_MEMBERSHIP_BADGE_CERTIFICATE_HEIGHT_MOBILE;
+    return dimensionsFromHeight(asset, height);
   }
 
   const height = input.desktop
