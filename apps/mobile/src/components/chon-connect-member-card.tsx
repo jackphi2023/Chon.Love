@@ -34,13 +34,13 @@ export function ChonConnectMemberCard({
           desktop={desktop}
           fallbackFontSize={desktop ? 52 : 42}
           mediaId={profile.avatar_media_id}
-          membershipBadgePlacement="top-right"
-          membershipBadgeSize="medium"
+          membershipBadgeContext="connect"
+          membershipBadgePlacement="top-left"
           membershipTier={profile.membership_badge_tier}
           name={name}
           photoCount={profile.photo_count}
-          photoCountTopOffset={42}
           photoCountPlacement="top-right"
+          photoCountSize="compact"
           showZeroPhotoCount
           storageBucket={profile.avatar_storage_bucket}
           storagePath={profile.avatar_storage_path}
