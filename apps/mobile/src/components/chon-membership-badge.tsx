@@ -53,6 +53,7 @@ export function ChonMembershipBadge({
     width,
   });
   const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
+  const certificate = resolvedVariant === 'certificate';
 
   return (
     <View
@@ -62,7 +63,11 @@ export function ChonMembershipBadge({
       style={[
         styles.badge,
         { height: resolved.height, top: inset, width: resolved.width },
-        placement === 'top-right' ? { right: inset } : { left: inset },
+        certificate
+          ? { left: '50%', transform: [{ translateX: -resolved.width / 2 }] }
+          : placement === 'top-right'
+            ? { right: inset }
+            : { left: inset },
       ]}
       testID={`chon-membership-badge-${tier}`}
     >
