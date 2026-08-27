@@ -112,6 +112,7 @@ jobs:
           test -f supabase/migrations/20260820132500_su_09_selfie_completion_activation.sql
           test -f supabase/migrations/20260824223000_ui_msg02_deleted_message_contract.sql
           test -f supabase/migrations/20260827143000_opt_01_approval_contract.sql
+          test -f supabase/migrations/20260827144500_opt_01_retire_legacy_discovery_rpc.sql
           test -f supabase/migrations/20260827150000_opt_02_media_moderation_integrity.sql
           test -f supabase/migrations/20260827162000_opt_03_admin_review_queue.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
@@ -142,6 +143,7 @@ jobs:
           test -f supabase/tests/opt_01_approval_contract.sql
           test -f supabase/tests/opt_02_media_moderation_integrity.sql
           test -f supabase/tests/opt_03_admin_review.sql
+          test -f supabase/tests/opt_04_member_visibility.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -221,6 +223,9 @@ jobs:
 
       - name: Run OPT-03 Admin review contract
         run: supabase test db supabase/tests/opt_03_admin_review.sql --local
+
+      - name: Run OPT-04 member visibility contract
+        run: supabase test db supabase/tests/opt_04_member_visibility.sql --local
 
       - name: Run UI-MSG02 deleted-message retention contract
         run: supabase test db supabase/tests/ui_msg02_deleted_message_contract.sql --local
