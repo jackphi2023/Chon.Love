@@ -143,10 +143,14 @@ select is(
 );
 
 select ok(
-  (select row(status,decision,automated_score_json,resolved_at) =
-          (select row(status,decision,automated_score_json,resolved_at) from opt05_aws_before)
-   from public.moderation_cases
-   where id='35000000-0000-4000-8000-000000000101'),
+  (select
+     mc.status is not distinct from before.status
+     and mc.decision is not distinct from before.decision
+     and mc.automated_score_json is not distinct from before.automated_score_json
+     and mc.resolved_at is not distinct from before.resolved_at
+   from public.moderation_cases mc
+   cross join opt05_aws_before before
+   where mc.id='35000000-0000-4000-8000-000000000101'),
   'DOB edit does not rewrite AWS selfie/liveness verification evidence'
 );
 
