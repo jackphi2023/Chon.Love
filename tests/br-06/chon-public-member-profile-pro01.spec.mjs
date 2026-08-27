@@ -6,12 +6,12 @@ const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tie
 
 const BADGE_EXPECTATIONS = {
   mobile: {
-    premium: { displayWidth: 160, displayHeight: 110, naturalWidth: 179, naturalHeight: 199 },
-    diamond: { displayWidth: 160, displayHeight: 110, naturalWidth: 180, naturalHeight: 208 },
+    premium: { displayHeight: 20, naturalWidth: 33, naturalHeight: 46 },
+    diamond: { displayHeight: 20, naturalWidth: 38, naturalHeight: 50 },
   },
   desktop: {
-    premium: { displayWidth: 160, displayHeight: 110, naturalWidth: 179, naturalHeight: 199 },
-    diamond: { displayWidth: 160, displayHeight: 110, naturalWidth: 180, naturalHeight: 208 },
+    premium: { displayHeight: 20, naturalWidth: 33, naturalHeight: 46 },
+    diamond: { displayHeight: 20, naturalWidth: 38, naturalHeight: 50 },
   },
 };
 
@@ -50,8 +50,10 @@ async function expectMembershipArtwork(page, tier, viewport) {
 
   const box = await badge.boundingBox();
   expect(box, `${tier} badge should render`).not.toBeNull();
-  expect(Math.round(box.width), `${tier} badge width`).toBe(expected.displayWidth);
-  expect(Math.round(box.height), `${tier} badge height`).toBe(expected.displayHeight);
+  expect(Math.abs(box.height - expected.displayHeight), `${tier} badge height`).toBeLessThanOrEqual(1);
+  const naturalRatio = expected.naturalWidth / expected.naturalHeight;
+  const renderedRatio = box.width / box.height;
+  expect(Math.abs(renderedRatio - naturalRatio), `${tier} badge must preserve source aspect ratio`).toBeLessThanOrEqual(0.03);
 
   const hero = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
   expect(hero, 'profile hero should render').not.toBeNull();
@@ -176,7 +178,7 @@ test('UI-PRO01 public shared profile uses canonical logo, horizontal gallery and
   }
 });
 
-test('UI-PRO01 badge source and rendered size follow the Chon.Love Large Premium/Diamond asset contract', async ({ browser }) => {
+test('UI-PRO01 badge source and rendered size follow the Chon.Love 20px aspect-safe Premium/Diamond profile contract', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
@@ -191,7 +193,7 @@ test('UI-PRO01 badge source and rendered size follow the Chon.Love Large Premium
   }
 });
 
-test('UI-PRO01 Premium viewer sees private media while Diamond Large badge remains a server-controlled status signal', async ({ browser }) => {
+test('UI-PRO01 Premium viewer sees private media while Diamond profile badge remains a server-controlled status signal', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
