@@ -59,10 +59,10 @@ test('Profile Edit keeps height/weight full-width dropdowns and footer in normal
     const visibleSelectClose = page.locator('[aria-label="Đóng danh sách"]:visible');
     await heightSelect.click();
     await expect(page.getByText('160 cm', { exact: true })).toBeVisible();
-    await visibleSelectClose.click();
+    await visibleSelectClose.last().click();
     await weightSelect.click();
     await expect(page.getByText('60 kg', { exact: true })).toBeVisible();
-    await visibleSelectClose.click();
+    await visibleSelectClose.last().click();
 
     const footer = page.getByTestId('chon-my-profile-footer');
     const initialFooterState = await footer.evaluate((element) => {
