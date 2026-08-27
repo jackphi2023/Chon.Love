@@ -12,6 +12,8 @@ type Body = {
   targetStatus?: unknown;
   hidden?: unknown;
   reason?: unknown;
+  reasonCode?: unknown;
+  reviewAction?: unknown;
   requestId?: unknown;
 };
 
@@ -35,7 +37,22 @@ function safeString(value: unknown, max = 200) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 function safeError(message?: string) {
-  for (const code of ['required_admin_role_missing','invalid_pagination','invalid_profile_status','invalid_admin_profile_status','reason_and_request_id_required','cannot_suspend_self','inactive_user_cannot_be_unhidden','user_not_found']) {
+  for (const code of [
+    'required_admin_role_missing',
+    'invalid_pagination',
+    'invalid_profile_status',
+    'invalid_admin_profile_status',
+    'reason_and_request_id_required',
+    'cannot_suspend_self',
+    'inactive_user_cannot_be_unhidden',
+    'user_not_found',
+    'user_id_required',
+    'request_id_required',
+    'invalid_listing_review_action',
+    'invalid_reason_code',
+    'listing_verification_not_found',
+    'listing_verification_not_reviewable',
+  ]) {
     if (message?.includes(code)) return code;
   }
   return 'user_admin_operation_failed';
@@ -74,6 +91,36 @@ Deno.serve(async (request: Request) => {
       });
       if (error) return respond(error.code === '42501' ? 403 : 400, { error: safeError(error.message) });
       return respond(200, { items: data ?? [] });
+    }
+
+    if (action === 'listing_queue') {
+      const { data, error } = await server.rpc('admin_list_member_listing_verifications', {
+        p_actor_user_id: actorId,
+        p_limit: integer(body.limit, 100, 1, 200),
+        p_offset: integer(body.offset, 0, 0, 5000),
+      });
+      if (error) return respond(error.code === '42501' ? 403 : 400, { error: safeError(error.message) });
+      return respond(200, { items: data ?? [] });
+    }
+
+    if (action === 'listing_review') {
+      if (!validUuid(body.userId) || !validUuid(body.requestId)) {
+        return respond(400, { error: 'user_and_request_id_required' });
+      }
+      const reviewAction = safeString(body.reviewAction, 16);
+      if (!['approve', 'reject'].includes(reviewAction)) return respond(400, { error: 'invalid_listing_review_action' });
+      const reasonCode = safeString(body.reasonCode, 64) || (reviewAction === 'approve' ? 'admin_approved' : 'admin_rejected');
+      if (!/^[a-z][a-z0-9_]{1,63}$/u.test(reasonCode)) return respond(400, { error: 'invalid_reason_code' });
+
+      const { data, error } = await server.rpc('admin_review_member_listing_verification', {
+        p_actor_user_id: actorId,
+        p_user_id: body.userId,
+        p_action: reviewAction,
+        p_reason_code: reasonCode,
+        p_request_id: body.requestId,
+      });
+      if (error) return respond(error.code === '42501' ? 403 : 400, { error: safeError(error.message) });
+      return respond(200, { item: Array.isArray(data) ? (data[0] ?? null) : data, requestId: body.requestId });
     }
 
     if (action === 'detail') {
