@@ -15,6 +15,7 @@ const serverOnlyFunctions = [
   'admin_review_luxy_report',
   'admin_list_member_listing_verifications',
   'admin_review_member_listing_verification',
+  'list_discovery_profiles',
   'get_public_chon_profile',
   'resolve_chon_member_route',
   'admin_get_homepage_settings',
