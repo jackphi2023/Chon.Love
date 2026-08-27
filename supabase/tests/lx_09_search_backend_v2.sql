@@ -77,6 +77,17 @@ set profile_status='active',
       else now()-interval '5 days' end
 where p.id::text like '19000000-0000-0000-0000-00000000000%';
 
+-- OPT-01: LX-09 fixtures model established discoverable members. Explicitly approve
+-- their listing state so this suite continues testing search/filter/privacy behavior;
+-- pending/review semantics are covered by opt_01_approval_contract.sql.
+update private.member_profile_verifications
+set listing_status='approved',
+    listing_submitted_at=coalesce(listing_submitted_at,now()),
+    listing_reviewed_at=coalesce(listing_reviewed_at,now()),
+    listing_reason_code='test_existing_member',
+    updated_at=now()
+where user_id::text like '19000000-0000-0000-0000-00000000000%';
+
 select ok(
   has_function_privilege(
     'authenticated',
