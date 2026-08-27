@@ -76,9 +76,20 @@ expect(netlifyBuildScript.includes('apps/mobile/dist/admin/login/index.html') &&
 expect(netlifyBuildScript.includes("-name '*.js'") && netlifyBuildScript.includes("-name '*.css'"), 'Combined Netlify build must require non-empty Admin JS and CSS assets.');
 expect(count(netlifyBuildScript, "grep -q '/admin/_next/static/'") >= 2, 'Combined Netlify build must verify exported Admin HTML points at /admin/_next static assets.');
 expect(!netlifyBuildScript.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Combined Netlify build must never require a service-role key.');
+expect(
+  netlifyBuildScript.includes('if [[ "${CONTEXT:-}" == "production" ]]')
+    && netlifyBuildScript.includes('Missing public Supabase configuration for the production Admin build.')
+    && netlifyBuildScript.includes('exit 1'),
+  'Combined Netlify build must fail if production is missing public Supabase configuration.',
+);
+expect(
+  netlifyBuildScript.includes('Building ${CONTEXT:-non-production} without Supabase configuration; browser clients remain fail-closed.'),
+  'Non-production Netlify builds must be allowed without Supabase credentials while browser clients remain fail-closed.',
+);
 
 expect(sharedSupabase.includes('storageKey?: string;') && sharedSupabase.includes('options.storageKey ? { storageKey: options.storageKey }'), 'Shared Supabase client must support an explicit isolated auth storage key.');
 expect(adminSupabase.includes("ADMIN_AUTH_STORAGE_KEY = 'chonlove-admin-auth-v1'"), 'Admin must use a dedicated browser auth storage key rather than inherit the member session.');
+expect(adminSupabase.includes('if (!url || !anonKey)') && adminSupabase.includes('cachedClient = null'), 'Admin client must remain fail-closed when non-production Supabase configuration is absent.');
 expect(adminSupabase.includes('detectSessionInUrl: false') && adminSupabase.includes('storageKey: ADMIN_AUTH_STORAGE_KEY'), 'Admin auth client must ignore member/auth callback fragments and persist only in Admin storage.');
 expect(adminGuard.includes('const [allowed, setAllowed] = useState(false)') && adminGuard.includes('const [checking, setChecking] = useState(true)'), 'Admin route guard must prerender fail-closed and never expose protected children before authorization.');
 expect(adminGuard.includes("signOut({ scope: 'local' })") && adminGuard.includes('isCurrentUserSuperAdmin'), 'Unauthorized Admin sessions must be locally cleared after the live super_admin check.');
@@ -108,4 +119,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.warn('Chon.Love Netlify validation passed: Expo Web is canonical, /admin is isolated and fail-closed with styled static assets, and non-production deploys are not hard-wired to production data.');
+console.warn('Chon.Love Netlify validation passed: Expo Web is canonical, /admin is isolated and fail-closed with styled static assets, production requires its public Supabase configuration, and non-production previews can build without production data access.');
