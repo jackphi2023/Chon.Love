@@ -1,5 +1,5 @@
 begin;
-select plan(11);
+select plan(17);
 
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,
@@ -33,6 +33,7 @@ where user_id in ('10000000-0000-0000-0000-000000000096','10000000-0000-0000-000
 update public.profiles
 set username = case when id='10000000-0000-0000-0000-000000000096' then 'chonmediaowner'::citext else 'chonmediaviewer'::citext end,
     display_name = case when id='10000000-0000-0000-0000-000000000096' then 'Media Owner' else 'Media Viewer' end,
+    public_profile_code = case when id='10000000-0000-0000-0000-000000000096' then 'a1b2c3' else 'd4e5f6' end,
     province_id = (select min(id) from public.administrative_areas where country_code='VN' and is_active),
     profile_status = 'active',
     discovery_enabled = true
@@ -116,6 +117,68 @@ select is(
   true,
   'owner can still review their own pending avatar'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000096","role":"authenticated"}',true);
+select is(
+  (select count(*) from public.list_my_media() where id='10000000-0000-4000-8000-000000000097'),
+  1::bigint,
+  'owner media API returns their pending avatar so Profile Edit can render it immediately'
+);
+reset role;
+
+-- Direct public sharing is independent from the member-controlled Connect toggle.
+update public.profiles
+set discovery_enabled=false
+where id='10000000-0000-0000-0000-000000000096';
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000097","role":"authenticated"}',true);
+select is(
+  (select count(*) from public.resolve_chon_member_route('chonmediaowner')),
+  1::bigint,
+  'authenticated route resolver still returns an eligible public profile when Connect discovery is off'
+);
+reset role;
+
+set local role anon;
+select is(
+  (select count(*) from public.get_public_chon_profile_v2('a1b2c3')),
+  1::bigint,
+  'direct public profile remains available when the member disables Connect discovery'
+);
+reset role;
+
+insert into private.chon_public_profile_moderation(user_id,admin_hidden,updated_at)
+values('10000000-0000-0000-0000-000000000096',true,now())
+on conflict(user_id) do update set admin_hidden=true,updated_at=now();
+
+select is(
+  private.luxy_listing_hidden('10000000-0000-0000-0000-000000000096'),
+  true,
+  'admin-hidden moderation state also excludes the member from Connect listing'
+);
+
+set local role anon;
+select is(
+  (select count(*) from public.get_public_chon_profile_v2('a1b2c3')),
+  0::bigint,
+  'admin-hidden moderation state blocks the direct public profile'
+);
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000097","role":"authenticated"}',true);
+select is(
+  (select count(*) from public.resolve_chon_member_route('chonmediaowner')),
+  0::bigint,
+  'admin-hidden moderation state blocks authenticated member route resolution'
+);
+reset role;
+
+update private.chon_public_profile_moderation
+set admin_hidden=false,updated_at=now()
+where user_id='10000000-0000-0000-0000-000000000096';
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000097","role":"authenticated"}',true);
