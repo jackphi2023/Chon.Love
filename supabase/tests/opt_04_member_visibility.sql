@@ -1,6 +1,6 @@
 begin;
 
-select plan(12);
+select plan(13);
 
 select ok(
   has_function_privilege('authenticated','public.get_my_listing_approval_status()','EXECUTE'),
@@ -36,6 +36,18 @@ insert into auth.users(
   '00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000004',
   'authenticated','authenticated','opt04-premium@example.test','',
   '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
+);
+
+update auth.users
+set last_sign_in_at=case id
+      when '34000000-0000-0000-0000-000000000002' then timestamptz '2026-08-26 17:15:00+00'
+      else now()-interval '2 hours'
+    end
+where id in (
+  '34000000-0000-0000-0000-000000000001',
+  '34000000-0000-0000-0000-000000000002',
+  '34000000-0000-0000-0000-000000000003',
+  '34000000-0000-0000-0000-000000000004'
 );
 
 update private.user_identity
@@ -142,6 +154,12 @@ select is(
   (select count(*) from public.search_luxy_profiles_v2() where id='34000000-0000-0000-0000-000000000004'),
   1::bigint,
   'Search V2 exposes active Premium member through paid override even while listing status is pending'
+);
+
+select is(
+  (select last_active_at from public.get_luxy_member_profile('opt04approved') limit 1),
+  timestamptz '2026-08-26 17:15:00+00',
+  'Member Profile returns the true auth last_sign_in_at timestamp instead of profiles.last_active_at'
 );
 
 select is(
