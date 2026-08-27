@@ -29,6 +29,7 @@ export function LuxySeekingMemberPhoto({
       desktop={desktop}
       fallbackFontSize={34}
       mediaId={mediaId}
+      membershipBadgeContext="mini"
       membershipTier={membershipTier}
       name={name}
       photoCount={photoCount}
