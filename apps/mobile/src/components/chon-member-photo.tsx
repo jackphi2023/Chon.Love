@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { getMobileSupabaseClient } from '@/lib/supabase';
-import { ChonMembershipBadge } from './chon-membership-badge';
+import { ChonMembershipBadge, type ChonMembershipBadgeContext } from './chon-membership-badge';
 import { ChonPhotoCount } from './chon-photo-count';
 import { LazyProfileImage } from './lazy-profile-image';
 
@@ -22,9 +22,11 @@ export function ChonMemberPhoto({
   membershipTier,
   desktop = false,
   photoCountPlacement = 'top-right',
+  photoCountSize = 'regular',
   showZeroPhotoCount = false,
   badgeInset,
   membershipBadgePlacement = 'top-left',
+  membershipBadgeContext,
   membershipBadgeSize,
   photoCountTopOffset,
   fallbackFontSize,
@@ -40,9 +42,11 @@ export function ChonMemberPhoto({
   membershipTier?: LuxyMembershipTier | null | undefined;
   desktop?: boolean | undefined;
   photoCountPlacement?: PhotoCountPlacement | undefined;
+  photoCountSize?: 'compact' | 'regular' | undefined;
   showZeroPhotoCount?: boolean | undefined;
   badgeInset?: number | undefined;
   membershipBadgePlacement?: 'top-left' | 'top-right' | undefined;
+  membershipBadgeContext?: ChonMembershipBadgeContext | undefined;
   membershipBadgeSize?: 'small' | 'medium' | 'large' | undefined;
   photoCountTopOffset?: number | undefined;
   fallbackFontSize?: number | undefined;
@@ -86,6 +90,7 @@ export function ChonMemberPhoto({
       )}
 
       <ChonMembershipBadge
+        context={membershipBadgeContext}
         desktop={desktop}
         inset={badgeInset ?? (desktop ? 8 : 7)}
         placement={membershipBadgePlacement}
@@ -103,7 +108,7 @@ export function ChonMemberPhoto({
             photoCountPlacement === 'top-right' && photoCountTopOffset !== undefined ? { top: photoCountTopOffset } : null,
           ]}
         >
-          <ChonPhotoCount count={photoCount} />
+          <ChonPhotoCount count={photoCount} size={photoCountSize} />
         </View>
       ) : null}
 
