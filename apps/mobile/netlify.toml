@@ -40,6 +40,11 @@
     Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"
 
 [[headers]]
+  for = "/seo/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
   for = "/admin/*"
   [headers.values]
     Cache-Control = "no-store"
