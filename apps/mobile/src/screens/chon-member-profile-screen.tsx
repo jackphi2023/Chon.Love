@@ -48,6 +48,7 @@ import { ChonMemberPhoto } from '@/components/chon-member-photo';
 import { ChonPrivatePhotoAccess } from '@/components/chon-private-photo-access';
 import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';
 import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
+import { formatMemberLastSignIn } from '@/lib/member-last-sign-in';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -278,7 +279,7 @@ export default function ChonMemberProfileScreen() {
               mediaId={profile.avatar_media_id}
               badgeInset={10}
               membershipBadgePlacement="top-left"
-              membershipBadgeSize="large"
+              membershipBadgeContext="profile"
               membershipTier={profile.membership_badge_visible ? profile.membership_tier : null}
               name={displayName}
               photoCount={profile.public_photo_count + profile.private_photo_count}
@@ -319,7 +320,7 @@ export default function ChonMemberProfileScreen() {
           ) : null}
 
           <View style={styles.sideMeta}>
-            <SideMetaRow icon="recent" label={formatLastActive(profile.last_active_at)} testID="chon-profile-fact-recent" />
+            <SideMetaRow icon="recent" label={formatMemberLastSignIn(profile.last_sign_in_at)} testID="chon-profile-fact-recent" />
             <SideMetaRow icon="location" label={profile.province_name ?? 'Việt Nam'} testID="chon-profile-fact-location" />
             <SideMetaRow icon="profile" label={`Thành viên từ ${formatMemberSince(profile.member_since)}`} testID="chon-profile-fact-member-since" />
           </View>
@@ -559,7 +560,6 @@ function SafetyModal(props: {
 }
 
 function LoadingScreen() { return <View style={styles.centeredPage}><ActivityIndicator color={chonColors.primaryRed} size="large" /><Text style={styles.mutedText}>Đang tải hồ sơ…</Text></View>; }
-function formatLastActive(value: string | null): string { if (!value) return 'Truy cập gần đây'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'Truy cập gần đây'; const diff = Date.now() - date.getTime(); if (diff < 15 * 60_000) return 'Đang online'; if (diff < 3_600_000) return `Truy cập ${Math.max(1, Math.floor(diff / 60_000))} phút trước`; if (diff < 86_400_000) return `Truy cập ${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`; return `Truy cập ${Math.max(1, Math.floor(diff / 86_400_000))} ngày trước`; }
 function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Chọn.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
 function interestedInSentence(profile: LuxyMemberProfile): string { return `Đang tìm ${interestedInLabel(profile.interested_in).toLowerCase()} cho một kết nối chất lượng`; }
 function interestedInLabel(value: LuxyMemberProfile['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }
