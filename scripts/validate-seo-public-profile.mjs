@@ -7,6 +7,8 @@ const expect = (condition, message) => { if (!condition) errors.push(message); }
 const description = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm';
 const titleSuffix = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const productionOrigin = 'https://www.chon.love';
+const homepageThumbnailPath = 'apps/mobile/public/seo/chonlove-homepage-thumbnail.jpg';
+const homepageThumbnailUrl = `${productionOrigin}/seo/chonlove-homepage-thumbnail.jpg`;
 const rootLayout = read('apps/mobile/app/_layout.tsx');
 const rootHtml = read('apps/mobile/app/+html.tsx');
 const publicRoute = read('apps/mobile/app/thanh-vien/[username].tsx');
@@ -30,14 +32,14 @@ const homepageBrowserTest = read('tests/br-06/luxy-public-homepage.spec.mjs');
 const packageJson = JSON.parse(read('package.json'));
 const ci = read('.github/workflows/ci.yml');
 
-expect(existsSync('apps/mobile/public/seo/chonlove-thumbnail.jpg'), 'Global Chọn.love social thumbnail must be committed.');
-if (existsSync('apps/mobile/public/seo/chonlove-thumbnail.jpg')) {
-  const size = statSync('apps/mobile/public/seo/chonlove-thumbnail.jpg').size;
-  expect(size > 10_000 && size < 1_000_000, 'Global social thumbnail must be a non-trivial optimized production image below 1MB.');
+expect(existsSync(homepageThumbnailPath), 'Dedicated homepage social thumbnail must be committed.');
+if (existsSync(homepageThumbnailPath)) {
+  const size = statSync(homepageThumbnailPath).size;
+  expect(size > 10_000 && size < 1_000_000, 'Homepage social thumbnail must be a non-trivial optimized production image below 1MB.');
 }
 
 expect(rootHtml.includes(description), 'Default HTML metadata must use the approved SEO description.');
-expect(rootHtml.includes(`${productionOrigin}/seo/chonlove-thumbnail.jpg`), 'Default HTML metadata must use the supplied social thumbnail on the production www.chon.love domain.');
+expect(rootHtml.includes(homepageThumbnailUrl), 'Default HTML metadata must use the dedicated homepage social thumbnail on the production www.chon.love domain.');
 expect(rootHtml.includes('og:title') && rootHtml.includes('og:description') && rootHtml.includes('og:image'), 'Default HTML must expose Open Graph metadata.');
 expect(rootHtml.includes('twitter:card') && rootHtml.includes('twitter:image'), 'Default HTML must expose Twitter/X card metadata.');
 expect(rootHtml.includes(`Trang chủ | ${titleSuffix}`), 'Homepage must use the requested title convention.');
