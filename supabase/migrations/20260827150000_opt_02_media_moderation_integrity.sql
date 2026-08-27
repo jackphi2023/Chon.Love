@@ -27,10 +27,10 @@ with ranked_active_cases as (
 )
 update public.moderation_cases mc
 set
-  status='closed'::public.moderation_case_status,
+  status='dismissed'::public.moderation_case_status,
   decision_notes=coalesce(
     mc.decision_notes,
-    'Closed duplicate active media review case during OPT-02 reconciliation.'
+    'Dismissed duplicate active media review case during OPT-02 reconciliation.'
   ),
   resolved_at=coalesce(mc.resolved_at,now()),
   updated_at=now()
