@@ -19,7 +19,10 @@ const lifestyleTagSchema = z.enum([
 ]);
 const membershipTierSchema = z.enum(['free', 'premium', 'diamond']);
 
-const memberProfileSchema = z.object({
+// `last_active_at` is retained only as the database RPC wire alias for backwards
+// compatibility. OPT-04 maps it immediately to the truthful semantic field
+// `last_sign_in_at`; the server now sources the value from auth.users.last_sign_in_at.
+const memberProfileRpcSchema = z.object({
   id: z.string().uuid(),
   username: z.string(),
   display_name: z.string().nullable(),
@@ -54,7 +57,10 @@ const memberProfileSchema = z.object({
   blocked_by_viewer: z.boolean(),
 });
 
-export type LuxyMemberProfile = z.infer<typeof memberProfileSchema>;
+type MemberProfileRpcRow = z.infer<typeof memberProfileRpcSchema>;
+export type LuxyMemberProfile = Omit<MemberProfileRpcRow, 'last_active_at'> & {
+  last_sign_in_at: string | null;
+};
 
 export async function getLuxyMemberProfile(client: Client, usernameOrPublicId: string): Promise<LuxyMemberProfile | null> {
   const parsedIdentifier = z.string().trim().min(1).max(48).parse(usernameOrPublicId);
@@ -62,14 +68,17 @@ export async function getLuxyMemberProfile(client: Client, usernameOrPublicId: s
   if (!resolvedUsername) return null;
   const { data, error } = await client.rpc('get_luxy_member_profile', { p_username: resolvedUsername });
   if (error) throw error;
-  const rows = z.array(memberProfileSchema).parse(data ?? []);
+  const rows = z.array(memberProfileRpcSchema).parse(data ?? []);
   const row = rows[0];
   if (!row) return null;
+
+  const { last_active_at: lastSignInAt, ...profile } = row;
 
   // LX-17: Premium and Diamond badges are server-controlled paid-status signals for
   // every eligible member. Gender must never hide or grant the badge.
   return {
-    ...row,
+    ...profile,
+    last_sign_in_at: lastSignInAt,
     membership_badge_visible: row.membership_tier !== 'free' && row.membership_badge_visible,
   };
 }
