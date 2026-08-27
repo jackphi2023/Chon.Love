@@ -2,6 +2,7 @@ const DESCRIPTION = 'Chon.Love là nền tảng hẹn hò dành cho người dù
 const TITLE_SUFFIX = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const PRODUCTION_ORIGIN = 'https://www.chon.love';
 const PROFILE_SEO_ENDPOINT = 'https://asnydvqsduonyidjyyzq.supabase.co/functions/v1/public-profile-seo';
+const STATIC_SOCIAL_IMAGE = `${PRODUCTION_ORIGIN}/seo/chonlove-homepage-thumbnail.jpg`;
 
 export const config = {
   path: ['/', '/auth', '/auth/*', '/legal/*', '/thanh-vien/*', '/profile/*'],
@@ -70,10 +71,10 @@ async function getSeoMetadata(url: URL): Promise<SeoMetadata | null> {
     title: `${staticPageName(url)} | ${TITLE_SUFFIX}`,
     description: DESCRIPTION,
     canonicalUrl: `${PRODUCTION_ORIGIN}${url.pathname}`,
-    imageUrl: `${PRODUCTION_ORIGIN}/seo/chonlove-thumbnail.jpg`,
+    imageUrl: STATIC_SOCIAL_IMAGE,
     type: 'website',
-    imageWidth: 1448,
-    imageHeight: 1086,
+    imageWidth: 480,
+    imageHeight: 360,
   };
 }
 
