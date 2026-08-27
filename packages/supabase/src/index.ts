@@ -78,6 +78,7 @@ export * from './member-verification';
 export * from './member-visibility';
 export * from './membership';
 export * from './private-photo';
+export * from './profile-edit';
 export * from './profile-media';
 export * from './public-profile';
 export * from './search';
