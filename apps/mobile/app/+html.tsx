@@ -5,7 +5,7 @@ type RootHtmlProps = { children: ReactNode };
 
 const DESCRIPTION = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm';
 const DEFAULT_TITLE = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
-const DEFAULT_SOCIAL_IMAGE = 'https://www.chon.love/seo/chonlove-homepage-thumbnail.jpg';
+const DEFAULT_SOCIAL_IMAGE = 'https://www.chon.love/seo/chonlove-homepage-thumbnail.jpg?v=20260827-1';
 
 export default function RootHtml({ children }: RootHtmlProps) {
   return (
@@ -21,6 +21,8 @@ export default function RootHtml({ children }: RootHtmlProps) {
         <meta property="og:title" content={DEFAULT_TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:image" content={DEFAULT_SOCIAL_IMAGE} />
+        <meta property="og:image:secure_url" content={DEFAULT_SOCIAL_IMAGE} />
+        <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:image:width" content="480" />
         <meta property="og:image:height" content="360" />
         <meta property="og:image:alt" content="Chọn.love - Chọn đúng Người, Yêu đúng Gu" />

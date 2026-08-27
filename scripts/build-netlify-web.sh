@@ -7,15 +7,20 @@ corepack enable
 pnpm --filter @myfan/mobile build:web
 
 # The Admin app is a static Next.js export mounted under /admin. Reuse the
-# production Supabase public configuration already supplied to the Expo web app,
-# while never exposing or requiring a service-role key in the browser bundle.
+# environment-matched public Supabase configuration when it exists. Production
+# must never deploy without its public URL/key. Non-production Netlify contexts
+# may build without public Supabase config; both Mobile and Admin clients already
+# return null/fail closed when configuration is absent.
 export NEXT_PUBLIC_MYFAN_ENV="${NEXT_PUBLIC_MYFAN_ENV:-${EXPO_PUBLIC_MYFAN_ENV:-production}}"
 export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}}"
 
 if [[ -z "${NEXT_PUBLIC_SUPABASE_URL}" || -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY}" ]]; then
-  echo "Missing public Supabase configuration for the Admin build." >&2
-  exit 1
+  if [[ "${CONTEXT:-}" == "production" ]]; then
+    echo "Missing public Supabase configuration for the production Admin build." >&2
+    exit 1
+  fi
+  echo "Building ${CONTEXT:-non-production} without Supabase configuration; browser clients remain fail-closed."
 fi
 
 pnpm --filter @myfan/admin build

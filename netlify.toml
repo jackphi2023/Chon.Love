@@ -24,7 +24,7 @@
 # Non-production deploys are intentionally not hard-wired to the production database.
 # Configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY per Netlify
 # deploy context when a preview/staging database is available. Missing config must
-# fail closed rather than silently writing test traffic to production.
+# fail closed in the browser rather than silently writing test traffic to production.
 [context.deploy-preview.environment]
   EXPO_PUBLIC_MYFAN_ENV = "development"
 
@@ -44,6 +44,12 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), geolocation=(self), microphone=()"
+
+# SEO assets use versioned public URLs, so long-lived immutable caching is safe.
+[[headers]]
+  for = "/seo/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/admin/*"
