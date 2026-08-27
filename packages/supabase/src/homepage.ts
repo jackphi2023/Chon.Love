@@ -230,7 +230,15 @@ export async function updateAdminHomepageSettings(
   const { data, error } = await client.rpc(
     'admin_publish_homepage_settings' as never,
     {
-      p_actor_user_id: z.string().uuid().parse(actorUserId) } as never,
+      p_actor_user_id: z.string().uuid().parse(actorUserId),
+      p_hero_desktop_youtube_url: parsed.hero_desktop_youtube_url,
+      p_hero_mobile_youtube_url: parsed.hero_mobile_youtube_url,
+      p_hero_slider_images: parsed.hero_slider_images,
+      p_section2_left_image_url: parsed.section2_left_image_url,
+      p_section2_right_image_url: parsed.section2_right_image_url,
+      p_section3_background_image_url: parsed.section3_background_image_url,
+      p_section4_image_url: parsed.section4_image_url,
+    } as never,
   );
   if (error) throw error;
   return normalizeHomepageSettings(data);
