@@ -6,6 +6,16 @@ corepack enable
 # Build the responsive Chon.Love member web app first.
 pnpm --filter @myfan/mobile build:web
 
+# The homepage social image is injected by Netlify Edge SEO for static public
+# routes. Fail the release if Expo did not copy the committed public asset into
+# the final Netlify publish directory; otherwise crawlers would receive a valid
+# og:image URL that resolves to 404.
+HOMEPAGE_SOCIAL_THUMBNAIL="apps/mobile/dist/seo/chonlove-homepage-thumbnail.jpg"
+if [[ ! -s "${HOMEPAGE_SOCIAL_THUMBNAIL}" ]]; then
+  echo "Missing optimized homepage social thumbnail in Netlify publish output: ${HOMEPAGE_SOCIAL_THUMBNAIL}" >&2
+  exit 1
+fi
+
 # The Admin app is a static Next.js export mounted under /admin. Reuse the
 # production Supabase public configuration already supplied to the Expo web app,
 # while never exposing or requiring a service-role key in the browser bundle.
