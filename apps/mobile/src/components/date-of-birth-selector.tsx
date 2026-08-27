@@ -11,6 +11,7 @@ import {
 
 type DatePickerField = 'day' | 'month' | 'year';
 type DatePickerOption = { label: string; value: number };
+type ParsedDateOfBirth = { day: number; month: number; year: number };
 
 const MINIMUM_BIRTH_YEAR = 1900;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -23,18 +24,32 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 export function DateOfBirthSelector({
   onChange,
+  value,
 }: {
   onChange: (dateOfBirth: string) => void;
+  value?: string | null;
 }) {
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const initial = parseDateOfBirth(value);
+  const [selectedDay, setSelectedDay] = useState<number | null>(initial?.day ?? null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(initial?.month ?? null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(initial?.year ?? null);
   const [activePicker, setActivePicker] = useState<DatePickerField | null>(null);
 
   const maximumDay = useMemo(
     () => getDaysInMonth(selectedYear, selectedMonth),
     [selectedMonth, selectedYear],
   );
+
+  useEffect(() => {
+    if (value === undefined) return;
+    const parsed = parseDateOfBirth(value);
+    const nextDay = parsed?.day ?? null;
+    const nextMonth = parsed?.month ?? null;
+    const nextYear = parsed?.year ?? null;
+    if (nextDay !== selectedDay) setSelectedDay(nextDay);
+    if (nextMonth !== selectedMonth) setSelectedMonth(nextMonth);
+    if (nextYear !== selectedYear) setSelectedYear(nextYear);
+  }, [selectedDay, selectedMonth, selectedYear, value]);
 
   useEffect(() => {
     if (selectedDay && selectedDay > maximumDay) setSelectedDay(maximumDay);
@@ -45,13 +60,14 @@ export function DateOfBirthSelector({
       onChange('');
       return;
     }
-    onChange(`${selectedYear}-${padDatePart(selectedMonth)}-${padDatePart(selectedDay)}`);
-  }, [onChange, selectedDay, selectedMonth, selectedYear]);
+    const nextValue = `${selectedYear}-${padDatePart(selectedMonth)}-${padDatePart(selectedDay)}`;
+    if (nextValue !== value) onChange(nextValue);
+  }, [onChange, selectedDay, selectedMonth, selectedYear, value]);
 
-  function selectValue(field: DatePickerField, value: number) {
-    if (field === 'day') setSelectedDay(value);
-    if (field === 'month') setSelectedMonth(value);
-    if (field === 'year') setSelectedYear(value);
+  function selectValue(field: DatePickerField, selectedValue: number) {
+    if (field === 'day') setSelectedDay(selectedValue);
+    if (field === 'month') setSelectedMonth(selectedValue);
+    if (field === 'year') setSelectedYear(selectedValue);
     setActivePicker(null);
   }
 
@@ -89,8 +105,8 @@ export function DateOfBirthSelector({
           selectedYear,
         )}
         onClose={() => setActivePicker(null)}
-        onSelect={(value) => {
-          if (activePicker) selectValue(activePicker, value);
+        onSelect={(selectedValue) => {
+          if (activePicker) selectValue(activePicker, selectedValue);
         }}
       />
     </>
@@ -198,6 +214,18 @@ function DatePickerModal({
       </View>
     </Modal>
   );
+}
+
+function parseDateOfBirth(value: string | null | undefined): ParsedDateOfBirth | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
+  const [yearText, monthText, dayText] = value.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+  if (year < MINIMUM_BIRTH_YEAR || year > LATEST_ELIGIBLE_BIRTH_YEAR || month < 1 || month > 12) return null;
+  if (day < 1 || day > getDaysInMonth(year, month)) return null;
+  return { day, month, year };
 }
 
 function getDaysInMonth(year: number | null, month: number | null): number {
