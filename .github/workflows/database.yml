@@ -83,8 +83,7 @@ jobs:
           test -f supabase/migrations/20260731100320_seed_16_beta_users_support.sql
           test -f supabase/migrations/20260731100850_enable_pg_net_for_seed_transport.sql
           test -f supabase/migrations/20260731100951_temporary_seed_asset_transport.sql
-          test -f supabase/migrations/20260731101606_temporary_seed_user_manifest.sql
-          test -f supabase/migrations/20260731103048_temporary_seed_user_manifest.sql || true
+          test -f supabase/migrations/20260731101606_temporary_seed_image_transport.sql
           test -f supabase/migrations/20260731103048_temporary_seed_user_manifest.sql
           test -f supabase/migrations/20260731103426_temporary_seed_request_helper.sql
           test -f supabase/migrations/20260731103608_cleanup_one_time_beta_seed_transport.sql
