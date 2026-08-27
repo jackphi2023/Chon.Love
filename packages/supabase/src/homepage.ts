@@ -100,8 +100,8 @@ const homepageImageWidths = {
  * Builds a CDN-backed thumbnail URL only for images owned by the dedicated
  * public homepage bucket. DB/Admin continue storing the original object URL,
  * so editing, replacement and future reprocessing never lose the source file.
- * Width-only transforms preserve the uploaded aspect ratio; the RN view still
- * owns cover/contain presentation.
+ * `contain` and `format=origin` preserve the supplied image composition and
+ * source format; only delivery dimensions/compression are optimized.
  */
 export function homepageThumbnailUrl(
   value: string | null | undefined,
@@ -120,6 +120,8 @@ export function homepageThumbnailUrl(
     url.pathname = url.pathname.replace(HOMEPAGE_PUBLIC_OBJECT_PREFIX, HOMEPAGE_PUBLIC_RENDER_PREFIX);
     url.searchParams.set('width', String(Math.min(Math.max(Math.round(width), 1), 2500)));
     url.searchParams.set('quality', String(Math.min(Math.max(Math.round(quality), 20), 100)));
+    url.searchParams.set('resize', 'contain');
+    url.searchParams.set('format', 'origin');
     return url.toString();
   } catch {
     return value;
