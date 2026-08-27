@@ -62,7 +62,10 @@ export function ChonMembershipBadge({
       pointerEvents="none"
       style={[
         styles.badge,
-        { height: resolved.height, top: inset, width: resolved.width },
+        // Let the layout engine derive width from the source ratio. This makes the
+        // ratio itself the sizing contract instead of depending on two independently
+        // resolved dimensions that Web can reconcile differently for replaced content.
+        { aspectRatio: resolved.aspectRatio, height: resolved.height, top: inset },
         certificate
           ? { left: '50%', transform: [{ translateX: -resolved.width / 2 }] }
           : placement === 'top-right'
@@ -75,7 +78,7 @@ export function ChonMembershipBadge({
         accessibilityIgnoresInvertColors
         resizeMode="contain"
         source={resolved.source}
-        style={[styles.image, { aspectRatio: resolved.aspectRatio }]}
+        style={styles.image}
         testID={`chon-membership-badge-image-${tier}`}
       />
     </View>
