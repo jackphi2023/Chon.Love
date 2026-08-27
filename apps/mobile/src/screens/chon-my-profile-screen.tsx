@@ -1,7 +1,6 @@
 import {
   createPrivateMediaUrl,
   getLuxyMemberVerificationBadges,
-  getMediaById,
   getMyProfile,
   isMediaVisibleToOwner,
   listActiveProvinces,
@@ -54,13 +53,17 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { ChonAuthenticatedPageChrome } from '@/components/chon-authenticated-page-chrome';
+import { ChonSiteFooter } from '@/components/chon-site-footer';
 import { ChonVerificationIcon } from '@/components/chon-verification-icon';
+import { SignupSelect } from '@/components/signup-shell';
 import {
   SIGNUP_CHILDREN_OPTIONS,
   SIGNUP_DRINKING_OPTIONS,
   SIGNUP_EDUCATION_OPTIONS,
+  SIGNUP_HEIGHT_OPTIONS,
   SIGNUP_RELATIONSHIP_OPTIONS,
   SIGNUP_SMOKING_OPTIONS,
+  SIGNUP_WEIGHT_OPTIONS,
 } from '@/lib/signup-profile-contract';
 import {
   getReadableProfileMediaError,
@@ -151,6 +154,13 @@ function parseNullableInteger(value: string): number | null {
 
 function parseRequiredInteger(value: string): number {
   return Number(value.trim());
+}
+
+function mediaTimestamp(media: MyMediaItem): number {
+  const value = media.uploaded_at ?? media.created_at;
+  if (!value) return 0;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function formatMemberSince(createdAt?: string): string {
@@ -250,21 +260,10 @@ export default function ChonMyProfileScreen() {
       if (!client) return [] as ManagedPhoto[];
       const rows = await listMyMedia(client);
       const eligible = rows.filter((item) =>
-        (item.visibility === 'public' || item.visibility === 'private') && isMediaVisibleToOwner(item),
+        (item.visibility === 'avatar' || item.visibility === 'public' || item.visibility === 'private')
+        && isMediaVisibleToOwner(item),
       );
       return Promise.all(eligible.map(async (item) => ({ ...item, url: await createPrivateMediaUrl(client, item) })));
-    },
-  });
-
-  const avatarUrlQuery = useQuery({
-    queryKey: ['profile', 'avatar-url', profileQuery.data?.avatar_media_id],
-    enabled: Boolean(client && profileQuery.data?.avatar_media_id),
-    staleTime: 30_000,
-    queryFn: async () => {
-      if (!client || !profileQuery.data?.avatar_media_id) return null;
-      const media = await getMediaById(client, profileQuery.data.avatar_media_id);
-      if (!media || !['pending_review', 'approved'].includes(media.moderation_status)) return null;
-      return createPrivateMediaUrl(client, media);
     },
   });
 
@@ -336,9 +335,25 @@ export default function ChonMyProfileScreen() {
     : filteredProvinces.filter((province) => province.sortOrder > VN_FEATURED_PROVINCE_COUNT);
   const selectedProvince = (provincesQuery.data ?? []).find((province) => province.id === selectedProvinceId);
 
+  const ownerAvatar = useMemo(() => {
+    let latest: ManagedPhoto | null = null;
+    for (const media of mediaQuery.data ?? []) {
+      if (media.visibility !== 'avatar' || !['pending_review', 'approved'].includes(media.moderation_status)) continue;
+      if (!latest || mediaTimestamp(media) > mediaTimestamp(latest)) latest = media;
+    }
+    return latest;
+  }, [mediaQuery.data]);
+  const managedPhotos = useMemo(
+    () => (mediaQuery.data ?? []).filter((media) => media.visibility === 'public' || media.visibility === 'private'),
+    [mediaQuery.data],
+  );
+
   const publicCode = publicRouteQuery.data?.public_profile_code ?? null;
   const publicPath = publicCode ? toPublicMemberPath(publicCode) : null;
   const publicUrl = publicPath ? `${PRODUCTION_ORIGIN}${publicPath}` : null;
+  const publicUrlLabel = publicRouteQuery.isLoading
+    ? 'Đang tạo liên kết hồ sơ…'
+    : publicUrl ?? 'Hồ sơ công khai hiện không khả dụng.';
 
   const mutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
@@ -413,7 +428,6 @@ export default function ChonMyProfileScreen() {
       queryClient.invalidateQueries({ queryKey: profileQueryKey(auth.userId) }),
       queryClient.invalidateQueries({ queryKey: mediaQueryKey(auth.userId) }),
       queryClient.invalidateQueries({ queryKey: ['profile', 'album', auth.userId] }),
-      queryClient.invalidateQueries({ queryKey: ['profile', 'avatar-url'] }),
       queryClient.invalidateQueries({ queryKey: ['luxy-member-profile'] }),
       queryClient.invalidateQueries({ queryKey: ['private-photo-media'] }),
       queryClient.invalidateQueries({ queryKey: ['private-photo-access'] }),
@@ -430,7 +444,7 @@ export default function ChonMyProfileScreen() {
       if (!prepared) return;
       await uploadProfileImage(client, prepared);
       await refreshMedia();
-      setNotice('Ảnh chính đã được cập nhật.');
+      setNotice('Ảnh chính đã tải lên và đang chờ duyệt. Bạn vẫn nhìn thấy ảnh mới trong trang Hồ sơ của tôi.');
     } catch (error) {
       setErrorMessage(resolveEditError(error));
     } finally {
@@ -523,9 +537,13 @@ export default function ChonMyProfileScreen() {
   if (!auth.userId) return <Redirect href="/(auth)" />;
 
   return (
-    <ChonAuthenticatedPageChrome footer="always" testID="chon-my-profile-page">
+    <ChonAuthenticatedPageChrome footer="none" testID="chon-my-profile-page">
       <SafeAreaView style={styles.safeArea} testID="lx08-edit-profile-page">
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          style={styles.scroll}
+        >
           <View style={styles.pageInner}>
             <View style={[styles.pageHeader, compact && styles.pageHeaderCompact]}>
               <View style={styles.pageHeadingCopy}>
@@ -545,7 +563,7 @@ export default function ChonMyProfileScreen() {
             <View style={styles.linkCard} testID="chon-public-profile-link-card">
               <View style={styles.linkCopy}>
                 <Text style={styles.linkLabel}>Liên kết hồ sơ công khai</Text>
-                <Text selectable style={styles.linkValue} testID="chon-public-profile-url">{publicUrl ?? 'Đang tạo liên kết hồ sơ…'}</Text>
+                <Text selectable style={styles.linkValue} testID="chon-public-profile-url">{publicUrlLabel}</Text>
               </View>
               {Platform.OS === 'web' ? (
                 <Pressable accessibilityRole="button" disabled={!publicUrl} onPress={() => void copyPublicProfile()} style={({ pressed }) => [styles.copyButton, !publicUrl && styles.disabled, pressed && styles.pressed]} testID="chon-copy-profile-link">
@@ -560,18 +578,19 @@ export default function ChonMyProfileScreen() {
               <View style={[styles.contentGrid, desktop && styles.contentGridDesktop]}>
                 <View style={[styles.mediaColumn, desktop && styles.mediaColumnDesktop]}>
                   <AvatarCard
-                    avatarUrl={avatarUrlQuery.data ?? null}
+                    avatarUrl={ownerAvatar?.url ?? null}
                     busy={uploading !== null}
                     displayName={profileQuery.data?.display_name ?? 'Chọn.Love'}
                     onCamera={() => void handleAvatar('camera')}
                     onLibrary={() => void handleAvatar('library')}
+                    pendingReview={ownerAvatar?.moderation_status === 'pending_review'}
                   />
                   <MediaManager
                     busyId={togglingId}
                     loading={mediaQuery.isLoading}
                     onAdd={() => void handlePublicPhotos()}
                     onToggle={(photo) => void handlePhotoVisibility(photo)}
-                    photos={mediaQuery.data ?? []}
+                    photos={managedPhotos}
                     uploading={uploading === 'public'}
                   />
                 </View>
@@ -604,10 +623,36 @@ export default function ChonMyProfileScreen() {
                         setOpen={setProvincePickerOpen}
                       />
                     </Field>
-                    <View style={styles.twoColumns}>
-                      <Controller control={control} name="heightCmText" render={({ field }) => <Field label="Chiều cao"><TextInput accessibilityLabel="Chiều cao" keyboardType="number-pad" onChangeText={field.onChange} placeholder="175" placeholderTextColor={chonColors.softMuted} style={styles.input} value={field.value} /></Field>} />
-                      <Controller control={control} name="weightKgText" render={({ field }) => <Field label="Cân nặng"><TextInput accessibilityLabel="Cân nặng" keyboardType="number-pad" onChangeText={field.onChange} placeholder="70" placeholderTextColor={chonColors.softMuted} style={styles.input} value={field.value} /></Field>} />
-                    </View>
+                    <Controller
+                      control={control}
+                      name="heightCmText"
+                      render={({ field }) => (
+                        <Field label="Chiều cao">
+                          <SignupSelect
+                            accessibilityLabel="Chiều cao"
+                            onChange={field.onChange}
+                            options={SIGNUP_HEIGHT_OPTIONS}
+                            testID="chon-profile-height-select"
+                            value={field.value}
+                          />
+                        </Field>
+                      )}
+                    />
+                    <Controller
+                      control={control}
+                      name="weightKgText"
+                      render={({ field }) => (
+                        <Field label="Cân nặng">
+                          <SignupSelect
+                            accessibilityLabel="Cân nặng"
+                            onChange={field.onChange}
+                            options={SIGNUP_WEIGHT_OPTIONS}
+                            testID="chon-profile-weight-select"
+                            value={field.value}
+                          />
+                        </Field>
+                      )}
+                    />
                   </Section>
 
                   <Section title="Thông tin cá nhân">
@@ -665,6 +710,12 @@ export default function ChonMyProfileScreen() {
               <Text accessibilityRole="alert" style={styles.error}>{errorMessage ?? 'Không thể tải đầy đủ dữ liệu hồ sơ. Hãy thử lại.'}</Text>
             ) : null}
           </View>
+          <ChonSiteFooter
+            compact={compact}
+            onCommunity={() => router.push('/legal/community-standards')}
+            onTerms={() => router.push('/legal/terms')}
+            testID="chon-my-profile-footer"
+          />
         </ScrollView>
       </SafeAreaView>
     </ChonAuthenticatedPageChrome>
@@ -675,13 +726,28 @@ function FullPageLoading() {
   return <View style={styles.fullLoading}><ActivityIndicator accessibilityLabel="Đang tải" color={chonColors.ink} size="large" /></View>;
 }
 
-function AvatarCard({ avatarUrl, busy, displayName, onCamera, onLibrary }: { avatarUrl: string | null; busy: boolean; displayName: string; onCamera: () => void; onLibrary: () => void }) {
+function AvatarCard({
+  avatarUrl,
+  busy,
+  displayName,
+  onCamera,
+  onLibrary,
+  pendingReview,
+}: {
+  avatarUrl: string | null;
+  busy: boolean;
+  displayName: string;
+  onCamera: () => void;
+  onLibrary: () => void;
+  pendingReview: boolean;
+}) {
   return (
     <View style={styles.card} testID="lx08-photo-rail">
       <Text style={styles.cardTitle}>Ảnh chính</Text>
       <View style={styles.avatarFrame}>
         {avatarUrl ? <Image accessibilityLabel={`Ảnh chính của ${displayName}`} source={{ uri: avatarUrl }} style={styles.photoFill} /> : <View style={styles.avatarFallback}><Text style={styles.avatarInitial}>{displayName.slice(0, 1).toUpperCase()}</Text></View>}
       </View>
+      {pendingReview ? <Text style={styles.avatarReviewNote}>Ảnh mới đang chờ duyệt và hiện chỉ bạn nhìn thấy.</Text> : null}
       <View style={styles.buttonRow}>
         <Pressable accessibilityRole="button" disabled={busy} onPress={onLibrary} style={({ pressed }) => [styles.outlineButton, styles.flexButton, pressed && styles.pressed]}><Text style={styles.outlineButtonText}>Đổi ảnh</Text></Pressable>
         <Pressable accessibilityRole="button" disabled={busy} onPress={onCamera} style={({ pressed }) => [styles.outlineButton, styles.flexButton, pressed && styles.pressed]}><Text style={styles.outlineButtonText}>Chụp ảnh</Text></Pressable>
@@ -777,7 +843,8 @@ function ProvinceList({ onSelect, provinces, selectedId, title }: { onSelect: (p
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: chonColors.warmSurface, flex: 1 },
-  scrollContent: { flexGrow: 1 },
+  scroll: { flex: 1 },
+  scrollContent: { backgroundColor: chonColors.warmSurface },
   pageInner: { alignSelf: 'center', maxWidth: chonLayout.contentMaxWidth, paddingBottom: 40, paddingHorizontal: chonLayout.contentHorizontalPaddingMobile, width: '100%' },
   pageHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: 20, justifyContent: 'space-between', paddingBottom: 18, paddingTop: 24 },
   pageHeaderCompact: { flexDirection: 'column' },
@@ -811,6 +878,7 @@ const styles = StyleSheet.create({
   avatarFrame: { aspectRatio: 3 / 4, backgroundColor: chonColors.warmSurface, borderRadius: 10, overflow: 'hidden', width: '100%' },
   avatarFallback: { alignItems: 'center', backgroundColor: chonColors.warmSurfaceStrong, flex: 1, justifyContent: 'center' },
   avatarInitial: { color: chonColors.primaryRed, fontFamily: chonTypography.families.display, fontSize: 54, fontWeight: '700' },
+  avatarReviewNote: { color: chonColors.goldStrong, fontSize: 10, fontWeight: '700', lineHeight: 15 },
   photoFill: { height: '100%', width: '100%' },
   smallGoldButton: { alignItems: 'center', backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, minHeight: 36, justifyContent: 'center', paddingHorizontal: 12 },
   smallGoldButtonText: { color: chonColors.goldStrong, fontSize: 10, fontWeight: '800' },
@@ -832,7 +900,6 @@ const styles = StyleSheet.create({
   selectButton: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   selectText: { color: chonColors.text, flex: 1, fontSize: 12 },
   selectChevron: { color: chonColors.muted, fontSize: 18 },
-  twoColumns: { flexDirection: 'row', gap: 10 },
   choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   choiceChip: { alignItems: 'center', backgroundColor: chonColors.surface, borderColor: chonColors.borderStrong, borderRadius: 999, borderWidth: 1, justifyContent: 'center', minHeight: 36, paddingHorizontal: 11 },
   choiceChipSelected: { backgroundColor: chonColors.ink, borderColor: chonColors.ink },
