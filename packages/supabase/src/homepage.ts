@@ -85,6 +85,78 @@ export const publicHomepageQueryKeys = {
   settings: ['public-homepage', 'settings'] as const,
 };
 
+const HOMEPAGE_PUBLIC_OBJECT_PREFIX = '/storage/v1/object/public/homepage-public/';
+const HOMEPAGE_PUBLIC_RENDER_PREFIX = '/storage/v1/render/image/public/homepage-public/';
+
+const homepageImageWidths = {
+  heroDesktop: 1920,
+  heroMobile: 900,
+  sectionArtwork: 720,
+  testimonialBackground: 1920,
+  benefitsArtwork: 1200,
+} as const;
+
+/**
+ * Builds a CDN-backed thumbnail URL only for images owned by the dedicated
+ * public homepage bucket. DB/Admin continue storing the original object URL,
+ * so editing, replacement and future reprocessing never lose the source file.
+ * Width-only transforms preserve the uploaded aspect ratio; the RN view still
+ * owns cover/contain presentation.
+ */
+export function homepageThumbnailUrl(
+  value: string | null | undefined,
+  width: number,
+  quality = 80,
+): string | null {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    if (!hostname.endsWith('.supabase.co') || !url.pathname.startsWith(HOMEPAGE_PUBLIC_OBJECT_PREFIX)) {
+      return value;
+    }
+
+    url.pathname = url.pathname.replace(HOMEPAGE_PUBLIC_OBJECT_PREFIX, HOMEPAGE_PUBLIC_RENDER_PREFIX);
+    url.searchParams.set('width', String(Math.min(Math.max(Math.round(width), 1), 2500)));
+    url.searchParams.set('quality', String(Math.min(Math.max(Math.round(quality), 20), 100)));
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+export function optimizePublicHomepageSettings(settings: HomepageSettings): HomepageSettings {
+  return {
+    ...settings,
+    hero_slider_images: settings.hero_slider_images.map((slide) => ({
+      ...slide,
+      desktop_url: homepageThumbnailUrl(slide.desktop_url, homepageImageWidths.heroDesktop, 80) ?? slide.desktop_url,
+      mobile_url: homepageThumbnailUrl(slide.mobile_url, homepageImageWidths.heroMobile, 80) ?? slide.mobile_url,
+    })),
+    section2_left_image_url: homepageThumbnailUrl(
+      settings.section2_left_image_url,
+      homepageImageWidths.sectionArtwork,
+      82,
+    ),
+    section2_right_image_url: homepageThumbnailUrl(
+      settings.section2_right_image_url,
+      homepageImageWidths.sectionArtwork,
+      82,
+    ),
+    section3_background_image_url: homepageThumbnailUrl(
+      settings.section3_background_image_url,
+      homepageImageWidths.testimonialBackground,
+      78,
+    ),
+    section4_image_url: homepageThumbnailUrl(
+      settings.section4_image_url,
+      homepageImageWidths.benefitsArtwork,
+      82,
+    ),
+  };
+}
+
 export function normalizePublicFeaturedCreators(value: unknown): PublicFeaturedCreator[] {
   return z.array(publicFeaturedCreatorSchema).parse(value);
 }
@@ -137,7 +209,7 @@ export async function listPublicActivityHighlights(
 export async function getPublicHomepageSettings(client: Client): Promise<HomepageSettings> {
   const { data, error } = await client.rpc('get_public_homepage_settings' as never);
   if (error) throw error;
-  return normalizeHomepageSettings(data);
+  return optimizePublicHomepageSettings(normalizeHomepageSettings(data));
 }
 
 export async function getAdminHomepageSettings(client: Client, actorUserId: string): Promise<HomepageSettings> {
@@ -158,15 +230,7 @@ export async function updateAdminHomepageSettings(
   const { data, error } = await client.rpc(
     'admin_publish_homepage_settings' as never,
     {
-      p_actor_user_id: z.string().uuid().parse(actorUserId),
-      p_hero_desktop_youtube_url: parsed.hero_desktop_youtube_url,
-      p_hero_mobile_youtube_url: parsed.hero_mobile_youtube_url,
-      p_hero_slider_images: parsed.hero_slider_images,
-      p_section2_left_image_url: parsed.section2_left_image_url,
-      p_section2_right_image_url: parsed.section2_right_image_url,
-      p_section3_background_image_url: parsed.section3_background_image_url,
-      p_section4_image_url: parsed.section4_image_url,
-    } as never,
+      p_actor_user_id: z.string().uuid().parse(actorUserId) } as never,
   );
   if (error) throw error;
   return normalizeHomepageSettings(data);
