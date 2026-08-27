@@ -40,32 +40,39 @@ export function DateOfBirthSelector({
     [selectedMonth, selectedYear],
   );
 
+  // An existing DOB can arrive after the profile query resolves. Synchronize local
+  // picker state from that authoritative value, but never emit onChange from this
+  // effect. Emitting here creates a controlled-form feedback loop (DOB -> empty -> DOB)
+  // while React Hook Form is resetting the profile.
   useEffect(() => {
     if (value === undefined) return;
     const parsed = parseDateOfBirth(value);
-    setSelectedDay(parsed?.day ?? null);
-    setSelectedMonth(parsed?.month ?? null);
-    setSelectedYear(parsed?.year ?? null);
-  }, [value]);
-
-  useEffect(() => {
-    if (selectedDay && selectedDay > maximumDay) setSelectedDay(maximumDay);
-  }, [maximumDay, selectedDay]);
-
-  useEffect(() => {
-    if (!selectedDay || !selectedMonth || !selectedYear) {
-      if (value) onChange('');
-      return;
-    }
-    const nextValue = `${selectedYear}-${padDatePart(selectedMonth)}-${padDatePart(selectedDay)}`;
-    if (nextValue !== value) onChange(nextValue);
-  }, [onChange, selectedDay, selectedMonth, selectedYear, value]);
+    const nextDay = parsed?.day ?? null;
+    const nextMonth = parsed?.month ?? null;
+    const nextYear = parsed?.year ?? null;
+    if (nextDay !== selectedDay) setSelectedDay(nextDay);
+    if (nextMonth !== selectedMonth) setSelectedMonth(nextMonth);
+    if (nextYear !== selectedYear) setSelectedYear(nextYear);
+  }, [selectedDay, selectedMonth, selectedYear, value]);
 
   function selectValue(field: DatePickerField, selectedValue: number) {
-    if (field === 'day') setSelectedDay(selectedValue);
-    if (field === 'month') setSelectedMonth(selectedValue);
-    if (field === 'year') setSelectedYear(selectedValue);
+    let nextDay = field === 'day' ? selectedValue : selectedDay;
+    const nextMonth = field === 'month' ? selectedValue : selectedMonth;
+    const nextYear = field === 'year' ? selectedValue : selectedYear;
+    const nextMaximumDay = getDaysInMonth(nextYear, nextMonth);
+
+    if (nextDay && nextDay > nextMaximumDay) nextDay = nextMaximumDay;
+
+    setSelectedDay(nextDay);
+    setSelectedMonth(nextMonth);
+    setSelectedYear(nextYear);
     setActivePicker(null);
+
+    if (nextDay && nextMonth && nextYear) {
+      onChange(`${nextYear}-${padDatePart(nextMonth)}-${padDatePart(nextDay)}`);
+    } else {
+      onChange('');
+    }
   }
 
   return (
