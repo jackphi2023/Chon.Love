@@ -1,6 +1,6 @@
 begin;
 
-select plan(14);
+select plan(15);
 
 select has_column(
   'private','member_profile_verifications','listing_status',
