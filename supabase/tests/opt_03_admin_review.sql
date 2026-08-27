@@ -131,6 +131,8 @@ select status,decision,automated_score_json,resolved_at
 from public.moderation_cases
 where id='33000000-0000-4000-8000-000000000101';
 
+grant select on opt03_aws_before to service_role;
+
 set local role service_role;
 
 select is(
