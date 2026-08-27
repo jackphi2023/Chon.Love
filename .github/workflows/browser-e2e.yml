@@ -108,6 +108,7 @@ jobs:
 
           node scripts/br06/setup-local-fixtures.mjs
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/approve-opt01-listing-fixtures.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/seed-local-heart-balance.sql
 
           # Production keeps VietQR and member gifts fail-closed until their explicit
@@ -161,6 +162,13 @@ jobs:
                 and ur.revoked_at is null
             ) then
               raise exception 'BR-06 local moderator fixture missing';
+            end if;
+            if (select count(*)
+                from private.member_profile_verifications v
+                join auth.users u on u.id=v.user_id
+                where u.email like 'br06.%@example.test'
+                  and v.listing_status='approved') <> 5 then
+              raise exception 'BR-06 listing approval fixture mismatch';
             end if;
             if not exists(
               select 1
