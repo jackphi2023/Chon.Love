@@ -1,7 +1,7 @@
 const DESCRIPTION = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm';
 const TITLE_SUFFIX = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const PRODUCTION_ORIGIN = 'https://www.chon.love';
-const STATIC_SOCIAL_IMAGE = `${PRODUCTION_ORIGIN}/seo/chonlove-homepage-thumbnail.jpg`;
+const STATIC_SOCIAL_IMAGE = `${PRODUCTION_ORIGIN}/seo/chonlove-homepage-thumbnail.jpg?v=20260827-1`;
 const PROFILE_SEO_ENDPOINT = 'https://asnydvqsduonyidjyyzq.supabase.co/functions/v1/public-profile-seo';
 
 export const config = {
@@ -17,6 +17,7 @@ type SeoMetadata = {
   canonicalUrl: string;
   imageUrl: string;
   type: 'website' | 'profile';
+  imageType?: string;
   imageWidth?: number;
   imageHeight?: number;
 };
@@ -73,6 +74,7 @@ async function getSeoMetadata(url: URL): Promise<SeoMetadata | null> {
     canonicalUrl: `${PRODUCTION_ORIGIN}${url.pathname}`,
     imageUrl: STATIC_SOCIAL_IMAGE,
     type: 'website',
+    imageType: 'image/jpeg',
     imageWidth: 480,
     imageHeight: 360,
   };
@@ -87,6 +89,8 @@ function injectSeo(html: string, metadata: SeoMetadata): string {
     'og:description',
     'og:url',
     'og:image',
+    'og:image:secure_url',
+    'og:image:type',
     'og:image:width',
     'og:image:height',
     'og:image:alt',
@@ -113,6 +117,8 @@ function injectSeo(html: string, metadata: SeoMetadata): string {
     `<meta property="og:description" content="${escapeHtml(metadata.description)}">`,
     `<meta property="og:url" content="${escapeHtml(metadata.canonicalUrl)}">`,
     `<meta property="og:image" content="${escapeHtml(metadata.imageUrl)}">`,
+    `<meta property="og:image:secure_url" content="${escapeHtml(metadata.imageUrl)}">`,
+    metadata.imageType ? `<meta property="og:image:type" content="${escapeHtml(metadata.imageType)}">` : '',
     `<meta property="og:image:alt" content="${escapeHtml(metadata.title)}">`,
     metadata.imageWidth ? `<meta property="og:image:width" content="${metadata.imageWidth}">` : '',
     metadata.imageHeight ? `<meta property="og:image:height" content="${metadata.imageHeight}">` : '',
