@@ -66,6 +66,7 @@ for (const [label, netlify] of [['root', rootNetlify], ['apps/mobile mirror', mo
   expect(!netlify.includes('MYFAN_PII_ENCRYPTION_KEY_B64'), `${label} frontend configuration must never contain the PII encryption key.`);
   expect(!/EXPO_PUBLIC_SUPABASE_ANON_KEY\s*=\s*"[^"]+"/u.test(netlify), `${label}: Supabase publishable key must be configured in Netlify UI, not committed.`);
   expect(netlify.includes('X-Content-Type-Options = "nosniff"') && netlify.includes('X-Frame-Options = "DENY"'), `${label} security headers must remain enabled.`);
+  expect(netlify.includes('for = "/seo/*"') && netlify.includes('Cache-Control = "public, max-age=31536000, immutable"'), `${label} versioned SEO assets must use immutable long-lived caching.`);
   expect(netlify.includes('for = "/admin/*"') && netlify.includes('X-Robots-Tag = "noindex, nofollow, noarchive"'), `${label} Admin routes must be no-store/noindex.`);
 }
 
@@ -119,4 +120,4 @@ if (errors.length) {
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
-console.warn('Chon.Love Netlify validation passed: Expo Web is canonical, /admin is isolated and fail-closed with styled static assets, production requires its public Supabase configuration, and non-production previews can build without production data access.');
+console.warn('Chon.Love Netlify validation passed: Expo Web is canonical, /admin is isolated and fail-closed with styled static assets, production requires its public Supabase configuration, non-production previews can build without production data access, and versioned SEO assets use immutable caching.');
