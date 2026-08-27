@@ -234,6 +234,15 @@ export function SignupTextField(props: TextInputProps) {
   );
 }
 
+function resolveSignupSelectLabel(value: string, options: readonly SignupSelectOption[]): string {
+  const selected = options.find((option) => option.value === value);
+  if (selected) return selected.label;
+  if (!value) return options[0]?.label ?? 'Chọn';
+
+  const patterned = options.find((option) => option.value && option.label.includes(option.value));
+  return patterned ? patterned.label.replace(patterned.value, value) : value;
+}
+
 export function SignupSelect({
   value,
   options,
@@ -251,7 +260,7 @@ export function SignupSelect({
 }) {
   const [open, setOpen] = useState(false);
   const selectedLabel = useMemo(
-    () => options.find((option) => option.value === value)?.label ?? options[0]?.label ?? 'Chọn',
+    () => resolveSignupSelectLabel(value, options),
     [options, value],
   );
 
@@ -286,21 +295,21 @@ export function SignupSelect({
             </View>
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.selectOptionsScroll}>
               {options.map((option) => {
-                const selected = option.value === value;
+                const selectedOption = option.value === value;
                 return (
                   <Pressable
                     accessibilityLabel={option.label}
                     accessibilityRole="button"
-                    accessibilityState={{ selected }}
+                    accessibilityState={{ selected: selectedOption }}
                     key={`${option.value}:${option.label}`}
                     onPress={() => {
                       onChange(option.value);
                       setOpen(false);
                     }}
-                    style={({ pressed }) => [styles.selectOption, selected && styles.selectOptionSelected, pressed && styles.selectOptionPressed]}
+                    style={({ pressed }) => [styles.selectOption, selectedOption && styles.selectOptionSelected, pressed && styles.selectOptionPressed]}
                   >
-                    <Text style={[styles.selectOptionText, selected && styles.selectOptionTextSelected]}>{option.label}</Text>
-                    {selected ? <Text accessibilityElementsHidden style={styles.selectCheck}>✓</Text> : null}
+                    <Text style={[styles.selectOptionText, selectedOption && styles.selectOptionTextSelected]}>{option.label}</Text>
+                    {selectedOption ? <Text accessibilityElementsHidden style={styles.selectCheck}>✓</Text> : null}
                   </Pressable>
                 );
               })}
