@@ -238,8 +238,6 @@ export function ModerationAdmin() {
                 <tr key={item.media_id}>
                   <td style={{ padding: 10, verticalAlign: 'top' }}>
                     {item.preview_url ? (
-                      // Signed URL expires quickly and is only returned to authorized moderators.
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt={`Ảnh ${item.visibility} của ${item.owner_display_name || item.owner_email || item.owner_id}`}
                         src={item.preview_url}
