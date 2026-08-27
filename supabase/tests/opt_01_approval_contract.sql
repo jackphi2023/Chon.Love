@@ -1,6 +1,6 @@
 begin;
 
-select plan(15);
+select plan(18);
 
 select has_column(
   'private','member_profile_verifications','listing_status',
@@ -42,6 +42,11 @@ insert into auth.users(
   '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000004',
   'authenticated','authenticated','opt01-moderator@example.test','',
   '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
+),
+(
+  '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000005',
+  'authenticated','authenticated','opt01-signup-free@example.test','',
+  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
 );
 
 update private.user_identity
@@ -57,7 +62,8 @@ where user_id in (
   '31000000-0000-0000-0000-000000000001',
   '31000000-0000-0000-0000-000000000002',
   '31000000-0000-0000-0000-000000000003',
-  '31000000-0000-0000-0000-000000000004'
+  '31000000-0000-0000-0000-000000000004',
+  '31000000-0000-0000-0000-000000000005'
 );
 
 update public.profiles
@@ -65,31 +71,49 @@ set username=case id
       when '31000000-0000-0000-0000-000000000001' then 'opt01caller'
       when '31000000-0000-0000-0000-000000000002' then 'opt01free'
       when '31000000-0000-0000-0000-000000000003' then 'opt01paid'
-      else 'opt01moderator'
+      when '31000000-0000-0000-0000-000000000004' then 'opt01moderator'
+      else 'opt01signupfree'
     end::citext,
     public_profile_code=case id
       when '31000000-0000-0000-0000-000000000001' then '310001'
       when '31000000-0000-0000-0000-000000000002' then '310002'
       when '31000000-0000-0000-0000-000000000003' then '310003'
-      else '310004'
+      when '31000000-0000-0000-0000-000000000004' then '310004'
+      else '310005'
     end,
     display_name=case id
       when '31000000-0000-0000-0000-000000000001' then 'OPT01 Caller'
       when '31000000-0000-0000-0000-000000000002' then 'OPT01 Free'
       when '31000000-0000-0000-0000-000000000003' then 'OPT01 Paid'
-      else 'OPT01 Moderator'
+      when '31000000-0000-0000-0000-000000000004' then 'OPT01 Moderator'
+      else 'OPT01 Signup Free'
     end,
     gender=case when id='31000000-0000-0000-0000-000000000001' then 'male'::public.gender_identity else 'female'::public.gender_identity end,
     interested_in='everyone'::public.dating_interest,
     province_id=(select min(id) from public.administrative_areas where country_code='VN' and is_active and parent_id is null),
-    profile_status='active'::public.profile_status,
-    discovery_enabled=true,
-    nearby_enabled=false
+    profile_status=case when id='31000000-0000-0000-0000-000000000005' then 'pending_review'::public.profile_status else 'active'::public.profile_status end,
+    discovery_enabled=case when id='31000000-0000-0000-0000-000000000005' then false else true end,
+    nearby_enabled=false,
+    headline=case when id='31000000-0000-0000-0000-000000000005' then 'Sẵn sàng kết nối chân thành' else headline end,
+    bio=case when id='31000000-0000-0000-0000-000000000005' then repeat('B',80) else bio end,
+    looking_for=case when id='31000000-0000-0000-0000-000000000005' then repeat('L',80) else looking_for end,
+    lifestyle_tags=case when id='31000000-0000-0000-0000-000000000005' then array['long_term']::public.profile_lifestyle_tag[] else lifestyle_tags end
 where id in (
   '31000000-0000-0000-0000-000000000001',
   '31000000-0000-0000-0000-000000000002',
   '31000000-0000-0000-0000-000000000003',
-  '31000000-0000-0000-0000-000000000004'
+  '31000000-0000-0000-0000-000000000004',
+  '31000000-0000-0000-0000-000000000005'
+);
+
+insert into public.media_assets(
+  id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,
+  visibility,moderation_status,uploaded_at
+) values(
+  '31000000-0000-4000-8000-000000000005',
+  '31000000-0000-0000-0000-000000000005',
+  'pending-media','31000000-0000-0000-0000-000000000005/31000000-0000-4000-8000-000000000005/original.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','pending_review',now()
 );
 
 insert into private.member_profile_verifications(user_id,listing_status,listing_submitted_at)
@@ -107,6 +131,26 @@ on conflict(user_id) do update set tier='premium',status='active',starts_at=excl
 insert into private.user_roles(user_id,role)
 values('31000000-0000-0000-0000-000000000004','moderator')
 on conflict do nothing;
+
+set local role service_role;
+
+select lives_ok(
+  $$select public.activate_verified_signup_profile_v2('31000000-0000-0000-0000-000000000005')$$,
+  'trusted selfie completion activates a valid Free signup'
+);
+
+select ok(
+  (select profile_status='active'::public.profile_status and discovery_enabled from public.profiles where id='31000000-0000-0000-0000-000000000005'),
+  'Free signup account/profile activates and initializes discovery preference on'
+);
+
+select is(
+  (select listing_status from private.member_profile_verifications where user_id='31000000-0000-0000-0000-000000000005'),
+  'pending',
+  'Free signup enters listing approval pending instead of becoming immediately discoverable'
+);
+
+reset role;
 
 select ok(
   private.luxy_listing_hidden('31000000-0000-0000-0000-000000000002'),
