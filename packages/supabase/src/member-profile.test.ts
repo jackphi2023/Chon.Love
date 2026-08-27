@@ -39,7 +39,7 @@ const member = {
 };
 
 describe('Luxy LX-13/LX-17 Member Profile read-model client', () => {
-  it('parses the privacy-safe Member Profile response', async () => {
+  it('parses the privacy-safe Member Profile response and maps the legacy wire alias to true last sign-in', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null, data: [member] });
     const result = await getLuxyMemberProfile({ rpc } as never, ' luxy_member ');
 
@@ -51,7 +51,9 @@ describe('Luxy LX-13/LX-17 Member Profile read-model client', () => {
       membership_badge_visible: true,
       public_photo_count: 4,
       private_photo_count: 2,
+      last_sign_in_at: '2026-08-12T00:00:00.000Z',
     });
+    expect(result).not.toHaveProperty('last_active_at');
     expect(result).not.toHaveProperty('date_of_birth');
     expect(result).not.toHaveProperty('latitude');
     expect(result).not.toHaveProperty('longitude');
