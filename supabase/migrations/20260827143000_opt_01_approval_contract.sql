@@ -348,22 +348,22 @@ begin
   if p_action not in ('approve','reject') then raise exception using errcode='22023',message='invalid_listing_review_action'; end if;
   if p_reason_code is not null and p_reason_code !~ '^[a-z][a-z0-9_]{1,63}$' then raise exception using errcode='22023',message='invalid_reason_code'; end if;
 
-  select v.listing_status into v_current
-  from private.member_profile_verifications v
-  where v.user_id=p_user_id
+  select verification.listing_status into v_current
+  from private.member_profile_verifications verification
+  where verification.user_id=p_user_id
   for update;
   if not found then raise exception using errcode='P0002',message='listing_verification_not_found'; end if;
   if v_current not in ('pending','rejected') then raise exception using errcode='22023',message='listing_verification_not_reviewable'; end if;
 
   v_before:=jsonb_build_object('listing_status',v_current,'effective_discoverable',not private.luxy_listing_hidden(p_user_id));
 
-  update private.member_profile_verifications
+  update private.member_profile_verifications verification
   set listing_status=case when p_action='approve' then 'approved' else 'rejected' end,
       listing_reviewed_at=now(),
       listing_reviewed_by=p_actor_user_id,
       listing_reason_code=case when p_action='approve' then coalesce(p_reason_code,'admin_approved') else coalesce(p_reason_code,'admin_rejected') end,
       updated_at=now()
-  where user_id=p_user_id;
+  where verification.user_id=p_user_id;
 
   v_after:=jsonb_build_object(
     'listing_status',case when p_action='approve' then 'approved' else 'rejected' end,
@@ -379,82 +379,12 @@ begin
   );
 
   return query
-  select p_user_id,v.listing_status,
+  select p_user_id,verification.listing_status,
     (p.profile_status='active'::public.profile_status and p.deleted_at is null and p.discovery_enabled and not private.luxy_listing_hidden(p.id))
-  from private.member_profile_verifications v
-  join public.profiles p on p.id=v.user_id
-  where v.user_id=p_user_id;
+  from private.member_profile_verifications verification
+  join public.profiles p on p.id=verification.user_id
+  where verification.user_id=p_user_id;
 end;
 $$;
 revoke all on function public.admin_review_member_listing_verification(uuid,uuid,text,text,uuid) from public,anon,authenticated;
 grant execute on function public.admin_review_member_listing_verification(uuid,uuid,text,text,uuid) to service_role;
-
--- Direct member routing is an access contract, not a discovery contract.
-create or replace function public.resolve_chon_member_route(p_identifier text)
-returns table(public_profile_code text,username citext)
-language plpgsql
-stable
-security definer
-set search_path=''
-as $$
-begin
-  if auth.uid() is null then raise exception using errcode='42501',message='authentication_required'; end if;
-  return query
-  select p.public_profile_code,p.username
-  from public.profiles p
-  where p.profile_status='active'::public.profile_status
-    and p.deleted_at is null
-    and private.is_active_adult(p.id)
-    and (
-      p.public_profile_code=lower(btrim(coalesce(p_identifier,'')))
-      or lower(p.username::text)=lower(btrim(coalesce(p_identifier,'')))
-    )
-  order by case when p.public_profile_code=lower(btrim(coalesce(p_identifier,''))) then 0 else 1 end
-  limit 1;
-end;
-$$;
-revoke all on function public.resolve_chon_member_route(text) from public,anon;
-grant execute on function public.resolve_chon_member_route(text) to authenticated,service_role;
-
--- Public canonical profile may be opened directly even when the member is not in Connect.
--- Anonymous output remains limited to public profile facts and approved public media.
-create or replace function public.get_public_chon_profile_v2(p_code text)
-returns table(
-  public_profile_code text,display_name text,headline text,bio text,gender public.gender_identity,age smallint,province_name text,interests text[],height_cm smallint,occupation text,
-  education_level public.education_level,relationship_status public.relationship_status,looking_for text,membership_tier public.luxy_membership_tier,membership_badge_visible boolean,
-  member_since timestamptz,avatar_available boolean,interested_in public.dating_interest,weight_kg smallint,children_status public.children_status,smoking_status public.smoking_status,
-  drinking_status public.drinking_status,lifestyle_tags public.profile_lifestyle_tag[],public_media_ids uuid[],private_photo_count integer
-)
-language sql
-stable
-security definer
-set search_path=''
-as $$
-  select p.public_profile_code,p.display_name,p.headline,p.bio,p.gender,extract(year from age(current_date,ui.date_of_birth))::smallint,area.name_vi,coalesce(p.interests,'{}'::text[]),p.height_cm,
-    p.occupation,p.education_level,p.relationship_status,p.looking_for,private.get_active_luxy_membership_tier(p.id),private.get_active_luxy_membership_tier(p.id) in ('premium','diamond'),p.created_at,
-    exists(select 1 from public.media_assets m where m.id=p.avatar_media_id and m.owner_id=p.id and m.visibility='avatar' and m.moderation_status='approved' and m.deleted_at is null and m.uploaded_at is not null),
-    p.interested_in,p.weight_kg,p.children_status,p.smoking_status,p.drinking_status,coalesce(p.lifestyle_tags,'{}'::public.profile_lifestyle_tag[]),coalesce(pub.media_ids,'{}'::uuid[]),coalesce(priv.photo_count,0)::integer
-  from public.profiles p
-  join private.user_identity ui on ui.user_id=p.id
-  left join public.administrative_areas area on area.id=p.province_id and area.country_code='VN' and area.is_active
-  left join lateral (
-    select array_agg(m.id order by m.uploaded_at desc,m.id) media_ids
-    from public.media_assets m
-    where m.owner_id=p.id and m.visibility='public' and m.moderation_status='approved' and m.deleted_at is null and m.uploaded_at is not null
-  ) pub on true
-  left join lateral (
-    select count(*)::integer photo_count
-    from public.media_assets m
-    where m.owner_id=p.id and m.visibility='private' and m.moderation_status='approved' and m.deleted_at is null and m.uploaded_at is not null
-  ) priv on true
-  where p.public_profile_code=lower(btrim(coalesce(p_code,'')))
-    and p.profile_status='active'::public.profile_status and p.deleted_at is null and private.is_active_adult(p.id)
-  limit 1;
-$$;
-
--- The canonical Connect UI uses Search V2. Retire authenticated access to the older
--- discovery RPC because its historical SQL does not participate in the new approval gate.
-revoke execute on function public.list_discovery_profiles(text,bigint,integer,integer) from anon,authenticated;
-grant execute on function public.list_discovery_profiles(text,bigint,integer,integer) to service_role;
-comment on function public.list_discovery_profiles(text,bigint,integer,integer) is
-  'Legacy discovery RPC retained for migration compatibility but not exposed to clients after OPT-01. Canonical Connect uses Search V2/count with centralized listing approval.';
