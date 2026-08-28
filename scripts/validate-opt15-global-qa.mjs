@@ -12,6 +12,7 @@ const ci = readText('.github/workflows/ci.yml');
 const database = readText('.github/workflows/database.yml');
 const browser = readText('.github/workflows/browser-e2e.yml');
 const lx15 = readText('.github/workflows/lx15-contract.yml');
+const heartFixture = readText('scripts/br06/seed-local-heart-balance.sql');
 
 const errors = [];
 const expect = (condition, message) => {
@@ -112,6 +113,31 @@ expect(
 expect(
   browser.includes("email like 'br06.%@example.test'") && browser.includes('controlled Beta accounts must not exist'),
   'Browser E2E must retain local fixture isolation checks.',
+);
+
+expect(
+  heartFixture.includes("set_config('br06.viewer_id', v_viewer_id::text, false)") &&
+    heartFixture.includes("set_config('br06.creator_id', v_creator_id::text, false)"),
+  'BR-06 economy fixture must resolve local actor UUIDs before dropping to authenticated role.',
+);
+const authenticatedFixtureStart = heartFixture.indexOf('set local role authenticated;');
+const authenticatedFixtureEnd = heartFixture.indexOf('commit;', authenticatedFixtureStart);
+const authenticatedFixtureBlock =
+  authenticatedFixtureStart >= 0 && authenticatedFixtureEnd > authenticatedFixtureStart
+    ? heartFixture.slice(authenticatedFixtureStart, authenticatedFixtureEnd)
+    : '';
+expect(
+  authenticatedFixtureBlock.includes("current_setting('br06.creator_id')") &&
+    authenticatedFixtureBlock.includes("current_setting('br06.viewer_id')"),
+  'Authenticated BR-06 economy flow must use pre-resolved fixture UUIDs.',
+);
+expect(
+  !authenticatedFixtureBlock.includes('auth.users'),
+  'Authenticated BR-06 economy flow must never query auth.users.',
+);
+expect(
+  !/grant\s+select\s+on\s+(?:table\s+)?auth\.users\s+to\s+authenticated/i.test(heartFixture),
+  'Browser fixtures must never grant authenticated direct SELECT access to auth.users.',
 );
 
 for (const token of [

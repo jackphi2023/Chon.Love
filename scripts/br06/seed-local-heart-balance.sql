@@ -15,6 +15,11 @@ begin
     raise exception 'BR-06 withdrawal fixture actors missing before economy seed';
   end if;
 
+  -- Resolve fixture identities while this local-only seed still has setup privileges.
+  -- The authenticated block below must never need SELECT access to auth.users.
+  perform set_config('br06.viewer_id', v_viewer_id::text, false);
+  perform set_config('br06.creator_id', v_creator_id::text, false);
+
   -- Preserve the existing viewer top-up fixture used by Balance/VietQR browser tests.
   perform public.record_verified_play_purchase(
     v_viewer_id,
@@ -77,14 +82,14 @@ set local role authenticated;
 select set_config(
   'request.jwt.claims',
   json_build_object(
-    'sub',(select id::text from auth.users where email='br06.creator@example.test'),
+    'sub',current_setting('br06.creator_id'),
     'role','authenticated'
   )::text,
   true
 );
 select *
 from public.send_luxy_gift(
-  (select id from auth.users where email='br06.viewer@example.test'),
+  current_setting('br06.viewer_id')::uuid,
   (select id from public.gift_catalog where display_hearts=20 and is_active order by sort_order,id limit 1),
   1,
   '00000000-0000-4000-8000-000000000611'::uuid,
@@ -95,10 +100,10 @@ commit;
 
 update private.creator_reward_positions
 set available_at=now()-interval '1 second'
-where creator_id=(select id from auth.users where email='br06.viewer@example.test');
+where creator_id=current_setting('br06.viewer_id')::uuid;
 
 select private.release_due_luxy_rewards_for(
-  (select id from auth.users where email='br06.viewer@example.test'),
+  current_setting('br06.viewer_id')::uuid,
   500
 );
 
