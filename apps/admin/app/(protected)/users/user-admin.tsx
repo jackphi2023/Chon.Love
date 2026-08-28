@@ -36,6 +36,25 @@ type ListingReviewItem = {
   updated_at: string;
 };
 
+type AdminMediaItem = {
+  id: string;
+  media_type: string;
+  mime_type: string;
+  visibility: string;
+  moderation_status: string;
+  moderation_reason_code: string | null;
+  uploaded_at: string | null;
+  created_at: string;
+  width: number | null;
+  height: number | null;
+  signed_url: string | null;
+};
+
+type VerificationSelfie = {
+  signed_url: string | null;
+  created_at: string | null;
+};
+
 type Detail = {
   account?: Record<string, unknown>;
   profile?: Record<string, unknown>;
@@ -45,7 +64,37 @@ type Detail = {
   roles?: unknown[];
   age?: number | null;
   account_status?: string | null;
+  media?: AdminMediaItem[];
+  verification_selfies?: VerificationSelfie[];
+  share_profile_url?: string | null;
 };
+
+function textValue(record: Record<string, unknown> | undefined, key: string, fallback = '—') {
+  const value = record?.[key];
+  if (value === null || value === undefined || value === '') return fallback;
+  return String(value);
+}
+
+function dateTime(value: unknown) {
+  if (typeof value !== 'string' || !value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+
+function mediaVisibilityLabel(value: string) {
+  if (value === 'avatar') return 'Ảnh đại diện';
+  if (value === 'public') return 'Công khai';
+  if (value === 'private') return 'Ảnh ẩn';
+  return value;
+}
+
+function moderationLabel(value: string) {
+  if (value === 'approved') return 'Đã duyệt';
+  if (value === 'pending_review') return 'Chờ duyệt';
+  if (value === 'rejected') return 'Bị từ chối';
+  if (value === 'removed') return 'Đã ẩn';
+  return value;
+}
 
 export function UserAdmin() {
   const [items, setItems] = useState<UserItem[]>([]);
@@ -232,16 +281,107 @@ export function UserAdmin() {
         </table>
       </div>
 
-      {selected && detail ? (
-        <section style={{ borderTop: '1px solid #ddd', display: 'grid', gap: 10, paddingTop: 16 }}>
-          <h2>Chi tiết: {selected.display_name || selected.username || selected.email}</h2>
-          <div><strong>Account status:</strong> {detail.account_status ?? '—'} · <strong>Age:</strong> {detail.age ?? '—'}</div>
-          <div><strong>Roles:</strong> {JSON.stringify(detail.roles ?? [])}</div>
-          <details><summary>Account</summary><pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(detail.account ?? {}, null, 2)}</pre></details>
-          <details><summary>Profile</summary><pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(detail.profile ?? {}, null, 2)}</pre></details>
-          <details><summary>Membership / Verification / Safety</summary><pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify({ membership: detail.membership, verification: detail.verification, counts: detail.counts }, null, 2)}</pre></details>
-        </section>
-      ) : null}
+      {selected && detail ? <UserDetailPanel detail={detail} selected={selected} /> : null}
     </div>
   );
+}
+
+function UserDetailPanel({ detail, selected }: { detail: Detail; selected: UserItem }) {
+  const account = detail.account;
+  const profile = detail.profile;
+  const membership = detail.membership;
+  const verification = detail.verification;
+  const media = detail.media ?? [];
+  const selfies = detail.verification_selfies ?? [];
+
+  return (
+    <section style={{ borderTop: '1px solid #ddd', display: 'grid', gap: 18, paddingTop: 18 }}>
+      <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Hồ sơ: {selected.display_name || selected.username || selected.email}</h2>
+          <p style={{ margin: '5px 0 0' }}>Admin xem trực quan hồ sơ, toàn bộ ảnh hiện còn lưu và selfie xác thực của thành viên.</p>
+        </div>
+        {detail.share_profile_url ? (
+          <a href={detail.share_profile_url} rel="noreferrer" target="_blank" style={{ border: '1px solid #b87800', borderRadius: 8, color: '#8a5b00', fontWeight: 700, padding: '9px 12px', textDecoration: 'none' }}>
+            Xem hồ sơ chia sẻ
+          </a>
+        ) : null}
+      </div>
+
+      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+        <InfoCard label="Email" value={textValue(account, 'email')} />
+        <InfoCard label="User ID" value={textValue(account, 'user_id')} />
+        <InfoCard label="Trạng thái tài khoản" value={detail.account_status ?? '—'} />
+        <InfoCard label="Trạng thái hồ sơ" value={textValue(profile, 'profile_status')} />
+        <InfoCard label="Tuổi" value={detail.age === null || detail.age === undefined ? '—' : `${detail.age} tuổi`} />
+        <InfoCard label="Gói thành viên" value={textValue(membership, 'tier', 'free')} />
+        <InfoCard label="Đăng nhập gần nhất" value={dateTime(account?.last_sign_in_at)} />
+        <InfoCard label="Tạo tài khoản" value={dateTime(account?.created_at)} />
+        <InfoCard label="Xác thực CCCD" value={textValue(verification, 'identity_status', 'not_submitted')} />
+        <InfoCard label="Xác thực LinkedIn" value={textValue(verification, 'linkedin_status', 'not_submitted')} />
+      </div>
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        <h3 style={{ margin: 0 }}>Ảnh hồ sơ ({media.length})</h3>
+        <p style={{ margin: 0 }}>Bao gồm ảnh đại diện, ảnh công khai, ảnh ẩn và ảnh đang chờ/bị từ chối nếu file vẫn còn hợp lệ.</p>
+        {media.length ? (
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+            {media.map((item) => <AdminImageCard item={item} key={item.id} />)}
+          </div>
+        ) : <p style={{ margin: 0 }}>Thành viên chưa có ảnh hồ sơ đang lưu.</p>}
+      </div>
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        <h3 style={{ margin: 0 }}>Selfie xác thực ({selfies.length})</h3>
+        {selfies.length ? (
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+            {selfies.map((item, index) => (
+              <figure key={`${item.created_at ?? 'selfie'}-${index}`} style={{ border: '1px solid #e5e7eb', borderRadius: 10, margin: 0, overflow: 'hidden' }}>
+                {item.signed_url ? <img alt={`Selfie xác thực ${index + 1}`} src={item.signed_url} style={{ aspectRatio: '4 / 5', display: 'block', objectFit: 'cover', width: '100%' }} /> : <ImageUnavailable />}
+                <figcaption style={{ display: 'grid', gap: 3, padding: 8 }}>
+                  <strong>{index === 0 ? 'Selfie gần nhất' : `Selfie ${index + 1}`}</strong>
+                  <small>{dateTime(item.created_at)}</small>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : <p style={{ margin: 0 }}>Chưa có selfie xác thực.</p>}
+      </div>
+
+      <details>
+        <summary>Thông tin hồ sơ đầy đủ</summary>
+        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', paddingTop: 10 }}>
+          {Object.entries(profile ?? {}).map(([key, value]) => (
+            <InfoCard key={key} label={key.replaceAll('_', ' ')} value={value === null || value === undefined || value === '' ? '—' : String(value)} />
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 9, display: 'grid', gap: 4, padding: 10 }}>
+      <small style={{ color: '#6b7280', fontWeight: 700, textTransform: 'uppercase' }}>{label}</small>
+      <span style={{ overflowWrap: 'anywhere' }}>{value}</span>
+    </div>
+  );
+}
+
+function AdminImageCard({ item }: { item: AdminMediaItem }) {
+  return (
+    <figure style={{ border: '1px solid #e5e7eb', borderRadius: 10, margin: 0, overflow: 'hidden' }}>
+      {item.signed_url ? <img alt={`${mediaVisibilityLabel(item.visibility)} của thành viên`} src={item.signed_url} style={{ aspectRatio: '4 / 5', display: 'block', objectFit: 'cover', width: '100%' }} /> : <ImageUnavailable />}
+      <figcaption style={{ display: 'grid', gap: 3, padding: 8 }}>
+        <strong>{mediaVisibilityLabel(item.visibility)}</strong>
+        <small>{moderationLabel(item.moderation_status)}{item.moderation_reason_code ? ` · ${item.moderation_reason_code}` : ''}</small>
+        <small>{item.width && item.height ? `${item.width}×${item.height} · ` : ''}{dateTime(item.uploaded_at ?? item.created_at)}</small>
+      </figcaption>
+    </figure>
+  );
+}
+
+function ImageUnavailable() {
+  return <div style={{ alignItems: 'center', aspectRatio: '4 / 5', background: '#f3f4f6', display: 'flex', justifyContent: 'center', padding: 12, textAlign: 'center' }}>Không thể mở ảnh</div>;
 }
