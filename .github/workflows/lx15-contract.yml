@@ -6,11 +6,13 @@ on:
     paths:
       - 'supabase/**'
       - 'packages/supabase/**'
+      - 'scripts/validate-opt15-global-qa.mjs'
       - '.github/workflows/lx15-contract.yml'
   pull_request:
     paths:
       - 'supabase/**'
       - 'packages/supabase/**'
+      - 'scripts/validate-opt15-global-qa.mjs'
       - '.github/workflows/lx15-contract.yml'
 
 permissions:

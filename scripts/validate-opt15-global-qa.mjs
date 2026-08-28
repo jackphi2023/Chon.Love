@@ -35,7 +35,6 @@ expect(
 );
 
 for (const [name, workflow] of [
-  ['Database', database],
   ['Browser E2E', browser],
   ['LX-15 Contract', lx15],
 ]) {
@@ -48,6 +47,10 @@ for (const [name, workflow] of [
     `${name} must continue to run on release/** branches.`,
   );
 }
+expect(
+  database.includes("'release/**'") && count(database, '.github/workflows/browser-e2e.yml') >= 2,
+  'Database must continue to fan out on release branches whenever the Browser E2E gate definition changes.',
+);
 
 for (const token of [
   'pnpm validate:workspace',
