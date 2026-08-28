@@ -10,6 +10,7 @@ import {
   listActiveGiftCatalog,
   sendGiftToMember,
   type GiftCatalogItem,
+  type LuxyGiftSendResult,
 } from '@myfan/supabase';
 import {
   chonBreakpoints,
@@ -23,7 +24,7 @@ import {
 } from '@myfan/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -37,6 +38,9 @@ import {
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
+
+type GiftFlowStep = 'catalog' | 'confirm' | 'result';
+type GiftSendAttempt = { gift: GiftCatalogItem; idempotencyKey: string };
 
 export function ChonGiftModal({
   visible,
@@ -59,6 +63,9 @@ export function ChonGiftModal({
   const client = getMobileSupabaseClient();
   const queryClient = useQueryClient();
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
+  const [step, setStep] = useState<GiftFlowStep>('catalog');
+  const [attemptKey, setAttemptKey] = useState<string | null>(null);
+  const [sendResult, setSendResult] = useState<LuxyGiftSendResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const catalogQuery = useQuery({
@@ -96,50 +103,94 @@ export function ChonGiftModal({
     [catalogQuery.data, selectedGiftId],
   );
   const canGift = Boolean(walletQuery.data?.can_gift && membershipQuery.data?.can_use_hearts);
-  const balanceUnits = walletQuery.data?.heart_available_units ?? membershipQuery.data?.heart_balance_units ?? 0;
-  const hasEnough = selectedGift ? balanceUnits >= selectedGift.heart_price_units : false;
+  const balanceUnits = sendResult?.sender_balance_units
+    ?? walletQuery.data?.heart_available_units
+    ?? membershipQuery.data?.heart_balance_units
+    ?? 0;
+  const preSendBalanceUnits = walletQuery.data?.heart_available_units ?? membershipQuery.data?.heart_balance_units ?? 0;
+  const hasEnough = selectedGift ? preSendBalanceUnits >= selectedGift.heart_price_units : false;
   const compact = width < chonBreakpoints.mobile;
   const columns = width < chonBreakpoints.compactPhone ? 4 : 5;
   const tileWidth = `${100 / columns}%` as `${number}%`;
 
+  function resetFlow() {
+    setSelectedGiftId(null);
+    setStep('catalog');
+    setAttemptKey(null);
+    setSendResult(null);
+    setErrorMessage(null);
+  }
+
+  useEffect(() => {
+    if (!visible) resetFlow();
+  }, [visible]);
+
   const sendMutation = useMutation({
-    mutationFn: async (gift: GiftCatalogItem) => {
+    mutationFn: async ({ gift, idempotencyKey }: GiftSendAttempt) => {
       if (!client) throw new Error('supabase_unavailable');
       return sendGiftToMember(client, {
         recipientId,
         giftId: gift.id,
         quantity: 1,
-        idempotencyKey: createGiftIdempotencyKey(),
+        idempotencyKey,
         ...(conversationId
           ? { conversationId, clientMessageId: createChatClientMessageId() }
           : {}),
       });
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       setErrorMessage(null);
-      setSelectedGiftId(null);
+      setSendResult(result);
+      setStep('result');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.wallet(auth.userId) }),
         queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.history(auth.userId, 'sent') }),
+        queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.history(auth.userId, 'received') }),
         queryClient.invalidateQueries({ queryKey: ['luxy-membership', auth.userId] }),
         ...(conversationId
           ? [queryClient.invalidateQueries({ queryKey: ['chat-messages', conversationId] })]
           : []),
       ]);
       onSent?.();
-      onClose();
     },
     onError: (error) => setErrorMessage(getReadableGiftError(error)),
   });
 
   const close = () => {
     if (sendMutation.isPending) return;
-    setErrorMessage(null);
-    setSelectedGiftId(null);
+    resetFlow();
     onClose();
   };
 
+  function chooseGift(giftId: string) {
+    setErrorMessage(null);
+    setSelectedGiftId(giftId);
+    setAttemptKey(null);
+    setSendResult(null);
+  }
+
+  function beginConfirmation() {
+    if (!selectedGift || !canGift || !hasEnough) return;
+    setErrorMessage(null);
+    setAttemptKey(createGiftIdempotencyKey());
+    setStep('confirm');
+  }
+
+  function confirmSend() {
+    if (!selectedGift || !canGift || !hasEnough || sendMutation.isPending) return;
+    const idempotencyKey = attemptKey ?? createGiftIdempotencyKey();
+    if (!attemptKey) setAttemptKey(idempotencyKey);
+    setErrorMessage(null);
+    sendMutation.mutate({ gift: selectedGift, idempotencyKey });
+  }
+
   const catalog = catalogQuery.data ?? [];
+  const dialogTitle = step === 'result' ? 'Đã gửi quà' : step === 'confirm' ? 'Xác nhận tặng quà' : 'Tặng quà';
+  const dialogSubtitle = step === 'result'
+    ? `Giao dịch với ${recipientName} đã được server xác nhận.`
+    : step === 'confirm'
+      ? `Kiểm tra lại món quà trước khi gửi đến ${recipientName}.`
+      : `Gửi một món quà tự nguyện đến ${recipientName}`;
 
   return (
     <Modal animationType="fade" onRequestClose={close} transparent visible={visible}>
@@ -149,8 +200,8 @@ export function ChonGiftModal({
           <View style={[styles.header, compact && styles.headerCompact]}>
             <ChonBrandIcon name="gift" size={24} />
             <View style={styles.headerText}>
-              <Text accessibilityRole="header" style={styles.title}>Tặng quà</Text>
-              <Text numberOfLines={1} style={styles.subtitle}>Gửi một món quà tự nguyện đến {recipientName}</Text>
+              <Text accessibilityRole="header" style={styles.title}>{dialogTitle}</Text>
+              <Text numberOfLines={2} style={styles.subtitle}>{dialogSubtitle}</Text>
             </View>
             <Pressable
               accessibilityLabel="Đóng"
@@ -168,102 +219,152 @@ export function ChonGiftModal({
             <Text style={styles.balanceValue}>{formatHeartUnitBalance(balanceUnits)}</Text>
           </View>
 
-          {!membershipQuery.isLoading && !canGift ? (
-            <View style={[styles.lockedBox, compact && styles.lockedBoxCompact]}>
-              <Text style={styles.lockedTitle}>Quà dành cho thành viên Cao cấp và Kim cương</Text>
-              <Text style={styles.lockedBody}>Tặng quà giúp tạo thiện cảm ban đầu và giúp xây dựng một mối quan hệ mới</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  close();
-                  router.push('/settings/membership');
-                }}
-                style={({ pressed }) => [styles.upgradeButton, pressed && styles.upgradeButtonPressed]}
-              >
-                <Text style={styles.upgradeText}>Xem gói thành viên</Text>
+          {step === 'result' && sendResult ? (
+            <View style={styles.resultPanel} testID="chon-gift-picker-result">
+              <View style={styles.resultMark}><Text style={styles.resultMarkText}>✓</Text></View>
+              <Text style={styles.resultTitle}>Đã tặng {selectedGift?.name_vi ?? 'quà'} cho {recipientName}</Text>
+              <Text style={styles.resultBody}>
+                {sendResult.already_processed
+                  ? 'Giao dịch này đã được xác nhận trước đó. Hệ thống không trừ thêm ❤️ khi bạn gửi lại yêu cầu.'
+                  : `Đã gửi ${formatHeartUnitBalance(sendResult.gross_heart_units)}. Số dư còn lại ${formatHeartUnitBalance(sendResult.sender_balance_units)}.`}
+              </Text>
+              <Text style={styles.resultNote}>Người nhận nhận phần thu nhập theo chính sách quà hiện hành sau thời gian chờ 7 ngày.</Text>
+              <Pressable accessibilityRole="button" onPress={close} style={({ pressed }) => [styles.resultButton, pressed && styles.sendButtonPressed]}>
+                <Text style={styles.resultButtonText}>Xong</Text>
               </Pressable>
             </View>
-          ) : null}
-
-          {catalogQuery.isLoading || walletQuery.isLoading || membershipQuery.isLoading ? (
-            <StatePanel title="Đang tải quà tặng" text="Danh sách quà và số dư sẽ hiển thị ngay khi sẵn sàng." loading />
-          ) : catalogQuery.isError || walletQuery.isError || membershipQuery.isError ? (
-            <View style={styles.statePanel} testID="chon-gift-picker-error">
-              <Text style={styles.stateTitle}>Không tải được quà hoặc số dư</Text>
-              <Text style={styles.stateText}>Vui lòng thử lại để tải lại thông tin hiện tại.</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => void Promise.all([catalogQuery.refetch(), walletQuery.refetch(), membershipQuery.refetch()])}
-                style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
-              >
-                <Text style={styles.retryText}>Thử lại</Text>
-              </Pressable>
-            </View>
-          ) : catalog.length === 0 ? (
-            <StatePanel title="Chưa có quà tặng" text="Danh mục quà hiện chưa có món quà đang hoạt động." />
-          ) : (
-            <ScrollView contentContainerStyle={[styles.catalog, compact && styles.catalogCompact]} showsVerticalScrollIndicator={false} style={styles.catalogScroll}>
-              <Text style={styles.catalogTitle}>Chọn món quà</Text>
-              <Text style={styles.catalogHint}>Giá quà được hiển thị bằng ❤️.</Text>
-              <View style={styles.grid} testID="chon-gift-picker-grid">
-                {catalog.map((gift) => {
-                  const selected = gift.id === selectedGiftId;
-                  const affordable = balanceUnits >= gift.heart_price_units;
-                  return (
-                    <View key={gift.id} style={[styles.tileSlot, { width: tileWidth }]}>
-                      <Pressable
-                        accessibilityLabel={`${gift.name_vi}, ${formatGiftHeartPrice(gift)}`}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected, disabled: !canGift || !affordable }}
-                        disabled={!canGift || sendMutation.isPending}
-                        onPress={() => {
-                          setErrorMessage(null);
-                          setSelectedGiftId(gift.id);
-                        }}
-                        style={({ pressed }) => [
-                          styles.giftTile,
-                          compact && styles.giftTileCompact,
-                          selected && styles.giftSelected,
-                          !affordable && styles.giftUnaffordable,
-                          pressed && styles.pressed,
-                        ]}
-                        testID="chon-gift-picker-item"
-                      >
-                        <View style={[styles.giftIconRing, selected && styles.giftIconRingSelected]} testID="chon-gift-catalog-icon">
-                          <Text style={styles.giftIcon}>{gift.icon_emoji}</Text>
-                        </View>
-                        <Text numberOfLines={1} style={[styles.giftName, selected && styles.giftTextSelected]}>{gift.name_vi}</Text>
-                        <Text style={[styles.giftPrice, selected && styles.giftTextSelected, !affordable && styles.giftPriceUnaffordable]}>{formatGiftHeartPrice(gift)}</Text>
-                      </Pressable>
-                    </View>
-                  );
-                })}
+          ) : step === 'confirm' && selectedGift ? (
+            <View style={styles.confirmPanel} testID="chon-gift-picker-confirm-step">
+              <View style={styles.confirmGiftIcon}><Text style={styles.confirmGiftEmoji}>{selectedGift.icon_emoji}</Text></View>
+              <Text style={styles.confirmTitle}>Xác nhận tặng {selectedGift.name_vi}</Text>
+              <Text style={styles.confirmBody}>Bạn sẽ gửi {formatGiftHeartPrice(selectedGift)} đến {recipientName}.</Text>
+              <View style={styles.confirmFacts}>
+                <View style={styles.confirmFactRow}><Text style={styles.confirmFactLabel}>Số dư hiện tại</Text><Text style={styles.confirmFactValue}>{formatHeartUnitBalance(preSendBalanceUnits)}</Text></View>
+                <View style={styles.confirmFactRow}><Text style={styles.confirmFactLabel}>Sau khi gửi</Text><Text style={styles.confirmFactValue}>{formatHeartUnitBalance(Math.max(0, preSendBalanceUnits - selectedGift.heart_price_units))}</Text></View>
               </View>
-            </ScrollView>
+              <Text style={styles.confirmNote}>Người nhận nhận 70% giá trị quà vào thu nhập chờ 7 ngày. Quà không đổi lấy phản hồi, cuộc hẹn hoặc quyền xem ảnh riêng tư.</Text>
+              {errorMessage ? <Text accessibilityRole="alert" style={styles.confirmError}>{errorMessage}</Text> : null}
+              <View style={[styles.confirmActions, compact && styles.confirmActionsCompact]}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={sendMutation.isPending}
+                  onPress={() => {
+                    setErrorMessage(null);
+                    setAttemptKey(null);
+                    setStep('catalog');
+                  }}
+                  style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.backButtonText}>Quay lại</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={sendMutation.isPending}
+                  onPress={confirmSend}
+                  style={({ pressed }) => [styles.sendButton, styles.confirmSendButton, sendMutation.isPending && styles.sendDisabled, pressed && styles.sendButtonPressed]}
+                  testID="chon-gift-picker-confirm-send"
+                >
+                  {sendMutation.isPending ? <ActivityIndicator color={chonColors.surface} /> : <Text style={styles.sendText}>Xác nhận tặng</Text>}
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <>
+              {!membershipQuery.isLoading && !canGift ? (
+                <View style={[styles.lockedBox, compact && styles.lockedBoxCompact]}>
+                  <Text style={styles.lockedTitle}>Quà dành cho thành viên Cao cấp và Kim cương</Text>
+                  <Text style={styles.lockedBody}>Tặng quà giúp tạo thiện cảm ban đầu và giúp xây dựng một mối quan hệ mới</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      close();
+                      router.push('/settings/membership');
+                    }}
+                    style={({ pressed }) => [styles.upgradeButton, pressed && styles.upgradeButtonPressed]}
+                  >
+                    <Text style={styles.upgradeText}>Xem gói thành viên</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {catalogQuery.isLoading || walletQuery.isLoading || membershipQuery.isLoading ? (
+                <StatePanel title="Đang tải quà tặng" text="Danh sách quà và số dư sẽ hiển thị ngay khi sẵn sàng." loading />
+              ) : catalogQuery.isError || walletQuery.isError || membershipQuery.isError ? (
+                <View style={styles.statePanel} testID="chon-gift-picker-error">
+                  <Text style={styles.stateTitle}>Không tải được quà hoặc số dư</Text>
+                  <Text style={styles.stateText}>Vui lòng thử lại để tải lại thông tin hiện tại.</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void Promise.all([catalogQuery.refetch(), walletQuery.refetch(), membershipQuery.refetch()])}
+                    style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+                  >
+                    <Text style={styles.retryText}>Thử lại</Text>
+                  </Pressable>
+                </View>
+              ) : catalog.length === 0 ? (
+                <StatePanel title="Chưa có quà tặng" text="Danh mục quà hiện chưa có món quà đang hoạt động." />
+              ) : (
+                <ScrollView contentContainerStyle={[styles.catalog, compact && styles.catalogCompact]} showsVerticalScrollIndicator={false} style={styles.catalogScroll}>
+                  <Text style={styles.catalogTitle}>Chọn món quà</Text>
+                  <Text style={styles.catalogHint}>Giá quà được hiển thị bằng ❤️.</Text>
+                  <View style={styles.grid} testID="chon-gift-picker-grid">
+                    {catalog.map((gift) => {
+                      const selected = gift.id === selectedGiftId;
+                      const affordable = preSendBalanceUnits >= gift.heart_price_units;
+                      return (
+                        <View key={gift.id} style={[styles.tileSlot, { width: tileWidth }]}>
+                          <Pressable
+                            accessibilityLabel={`${gift.name_vi}, ${formatGiftHeartPrice(gift)}`}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected, disabled: !canGift }}
+                            disabled={!canGift || sendMutation.isPending}
+                            onPress={() => chooseGift(gift.id)}
+                            style={({ pressed }) => [
+                              styles.giftTile,
+                              compact && styles.giftTileCompact,
+                              selected && styles.giftSelected,
+                              !affordable && styles.giftUnaffordable,
+                              pressed && styles.pressed,
+                            ]}
+                            testID="chon-gift-picker-item"
+                          >
+                            <View style={[styles.giftIconRing, selected && styles.giftIconRingSelected]} testID="chon-gift-catalog-icon">
+                              <Text style={styles.giftIcon}>{gift.icon_emoji}</Text>
+                            </View>
+                            <Text numberOfLines={1} style={[styles.giftName, selected && styles.giftTextSelected]}>{gift.name_vi}</Text>
+                            <Text style={[styles.giftPrice, selected && styles.giftTextSelected, !affordable && styles.giftPriceUnaffordable]}>{formatGiftHeartPrice(gift)}</Text>
+                          </Pressable>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              )}
+
+              {selectedGift ? (
+                <View style={[styles.confirmation, compact && styles.confirmationCompact]} testID="chon-gift-picker-selection">
+                  <View style={styles.confirmationIcon}><Text style={styles.confirmationGiftIcon}>{selectedGift.icon_emoji}</Text></View>
+                  <View style={styles.confirmationCopy}>
+                    <Text style={styles.confirmationTitle}>{selectedGift.name_vi}</Text>
+                    <Text style={styles.confirmationBody}>Tặng {formatGiftHeartPrice(selectedGift)} cho {recipientName}</Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={!canGift || !hasEnough || sendMutation.isPending}
+                    onPress={beginConfirmation}
+                    style={({ pressed }) => [styles.sendButton, compact && styles.sendButtonCompact, (!canGift || !hasEnough || sendMutation.isPending) && styles.sendDisabled, pressed && styles.sendButtonPressed]}
+                    testID="chon-gift-picker-review"
+                  >
+                    <Text style={styles.sendText}>Tiếp tục</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {selectedGift && !hasEnough ? <Text style={styles.errorText}>Số dư ❤️ chưa đủ cho món quà này.</Text> : null}
+              {errorMessage ? <Text accessibilityRole="alert" style={styles.errorText}>{errorMessage}</Text> : null}
+            </>
           )}
 
-          {selectedGift ? (
-            <View style={[styles.confirmation, compact && styles.confirmationCompact]} testID="chon-gift-picker-confirmation">
-              <View style={styles.confirmationIcon}><Text style={styles.confirmationGiftIcon}>{selectedGift.icon_emoji}</Text></View>
-              <View style={styles.confirmationCopy}>
-                <Text style={styles.confirmationTitle}>{selectedGift.name_vi}</Text>
-                <Text style={styles.confirmationBody}>
-                  Gửi {formatGiftHeartPrice(selectedGift)} đến {recipientName}. Người nhận nhận 70% giá trị quà vào thu nhập chờ 7 ngày.
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                disabled={!canGift || !hasEnough || sendMutation.isPending}
-                onPress={() => sendMutation.mutate(selectedGift)}
-                style={({ pressed }) => [styles.sendButton, compact && styles.sendButtonCompact, (!canGift || !hasEnough || sendMutation.isPending) && styles.sendDisabled, pressed && styles.sendButtonPressed]}
-              >
-                {sendMutation.isPending ? <ActivityIndicator color={chonColors.surface} /> : <Text style={styles.sendText}>Tặng quà</Text>}
-              </Pressable>
-            </View>
-          ) : null}
-
-          {selectedGift && !hasEnough ? <Text style={styles.errorText}>Số dư ❤️ chưa đủ cho món quà này.</Text> : null}
-          {errorMessage ? <Text accessibilityRole="alert" style={styles.errorText}>{errorMessage}</Text> : null}
           <Text style={styles.disclaimer}>Quà là tự nguyện và không đổi lấy cuộc hẹn, phản hồi hay quyền xem ảnh riêng tư.</Text>
         </View>
       </View>
@@ -340,6 +441,30 @@ const styles = StyleSheet.create({
   sendButtonPressed: { backgroundColor: chonColors.primaryRedHover, opacity: chonInteraction.pressedOpacity, ...chonShadows.primaryHover },
   sendDisabled: { opacity: 0.5 },
   sendText: { color: chonColors.surface, fontSize: 12, fontWeight: '700' },
+  confirmPanel: { alignItems: 'center', gap: 10, minHeight: 320, paddingHorizontal: luxySpacing.xl, paddingVertical: 26 },
+  confirmGiftIcon: { alignItems: 'center', borderColor: chonColors.gold, borderRadius: 42, borderWidth: 2, height: 82, justifyContent: 'center', width: 82 },
+  confirmGiftEmoji: { fontSize: 42, lineHeight: 48 },
+  confirmTitle: { color: chonColors.ink, fontFamily: chonTypography.families.display, fontSize: 20, fontWeight: '600', marginTop: 4, textAlign: 'center' },
+  confirmBody: { color: chonColors.text, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  confirmFacts: { alignSelf: 'stretch', backgroundColor: chonColors.warmSurface, borderRadius: luxyRadii.md, marginTop: 4, paddingHorizontal: 14, paddingVertical: 9 },
+  confirmFactRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 32 },
+  confirmFactLabel: { color: chonColors.muted, fontSize: 12 },
+  confirmFactValue: { color: chonColors.ink, fontSize: 12, fontWeight: '700' },
+  confirmNote: { color: chonColors.muted, fontSize: 11, lineHeight: 17, maxWidth: 460, textAlign: 'center' },
+  confirmError: { color: chonColors.danger, fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  confirmActions: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4, width: '100%' },
+  confirmActionsCompact: { flexDirection: 'column-reverse' },
+  backButton: { alignItems: 'center', borderColor: chonColors.borderStrong, borderRadius: luxyRadii.pill, borderWidth: 1, justifyContent: 'center', minHeight: chonLayout.minimumTouchTarget, minWidth: 112, paddingHorizontal: 18 },
+  backButtonText: { color: chonColors.text, fontSize: 12, fontWeight: '700' },
+  confirmSendButton: { minWidth: 150 },
+  resultPanel: { alignItems: 'center', gap: 10, minHeight: 320, paddingHorizontal: luxySpacing.xl, paddingVertical: 30 },
+  resultMark: { alignItems: 'center', backgroundColor: chonColors.warmSurfaceStrong, borderColor: chonColors.gold, borderRadius: 34, borderWidth: 1, height: 68, justifyContent: 'center', width: 68 },
+  resultMarkText: { color: chonColors.primaryRed, fontSize: 32, fontWeight: '700' },
+  resultTitle: { color: chonColors.ink, fontFamily: chonTypography.families.display, fontSize: 20, fontWeight: '600', maxWidth: 440, textAlign: 'center' },
+  resultBody: { color: chonColors.text, fontSize: 13, lineHeight: 20, maxWidth: 440, textAlign: 'center' },
+  resultNote: { color: chonColors.muted, fontSize: 11, lineHeight: 17, maxWidth: 440, textAlign: 'center' },
+  resultButton: { alignItems: 'center', backgroundColor: chonColors.primaryRed, borderRadius: luxyRadii.pill, justifyContent: 'center', marginTop: 5, minHeight: chonLayout.minimumTouchTarget, minWidth: 130, paddingHorizontal: 22 },
+  resultButtonText: { color: chonColors.surface, fontSize: 12, fontWeight: '700' },
   errorText: { color: chonColors.danger, fontSize: 11, lineHeight: 16, paddingHorizontal: luxySpacing.xl, paddingTop: 8, textAlign: 'center' },
   disclaimer: { color: chonColors.muted, fontSize: 10, lineHeight: 15, paddingHorizontal: luxySpacing.xl, paddingVertical: 10, textAlign: 'center' },
   pressed: { opacity: chonInteraction.pressedOpacity },
