@@ -1,10 +1,9 @@
--- Chon.Love OPT-04 follow-up — member last-login / recent-session presentation.
+-- Chon.Love OPT-04 follow-up — member last-login presentation.
 --
--- The public profile needs a privacy-safe timestamp that can support the product copy:
--- online for the first hour after the latest visible session activity, then elapsed hours
--- during the same Vietnam calendar day, then an exact Vietnam date.
 -- Keep the existing RPC column name `last_active_at` as a backwards-compatible wire
--- alias. The value is the later of auth.users.last_sign_in_at and profiles.last_active_at.
+-- alias, but expose only the true Auth sign-in timestamp through this member-profile
+-- read model. Recent presence/activity is already available through get_profile_viewer
+-- and must stay a separate concept so UI wording never calls activity a new login.
 -- Existing paid hide-online privacy remains authoritative and returns null.
 
 create or replace function public.get_luxy_member_profile(p_username text)
@@ -111,7 +110,7 @@ begin
     coalesce(p.languages,'{}'::text[]),
     case
       when private.luxy_online_hidden(p.id) then null
-      else greatest(auth_user.last_sign_in_at,p.last_active_at)
+      else auth_user.last_sign_in_at
     end,
     p.created_at,
     case when v_blocked_by_viewer then 0 else coalesce(pub.photo_count,0) end::integer,
@@ -159,4 +158,4 @@ revoke all on function public.get_luxy_member_profile(text) from public,anon;
 grant execute on function public.get_luxy_member_profile(text) to authenticated,service_role;
 
 comment on function public.get_luxy_member_profile(text) is
-  'OPT-04 privacy-safe Member Profile read model. The legacy last_active_at wire column carries the latest visible session signal from auth last sign-in or profile activity, allowing the client to render online/hour/date copy in Vietnam time. Paid hide-online privacy returns null. No email, DOB, coordinates, KYC or financial auth data is exposed.';
+  'OPT-04 privacy-safe Member Profile read model. The legacy last_active_at wire column carries the true auth.users.last_sign_in_at timestamp only. Recent presence/activity remains in get_profile_viewer so the client can render online state without conflating activity with a login. Paid hide-online privacy returns null. No email, DOB, coordinates, KYC or financial auth data is exposed.';
