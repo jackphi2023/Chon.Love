@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const actor = { email: 'br06.viewer@example.test' };
 const PACKS = [10, 50, 100, 200, 500, 1000];
+const CHROME_GOLD = 'rgb(255, 205, 70)';
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -21,14 +22,28 @@ async function expectNoHorizontalOverflow(page) {
   expect(widths.scroll).toBeLessThanOrEqual(widths.client + 1);
 }
 
-test('UI-BAL01 exposes the final six server-priced packs in a 2-column mobile grid', async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+async function expectSameRow(page, leftHearts, rightHearts) {
+  const left = await page.getByTestId(`balance-pack-${leftHearts}`).boundingBox();
+  const right = await page.getByTestId(`balance-pack-${rightHearts}`).boundingBox();
+  expect(left).not.toBeNull();
+  expect(right).not.toBeNull();
+  expect(Math.abs(left.y - right.y)).toBeLessThan(3);
+  expect(right.x).toBeGreaterThan(left.x + 20);
+  expect(Math.abs(left.width - right.width)).toBeLessThan(3);
+  return { left, right };
+}
+
+test('OPT-11 keeps all six Balance packs in a 2-column grid at 320px and uses chrome-gold hover/active states', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 760 }, deviceScaleFactor: 2 });
   const page = await context.newPage();
   try {
     await login(page);
     await page.goto('/balance');
     await expect(page.getByTestId('chon-balance-screen')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole('heading', { name: 'Số dư' })).toBeVisible();
+
+    const heading = page.getByRole('heading', { name: 'Số dư' });
+    await expect(heading).toBeVisible();
+    await expect(heading).toHaveCSS('color', CHROME_GOLD);
     await expect(page.getByTestId('balance-single-line')).toContainText('Số dư khả dụng:');
     await expect(page.getByTestId('balance-catalog-blocker')).toHaveCount(0);
 
@@ -38,20 +53,27 @@ test('UI-BAL01 exposes the final six server-priced packs in a 2-column mobile gr
     await expect(page.getByTestId('balance-pack-5')).toHaveCount(0);
     await expect(page.getByTestId('balance-pack-20')).toHaveCount(0);
 
-    const first = await page.getByTestId('balance-pack-10').boundingBox();
-    const second = await page.getByTestId('balance-pack-50').boundingBox();
-    const third = await page.getByTestId('balance-pack-100').boundingBox();
-    expect(first).not.toBeNull();
-    expect(second).not.toBeNull();
-    expect(third).not.toBeNull();
-    expect(Math.abs(first.y - second.y)).toBeLessThan(3);
-    expect(third.y).toBeGreaterThan(first.y + 40);
-    expect(second.x).toBeGreaterThan(first.x + 20);
+    const row1 = await expectSameRow(page, 10, 50);
+    const row2 = await expectSameRow(page, 100, 200);
+    const row3 = await expectSameRow(page, 500, 1000);
+    expect(row2.left.y).toBeGreaterThan(row1.left.y + 40);
+    expect(row3.left.y).toBeGreaterThan(row2.left.y + 40);
 
     const selected = page.getByTestId('balance-pack-10');
     await expect(selected).toHaveAttribute('aria-checked', 'true');
-    await expect(selected).toHaveCSS('background-color', 'rgb(184, 120, 0)');
-    await expect(selected).toHaveCSS('border-color', 'rgb(217, 45, 42)');
+    await expect(selected).toHaveCSS('background-color', CHROME_GOLD);
+    await expect(selected).toHaveCSS('border-color', CHROME_GOLD);
+
+    const hovered = page.getByTestId('balance-pack-50');
+    await hovered.hover();
+    await expect(hovered).toHaveCSS('background-color', CHROME_GOLD);
+    await expect(hovered).toHaveCSS('border-color', CHROME_GOLD);
+
+    await hovered.click();
+    await heading.hover();
+    await expect(hovered).toHaveAttribute('aria-checked', 'true');
+    await expect(hovered).toHaveCSS('background-color', CHROME_GOLD);
+    await expect(hovered).toHaveCSS('border-color', CHROME_GOLD);
 
     const cta = page.getByTestId('balance-checkout-cta');
     await expect(cta).toBeEnabled();
