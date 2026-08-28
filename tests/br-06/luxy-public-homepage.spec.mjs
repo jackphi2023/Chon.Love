@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const homepageSeoTitle = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const colors = {
   red: 'rgb(217, 45, 42)',
-  gold: 'rgb(255, 187, 0)',
+  gold: 'rgb(255, 205, 70)',
   pink: 'rgb(250, 245, 242)',
 };
 const navLogoScale = 1.16;
