@@ -17,9 +17,16 @@ async function openGiftPicker(page) {
   await page.goto(`/profile/${creator.username}`);
   await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
   await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
-  const giftAction = page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
+
+  const isDesktop = (page.viewportSize()?.width ?? 390) >= 768;
+  const giftAction = isDesktop
+    ? page.getByTestId('luxy-profile-desktop-gift-button')
+    : page
+        .getByTestId('chon-profile-mobile-action-dock')
+        .getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
   await expect(giftAction).toBeVisible();
   await giftAction.click();
+
   const picker = page.getByTestId('chon-gift-picker');
   await expect(picker).toBeVisible();
   return picker;
@@ -70,7 +77,7 @@ test('UI-GIFT01 keeps the 20-gift heart catalog and responsive shared Chon.Love 
       contentType: 'image/png',
     });
 
-    await page.getByRole('button', { name: 'Đóng', exact: true }).click();
+    await picker.getByRole('button', { name: 'Đóng', exact: true }).click();
     await page.setViewportSize({ width: 1280, height: 900 });
     const desktopPicker = await openGiftPicker(page);
     await assertFinalGiftPresentation(desktopPicker);
