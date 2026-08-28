@@ -35,8 +35,8 @@ export const luxyColors = {
 export const chonColors = {
   primaryRed: '#D92D2A',
   primaryRedHover: '#E94A47',
-  gold: '#FFCD46',
-  goldChrome: '#FFCD46',
+  gold: '#FFBB00',
+  goldChrome: '#FFBB00',
   goldStrong: '#B87800',
   warmSurface: '#FAF5F2',
   warmSurfaceStrong: '#FFF1C8',
