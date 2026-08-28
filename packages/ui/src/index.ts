@@ -35,7 +35,8 @@ export const luxyColors = {
 export const chonColors = {
   primaryRed: '#D92D2A',
   primaryRedHover: '#E94A47',
-  gold: '#FFBB00',
+  gold: '#FFCD46',
+  goldChrome: '#FFCD46',
   goldStrong: '#B87800',
   warmSurface: '#FAF5F2',
   warmSurfaceStrong: '#FFF1C8',
@@ -144,7 +145,7 @@ export const chonButtons = {
   },
   goldFilled: {
     background: chonColors.gold,
-    hoverBackground: '#FFC928',
+    hoverBackground: chonColors.gold,
     text: chonColors.text,
     border: chonColors.gold,
   },
