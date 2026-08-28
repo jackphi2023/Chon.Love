@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const password = process.env.BR06_E2E_PASSWORD || 'Br06-local-only-2026!';
 const actor = { email: 'br06.viewer@example.test' };
 const PACKS = [10, 50, 100, 200, 500, 1000];
-const CHROME_GOLD = 'rgb(255, 205, 70)';
+const CHON_GOLD = 'rgb(255, 187, 0)';
 
 async function login(page) {
   await page.goto('/auth?mode=login');
@@ -33,7 +33,7 @@ async function expectSameRow(page, leftHearts, rightHearts) {
   return { left, right };
 }
 
-test('OPT-11 keeps all six Balance packs in a 2-column grid at 320px and uses chrome-gold hover/active states', async ({ browser }) => {
+test('OPT-11 keeps all six Balance packs in a 2-column grid at 320px and uses Chọn.Love gold hover/active states', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 320, height: 760 }, deviceScaleFactor: 2 });
   const page = await context.newPage();
   try {
@@ -43,7 +43,7 @@ test('OPT-11 keeps all six Balance packs in a 2-column grid at 320px and uses ch
 
     const heading = page.getByRole('heading', { name: 'Số dư' });
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveCSS('color', CHROME_GOLD);
+    await expect(heading).toHaveCSS('color', CHON_GOLD);
     await expect(page.getByTestId('balance-single-line')).toContainText('Số dư khả dụng:');
     await expect(page.getByTestId('balance-catalog-blocker')).toHaveCount(0);
 
@@ -61,19 +61,19 @@ test('OPT-11 keeps all six Balance packs in a 2-column grid at 320px and uses ch
 
     const selected = page.getByTestId('balance-pack-10');
     await expect(selected).toHaveAttribute('aria-checked', 'true');
-    await expect(selected).toHaveCSS('background-color', CHROME_GOLD);
-    await expect(selected).toHaveCSS('border-color', CHROME_GOLD);
+    await expect(selected).toHaveCSS('background-color', CHON_GOLD);
+    await expect(selected).toHaveCSS('border-color', CHON_GOLD);
 
     const hovered = page.getByTestId('balance-pack-50');
     await hovered.hover();
-    await expect(hovered).toHaveCSS('background-color', CHROME_GOLD);
-    await expect(hovered).toHaveCSS('border-color', CHROME_GOLD);
+    await expect(hovered).toHaveCSS('background-color', CHON_GOLD);
+    await expect(hovered).toHaveCSS('border-color', CHON_GOLD);
 
     await hovered.click();
     await heading.hover();
     await expect(hovered).toHaveAttribute('aria-checked', 'true');
-    await expect(hovered).toHaveCSS('background-color', CHROME_GOLD);
-    await expect(hovered).toHaveCSS('border-color', CHROME_GOLD);
+    await expect(hovered).toHaveCSS('background-color', CHON_GOLD);
+    await expect(hovered).toHaveCSS('border-color', CHON_GOLD);
 
     const cta = page.getByTestId('balance-checkout-cta');
     await expect(cta).toBeEnabled();
