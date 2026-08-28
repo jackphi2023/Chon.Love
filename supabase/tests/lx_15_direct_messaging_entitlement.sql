@@ -1,6 +1,6 @@
 begin;
 
--- OPT-15 final candidate fan-out marker: this comment intentionally triggers CI, Database, Browser E2E and LX-15 on the same release SHA without changing contract behavior.
+-- OPT-15 final candidate fan-out marker: #FFBB00 test-contract alignment; no database contract behavior changes.
 select plan(24);
 
 select has_column('public','conversations','direct_member_low_id','LX-15 stores canonical lower direct participant');
