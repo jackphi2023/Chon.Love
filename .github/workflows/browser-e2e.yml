@@ -47,6 +47,8 @@ on:
       - 'pnpm-lock.yaml'
       - 'supabase/**'
 
+# OPT-15_FINAL_FANOUT_MARKER: touching this workflow together with the OPT-15
+# validator intentionally fans out CI, Database, Browser E2E and LX-15 on one SHA.
 permissions:
   contents: read
 

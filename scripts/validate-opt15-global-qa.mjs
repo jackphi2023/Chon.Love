@@ -20,6 +20,7 @@ const expect = (condition, message) => {
 };
 
 const opt15Hook = 'scripts/validate-opt15-global-qa.mjs';
+const opt15FinalFanoutMarker = 'OPT-15_FINAL_FANOUT_MARKER';
 const count = (source, token) => source.split(token).length - 1;
 
 expect(
@@ -48,6 +49,10 @@ for (const [name, workflow] of [
     `${name} must continue to run on release/** branches.`,
   );
 }
+expect(
+  browser.includes(opt15FinalFanoutMarker),
+  'Browser E2E must retain the explicit OPT-15 final fan-out marker used to trigger all release gates on one SHA.',
+);
 expect(
   database.includes("'release/**'") && count(database, '.github/workflows/browser-e2e.yml') >= 2,
   'Database must continue to fan out on release branches whenever the Browser E2E gate definition changes.',
