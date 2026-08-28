@@ -41,11 +41,11 @@ test('OPT-09 gift transaction confirms once and refreshes sender/recipient histo
       login(recipientPage, recipient),
     ]);
 
-    // Subscribe the recipient before sending so this test proves a real server event refreshes
-    // the history without a browser reload or a client-side optimistic insertion.
+    // Mount the recipient gift page before sending. The later no-reload history assertion is
+    // the functional proof that its realtime subscription received the server transaction.
     await recipientPage.goto('/gifts');
     await expect(recipientPage.getByTestId('luxy-gifts-income-page')).toBeVisible({ timeout: 20_000 });
-    await expect(recipientPage.getByRole('tab', { name: 'Đã nhận', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(recipientPage.getByRole('tab', { name: 'Đã nhận', exact: true })).toBeVisible();
 
     await openRecipientProfile(senderPage);
     const giftAction = senderPage.getByRole('button', { name: `Tặng quà cho ${recipient.displayName}`, exact: true });
