@@ -58,6 +58,7 @@ export function ChonBalanceScreen() {
   const desktop = width >= chonBreakpoints.desktop;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [createdOrder, setCreatedOrder] = useState<VietqrHeartOrder | null>(null);
   const [busy, setBusy] = useState<BusyAction>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -271,6 +272,8 @@ export function ChonBalanceScreen() {
                   <View style={styles.packGrid} testID="balance-pack-grid">
                     {products.map((product) => {
                       const selected = selectedId === product.product_id;
+                      const hovered = hoveredId === product.product_id;
+                      const highlighted = selected || hovered;
                       const webRadioState = Platform.OS === 'web' ? { 'aria-checked': selected } : {};
                       return (
                         <Pressable
@@ -279,16 +282,18 @@ export function ChonBalanceScreen() {
                           accessibilityRole="radio"
                           accessibilityState={{ checked: selected }}
                           key={product.product_id}
+                          onHoverIn={() => setHoveredId(product.product_id)}
+                          onHoverOut={() => setHoveredId((current) => (current === product.product_id ? null : current))}
                           onPress={() => setSelectedId(product.product_id)}
                           style={({ pressed }) => [
                             styles.packCard,
-                            selected && styles.packCardSelected,
-                            pressed && styles.pressed,
+                            (highlighted || pressed) && styles.packCardHighlighted,
+                            pressed && styles.packCardPressed,
                           ]}
                           testID={`balance-pack-${product.display_hearts}`}
                         >
-                          <Text style={[styles.packHearts, selected && styles.packHeartsSelected]}>{formatVietqrHearts(product.display_hearts)}</Text>
-                          <Text style={[styles.packAmount, selected && styles.packAmountSelected]}>{formatVnd(product.amount_vnd)}</Text>
+                          <Text style={[styles.packHearts, highlighted && styles.packHeartsHighlighted]}>{formatVietqrHearts(product.display_hearts)}</Text>
+                          <Text style={[styles.packAmount, highlighted && styles.packAmountHighlighted]}>{formatVnd(product.amount_vnd)}</Text>
                         </Pressable>
                       );
                     })}
@@ -408,7 +413,7 @@ const styles = StyleSheet.create({
   page: { alignSelf: 'center', maxWidth: 680, paddingHorizontal: chonLayout.contentHorizontalPaddingMobile, paddingTop: 28, width: '100%' },
   pageDesktop: { paddingTop: 36 },
   title: {
-    color: chonColors.goldStrong,
+    color: chonColors.goldChrome,
     fontFamily: chonTypography.families.display,
     fontSize: chonTypography.sizes.h2,
     lineHeight: chonTypography.lineHeights.h2,
@@ -419,24 +424,33 @@ const styles = StyleSheet.create({
   balanceText: { color: chonColors.text, fontSize: 16, fontWeight: '800', textAlign: 'center' },
   section: { gap: 14, marginTop: 12 },
   sectionTitle: { color: chonColors.text, fontSize: chonTypography.sizes.h3, fontWeight: '800', textAlign: 'center' },
-  packGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  packGrid: { alignItems: 'stretch', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   packCard: {
     alignItems: 'center',
     backgroundColor: chonColors.surface,
     borderColor: chonColors.border,
     borderRadius: 12,
     borderWidth: 1,
+    flexBasis: '44%',
+    flexGrow: 1,
+    flexShrink: 1,
     justifyContent: 'center',
     minHeight: 92,
+    minWidth: 0,
     paddingHorizontal: 8,
     paddingVertical: 12,
-    width: '48.5%',
   },
-  packCardSelected: { backgroundColor: chonColors.goldStrong, borderColor: chonColors.primaryRed, borderWidth: 2, ...chonShadows.card },
+  packCardHighlighted: {
+    backgroundColor: chonColors.goldChrome,
+    borderColor: chonColors.goldChrome,
+    borderWidth: 2,
+    ...chonShadows.hover,
+  },
+  packCardPressed: { opacity: 1, ...chonShadows.card },
   packHearts: { color: chonColors.text, fontSize: 18, fontWeight: '900' },
-  packHeartsSelected: { color: chonColors.surface },
+  packHeartsHighlighted: { color: chonColors.text },
   packAmount: { color: chonColors.muted, fontSize: 12, fontWeight: '600', marginTop: 5 },
-  packAmountSelected: { color: chonColors.surface },
+  packAmountHighlighted: { color: chonColors.text },
   primaryButton: {
     alignItems: 'center',
     alignSelf: 'center',
@@ -460,5 +474,4 @@ const styles = StyleSheet.create({
   waiting: { alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'center', paddingVertical: 6 },
   notice: { color: chonColors.goldStrong, fontSize: 11.5, lineHeight: 17, textAlign: 'center' },
   disabled: { opacity: chonInteraction.disabledOpacity },
-  pressed: { opacity: chonInteraction.pressedOpacity },
 });
