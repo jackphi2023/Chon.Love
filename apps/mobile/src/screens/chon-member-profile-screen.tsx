@@ -44,6 +44,7 @@ import {
 } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { ChonFavoriteButton } from '@/components/chon-favorite-button';
+import { ChonGiftModal } from '@/components/chon-gift-modal';
 import { ChonMemberPhoto } from '@/components/chon-member-photo';
 import { ChonPrivatePhotoAccess } from '@/components/chon-private-photo-access';
 import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';
@@ -79,6 +80,7 @@ export default function ChonMemberProfileScreen() {
   const [reportDescription, setReportDescription] = useState('');
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, username],
@@ -319,6 +321,19 @@ export default function ChonMemberProfileScreen() {
             </View>
           ) : null}
 
+          {!profile.blocked_by_viewer ? (
+            <Pressable
+              accessibilityLabel={`Tặng quà cho ${displayName}`}
+              accessibilityRole="button"
+              onPress={() => setGiftOpen(true)}
+              style={({ pressed }) => [styles.giftActionButton, pressed && styles.pressed]}
+              testID="chon-member-profile-gift-button"
+            >
+              <ChonBrandIcon name="gift" size={18} />
+              <Text style={styles.giftActionText}>Tặng quà</Text>
+            </Pressable>
+          ) : null}
+
           <View style={styles.sideMeta}>
             <SideMetaRow
               icon="recent"
@@ -419,6 +434,12 @@ export default function ChonMemberProfileScreen() {
         onMessage={(draft) => void handleMessageAction(draft)}
         profileId={profile.id}
         visible={photoOpen}
+      />
+      <ChonGiftModal
+        onClose={() => setGiftOpen(false)}
+        recipientId={profile.id}
+        recipientName={displayName}
+        visible={giftOpen}
       />
       <LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} reason="message" visible={showUpgrade} />
       <SafetyModal
@@ -591,6 +612,8 @@ const styles = StyleSheet.create({
   heroPhotoPressTarget: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0, zIndex: 8 },
   heroFavorite: { bottom: 10, position: 'absolute', right: 10, zIndex: 9 },
   privateActionWrap: { marginTop: 10 },
+  giftActionButton: { alignItems: 'center', backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 10, minHeight: 44, paddingHorizontal: 16 },
+  giftActionText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '700' },
   sideMeta: { borderBottomColor: chonColors.border, borderBottomWidth: 1, borderTopColor: chonColors.border, borderTopWidth: 1, gap: 10, marginTop: 14, paddingVertical: 14 },
   sideMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 9, minHeight: 24 },
   sideMetaText: { color: chonColors.text, flex: 1, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
