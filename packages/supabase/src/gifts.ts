@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { Database } from './database.types';
 
@@ -236,6 +236,41 @@ export async function listMyLuxyGifts(
   } as never);
   if (error) throw error;
   return z.array(luxyGiftHistoryItemSchema).parse(data ?? []);
+}
+
+/**
+ * OPT-09 realtime invalidation channel for the signed-in member's gift history.
+ *
+ * `gift_transactions.creator_id` is the stable legacy ledger column for the recipient.
+ * It is intentionally not renamed during the optimization roadmap because the financial
+ * schema is already in production. RLS limits rows to sender/recipient and both filtered
+ * subscriptions keep the client from listening to unrelated gift traffic.
+ */
+export function subscribeToMyLuxyGiftTransactions(
+  client: Client,
+  input: { userId: string; onChange: () => void },
+): RealtimeChannel {
+  const userId = z.string().uuid().parse(input.userId);
+  return client
+    .channel(`luxy-gifts:${userId}:${createGiftIdempotencyKey()}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'gift_transactions', filter: `sender_id=eq.${userId}` },
+      input.onChange,
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'gift_transactions', filter: `creator_id=eq.${userId}` },
+      input.onChange,
+    )
+    .subscribe();
+}
+
+export async function unsubscribeFromLuxyGiftTransactions(
+  client: Client,
+  channel: RealtimeChannel,
+): Promise<void> {
+  await client.removeChannel(channel);
 }
 
 export async function sendGiftToMember(
