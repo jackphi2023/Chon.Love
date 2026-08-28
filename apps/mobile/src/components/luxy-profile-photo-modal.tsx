@@ -37,6 +37,12 @@ export function LuxyProfilePhotoModal({
     setGiftVisible(true);
   }
 
+  // Do not leave the closed modal's actions in the web accessibility tree. The
+  // standalone profile action remains the only visible Gift control until this
+  // modal is actually opened; the shared ChonGiftModal can stay mounted while
+  // transitioning from the photo modal into Gift selection.
+  if (!visible && !giftVisible) return null;
+
   return (
     <>
       <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
