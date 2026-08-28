@@ -320,7 +320,14 @@ export default function ChonMemberProfileScreen() {
           ) : null}
 
           <View style={styles.sideMeta}>
-            <SideMetaRow icon="recent" label={formatMemberLastSignIn(profile.last_sign_in_at)} testID="chon-profile-fact-recent" />
+            <SideMetaRow
+              icon="recent"
+              label={formatMemberLastSignIn(profile.last_sign_in_at, {
+                status: social.presence_status,
+                lastActiveAt: social.last_active_at,
+              })}
+              testID="chon-profile-fact-recent"
+            />
             <SideMetaRow icon="location" label={profile.province_name ?? 'Việt Nam'} testID="chon-profile-fact-location" />
             <SideMetaRow icon="profile" label={`Thành viên từ ${formatMemberSince(profile.member_since)}`} testID="chon-profile-fact-member-since" />
           </View>
