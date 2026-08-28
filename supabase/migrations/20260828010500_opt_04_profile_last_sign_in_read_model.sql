@@ -1,10 +1,11 @@
--- Chon.Love OPT-04 follow-up — true last-login presentation.
+-- Chon.Love OPT-04 follow-up — member last-login / recent-session presentation.
 --
--- Supabase Auth is the source of truth for a member's last successful login.
+-- The public profile needs a privacy-safe timestamp that can support the product copy:
+-- online for the first hour after the latest visible session activity, then elapsed hours
+-- during the same Vietnam calendar day, then an exact Vietnam date.
 -- Keep the existing RPC column name `last_active_at` as a backwards-compatible wire
--- alias so the generated database contract does not need a breaking return-signature
--- change. The application client immediately maps this alias to `last_sign_in_at`.
--- Existing paid hide-online privacy remains authoritative.
+-- alias. The value is the later of auth.users.last_sign_in_at and profiles.last_active_at.
+-- Existing paid hide-online privacy remains authoritative and returns null.
 
 create or replace function public.get_luxy_member_profile(p_username text)
 returns table(
@@ -108,7 +109,10 @@ begin
     p.looking_for,
     coalesce(p.lifestyle_tags,'{}'::public.profile_lifestyle_tag[]),
     coalesce(p.languages,'{}'::text[]),
-    case when private.luxy_online_hidden(p.id) then null else auth_user.last_sign_in_at end,
+    case
+      when private.luxy_online_hidden(p.id) then null
+      else greatest(auth_user.last_sign_in_at,p.last_active_at)
+    end,
     p.created_at,
     case when v_blocked_by_viewer then 0 else coalesce(pub.photo_count,0) end::integer,
     case when v_blocked_by_viewer then 0 else coalesce(priv.photo_count,0) end::integer,
@@ -155,4 +159,4 @@ revoke all on function public.get_luxy_member_profile(text) from public,anon;
 grant execute on function public.get_luxy_member_profile(text) to authenticated,service_role;
 
 comment on function public.get_luxy_member_profile(text) is
-  'OPT-04 privacy-safe Member Profile read model. The legacy last_active_at wire column now carries auth.users.last_sign_in_at as the true successful-login timestamp; client code maps it to last_sign_in_at. Paid hide-online privacy still returns null. No email, DOB, coordinates, KYC or financial auth data is exposed.';
+  'OPT-04 privacy-safe Member Profile read model. The legacy last_active_at wire column carries the latest visible session signal from auth last sign-in or profile activity, allowing the client to render online/hour/date copy in Vietnam time. Paid hide-online privacy returns null. No email, DOB, coordinates, KYC or financial auth data is exposed.';
