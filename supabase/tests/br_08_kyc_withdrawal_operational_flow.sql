@@ -9,14 +9,14 @@ select ok(exists(select 1 from information_schema.columns where table_schema='pr
 
 select is((select value_json#>>'{}' from private.app_config where key='kyc_operational_review_enabled'),'false','KYC review is disabled by default');
 select is((select value_json#>>'{}' from private.app_config where key='bank_account_operational_review_enabled'),'false','bank review is disabled by default');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_requests_enabled'),'false','withdrawal requests are disabled by default');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_requests_enabled'),'true','withdrawal requests are enabled for OPT-12 user flow');
 select is((select value_json#>>'{}' from private.app_config where key='withdrawal_operational_review_enabled'),'false','withdrawal review is disabled by default');
 select is((select value_json#>>'{}' from private.app_config where key='withdrawal_processing_enabled'),'false','withdrawal processing is disabled by default');
 select is((select value_json#>>'{}' from private.app_config where key='withdrawal_payout_enabled'),'false','withdrawal payout is disabled by default');
 
 select ok(not has_function_privilege('authenticated','public.prepare_kyc_document_upload(text,bigint,text,integer,integer,text,text)','EXECUTE'),'authenticated users cannot upload KYC documents while BR-08 is disabled');
 select ok(not has_function_privilege('authenticated','public.finalize_kyc_document_upload(uuid,text)','EXECUTE'),'authenticated users cannot finalize KYC documents while BR-08 is disabled');
-select ok(not has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),'authenticated users cannot request withdrawals while BR-08 is disabled');
+select ok(has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),'authenticated users can request withdrawals after OPT-12 release');
 select ok(not has_function_privilege('service_role','public.admin_decide_withdrawal(uuid,uuid,text,text,text,uuid)','EXECUTE'),'legacy single-control withdrawal decision is revoked');
 select ok(has_function_privilege('service_role','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),'service role can call the audited operational withdrawal RPC');
 select ok(not has_function_privilege('authenticated','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),'authenticated clients cannot call the operational withdrawal RPC');
