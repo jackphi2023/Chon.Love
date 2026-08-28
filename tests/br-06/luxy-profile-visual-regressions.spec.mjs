@@ -54,6 +54,8 @@ async function expectProfileMembershipBadge(page) {
   expect(badgeBox.y - heroBox.y).toBeLessThanOrEqual(14);
 }
 
+const recentActivityPattern = /Đang online|Đăng nhập|Chưa có lịch sử đăng nhập/;
+
 test('UI-PRO01 desktop keeps the semantic 20px top-left membership badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
@@ -64,7 +66,7 @@ test('UI-PRO01 desktop keeps the semantic 20px top-left membership badge, readab
     await expectProfileMembershipBadge(page);
     await expect(page.getByTestId('chon-profile-fact-location')).toContainText('Hà Nội');
     await expect(page.getByTestId('chon-profile-fact-member-since')).toContainText('Thành viên từ');
-    await expect(page.getByTestId('chon-profile-fact-recent')).toContainText(/Đăng nhập|Chưa có lịch sử đăng nhập/);
+    await expect(page.getByTestId('chon-profile-fact-recent')).toContainText(recentActivityPattern);
     await expectFactTextReadable(page);
     await expect(page.getByTestId('chon-member-profile-photo-grid')).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -88,7 +90,7 @@ test('UI-PRO01 mobile keeps the semantic 20px top-left membership badge, horizon
     await expectProfileMembershipBadge(page);
     await expect(page.getByTestId('chon-member-profile-photo-strip')).toBeVisible();
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toBeVisible();
-    await expect(page.getByTestId('chon-profile-fact-recent')).toContainText(/Đăng nhập|Chưa có lịch sử đăng nhập/);
+    await expect(page.getByTestId('chon-profile-fact-recent')).toContainText(recentActivityPattern);
     await expectFactTextReadable(page);
     await expectNoHorizontalOverflow(page);
 
