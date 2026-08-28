@@ -1,6 +1,8 @@
 import { luxyColors, luxyRadii, luxySpacing, luxyTypography } from '@myfan/ui';
 import { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ChonBrandIcon } from '@/components/chon-brand-icon';
+import { ChonGiftModal } from '@/components/chon-gift-modal';
 import { LuxyFavoriteButton } from '@/components/luxy-favorite-button';
 
 export function LuxyProfilePhotoModal({
@@ -26,62 +28,89 @@ export function LuxyProfilePhotoModal({
 }) {
   const { width, height } = useWindowDimensions();
   const [draft, setDraft] = useState('');
+  const [giftVisible, setGiftVisible] = useState(false);
   const desktop = width >= 768;
   const photoHeight = Math.min(desktop ? height * 0.62 : height * 0.58, desktop ? 620 : 520);
 
-  return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
-      <View style={styles.backdrop} testID="luxy-profile-photo-modal">
-        <Pressable accessibilityLabel="Đóng ảnh" accessibilityRole="button" onPress={onClose} style={styles.backdropDismiss} />
-        <View accessibilityViewIsModal style={[styles.modalCard, desktop && styles.modalCardDesktop]}>
-          <Pressable accessibilityLabel="Đóng" accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>×</Text>
-          </Pressable>
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            <Text accessibilityRole="header" style={styles.title}>{name}, {age}</Text>
-            <View style={[styles.photoFrame, { height: photoHeight }]}>
-              {imageUrl ? (
-                <Image accessibilityLabel={`Ảnh của ${name}`} resizeMode="contain" source={{ uri: imageUrl }} style={styles.photo} />
-              ) : (
-                <View style={styles.fallback}><Text style={styles.fallbackText}>{name.slice(0, 1).toUpperCase()}</Text></View>
-              )}
-              <View style={styles.favoriteOverlay}>
-                <LuxyFavoriteButton
-                  initialFavorited={initialFavorited}
-                  initialFavoritedBy={initialFavoritedBy}
-                  name={name}
-                  profileId={profileId}
-                />
-              </View>
-            </View>
+  function openGift() {
+    onClose();
+    setGiftVisible(true);
+  }
 
-            <Text style={styles.messageLabel}>Gửi lời chào tới {name}</Text>
-            <View style={styles.messageRow}>
-              <TextInput
-                accessibilityLabel={`Tin nhắn cho ${name}`}
-                maxLength={500}
-                onChangeText={setDraft}
-                placeholder={`Nhắn tin cho ${name}`}
-                placeholderTextColor={luxyColors.softMuted}
-                style={styles.messageInput}
-                value={draft}
-              />
-              <Pressable
-                accessibilityLabel={`Nhắn tin cho ${name}`}
-                accessibilityRole="button"
-                onPress={() => onMessage(draft)}
-                style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}
-              >
-                <Text style={styles.sendIcon}>➤</Text>
-              </Pressable>
-            </View>
-            <Pressable accessibilityRole="button" onPress={() => onMessage('')} style={styles.continueButton}>
-              <Text style={styles.continueText}>Tiếp tục tới tin nhắn</Text>
+  return (
+    <>
+      <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
+        <View style={styles.backdrop} testID="luxy-profile-photo-modal">
+          <Pressable accessibilityLabel="Đóng ảnh" accessibilityRole="button" onPress={onClose} style={styles.backdropDismiss} />
+          <View accessibilityViewIsModal style={[styles.modalCard, desktop && styles.modalCardDesktop]}>
+            <Pressable accessibilityLabel="Đóng" accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeText}>×</Text>
             </Pressable>
-          </ScrollView>
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+              <Text accessibilityRole="header" style={styles.title}>{name}, {age}</Text>
+              <View style={[styles.photoFrame, { height: photoHeight }]}>
+                {imageUrl ? (
+                  <Image accessibilityLabel={`Ảnh của ${name}`} resizeMode="contain" source={{ uri: imageUrl }} style={styles.photo} />
+                ) : (
+                  <View style={styles.fallback}><Text style={styles.fallbackText}>{name.slice(0, 1).toUpperCase()}</Text></View>
+                )}
+                <View style={styles.favoriteOverlay}>
+                  <LuxyFavoriteButton
+                    initialFavorited={initialFavorited}
+                    initialFavoritedBy={initialFavoritedBy}
+                    name={name}
+                    profileId={profileId}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.messageLabel}>Gửi lời chào tới {name}</Text>
+              <View style={styles.messageRow}>
+                <TextInput
+                  accessibilityLabel={`Tin nhắn cho ${name}`}
+                  maxLength={500}
+                  onChangeText={setDraft}
+                  placeholder={`Nhắn tin cho ${name}`}
+                  placeholderTextColor={luxyColors.softMuted}
+                  style={styles.messageInput}
+                  value={draft}
+                />
+                <Pressable
+                  accessibilityLabel={`Nhắn tin cho ${name}`}
+                  accessibilityRole="button"
+                  onPress={() => onMessage(draft)}
+                  style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.sendIcon}>➤</Text>
+                </Pressable>
+              </View>
+              <View style={styles.actionRow}>
+                <Pressable accessibilityRole="button" onPress={() => onMessage('')} style={styles.continueButton}>
+                  <Text style={styles.continueText}>Tiếp tục tới tin nhắn</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityLabel={`Tặng quà cho ${name}`}
+                  accessibilityRole="button"
+                  onPress={openGift}
+                  style={({ pressed }) => [styles.giftButton, pressed && styles.giftButtonPressed]}
+                  testID="chon-profile-photo-gift-button"
+                >
+                  <ChonBrandIcon name="gift" size={17} />
+                  <Text style={styles.giftButtonText}>Tặng quà</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <ChonGiftModal
+        onClose={() => setGiftVisible(false)}
+        recipientId={profileId}
+        recipientName={name}
+        visible={giftVisible}
+      />
+    </>
   );
 }
 
@@ -104,7 +133,11 @@ const styles = StyleSheet.create({
   messageInput: { color: luxyColors.text, flex: 1, fontSize: 14, minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
   sendButton: { alignItems: 'center', height: 48, justifyContent: 'center', width: 52 },
   sendIcon: { color: luxyColors.ink, fontSize: 22 },
-  continueButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 8 },
+  actionRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', marginTop: 10 },
+  continueButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 4 },
   continueText: { color: luxyColors.text, fontSize: 13, textDecorationLine: 'underline' },
+  giftButton: { alignItems: 'center', backgroundColor: luxyColors.brandWarmSurface, borderColor: luxyColors.brandGold, borderRadius: luxyRadii.pill, borderWidth: 1, flexDirection: 'row', gap: 7, justifyContent: 'center', minHeight: 44, paddingHorizontal: 16 },
+  giftButtonPressed: { opacity: 0.8 },
+  giftButtonText: { color: luxyColors.text, fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.72 },
 });
