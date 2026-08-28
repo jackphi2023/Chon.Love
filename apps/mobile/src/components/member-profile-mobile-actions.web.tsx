@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
-import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -36,6 +35,11 @@ function getProfileIdentifier(pathname: string): string | null {
   }
 }
 
+/**
+ * Mobile web keeps only the fixed messaging action here.
+ * Gift selection is owned by ChonMemberProfileScreen on profile pages, so the same
+ * member never sees two equivalent "Tặng quà" controls or two modal owners.
+ */
 export function MemberProfileMobileActions() {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,7 +49,6 @@ export function MemberProfileMobileActions() {
   const identifier = getProfileIdentifier(pathname);
   const mobileWeb = width < chonBreakpoints.desktop;
   const enabled = Boolean(mobileWeb && identifier && auth.userId && client);
-  const [giftOpen, setGiftOpen] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -76,7 +79,6 @@ export function MemberProfileMobileActions() {
   const actionsVisible = Boolean(enabled && profile && !profile.blocked_by_viewer);
 
   useEffect(() => {
-    setGiftOpen(false);
     setActionError(null);
   }, [pathname]);
 
@@ -121,46 +123,26 @@ export function MemberProfileMobileActions() {
   };
 
   return (
-    <>
-      <View style={[styles.actionDock, fixedBottomStyle, safeAreaDockStyle]} testID="chon-profile-mobile-action-dock">
-        {actionError ? <Text accessibilityRole="alert" style={styles.actionError}>{actionError}</Text> : null}
-        <View style={styles.actionRow}>
-          <Pressable
-            accessibilityLabel={`Tặng quà cho ${displayName}`}
-            accessibilityRole="button"
-            onPress={() => setGiftOpen(true)}
-            style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
-            testID="chon-profile-gift-button"
-          >
-            <ChonBrandIcon name="gift" size={CHON_ICON_SIZE_MOBILE} />
-            <Text style={styles.giftButtonText}>Tặng quà</Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel={`Gửi tin nhắn cho ${displayName}`}
-            accessibilityRole="button"
-            disabled={messageBusy}
-            onPress={() => void openConversation()}
-            style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
-            testID="chon-profile-fixed-message-button"
-          >
-            <ChonBrandIcon name="message" size={CHON_ICON_SIZE_MOBILE} />
-            <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <LuxyGiftModal
-        onClose={() => setGiftOpen(false)}
-        recipientId={profile.id}
-        recipientName={displayName}
-        visible={giftOpen}
-      />
-    </>
+    <View style={[styles.actionDock, fixedBottomStyle, safeAreaDockStyle]} testID="chon-profile-mobile-action-dock">
+      {actionError ? <Text accessibilityRole="alert" style={styles.actionError}>{actionError}</Text> : null}
+      <Pressable
+        accessibilityLabel={`Gửi tin nhắn cho ${displayName}`}
+        accessibilityRole="button"
+        disabled={messageBusy}
+        onPress={() => void openConversation()}
+        style={({ pressed }) => [styles.messageButton, pressed && styles.pressed, messageBusy && styles.disabled]}
+        testID="chon-profile-fixed-message-button"
+      >
+        <ChonBrandIcon name="message" size={CHON_ICON_SIZE_MOBILE} />
+        <Text style={styles.messageButtonText}>{messageBusy ? 'Đang mở…' : 'Gửi tin nhắn'}</Text>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   actionDock: {
+    alignItems: 'center',
     backgroundColor: chonColors.surface,
     borderTopColor: chonColors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -170,40 +152,17 @@ const styles = StyleSheet.create({
     zIndex: 970,
     ...chonShadows.card,
   },
-  actionRow: {
-    alignItems: 'stretch',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    maxWidth: 620,
-    width: '100%',
-  },
-  giftButton: {
-    alignItems: 'center',
-    backgroundColor: chonColors.surface,
-    borderColor: chonColors.gold,
-    borderRadius: 999,
-    borderWidth: 1,
-    flex: 0.42,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    minHeight: 50,
-    minWidth: 0,
-    paddingHorizontal: 10,
-  },
-  giftButtonText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '700' },
   messageButton: {
     alignItems: 'center',
     backgroundColor: chonColors.primaryRed,
     borderRadius: 999,
-    flex: 0.58,
     flexDirection: 'row',
     gap: 7,
     justifyContent: 'center',
+    maxWidth: 620,
     minHeight: 50,
-    minWidth: 0,
-    paddingHorizontal: 10,
+    paddingHorizontal: 18,
+    width: '100%',
   },
   messageButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800' },
   actionError: { color: chonColors.danger, fontSize: chonTypography.sizes.help, marginBottom: 7, textAlign: 'center' },
