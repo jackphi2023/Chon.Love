@@ -1,0 +1,3 @@
+-- Remote migration-history alignment marker for the 2026-08-22 production Signup V2 hotfix.
+-- The canonical schema change is defined in 20260820124000_su_08_signup_headline_bio_contract.sql.
+-- No schema change is required here.
