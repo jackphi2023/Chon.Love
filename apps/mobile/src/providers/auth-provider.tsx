@@ -38,7 +38,7 @@ async function synchronizeRealtimeSession(
   } catch (error) {
     logger.error('Unable to synchronize Realtime auth session', error, { feature: 'realtime_auth' });
     emitMobileRuntimeObservation({
-      eventName: 'realtime_auth_error',
+      eventName: 'auth_restore_error',
       severity: 'warning',
       routeGroup: 'auth',
       error,
