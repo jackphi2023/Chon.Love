@@ -1,6 +1,12 @@
 const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 const HOUR_MS = 60 * 60_000;
 
+type MemberPresenceInput = {
+  status?: 'online' | 'offline' | null | undefined;
+  lastActiveAt?: string | null | undefined;
+  nowMs?: number | undefined;
+};
+
 function parseTimestamp(value: string | null | undefined): Date | null {
   if (!value) return null;
   const date = new Date(value);
@@ -29,18 +35,37 @@ function formatVietnamDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-export function formatMemberLastSignIn(value: string | null, nowMs = Date.now()): string {
-  const lastSeen = parseTimestamp(value);
-  if (!lastSeen) return 'Chưa có lịch sử đăng nhập';
+function resolveNowAndPresence(input: number | MemberPresenceInput | undefined) {
+  if (typeof input === 'number') return { nowMs: input, status: null, lastActive: null };
+  const nowMs = input?.nowMs ?? Date.now();
+  return {
+    nowMs,
+    status: input?.status ?? null,
+    lastActive: parseTimestamp(input?.lastActiveAt),
+  };
+}
 
-  const diffMs = Math.max(0, nowMs - lastSeen.getTime());
-  if (diffMs < HOUR_MS) return 'Đang online';
+export function formatMemberLastSignIn(
+  value: string | null,
+  nowOrPresence: number | MemberPresenceInput = Date.now(),
+): string {
+  const lastSignIn = parseTimestamp(value);
+  const { nowMs, status, lastActive } = resolveNowAndPresence(nowOrPresence);
 
+  // Presence is intentionally separate from Auth sign-in. A member is shown online
+  // when the presence read model says so, or for one hour after the latest visible
+  // activity signal. We never rewrite activity into the login timestamp itself.
+  const recentActivityMs = lastActive ? Math.max(0, nowMs - lastActive.getTime()) : Number.POSITIVE_INFINITY;
+  if (status === 'online' || recentActivityMs < HOUR_MS) return 'Đang online';
+
+  if (!lastSignIn) return 'Chưa có lịch sử đăng nhập';
+
+  const diffMs = Math.max(0, nowMs - lastSignIn.getTime());
   const now = new Date(nowMs);
-  if (sameVietnamCalendarDay(lastSeen, now)) {
+  if (sameVietnamCalendarDay(lastSignIn, now)) {
     const elapsedHours = Math.max(1, Math.floor(diffMs / HOUR_MS));
     return `Đăng nhập cách ${elapsedHours} giờ`;
   }
 
-  return `Đăng nhập ngày ${formatVietnamDate(lastSeen)}`;
+  return `Đăng nhập ngày ${formatVietnamDate(lastSignIn)}`;
 }
