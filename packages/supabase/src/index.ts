@@ -86,5 +86,6 @@ export * from './social-safety';
 export * from './vietqr';
 export * from './vietqr-reconciliation';
 export * from './kyc-withdrawal-operations';
+export * from './withdrawal';
 export * from './runtime-observability';
 export type { Database } from './database.types';
