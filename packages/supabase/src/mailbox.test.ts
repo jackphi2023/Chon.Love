@@ -89,6 +89,7 @@ describe('Luxy LX-16/LX-17 mailbox client contract', () => {
   it('uses one viewer-scoped realtime channel for message, own-member, and conversation changes', () => {
     const listeners: Array<{ config: Record<string, unknown>; callback: () => void }> = [];
     let statusCallback: ((status: string) => void) | undefined;
+    let channelName = '';
     const channel = {
       on: vi.fn((_kind, config, callback) => {
         listeners.push({ config, callback });
@@ -100,7 +101,10 @@ describe('Luxy LX-16/LX-17 mailbox client contract', () => {
       }),
     };
     const client = {
-      channel: vi.fn(() => channel),
+      channel: vi.fn((name: string) => {
+        channelName = name;
+        return channel;
+      }),
     };
     const onChange = vi.fn();
     const onStatus = vi.fn();
@@ -113,7 +117,7 @@ describe('Luxy LX-16/LX-17 mailbox client contract', () => {
 
     expect(result).toBe(channel);
     expect(client.channel).toHaveBeenCalledTimes(1);
-    expect(String(client.channel.mock.calls[0]?.[0])).toMatch(new RegExp(`^mailbox:${profileId}:`));
+    expect(channelName).toMatch(new RegExp(`^mailbox:${profileId}:`));
     expect(channel.on).toHaveBeenCalledTimes(4);
     expect(listeners.map(({ config }) => config)).toEqual([
       { event: 'INSERT', schema: 'public', table: 'messages' },
