@@ -29,35 +29,18 @@ function formatVietnamDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-export type MemberLastSignInInput = {
-  lastSignInAt: string | null;
-  lastActivityAt?: string | null;
-  nowMs?: number;
-};
+export function formatMemberLastSignIn(value: string | null, nowMs = Date.now()): string {
+  const lastSeen = parseTimestamp(value);
+  if (!lastSeen) return 'Chưa có lịch sử đăng nhập';
 
-export function formatMemberLastSignIn({
-  lastSignInAt,
-  lastActivityAt = null,
-  nowMs = Date.now(),
-}: MemberLastSignInInput): string {
-  const signIn = parseTimestamp(lastSignInAt);
-  if (!signIn) return 'Chưa có lịch sử đăng nhập';
-
-  const activity = parseTimestamp(lastActivityAt);
-  const mostRecentPresence = activity && activity.getTime() > signIn.getTime() ? activity : signIn;
-  const presenceDiffMs = Math.max(0, nowMs - mostRecentPresence.getTime());
-
-  // Chọn.Love product contract: a member who is active now, or who left less
-  // than one hour ago, is presented simply as online. The recent-activity
-  // timestamp is only used when the last-sign-in read model itself is visible,
-  // so paid hide-online privacy remains authoritative.
-  if (presenceDiffMs < HOUR_MS) return 'Đang online';
+  const diffMs = Math.max(0, nowMs - lastSeen.getTime());
+  if (diffMs < HOUR_MS) return 'Đang online';
 
   const now = new Date(nowMs);
-  if (sameVietnamCalendarDay(signIn, now)) {
-    const elapsedHours = Math.max(1, Math.floor((nowMs - signIn.getTime()) / HOUR_MS));
+  if (sameVietnamCalendarDay(lastSeen, now)) {
+    const elapsedHours = Math.max(1, Math.floor(diffMs / HOUR_MS));
     return `Đăng nhập cách ${elapsedHours} giờ`;
   }
 
-  return `Đăng nhập ngày ${formatVietnamDate(signIn)}`;
+  return `Đăng nhập ngày ${formatVietnamDate(lastSeen)}`;
 }
