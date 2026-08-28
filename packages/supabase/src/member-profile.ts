@@ -21,8 +21,8 @@ const membershipTierSchema = z.enum(['free', 'premium', 'diamond']);
 
 // `last_active_at` remains the database RPC wire alias for backwards compatibility.
 // OPT-04 maps it immediately to `last_sign_in_at` at the client boundary. The server
-// now supplies the latest privacy-safe session signal from Auth sign-in or profile
-// activity, which is sufficient for the Chọn.Love online / elapsed-hour / date copy.
+// supplies the true privacy-safe auth.users.last_sign_in_at value; recent presence and
+// activity remain a separate get_profile_viewer concern so UI never labels activity as a login.
 const memberProfileRpcSchema = z.object({
   id: z.string().uuid(),
   username: z.string(),
