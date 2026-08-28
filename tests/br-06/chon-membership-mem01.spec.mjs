@@ -8,6 +8,11 @@ const PREMIUM_COPY =
 const DIAMOND_COPY =
   'Quyền lợi cao hơn Premium, đồng thời giúp đối phương nhận biết bạn là thành viên có năng lực tài chính cao, có giá trị và sẵn sàng chủ động tặng quà để thể hiện sự quan tâm.';
 
+const CERTIFICATE_SOURCE = {
+  premium: { naturalWidth: 179, naturalHeight: 199 },
+  diamond: { naturalWidth: 180, naturalHeight: 208 },
+};
+
 async function login(page) {
   await page.goto('/auth?mode=login');
   await expect(page.getByTestId('luxy-auth-screen')).toBeVisible();
@@ -17,26 +22,47 @@ async function login(page) {
   await expect(page.getByTestId('luxy-search-mobile')).toBeVisible({ timeout: 30_000 });
 }
 
-async function getRenderedImageSource(locator) {
-  return locator.evaluate((node) => {
+async function getRenderedImageDetails(locator) {
+  return locator.evaluate(async (node) => {
     const image = node instanceof HTMLImageElement ? node : node.querySelector('img');
-    if (image instanceof HTMLImageElement) return image.currentSrc || image.getAttribute('src');
-    const backgroundImage = getComputedStyle(node).backgroundImage;
-    return backgroundImage && backgroundImage !== 'none' ? backgroundImage : null;
+    if (!(image instanceof HTMLImageElement)) throw new Error('Membership badge image element is missing.');
+    if (typeof image.decode === 'function') await image.decode();
+    return {
+      source: image.currentSrc || image.getAttribute('src'),
+      naturalWidth: image.naturalWidth,
+      naturalHeight: image.naturalHeight,
+    };
   });
 }
 
-async function expectBadgeWidth(page, tier, expectedWidth) {
+async function expectCertificateBadge(page, tier, expectedHeight) {
   const badge = page.getByTestId(`chon-membership-badge-${tier}`);
   await expect(badge).toBeVisible();
   const box = await badge.boundingBox();
   expect(box).not.toBeNull();
-  expect(Math.round(box.width)).toBe(expectedWidth);
+  expect(Math.abs(box.height - expectedHeight)).toBeLessThanOrEqual(1);
+
   const image = badge.getByTestId(`chon-membership-badge-image-${tier}`);
   await expect(image).toBeVisible();
-  const source = await getRenderedImageSource(image);
-  expect(source).toBeTruthy();
-  return source;
+  const details = await getRenderedImageDetails(image);
+  expect(details.source).toBeTruthy();
+  expect(details.naturalWidth).toBe(CERTIFICATE_SOURCE[tier].naturalWidth);
+  expect(details.naturalHeight).toBe(CERTIFICATE_SOURCE[tier].naturalHeight);
+
+  const renderedRatio = box.width / box.height;
+  const naturalRatio = details.naturalWidth / details.naturalHeight;
+  expect(Math.abs(renderedRatio - naturalRatio), `${tier} certificate must preserve source aspect ratio`).toBeLessThan(0.01);
+
+  const stage = badge.locator('..');
+  const stageBox = await stage.boundingBox();
+  expect(stageBox).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(stageBox.x - 1);
+  expect(box.x + box.width).toBeLessThanOrEqual(stageBox.x + stageBox.width + 1);
+  expect(Math.abs((box.x + box.width / 2) - (stageBox.x + stageBox.width / 2))).toBeLessThanOrEqual(1.5);
+  expect(box.y).toBeGreaterThanOrEqual(stageBox.y - 1);
+  expect(box.y + box.height).toBeLessThanOrEqual(stageBox.y + stageBox.height + 1);
+
+  return details.source;
 }
 
 test('UI-MEM01 keeps membership focused on Premium and Diamond with Chon.Love presentation', async ({ browser }) => {
@@ -70,16 +96,16 @@ test('UI-MEM01 keeps membership focused on Premium and Diamond with Chon.Love pr
     await membershipFooter.scrollIntoViewIfNeeded();
     await expect(membershipFooter).toBeVisible();
 
-    const premiumMobileSource = await expectBadgeWidth(page, 'premium', 132);
-    const diamondMobileSource = await expectBadgeWidth(page, 'diamond', 132);
+    const premiumMobileSource = await expectCertificateBadge(page, 'premium', 91);
+    const diamondMobileSource = await expectCertificateBadge(page, 'diamond', 91);
     expect(premiumMobileSource).not.toBe(diamondMobileSource);
 
     await page.setViewportSize({ width: 1024, height: 900 });
     await expect(page.getByTestId('chon-desktop-navigation')).toHaveCount(1);
     await expect(page.getByTestId('chon-authenticated-footer')).toHaveCount(0);
     await expect(page.getByTestId('chon-membership-footer')).toHaveCount(1);
-    const premiumDesktopSource = await expectBadgeWidth(page, 'premium', 160);
-    const diamondDesktopSource = await expectBadgeWidth(page, 'diamond', 160);
+    const premiumDesktopSource = await expectCertificateBadge(page, 'premium', 110);
+    const diamondDesktopSource = await expectCertificateBadge(page, 'diamond', 110);
     expect(premiumDesktopSource).toBe(premiumMobileSource);
     expect(diamondDesktopSource).toBe(diamondMobileSource);
   } finally {

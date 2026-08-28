@@ -11,6 +11,7 @@ import {
 
 type DatePickerField = 'day' | 'month' | 'year';
 type DatePickerOption = { label: string; value: number };
+type ParsedDateOfBirth = { day: number; month: number; year: number };
 
 const MINIMUM_BIRTH_YEAR = 1900;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -23,12 +24,15 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 export function DateOfBirthSelector({
   onChange,
+  value,
 }: {
   onChange: (dateOfBirth: string) => void;
+  value?: string | null;
 }) {
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const initial = parseDateOfBirth(value);
+  const [selectedDay, setSelectedDay] = useState<number | null>(initial?.day ?? null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(initial?.month ?? null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(initial?.year ?? null);
   const [activePicker, setActivePicker] = useState<DatePickerField | null>(null);
 
   const maximumDay = useMemo(
@@ -36,61 +40,56 @@ export function DateOfBirthSelector({
     [selectedMonth, selectedYear],
   );
 
+  // An existing DOB can arrive after the profile query resolves. Synchronize local
+  // picker state from that authoritative value, but never emit onChange from this
+  // effect. Emitting here creates a controlled-form feedback loop (DOB -> empty -> DOB)
+  // while React Hook Form is resetting the profile.
   useEffect(() => {
-    if (selectedDay && selectedDay > maximumDay) setSelectedDay(maximumDay);
-  }, [maximumDay, selectedDay]);
+    if (value === undefined) return;
+    const parsed = parseDateOfBirth(value);
+    const nextDay = parsed?.day ?? null;
+    const nextMonth = parsed?.month ?? null;
+    const nextYear = parsed?.year ?? null;
+    if (nextDay !== selectedDay) setSelectedDay(nextDay);
+    if (nextMonth !== selectedMonth) setSelectedMonth(nextMonth);
+    if (nextYear !== selectedYear) setSelectedYear(nextYear);
+  }, [selectedDay, selectedMonth, selectedYear, value]);
 
-  useEffect(() => {
-    if (!selectedDay || !selectedMonth || !selectedYear) {
-      onChange('');
-      return;
-    }
-    onChange(`${selectedYear}-${padDatePart(selectedMonth)}-${padDatePart(selectedDay)}`);
-  }, [onChange, selectedDay, selectedMonth, selectedYear]);
+  function selectValue(field: DatePickerField, selectedValue: number) {
+    let nextDay = field === 'day' ? selectedValue : selectedDay;
+    const nextMonth = field === 'month' ? selectedValue : selectedMonth;
+    const nextYear = field === 'year' ? selectedValue : selectedYear;
+    const nextMaximumDay = getDaysInMonth(nextYear, nextMonth);
 
-  function selectValue(field: DatePickerField, value: number) {
-    if (field === 'day') setSelectedDay(value);
-    if (field === 'month') setSelectedMonth(value);
-    if (field === 'year') setSelectedYear(value);
+    if (nextDay && nextDay > nextMaximumDay) nextDay = nextMaximumDay;
+
+    setSelectedDay(nextDay);
+    setSelectedMonth(nextMonth);
+    setSelectedYear(nextYear);
     setActivePicker(null);
+
+    if (nextDay && nextMonth && nextYear) {
+      onChange(`${nextYear}-${padDatePart(nextMonth)}-${padDatePart(nextDay)}`);
+    } else {
+      onChange('');
+    }
   }
 
   return (
     <>
       <View accessibilityLabel="Chọn ngày sinh" style={styles.dateFields}>
-        <DateSelectField
-          label="Ngày"
-          placeholder="Ngày"
-          value={selectedDay ? String(selectedDay) : null}
-          onPress={() => setActivePicker('day')}
-        />
-        <DateSelectField
-          label="Tháng"
-          placeholder="Tháng"
-          value={selectedMonth ? String(selectedMonth) : null}
-          onPress={() => setActivePicker('month')}
-        />
-        <DateSelectField
-          label="Năm"
-          placeholder="Năm"
-          value={selectedYear ? String(selectedYear) : null}
-          onPress={() => setActivePicker('year')}
-          wide
-        />
+        <DateSelectField label="Ngày" placeholder="Ngày" value={selectedDay ? String(selectedDay) : null} onPress={() => setActivePicker('day')} />
+        <DateSelectField label="Tháng" placeholder="Tháng" value={selectedMonth ? String(selectedMonth) : null} onPress={() => setActivePicker('month')} />
+        <DateSelectField label="Năm" placeholder="Năm" value={selectedYear ? String(selectedYear) : null} onPress={() => setActivePicker('year')} wide />
       </View>
 
       <DatePickerModal
         field={activePicker}
         options={getPickerOptions(activePicker, maximumDay)}
-        selectedValue={getSelectedPickerValue(
-          activePicker,
-          selectedDay,
-          selectedMonth,
-          selectedYear,
-        )}
+        selectedValue={getSelectedPickerValue(activePicker, selectedDay, selectedMonth, selectedYear)}
         onClose={() => setActivePicker(null)}
-        onSelect={(value) => {
-          if (activePicker) selectValue(activePicker, value);
+        onSelect={(selectedValue) => {
+          if (activePicker) selectValue(activePicker, selectedValue);
         }}
       />
     </>
@@ -120,9 +119,7 @@ function DateSelectField({
         onPress={onPress}
         style={({ pressed }) => [styles.dateField, pressed && styles.dateFieldPressed]}
       >
-        <Text style={value ? styles.dateFieldValue : styles.dateFieldPlaceholder}>
-          {value ?? placeholder}
-        </Text>
+        <Text style={value ? styles.dateFieldValue : styles.dateFieldPlaceholder}>{value ?? placeholder}</Text>
         <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.dateFieldChevron}>⌄</Text>
       </Pressable>
     </View>
@@ -147,30 +144,16 @@ function DatePickerModal({
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible={field !== null}>
       <View style={styles.modalRoot}>
-        <Pressable
-          accessibilityLabel="Đóng danh sách chọn ngày sinh"
-          accessibilityRole="button"
-          onPress={onClose}
-          style={styles.modalBackdrop}
-        />
+        <Pressable accessibilityLabel="Đóng danh sách chọn ngày sinh" accessibilityRole="button" onPress={onClose} style={styles.modalBackdrop} />
         <View accessibilityViewIsModal style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <Text accessibilityRole="header" style={styles.modalTitle}>{title}</Text>
-            <Pressable
-              accessibilityLabel="Đóng"
-              accessibilityRole="button"
-              onPress={onClose}
-              style={styles.modalCloseButton}
-            >
+            <Pressable accessibilityLabel="Đóng" accessibilityRole="button" onPress={onClose} style={styles.modalCloseButton}>
               <Text accessibilityElementsHidden style={styles.modalCloseText}>✕</Text>
             </Pressable>
           </View>
           <Text style={styles.modalHint}>Cuộn danh sách và chạm để chọn.</Text>
-          <ScrollView
-            contentContainerStyle={styles.optionList}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-          >
+          <ScrollView contentContainerStyle={styles.optionList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
             {options.map((option) => {
               const selected = option.value === selectedValue;
               return (
@@ -180,15 +163,9 @@ function DatePickerModal({
                   accessibilityState={{ selected }}
                   key={option.value}
                   onPress={() => onSelect(option.value)}
-                  style={({ pressed }) => [
-                    styles.optionButton,
-                    selected && styles.optionButtonSelected,
-                    pressed && styles.optionButtonPressed,
-                  ]}
+                  style={({ pressed }) => [styles.optionButton, selected && styles.optionButtonSelected, pressed && styles.optionButtonPressed]}
                 >
-                  <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                    {option.label}
-                  </Text>
+                  <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{option.label}</Text>
                   {selected ? <Text accessibilityElementsHidden style={styles.optionCheck}>✓</Text> : null}
                 </Pressable>
               );
@@ -200,6 +177,18 @@ function DatePickerModal({
   );
 }
 
+function parseDateOfBirth(value: string | null | undefined): ParsedDateOfBirth | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
+  const [yearText, monthText, dayText] = value.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+  if (year < MINIMUM_BIRTH_YEAR || year > LATEST_ELIGIBLE_BIRTH_YEAR || month < 1 || month > 12) return null;
+  if (day < 1 || day > getDaysInMonth(year, month)) return null;
+  return { day, month, year };
+}
+
 function getDaysInMonth(year: number | null, month: number | null): number {
   if (!year || !month) return 31;
   return new Date(year, month, 0).getDate();
@@ -209,22 +198,12 @@ function padDatePart(value: number): string {
   return String(value).padStart(2, '0');
 }
 
-function getPickerOptions(
-  field: DatePickerField | null,
-  maximumDay: number,
-): DatePickerOption[] {
+function getPickerOptions(field: DatePickerField | null, maximumDay: number): DatePickerOption[] {
   if (field === 'day') {
-    return Array.from({ length: maximumDay }, (_, index) => ({
-      label: `Ngày ${index + 1}`,
-      value: index + 1,
-    }));
+    return Array.from({ length: maximumDay }, (_, index) => ({ label: `Ngày ${index + 1}`, value: index + 1 }));
   }
-  if (field === 'month') {
-    return MONTH_OPTIONS.map((month) => ({ label: `Tháng ${month}`, value: month }));
-  }
-  if (field === 'year') {
-    return YEAR_OPTIONS.map((year) => ({ label: String(year), value: year }));
-  }
+  if (field === 'month') return MONTH_OPTIONS.map((month) => ({ label: `Tháng ${month}`, value: month }));
+  if (field === 'year') return YEAR_OPTIONS.map((year) => ({ label: String(year), value: year }));
   return [];
 }
 

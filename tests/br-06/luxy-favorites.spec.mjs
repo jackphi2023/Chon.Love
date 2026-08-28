@@ -71,7 +71,7 @@ test('UI-FAV01 keeps Favorites newest-first with simplified tabs and branded act
     await expect(creatorBadge).toBeVisible();
     const creatorBadgeBox = await creatorBadge.boundingBox();
     expect(creatorBadgeBox).not.toBeNull();
-    expect(Math.abs(creatorBadgeBox.height - 16)).toBeLessThanOrEqual(1);
+    expect(Math.abs(creatorBadgeBox.height - 12)).toBeLessThanOrEqual(1);
     expect(creatorBadgeBox.width).toBeLessThan(creatorBadgeBox.height);
 
     const messageButton = creatorRow.getByRole('button', { name: `Nhắn tin cho ${actors.creator.name}` });

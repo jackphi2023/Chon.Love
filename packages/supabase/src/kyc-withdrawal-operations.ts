@@ -47,7 +47,6 @@ const kycDocumentAccessSchema = z.object({
   requestId: z.string().uuid(),
 });
 
-
 export const kycQueueItemSchema = z.object({
   kyc_profile_id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -112,6 +111,27 @@ export type KycReviewPayload = z.infer<typeof kycReviewPayloadSchema>;
 export type BankReviewPayload = z.infer<typeof bankReviewPayloadSchema>;
 export type KycDocumentAccess = z.infer<typeof kycDocumentAccessSchema>;
 type Client = SupabaseClient<Database>;
+
+export function withdrawalOperationsForStatus(status: string): WithdrawalOperation[] {
+  if (status === 'under_review') return ['approve', 'reject'];
+  if (status === 'approved') return ['start_processing', 'reject'];
+  if (status === 'processing') return ['mark_paid'];
+  return [];
+}
+
+export function withdrawalNextStepLabel(status: string): string {
+  const labels: Record<string, string> = {
+    pending: 'Nhận hồ sơ để bắt đầu kiểm tra',
+    under_review: 'Duyệt hoặc từ chối sau khi kiểm tra',
+    approved: 'Cần một finance operator khác bắt đầu chuyển tiền',
+    processing: 'Đối soát ngân hàng và ghi nhận chứng từ thanh toán',
+    paid: 'Đã hoàn tất thanh toán',
+    rejected: 'Đã từ chối và hoàn số dư khả dụng',
+    cancelled: 'Người dùng đã hủy và số dư đã được hoàn lại',
+    reversed: 'Giao dịch đã được đảo',
+  };
+  return labels[status] ?? 'Kiểm tra trạng thái trước khi thao tác';
+}
 
 async function invokePayoutAdmin(client: Client, body: Record<string, unknown>): Promise<unknown> {
   const { data, error } = await client.functions.invoke('payout-admin', { body });
@@ -201,7 +221,6 @@ export async function operateWithdrawal(
     requestId: input.requestId ?? crypto.randomUUID(),
   }));
 }
-
 
 export async function getKycReviewPayload(
   client: Client,

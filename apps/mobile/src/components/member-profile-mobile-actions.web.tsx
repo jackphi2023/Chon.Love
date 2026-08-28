@@ -9,8 +9,8 @@ import { usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
+import { ChonGiftModal } from '@/components/chon-gift-modal';
 import { CHON_ICON_SIZE_MOBILE } from '@/components/chon-ui-sizing';
-import { LuxyGiftModal } from '@/components/luxy-gift-modal';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -36,6 +36,11 @@ function getProfileIdentifier(pathname: string): string | null {
   }
 }
 
+/**
+ * Mobile web owns the fixed profile action dock while ChonMemberProfileScreen owns
+ * the desktop/in-flow actions. Both use the shared ChonGiftModal and the same server
+ * transaction contract; CSS below keeps only one visible action surface per viewport.
+ */
 export function MemberProfileMobileActions() {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,8 +50,8 @@ export function MemberProfileMobileActions() {
   const identifier = getProfileIdentifier(pathname);
   const mobileWeb = width < chonBreakpoints.desktop;
   const enabled = Boolean(mobileWeb && identifier && auth.userId && client);
-  const [giftOpen, setGiftOpen] = useState(false);
   const [messageBusy, setMessageBusy] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const profileQuery = useQuery({
@@ -76,8 +81,8 @@ export function MemberProfileMobileActions() {
   const actionsVisible = Boolean(enabled && profile && !profile.blocked_by_viewer);
 
   useEffect(() => {
-    setGiftOpen(false);
     setActionError(null);
+    setGiftOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -86,7 +91,8 @@ export function MemberProfileMobileActions() {
     element.dataset.chonLoveProfileMobileActions = 'true';
     element.textContent = `
       @media (max-width: ${chonBreakpoints.desktop - 1}px) {
-        [data-testid="chon-member-profile-message-composer"] { display: none !important; }
+        [data-testid="chon-member-profile-message-composer"],
+        [data-testid="chon-member-profile-gift-button"] { display: none !important; }
         [data-testid="chon-member-profile-page"] {
           box-sizing: border-box !important;
           padding-bottom: ${actionsVisible ? 'calc(84px + env(safe-area-inset-bottom))' : '0px'} !important;
@@ -130,7 +136,7 @@ export function MemberProfileMobileActions() {
             accessibilityRole="button"
             onPress={() => setGiftOpen(true)}
             style={({ pressed }) => [styles.giftButton, pressed && styles.pressed]}
-            testID="chon-profile-gift-button"
+            testID="chon-profile-fixed-gift-button"
           >
             <ChonBrandIcon name="gift" size={CHON_ICON_SIZE_MOBILE} />
             <Text style={styles.giftButtonText}>Tặng quà</Text>
@@ -148,8 +154,7 @@ export function MemberProfileMobileActions() {
           </Pressable>
         </View>
       </View>
-
-      <LuxyGiftModal
+      <ChonGiftModal
         onClose={() => setGiftOpen(false)}
         recipientId={profile.id}
         recipientName={displayName}
@@ -161,6 +166,7 @@ export function MemberProfileMobileActions() {
 
 const styles = StyleSheet.create({
   actionDock: {
+    alignItems: 'center',
     backgroundColor: chonColors.surface,
     borderTopColor: chonColors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -171,8 +177,7 @@ const styles = StyleSheet.create({
     ...chonShadows.card,
   },
   actionRow: {
-    alignItems: 'stretch',
-    alignSelf: 'center',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
     maxWidth: 620,
@@ -184,26 +189,23 @@ const styles = StyleSheet.create({
     borderColor: chonColors.gold,
     borderRadius: 999,
     borderWidth: 1,
-    flex: 0.42,
     flexDirection: 'row',
     gap: 6,
     justifyContent: 'center',
     minHeight: 50,
-    minWidth: 0,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
   },
-  giftButtonText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '700' },
+  giftButtonText: { color: chonColors.goldStrong, fontSize: chonTypography.sizes.body, fontWeight: '800' },
   messageButton: {
     alignItems: 'center',
     backgroundColor: chonColors.primaryRed,
     borderRadius: 999,
-    flex: 0.58,
+    flex: 1,
     flexDirection: 'row',
     gap: 7,
     justifyContent: 'center',
     minHeight: 50,
-    minWidth: 0,
-    paddingHorizontal: 10,
+    paddingHorizontal: 18,
   },
   messageButtonText: { color: '#FFFFFF', fontSize: chonTypography.sizes.body, fontWeight: '800' },
   actionError: { color: chonColors.danger, fontSize: chonTypography.sizes.help, marginBottom: 7, textAlign: 'center' },

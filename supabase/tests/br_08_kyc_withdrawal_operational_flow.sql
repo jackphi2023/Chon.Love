@@ -7,16 +7,16 @@ select ok(exists(select 1 from information_schema.columns where table_schema='pr
 select ok(exists(select 1 from information_schema.columns where table_schema='private' and table_name='withdrawals' and column_name='processing_started_by'),'withdrawals track the processing operator');
 select ok(exists(select 1 from information_schema.columns where table_schema='private' and table_name='withdrawals' and column_name='payment_evidence_sha256'),'withdrawals require payout evidence hash');
 
-select is((select value_json#>>'{}' from private.app_config where key='kyc_operational_review_enabled'),'false','KYC review is disabled by default');
-select is((select value_json#>>'{}' from private.app_config where key='bank_account_operational_review_enabled'),'false','bank review is disabled by default');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_requests_enabled'),'false','withdrawal requests are disabled by default');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_operational_review_enabled'),'false','withdrawal review is disabled by default');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_processing_enabled'),'false','withdrawal processing is disabled by default');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_payout_enabled'),'false','withdrawal payout is disabled by default');
+select is((select value_json#>>'{}' from private.app_config where key='kyc_operational_review_enabled'),'true','OPT-13 enables payout KYC review');
+select is((select value_json#>>'{}' from private.app_config where key='bank_account_operational_review_enabled'),'true','OPT-13 enables bank review');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_requests_enabled'),'true','OPT-12 enables guarded user withdrawal requests');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_operational_review_enabled'),'true','OPT-13 enables withdrawal review');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_processing_enabled'),'true','OPT-13 enables maker-checker processing');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_payout_enabled'),'true','OPT-13 enables evidence-backed payout recording');
 
-select ok(not has_function_privilege('authenticated','public.prepare_kyc_document_upload(text,bigint,text,integer,integer,text,text)','EXECUTE'),'authenticated users cannot upload KYC documents while BR-08 is disabled');
-select ok(not has_function_privilege('authenticated','public.finalize_kyc_document_upload(uuid,text)','EXECUTE'),'authenticated users cannot finalize KYC documents while BR-08 is disabled');
-select ok(not has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),'authenticated users cannot request withdrawals while BR-08 is disabled');
+select ok(not has_function_privilege('authenticated','public.prepare_kyc_document_upload(text,bigint,text,integer,integer,text,text)','EXECUTE'),'authenticated users still cannot use legacy KYC document upload RPCs');
+select ok(not has_function_privilege('authenticated','public.finalize_kyc_document_upload(uuid,text)','EXECUTE'),'authenticated users still cannot finalize legacy KYC document uploads');
+select ok(has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),'authenticated users can request withdrawals after OPT-12 release');
 select ok(not has_function_privilege('service_role','public.admin_decide_withdrawal(uuid,uuid,text,text,text,uuid)','EXECUTE'),'legacy single-control withdrawal decision is revoked');
 select ok(has_function_privilege('service_role','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),'service role can call the audited operational withdrawal RPC');
 select ok(not has_function_privilege('authenticated','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),'authenticated clients cannot call the operational withdrawal RPC');
@@ -94,13 +94,17 @@ select throws_ok(
   $$select * from public.admin_list_kyc_operational_queue('8c000000-0000-0000-0000-000000000004',null,20,0)$$,
   '42501','required_admin_role_missing','only finance_admin or super_admin can list KYC cases'
 );
+
+-- Prove the emergency switches still fail closed even though OPT-13 intentionally releases them.
+update private.app_config set value_json='false'::jsonb
+where key in ('kyc_operational_review_enabled','withdrawal_operational_review_enabled');
 select throws_ok(
   $$select * from public.admin_start_kyc_review('8c000000-0000-0000-0000-000000000002','8c100000-0000-4000-8000-000000000001','8c400000-0000-4000-8000-000000000001')$$,
-  '55000','kyc_operational_review_enabled_disabled','KYC review fails closed while disabled'
+  '55000','kyc_operational_review_enabled_disabled','KYC review fails closed when its emergency switch is disabled'
 );
 select throws_ok(
   $$select * from public.admin_start_withdrawal_review('8c000000-0000-0000-0000-000000000002','8c300000-0000-4000-8000-000000000001','8c400000-0000-4000-8000-000000000002')$$,
-  '55000','withdrawal_operational_review_enabled_disabled','withdrawal review fails closed while disabled'
+  '55000','withdrawal_operational_review_enabled_disabled','withdrawal review fails closed when its emergency switch is disabled'
 );
 
 update private.app_config set value_json='true'::jsonb
@@ -145,9 +149,11 @@ select is((select status from public.admin_operate_withdrawal(
   '8c000000-0000-0000-0000-000000000002','8c300000-0000-4000-8000-000000000001','approve',null,null,null,
   '8c500000-0000-4000-8000-000000000001')),
   'approved','assigned reviewer approves the withdrawal');
+
+update private.app_config set value_json='false'::jsonb where key='withdrawal_processing_enabled';
 select throws_ok(
   $$select * from public.admin_operate_withdrawal('8c000000-0000-0000-0000-000000000003','8c300000-0000-4000-8000-000000000001','start_processing',null,null,null,'8c500000-0000-4000-8000-000000000002')$$,
-  '55000','withdrawal_processing_enabled_disabled','processing fails closed while disabled'
+  '55000','withdrawal_processing_enabled_disabled','processing fails closed when its emergency switch is disabled'
 );
 
 update private.app_config set value_json='true'::jsonb where key='withdrawal_processing_enabled';
@@ -160,9 +166,10 @@ select is((select status from public.admin_operate_withdrawal(
   '8c500000-0000-4000-8000-000000000004')),
   'processing','a second finance operator starts payout processing');
 
+update private.app_config set value_json='false'::jsonb where key='withdrawal_payout_enabled';
 select throws_ok(
   $$select * from public.admin_operate_withdrawal('8c000000-0000-0000-0000-000000000003','8c300000-0000-4000-8000-000000000001','mark_paid',null,'BANK-REF-001',repeat('a',64),'8c500000-0000-4000-8000-000000000005')$$,
-  '55000','withdrawal_payout_enabled_disabled','payout recording fails closed while disabled'
+  '55000','withdrawal_payout_enabled_disabled','payout recording fails closed when its emergency switch is disabled'
 );
 update private.app_config set value_json='true'::jsonb where key='withdrawal_payout_enabled';
 select throws_ok(

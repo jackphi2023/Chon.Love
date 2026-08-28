@@ -36,6 +36,7 @@ export const chonColors = {
   primaryRed: '#D92D2A',
   primaryRedHover: '#E94A47',
   gold: '#FFBB00',
+  goldChrome: '#FFBB00',
   goldStrong: '#B87800',
   warmSurface: '#FAF5F2',
   warmSurfaceStrong: '#FFF1C8',
@@ -144,7 +145,7 @@ export const chonButtons = {
   },
   goldFilled: {
     background: chonColors.gold,
-    hoverBackground: '#FFC928',
+    hoverBackground: chonColors.gold,
     text: chonColors.text,
     border: chonColors.gold,
   },

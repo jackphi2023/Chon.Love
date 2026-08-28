@@ -33,7 +33,8 @@
     "validate:netlify-release": "node scripts/validate-br10.mjs",
     "validate:branding": "node scripts/validate-web-r03-branding.mjs",
     "validate:seo-public-profile": "node scripts/validate-seo-public-profile.mjs",
-    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:browser-e2e && pnpm validate:vietqr-reconciliation && pnpm validate:kyc-withdrawal-operations && pnpm validate:runtime-quality && pnpm validate:netlify-release && pnpm validate:branding && pnpm validate:seo-public-profile"
+    "validate:opt15": "node scripts/validate-opt15-global-qa.mjs",
+    "validate": "pnpm validate:workspace && pnpm validate:environments && pnpm validate:security && pnpm validate:integration && pnpm validate:auth && pnpm validate:social-e2e && pnpm validate:browser-e2e && pnpm validate:vietqr-reconciliation && pnpm validate:kyc-withdrawal-operations && pnpm validate:runtime-quality && pnpm validate:netlify-release && pnpm validate:branding && pnpm validate:seo-public-profile && pnpm validate:opt15"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { MemberProfileMobileActions } from '@/components/member-profile-mobile-actions';
 import { MemberProfileVerificationBadges } from '@/components/member-profile-verification-badges';
+import { useLuxyMailboxRealtime } from '@/hooks/use-luxy-mailbox-realtime';
 import { AppProviders } from '@/providers/app-providers';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -52,6 +53,7 @@ function WebDocumentMetadata() {
 function RootNavigator() {
   const pathname = usePathname();
   const auth = useAuth();
+  useLuxyMailboxRealtime(auth.userId);
 
   if (auth.isRestoring) return null;
   if (!auth.userId && !isGuestPublicPath(pathname)) return <Redirect href="/" />;

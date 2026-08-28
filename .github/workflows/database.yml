@@ -111,6 +111,11 @@ jobs:
           test -f supabase/migrations/20260820124000_su_08_signup_headline_bio_contract.sql
           test -f supabase/migrations/20260820132500_su_09_selfie_completion_activation.sql
           test -f supabase/migrations/20260824223000_ui_msg02_deleted_message_contract.sql
+          test -f supabase/migrations/20260827143000_opt_01_approval_contract.sql
+          test -f supabase/migrations/20260827144500_opt_01_retire_legacy_discovery_rpc.sql
+          test -f supabase/migrations/20260827150000_opt_02_media_moderation_integrity.sql
+          test -f supabase/migrations/20260827162000_opt_03_admin_review_queue.sql
+          test -f supabase/migrations/20260827234000_opt_05_profile_edit_date_of_birth.sql
           test -f supabase/functions/seed-myfan-beta-users/index.ts
           test -f supabase/functions/reset-myfan-beta-passwords/index.ts
           test -f supabase/functions/vietqr-reconciliation-admin/index.ts
@@ -136,6 +141,11 @@ jobs:
           test -f supabase/tests/su_08_signup_headline_bio_contract.sql
           test -f supabase/tests/su_09_selfie_completion_activation.sql
           test -f supabase/tests/ui_msg02_deleted_message_contract.sql
+          test -f supabase/tests/opt_01_approval_contract.sql
+          test -f supabase/tests/opt_02_media_moderation_integrity.sql
+          test -f supabase/tests/opt_03_admin_review.sql
+          test -f supabase/tests/opt_04_member_visibility.sql
+          test -f supabase/tests/opt_05_profile_edit.sql
           test -f scripts/validate-br06.mjs
           test -f scripts/validate-br07.mjs
           test -f scripts/validate-br08.mjs
@@ -206,6 +216,21 @@ jobs:
 
       - name: Run SU-09 Selfie completion activation contract
         run: supabase test db supabase/tests/su_09_selfie_completion_activation.sql --local
+
+      - name: Run OPT-01 approval contract
+        run: supabase test db supabase/tests/opt_01_approval_contract.sql --local
+
+      - name: Run OPT-02 media moderation integrity contract
+        run: supabase test db supabase/tests/opt_02_media_moderation_integrity.sql --local
+
+      - name: Run OPT-03 Admin review contract
+        run: supabase test db supabase/tests/opt_03_admin_review.sql --local
+
+      - name: Run OPT-04 member visibility contract
+        run: supabase test db supabase/tests/opt_04_member_visibility.sql --local
+
+      - name: Run OPT-05 profile edit contract
+        run: supabase test db supabase/tests/opt_05_profile_edit.sql --local
 
       - name: Run UI-MSG02 deleted-message retention contract
         run: supabase test db supabase/tests/ui_msg02_deleted_message_contract.sql --local

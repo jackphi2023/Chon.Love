@@ -44,8 +44,10 @@ test('UI-CHAT01 keeps conversation chrome clean and uses the shared gift compose
     await expect(giftButton).toBeVisible();
     await expect(giftButton).toContainText('Tặng quà');
     await giftButton.click();
-    await expect(page.getByText('Tặng quà', { exact: true }).first()).toBeVisible();
-    await page.getByLabel('Đóng', { exact: true }).click();
+    const picker = page.getByTestId('chon-gift-picker');
+    await expect(picker).toBeVisible();
+    await expect(picker.getByRole('heading', { name: 'Tặng quà', exact: true })).toBeVisible();
+    await picker.getByLabel('Đóng', { exact: true }).click();
 
     const chatInput = page.getByRole('textbox', { name: 'Nội dung tin nhắn', exact: true });
     await chatInput.fill(message);

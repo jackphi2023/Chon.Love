@@ -7,8 +7,8 @@ BANK='4c100000-0000-0000-0000-000000000001'
 
 cleanup() {
   psql "$DB_URL" -v ON_ERROR_STOP=1 >/dev/null 2>&1 <<'SQL' || true
-revoke execute on function public.request_withdrawal(uuid,bigint,uuid) from authenticated;
-update private.app_config set value_json='false'::jsonb where key='withdrawal_requests_enabled';
+grant execute on function public.request_withdrawal(uuid,bigint,uuid) to authenticated;
+update private.app_config set value_json='true'::jsonb where key='withdrawal_requests_enabled';
 SQL
 }
 trap cleanup EXIT
@@ -56,9 +56,19 @@ select * from public.send_gift('${CREATOR}',(select id from public.gift_catalog 
 commit;
 update private.creator_reward_positions set available_at=now()-interval '1 second' where creator_id='${CREATOR}';
 select * from public.release_due_creator_rewards(10);
-update private.app_config set value_json='true'::jsonb where key='withdrawal_requests_enabled';
-grant execute on function public.request_withdrawal(uuid,bigint,uuid) to authenticated;
+update private.app_config set value_json='false'::jsonb where key='withdrawal_requests_enabled';
 SQL
+
+set +e
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "begin; set local role authenticated; select set_config('request.jwt.claims','{\"sub\":\"${CREATOR}\",\"role\":\"authenticated\"}',true); select * from public.request_withdrawal('${BANK}',1000,'4c300000-0000-0000-0000-000000000000'); commit;" >/tmp/opt12-disabled.out 2>/tmp/opt12-disabled.err
+disabled_rc=$?
+set -e
+if [[ $disabled_rc -eq 0 ]] || ! grep -q 'withdrawal_requests_enabled_disabled' /tmp/opt12-disabled.err; then
+  echo "Expected withdrawal request to fail closed while the OPT-12 switch is off." >&2
+  cat /tmp/opt12-disabled.out /tmp/opt12-disabled.err >&2 || true
+  exit 1
+fi
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "update private.app_config set value_json='true'::jsonb where key='withdrawal_requests_enabled';" >/dev/null
 
 run_withdrawal() {
   local request_id="$1"
@@ -81,4 +91,14 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc "select case when
   and (select held_units from private.creator_earning_accounts where creator_id='${CREATOR}')=1000
   and (select count(*) from private.creator_reward_ledger where creator_id='${CREATOR}' and entry_type='withdrawal_hold')=1
   then 'ok' else 'fail' end" | grep -qx ok
-echo "Session 10 withdrawal concurrency invariant: PASS"
+
+effective_withdrawal_id="$(psql "$DB_URL" -Atc "select id from private.withdrawals where creator_id='${CREATOR}' limit 1")"
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "begin; set local role authenticated; select set_config('request.jwt.claims','{\"sub\":\"${CREATOR}\",\"role\":\"authenticated\"}',true); select * from public.cancel_my_withdrawal('${effective_withdrawal_id}','4c400000-0000-0000-0000-000000000001'); commit;" >/dev/null
+psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc "select case when
+  (select status::text from private.withdrawals where id='${effective_withdrawal_id}')='cancelled'
+  and (select available_units from private.creator_earning_accounts where creator_id='${CREATOR}')=1400
+  and (select held_units from private.creator_earning_accounts where creator_id='${CREATOR}')=0
+  and (select count(*) from private.creator_reward_ledger where creator_id='${CREATOR}' and reference_id='${effective_withdrawal_id}' and entry_type='withdrawal_released')=1
+  then 'ok' else 'fail' end" | grep -qx ok
+
+echo "OPT-12 withdrawal fail-closed, concurrency and cancellation invariants: PASS"

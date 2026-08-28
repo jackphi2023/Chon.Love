@@ -11,6 +11,8 @@ import {
   operateWithdrawal,
   payoutStatusLabel,
   startPayoutOperationalReview,
+  withdrawalNextStepLabel,
+  withdrawalOperationsForStatus,
   type BankQueueItem,
   type KycQueueItem,
   type PayoutQueueKind,
@@ -27,10 +29,16 @@ type QueueState =
   | { status: 'ready'; items: QueueItem[] }
   | { status: 'error'; items: QueueItem[]; message: string };
 
+type PaymentDraft = {
+  withdrawalId: string;
+  reference: string;
+  evidenceSha256: string;
+};
+
 const kinds: Array<{ value: PayoutQueueKind; label: string }> = [
-  { value: 'kyc', label: 'KYC' },
-  { value: 'bank', label: 'Tài khoản ngân hàng' },
   { value: 'withdrawal', label: 'Yêu cầu rút tiền' },
+  { value: 'bank', label: 'Tài khoản ngân hàng' },
+  { value: 'kyc', label: 'KYC' },
 ];
 
 const statusOptions: Record<PayoutQueueKind, string[]> = {
@@ -51,6 +59,7 @@ function readableError(error: unknown): string {
     withdrawal_payout_enabled_disabled: 'Bước ghi nhận đã thanh toán đang bị khóa.',
     kyc_review_assignment_required: 'Hồ sơ KYC chưa được giao cho tài khoản hiện tại.',
     bank_review_assignment_required: 'Tài khoản ngân hàng chưa được giao cho tài khoản hiện tại.',
+    withdrawal_review_assignment_required: 'Yêu cầu rút tiền chưa được giao cho tài khoản hiện tại.',
     withdrawal_dual_control_required: 'Người duyệt không được đồng thời là người xử lý/ghi nhận thanh toán.',
     payment_evidence_sha256_required: 'Cần SHA-256 chứng từ thanh toán hợp lệ.',
     payment_reference_required: 'Cần mã tham chiếu chuyển khoản.',
@@ -66,12 +75,13 @@ function entityId(kind: PayoutQueueKind, item: QueueItem): string {
 }
 
 export function KycWithdrawalOperationsClient() {
-  const [kind, setKind] = useState<PayoutQueueKind>('kyc');
+  const [kind, setKind] = useState<PayoutQueueKind>('withdrawal');
   const [filter, setFilter] = useState('');
   const [queue, setQueue] = useState<QueueState>({ status: 'loading', items: [] });
   const [reloadToken, setReloadToken] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [paymentDraft, setPaymentDraft] = useState<PaymentDraft | null>(null);
   const reload = useCallback(() => setReloadToken((value) => value + 1), []);
 
   useEffect(() => {
@@ -102,7 +112,7 @@ export function KycWithdrawalOperationsClient() {
     setNotice(null);
     try {
       await startPayoutOperationalReview(client, { kind, entityId: id });
-      setNotice('Đã nhận hồ sơ vào hàng đợi cá nhân.');
+      setNotice('Đã nhận hồ sơ. Trạng thái và SLA đã được cập nhật.');
       reload();
     } catch (error) { setNotice(readableError(error)); }
     finally { setBusyId(null); }
@@ -165,7 +175,11 @@ export function KycWithdrawalOperationsClient() {
     finally { setBusyId(null); }
   }
 
-  async function operate(item: WithdrawalQueueItem, operation: WithdrawalOperation) {
+  async function operate(
+    item: WithdrawalQueueItem,
+    operation: WithdrawalOperation,
+    payment?: { reference: string; evidenceSha256: string },
+  ) {
     const client = getAdminSupabaseClient();
     if (!client) return;
     let reasonCode: string | null = null;
@@ -176,15 +190,21 @@ export function KycWithdrawalOperationsClient() {
       if (!reasonCode) return;
     }
     if (operation === 'mark_paid') {
-      paymentReference = window.prompt('Mã giao dịch chuyển khoản:')?.trim() || null;
-      paymentEvidenceSha256 = window.prompt('SHA-256 chứng từ thanh toán (64 ký tự hex):')?.trim() || null;
-      if (!paymentReference || !paymentEvidenceSha256) return;
+      paymentReference = payment?.reference.trim() || null;
+      paymentEvidenceSha256 = payment?.evidenceSha256.trim().toLowerCase() || null;
+      if (!paymentReference || !paymentEvidenceSha256 || !/^[0-9a-f]{64}$/u.test(paymentEvidenceSha256)) {
+        setNotice('Cần mã giao dịch và SHA-256 chứng từ gồm đúng 64 ký tự hex.');
+        return;
+      }
     }
-    if (!window.confirm(`Xác nhận thao tác ${operation}? Mọi bước vẫn fail closed nếu database flag chưa bật.`)) return;
+    if (!window.confirm(`Xác nhận ${operation}? Thao tác được ghi audit và không thể bỏ qua maker–checker.`)) return;
     setBusyId(item.withdrawal_id);
+    setNotice(null);
     try {
       await operateWithdrawal(client, { withdrawalId: item.withdrawal_id, operation, reasonCode, paymentReference, paymentEvidenceSha256 });
-      setNotice(`Withdrawal: ${operation}.`); reload();
+      setPaymentDraft(null);
+      setNotice(`Withdrawal: ${operation}. Trạng thái đã được cập nhật từ server.`);
+      reload();
     } catch (error) { setNotice(readableError(error)); }
     finally { setBusyId(null); }
   }
@@ -193,9 +213,9 @@ export function KycWithdrawalOperationsClient() {
     <div className="adminModerationShell">
       <header className="adminModerationHeader">
         <div>
-          <p className="adminEyebrow">COMPLIANCE · FINANCE · BR-08</p>
-          <h1>KYC và rút tiền</h1>
-          <p>Hàng đợi vận hành cho KYC, tài khoản ngân hàng và rút tiền thủ công. PII chỉ mở sau khi hồ sơ được nhận; payout yêu cầu maker–checker và chứng từ SHA-256.</p>
+          <p className="adminEyebrow">OPT-13 · COMPLIANCE · FINANCE</p>
+          <h1>KYC, ngân hàng và rút tiền</h1>
+          <p>Control plane nối trực tiếp với OPT-12: user gửi yêu cầu → Finance nhận hồ sơ → duyệt → operator thứ hai xử lý → ghi nhận thanh toán kèm chứng từ.</p>
         </div>
         <div className="adminActions">
           <button className="adminSecondary" onClick={reload} type="button">Tải lại</button>
@@ -204,40 +224,83 @@ export function KycWithdrawalOperationsClient() {
         </div>
       </header>
 
-      <section className="adminFinanceNotice"><strong>Fail closed:</strong> sáu cờ KYC/withdrawal của BR-08 mặc định đều <code>false</code>. Source Edge Function không đồng nghĩa đã deploy hoặc được phép chuyển tiền.</section>
+      <section className="adminFinanceNotice">
+        <strong>Boundary bảo mật:</strong> OPT-13 mở operational flags cho Finance nhưng không cấp admin RPC cho app user. Payout vẫn bắt buộc role finance_admin/super_admin, maker–checker, mã giao dịch và SHA-256 chứng từ; mọi bước được audit ở server.
+      </section>
 
       <section className="adminReconciliationQueue">
         <div className="adminSectionHeading">
           <div><p className="adminEyebrow">OPERATIONAL QUEUE</p><h2>{kinds.find((entry) => entry.value === kind)?.label}</h2></div>
           <div className="adminActions">
-            {kinds.map((entry) => <button className={kind === entry.value ? 'adminPrimary' : 'adminSecondary'} key={entry.value} onClick={() => { setKind(entry.value); setFilter(''); }} type="button">{entry.label}</button>)}
+            {kinds.map((entry) => <button className={kind === entry.value ? 'adminPrimary' : 'adminSecondary'} key={entry.value} onClick={() => { setKind(entry.value); setFilter(''); setPaymentDraft(null); }} type="button">{entry.label}</button>)}
           </div>
           <label>Trạng thái<select onChange={(event) => setFilter(event.target.value)} value={filter}>{statusOptions[kind].map((status) => <option key={status || 'all'} value={status}>{status ? payoutStatusLabel(status) : 'Tất cả'}</option>)}</select></label>
         </div>
-        <div className="adminSummaryStrip"><span>Tổng hồ sơ: <strong>{total}</strong></span><span>Đang hiển thị: <strong>{queue.items.length}</strong></span><span>Chế độ: <strong>Manual review</strong></span></div>
+        <div className="adminSummaryStrip"><span>Tổng hồ sơ: <strong>{total}</strong></span><span>Đang hiển thị: <strong>{queue.items.length}</strong></span><span>Chế độ: <strong>Maker–checker</strong></span></div>
         {notice ? <div className="adminState adminCompactState" role="status">{notice}</div> : null}
         {queue.status === 'loading' && queue.items.length === 0 ? <div className="adminState">Đang tải…</div> : null}
         {queue.status === 'error' ? <div className="adminState adminError" role="alert"><strong>{queue.message}</strong><button className="adminSecondary" onClick={reload} type="button">Thử lại</button></div> : null}
-        {queue.status === 'ready' && queue.items.length === 0 ? <div className="adminState"><strong>Không có hồ sơ</strong><p>Không có dữ liệu theo bộ lọc hiện tại hoặc operational flag đang tắt.</p></div> : null}
+        {queue.status === 'ready' && queue.items.length === 0 ? <div className="adminState"><strong>Không có hồ sơ</strong><p>Không có dữ liệu theo bộ lọc hiện tại.</p></div> : null}
 
         <div className="adminReconciliationList">
           {kind === 'kyc' ? (queue.items as KycQueueItem[]).map((item) => <article className="adminReconciliationCard" key={item.kyc_profile_id}>
             <header><div><strong>{item.display_name}</strong><small>{item.document_type ?? 'Chưa xác định'} · ****{item.document_number_last4 ?? '----'} · {item.country_code ?? '—'}</small></div><span data-status={item.status}>{payoutStatusLabel(item.status)}</span></header>
             <dl className="adminMetaGrid"><div><dt>Tài liệu</dt><dd>{item.document_count}</dd></div><div><dt>Tuổi hồ sơ</dt><dd>{item.age_minutes} phút</dd></div><div><dt>Reviewer</dt><dd>{item.assigned_to ?? 'Chưa nhận'}</dd></div><div><dt>SLA</dt><dd>{item.review_due_at ? new Date(item.review_due_at).toLocaleString('vi-VN') : '—'}</dd></div></dl>
-            <div className="adminActions"><button className="adminSecondary" disabled={busyId === item.kyc_profile_id} onClick={() => void claim(item)} type="button">Nhận hồ sơ</button><button className="adminSecondary" disabled={busyId === item.kyc_profile_id} onClick={() => void inspectKyc(item)} type="button">Xem PII/Tài liệu</button><button className="adminPrimary" disabled={busyId === item.kyc_profile_id} onClick={() => void decideKyc(item, 'approve')} type="button">Duyệt</button><button className="adminDanger" disabled={busyId === item.kyc_profile_id} onClick={() => void decideKyc(item, 'reject')} type="button">Từ chối</button></div>
+            <div className="adminActions">
+              {item.status === 'pending' && !item.assigned_to ? <button className="adminSecondary" disabled={busyId === item.kyc_profile_id} onClick={() => void claim(item)} type="button">Nhận hồ sơ</button> : null}
+              {item.assigned_to && item.status === 'pending' ? <button className="adminSecondary" disabled={busyId === item.kyc_profile_id} onClick={() => void inspectKyc(item)} type="button">Xem PII/Tài liệu</button> : null}
+              {item.assigned_to && item.status === 'pending' ? <button className="adminPrimary" disabled={busyId === item.kyc_profile_id} onClick={() => void decideKyc(item, 'approve')} type="button">Duyệt</button> : null}
+              {item.assigned_to && item.status === 'pending' ? <button className="adminDanger" disabled={busyId === item.kyc_profile_id} onClick={() => void decideKyc(item, 'reject')} type="button">Từ chối</button> : null}
+            </div>
           </article>) : null}
 
           {kind === 'bank' ? (queue.items as BankQueueItem[]).map((item) => <article className="adminReconciliationCard" key={item.bank_account_id}>
             <header><div><strong>{item.display_name}</strong><small>{item.bank_code} · ****{item.account_number_last4}</small></div><span data-status={item.status}>{payoutStatusLabel(item.status)}</span></header>
             <dl className="adminMetaGrid"><div><dt>Mặc định</dt><dd>{item.is_default ? 'Có' : 'Không'}</dd></div><div><dt>Tuổi hồ sơ</dt><dd>{item.age_minutes} phút</dd></div><div><dt>Reviewer</dt><dd>{item.assigned_to ?? 'Chưa nhận'}</dd></div><div><dt>SLA</dt><dd>{item.review_due_at ? new Date(item.review_due_at).toLocaleString('vi-VN') : '—'}</dd></div></dl>
-            <div className="adminActions"><button className="adminSecondary" disabled={busyId === item.bank_account_id} onClick={() => void claim(item)} type="button">Nhận hồ sơ</button><button className="adminSecondary" disabled={busyId === item.bank_account_id} onClick={() => void inspectBank(item)} type="button">Xem PII</button><button className="adminPrimary" disabled={busyId === item.bank_account_id} onClick={() => void decideBank(item, 'verify')} type="button">Xác minh</button><button className="adminDanger" disabled={busyId === item.bank_account_id} onClick={() => void decideBank(item, 'reject')} type="button">Từ chối</button><button className="adminSecondary" disabled={busyId === item.bank_account_id} onClick={() => void decideBank(item, 'disable')} type="button">Vô hiệu hóa</button></div>
+            <div className="adminActions">
+              {item.status === 'pending' && !item.assigned_to ? <button className="adminSecondary" disabled={busyId === item.bank_account_id} onClick={() => void claim(item)} type="button">Nhận hồ sơ</button> : null}
+              {item.status === 'pending' && item.assigned_to ? <button className="adminSecondary" disabled={busyId === item.bank_account_id} onClick={() => void inspectBank(item)} type="button">Xem PII</button> : null}
+              {item.status === 'pending' && item.assigned_to ? <button className="adminPrimary" disabled={busyId === item.bank_account_id} onClick={() => void decideBank(item, 'verify')} type="button">Xác minh</button> : null}
+              {item.status === 'pending' && item.assigned_to ? <button className="adminDanger" disabled={busyId === item.bank_account_id} onClick={() => void decideBank(item, 'reject')} type="button">Từ chối</button> : null}
+              {item.status === 'verified' ? <button className="adminSecondary" disabled={busyId === item.bank_account_id} onClick={() => void decideBank(item, 'disable')} type="button">Vô hiệu hóa</button> : null}
+            </div>
           </article>) : null}
 
-          {kind === 'withdrawal' ? (queue.items as WithdrawalQueueItem[]).map((item) => <article className="adminReconciliationCard" key={item.withdrawal_id}>
-            <header><div><strong>{formatVnd(item.amount_vnd)}</strong><small>{item.display_name} · {item.requested_reward_units} units · {item.bank_code} ****{item.bank_last4}</small></div><span data-status={item.status}>{payoutStatusLabel(item.status)}</span></header>
-            <dl className="adminMetaGrid"><div><dt>Reviewer</dt><dd>{item.assigned_to ?? 'Chưa nhận'}</dd></div><div><dt>Người duyệt</dt><dd>{item.approved_by ?? '—'}</dd></div><div><dt>Người xử lý</dt><dd>{item.processing_started_by ?? '—'}</dd></div><div><dt>Chứng từ</dt><dd>{item.payment_evidence_present ? 'Đã có' : 'Chưa có'}</dd></div></dl>
-            <div className="adminActions"><button className="adminSecondary" disabled={busyId === item.withdrawal_id} onClick={() => void claim(item)} type="button">Nhận hồ sơ</button><button className="adminPrimary" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'approve')} type="button">Duyệt</button><button className="adminSecondary" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'start_processing')} type="button">Bắt đầu chuyển tiền</button><button className="adminPrimary" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'mark_paid')} type="button">Ghi nhận đã trả</button><button className="adminDanger" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'reject')} type="button">Từ chối</button></div>
-          </article>) : null}
+          {kind === 'withdrawal' ? (queue.items as WithdrawalQueueItem[]).map((item) => {
+            const operations = withdrawalOperationsForStatus(item.status);
+            const editingPayment = paymentDraft?.withdrawalId === item.withdrawal_id;
+            return <article className="adminReconciliationCard" data-testid={`admin-withdrawal-${item.withdrawal_id}`} key={item.withdrawal_id}>
+              <header><div><strong>{formatVnd(item.amount_vnd)}</strong><small>{item.display_name} · {item.requested_reward_units} units · {item.bank_code} ****{item.bank_last4}</small></div><span data-status={item.status}>{payoutStatusLabel(item.status)}</span></header>
+              <dl className="adminMetaGrid">
+                <div><dt>Yêu cầu</dt><dd>{new Date(item.requested_at).toLocaleString('vi-VN')}</dd></div>
+                <div><dt>Reviewer</dt><dd>{item.assigned_to ?? 'Chưa nhận'}</dd></div>
+                <div><dt>Người duyệt</dt><dd>{item.approved_by ?? '—'}</dd></div>
+                <div><dt>Người xử lý</dt><dd>{item.processing_started_by ?? '—'}</dd></div>
+                <div><dt>SLA</dt><dd>{item.review_due_at ? new Date(item.review_due_at).toLocaleString('vi-VN') : '—'}</dd></div>
+                <div><dt>Tuổi hồ sơ</dt><dd>{item.age_minutes} phút</dd></div>
+                <div><dt>Mã thanh toán</dt><dd>{item.payment_reference ?? '—'}</dd></div>
+                <div><dt>Chứng từ</dt><dd>{item.payment_evidence_present ? 'Đã có' : 'Chưa có'}</dd></div>
+              </dl>
+              <p className="adminWorkflowHint"><strong>Bước tiếp theo:</strong> {withdrawalNextStepLabel(item.status)}</p>
+              <div className="adminActions">
+                {item.status === 'pending' ? <button className="adminSecondary" disabled={busyId === item.withdrawal_id} onClick={() => void claim(item)} type="button">Nhận hồ sơ</button> : null}
+                {operations.includes('approve') ? <button className="adminPrimary" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'approve')} type="button">Duyệt</button> : null}
+                {operations.includes('start_processing') ? <button className="adminSecondary" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'start_processing')} type="button">Bắt đầu chuyển tiền</button> : null}
+                {operations.includes('mark_paid') ? <button className="adminPrimary" disabled={busyId === item.withdrawal_id} onClick={() => setPaymentDraft(editingPayment ? null : { withdrawalId: item.withdrawal_id, reference: '', evidenceSha256: '' })} type="button">Ghi nhận đã trả</button> : null}
+                {operations.includes('reject') ? <button className="adminDanger" disabled={busyId === item.withdrawal_id} onClick={() => void operate(item, 'reject')} type="button">Từ chối</button> : null}
+              </div>
+              {editingPayment && paymentDraft ? (
+                <div className="adminPayoutForm" data-testid="admin-withdrawal-payment-form">
+                  <label>Mã giao dịch ngân hàng<input autoComplete="off" maxLength={120} onChange={(event) => setPaymentDraft({ ...paymentDraft, reference: event.target.value })} placeholder="VD: VCB-20260828-001" value={paymentDraft.reference} /></label>
+                  <label>SHA-256 chứng từ<input autoComplete="off" maxLength={64} onChange={(event) => setPaymentDraft({ ...paymentDraft, evidenceSha256: event.target.value })} placeholder="64 ký tự hex" value={paymentDraft.evidenceSha256} /></label>
+                  <div className="adminActions">
+                    <button className="adminPrimary" disabled={busyId === item.withdrawal_id || !paymentDraft.reference.trim() || !/^[0-9a-f]{64}$/iu.test(paymentDraft.evidenceSha256.trim())} onClick={() => void operate(item, 'mark_paid', paymentDraft)} type="button">Xác nhận đã thanh toán</button>
+                    <button className="adminSecondary" disabled={busyId === item.withdrawal_id} onClick={() => setPaymentDraft(null)} type="button">Đóng</button>
+                  </div>
+                </div>
+              ) : null}
+            </article>;
+          }) : null}
         </div>
       </section>
     </div>

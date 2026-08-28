@@ -7,6 +7,19 @@ const DESCRIPTION = 'Chon.Love là nền tảng hẹn hò dành cho người dù
 const DEFAULT_TITLE = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
 const DEFAULT_SOCIAL_IMAGE = 'https://www.chon.love/seo/chonlove-homepage-thumbnail.jpg';
 
+function getSupabaseOrigin(): string | null {
+  const configured = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  if (!configured) return null;
+  try {
+    const url = new URL(configured);
+    return url.protocol === 'https:' ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+const SUPABASE_ORIGIN = getSupabaseOrigin();
+
 export default function RootHtml({ children }: RootHtmlProps) {
   return (
     <html lang="vi">
@@ -16,6 +29,8 @@ export default function RootHtml({ children }: RootHtmlProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover" />
         <meta name="description" content={DESCRIPTION} />
         <meta name="theme-color" content="#081726" />
+        {SUPABASE_ORIGIN ? <link rel="dns-prefetch" href={SUPABASE_ORIGIN} /> : null}
+        {SUPABASE_ORIGIN ? <link rel="preconnect" href={SUPABASE_ORIGIN} crossOrigin="anonymous" /> : null}
         <meta property="og:site_name" content="Chọn.love" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content={DEFAULT_TITLE} />

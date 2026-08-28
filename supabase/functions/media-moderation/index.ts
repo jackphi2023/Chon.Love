@@ -93,13 +93,14 @@ Deno.serve(async (req: Request) => {
           "id,owner_id,storage_bucket,storage_path,mime_type,moderation_status,moderation_reason_code,visibility,created_at,updated_at,uploaded_at,deleted_at",
           { count: "exact" },
         )
-        .eq("moderation_status", moderationStatus)
-        .order(moderationStatus === "pending_review" ? "created_at" : "updated_at", {
-          ascending: moderationStatus === "pending_review",
-        })
-        .range(offset, offset + limit - 1);
+        .eq("moderation_status", moderationStatus);
 
       if (moderationStatus !== "deleted") query = query.is("deleted_at", null);
+      query = moderationStatus === "pending_review"
+        ? query.order("uploaded_at", { ascending: false }).order("created_at", { ascending: false })
+        : query.order("updated_at", { ascending: false });
+      query = query.range(offset, offset + limit - 1);
+
       const { data: mediaRows, error: mediaError, count } = await query;
       if (mediaError) return json({ error: "media_queue_unavailable" }, 409);
 
@@ -120,6 +121,19 @@ Deno.serve(async (req: Request) => {
             display_name: profile.display_name ?? null,
           });
         }
+      }
+
+      const ownersWithApprovedProfileMedia = new Set<string>();
+      if (moderationStatus === "pending_review" && ownerIds.length) {
+        const { data: approvedRows, error: approvedError } = await adminClient
+          .from("media_assets")
+          .select("owner_id")
+          .in("owner_id", ownerIds)
+          .eq("moderation_status", "approved")
+          .in("visibility", ["avatar", "public"])
+          .is("deleted_at", null);
+        if (approvedError) return json({ error: "media_queue_approved_media_lookup_failed" }, 409);
+        for (const approved of approvedRows ?? []) ownersWithApprovedProfileMedia.add(approved.owner_id);
       }
 
       const emailEntries = await Promise.all(ownerIds.map(async (ownerId) => {
@@ -175,6 +189,9 @@ Deno.serve(async (req: Request) => {
         items: rows.map((media) => {
           const profile = profileByOwner.get(media.owner_id);
           const moderationCase = caseByMedia.get(media.id);
+          const isReplacement = moderationStatus === "pending_review"
+            && ownersWithApprovedProfileMedia.has(media.owner_id)
+            && (media.visibility === "avatar" || media.visibility === "public");
           return {
             media_id: media.id,
             owner_id: media.owner_id,
@@ -195,6 +212,8 @@ Deno.serve(async (req: Request) => {
             priority: moderationCase?.priority ?? "normal",
             rule_codes: moderationCase?.rule_codes ?? [],
             case_created_at: moderationCase?.created_at ?? null,
+            is_replacement: isReplacement,
+            review_alert: isReplacement ? "User mới sửa ảnh cần duyệt" : null,
           };
         }),
         total_count: count ?? rows.length,

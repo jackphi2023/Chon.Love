@@ -170,22 +170,24 @@ select is(
 );
 
 select ok(
-  private.config_boolean('withdrawal_requests_enabled') = false
-  and private.config_boolean('withdrawal_processing_enabled') = false
-  and private.config_boolean('withdrawal_payout_enabled') = false
-  and private.config_boolean('withdrawal_operational_review_enabled') = false,
-  'all withdrawal release switches remain server-side fail-closed'
+  private.config_boolean('withdrawal_requests_enabled') = true
+  and private.config_boolean('withdrawal_processing_enabled') = true
+  and private.config_boolean('withdrawal_payout_enabled') = true
+  and private.config_boolean('withdrawal_operational_review_enabled') = true,
+  'OPT-12 and OPT-13 explicitly release the guarded withdrawal lifecycle'
 );
 
 select ok(
   not has_function_privilege('anon','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE')
-  and not has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),
-  'browser app roles cannot execute request_withdrawal while withdrawals are disabled'
+  and has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE')
+  and not has_function_privilege('authenticated','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),
+  'member request RPC is open only to authenticated users while admin payout RPC remains server-only'
 );
 
 select ok(
-  has_function_privilege('service_role','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),
-  'service role retains controlled withdrawal execution for reviewed operations'
+  has_function_privilege('service_role','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE')
+  and has_function_privilege('service_role','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),
+  'service role retains the controlled server boundary for withdrawal operations'
 );
 
 select ok(

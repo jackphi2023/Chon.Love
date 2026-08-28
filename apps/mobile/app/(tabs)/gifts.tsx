@@ -5,11 +5,13 @@ import {
   getMyLuxyGiftWallet,
   giftCatalogQueryKeys,
   listMyLuxyGifts,
+  subscribeToMyLuxyGiftTransactions,
+  unsubscribeFromLuxyGiftTransactions,
   type LuxyGiftHistoryDirection,
 } from '@myfan/supabase';
 import { luxyBreakpoints, luxyColors, luxyLayout, luxyRadii, luxySpacing } from '@myfan/ui';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -17,6 +19,7 @@ import { useAuth } from '@/providers/auth-provider';
 export default function LuxyGiftsAndIncomePage() {
   const client = getMobileSupabaseClient();
   const auth = useAuth();
+  const queryClient = useQueryClient();
   const [direction, setDirection] = useState<LuxyGiftHistoryDirection>('received');
   const { width } = useWindowDimensions();
   const desktop = width >= luxyBreakpoints.desktop;
@@ -40,6 +43,26 @@ export default function LuxyGiftsAndIncomePage() {
       return listMyLuxyGifts(client, direction, { limit: 30, offset: 0 });
     },
   });
+
+  useEffect(() => {
+    if (!client || !auth.userId) return undefined;
+
+    const refreshGiftState = () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.wallet(auth.userId) }),
+        queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.history(auth.userId, 'received') }),
+        queryClient.invalidateQueries({ queryKey: giftCatalogQueryKeys.history(auth.userId, 'sent') }),
+      ]);
+    };
+    const channel = subscribeToMyLuxyGiftTransactions(client, {
+      userId: auth.userId,
+      onChange: refreshGiftState,
+    });
+
+    return () => {
+      void unsubscribeFromLuxyGiftTransactions(client, channel);
+    };
+  }, [auth.userId, client, queryClient]);
 
   const wallet = walletQuery.data;
   return (

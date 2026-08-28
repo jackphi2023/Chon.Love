@@ -17,9 +17,16 @@ async function openGiftPicker(page) {
   await page.goto(`/profile/${creator.username}`);
   await expect(page).toHaveURL(/\/thanh-vien\/id-[0-9a-f]{6}$/i, { timeout: 20_000 });
   await expect(page.getByTestId('chon-member-profile-page')).toBeVisible({ timeout: 20_000 });
-  const giftAction = page.getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
+
+  const isDesktop = (page.viewportSize()?.width ?? 390) >= 768;
+  const giftAction = isDesktop
+    ? page.getByTestId('luxy-profile-desktop-gift-button')
+    : page
+        .getByTestId('chon-profile-mobile-action-dock')
+        .getByRole('button', { name: `Tặng quà cho ${creator.displayName}`, exact: true });
   await expect(giftAction).toBeVisible();
   await giftAction.click();
+
   const picker = page.getByTestId('chon-gift-picker');
   await expect(picker).toBeVisible();
   return picker;
@@ -35,8 +42,8 @@ async function assertFinalGiftPresentation(picker) {
   await donut.click();
   await expect(donut).toHaveCSS('background-color', 'rgb(184, 120, 0)');
   await expect(donut).toHaveCSS('border-color', 'rgb(217, 45, 42)');
-  await expect(picker.getByRole('button', { name: 'Tặng quà', exact: true })).toBeVisible();
-  await expect(picker.getByText('Gửi quà', { exact: true })).toHaveCount(0);
+  await expect(picker.getByRole('button', { name: 'Tiếp tục', exact: true })).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'Xác nhận tặng', exact: true })).toHaveCount(0);
 
   const crown = picker.getByRole('button', { name: 'Vương miện, 20 ❤️', exact: true });
   await expect(crown).toContainText('👑');
@@ -44,7 +51,7 @@ async function assertFinalGiftPresentation(picker) {
   expect(selectedText).toMatch(/🍩/u);
 }
 
-test('UI-GIFT01 keeps the 20-gift heart catalog and restores each catalog-specific emoji in one responsive Chon.Love picker', async ({ browser }, testInfo) => {
+test('UI-GIFT01 keeps the 20-gift heart catalog and responsive shared Chon.Love picker', async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -70,6 +77,7 @@ test('UI-GIFT01 keeps the 20-gift heart catalog and restores each catalog-specif
       contentType: 'image/png',
     });
 
+    await picker.getByRole('button', { name: 'Đóng', exact: true }).click();
     await page.setViewportSize({ width: 1280, height: 900 });
     const desktopPicker = await openGiftPicker(page);
     await assertFinalGiftPresentation(desktopPicker);

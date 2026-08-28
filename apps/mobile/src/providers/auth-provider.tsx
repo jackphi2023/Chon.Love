@@ -20,7 +20,32 @@ type AuthContextValue = {
   signOut: (scope?: AuthSignOutScope) => Promise<void>;
 };
 
+type RealtimeSession = { access_token: string } | null;
+
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+async function synchronizeRealtimeSession(
+  client: NonNullable<ReturnType<typeof getMobileSupabaseClient>>,
+  session: RealtimeSession,
+): Promise<void> {
+  if (!session?.access_token) return;
+  try {
+    // Postgres Changes is protected by the same authenticated RLS as normal reads.
+    // Synchronize the restored/signed-in JWT before UI keyed by userId can mount a
+    // Realtime channel. This is especially important after a full browser navigation,
+    // where Auth restores from storage before the mailbox subscription is recreated.
+    await client.realtime.setAuth(session.access_token);
+  } catch (error) {
+    logger.error('Unable to synchronize Realtime auth session', error, { feature: 'realtime_auth' });
+    emitMobileRuntimeObservation({
+      eventName: 'auth_restore_error',
+      severity: 'warning',
+      routeGroup: 'auth',
+      error,
+      metadata: { feature: 'realtime_auth' },
+    });
+  }
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [userId, setUserId] = useState<string | null>(null);
@@ -46,6 +71,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setIsRestoring(false);
         return;
       }
+      await synchronizeRealtimeSession(client, data.session);
+      if (!mounted) return;
       const { data: userData, error: userError } = await client.auth.getUser();
       if (userError) {
         logger.error('Unable to validate restored auth user', userError, { feature: 'auth_restore' });
@@ -58,9 +85,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     });
     const { data } = client.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user.id ?? null);
-      setEmail(session?.user.email ?? null);
-      setIsRestoring(false);
+      void (async () => {
+        await synchronizeRealtimeSession(client, session);
+        if (!mounted) return;
+        setUserId(session?.user.id ?? null);
+        setEmail(session?.user.email ?? null);
+        setIsRestoring(false);
+      })();
     });
     return () => {
       mounted = false;

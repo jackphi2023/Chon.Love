@@ -1,5 +1,6 @@
 begin;
 
+-- OPT-15 final candidate fan-out marker: #FFBB00 test-contract alignment; no database contract behavior changes.
 select plan(24);
 
 select has_column('public','conversations','direct_member_low_id','LX-15 stores canonical lower direct participant');

@@ -47,6 +47,8 @@ type MediaItem = {
   priority: string;
   rule_codes: string[];
   case_created_at: string | null;
+  is_replacement: boolean;
+  review_alert: string | null;
 };
 
 const mediaStatusLabels: Record<MediaStatus, string> = {
@@ -213,7 +215,7 @@ export function ModerationAdmin() {
         <div>
           <h2 style={{ marginBottom: 6 }}>Ảnh hồ sơ & avatar</h2>
           <p style={{ margin: 0 }}>
-            Ảnh pending vẫn riêng tư cho đến khi moderator duyệt. Duyệt avatar sẽ dùng pipeline chuẩn để chuyển file sang profile-media và gán avatar chính.
+            Ảnh chờ duyệt được xếp mới nhất trước. Ảnh mới vẫn riêng tư và ảnh đã duyệt trước đó tiếp tục hiển thị cho đến khi bản thay thế được duyệt.
           </p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -249,6 +251,13 @@ export function ModerationAdmin() {
                   </td>
                   <td style={{ padding: 10, verticalAlign: 'top' }}>
                     <strong>{item.owner_display_name || item.owner_username || item.owner_email || item.owner_id.slice(0, 8)}</strong>
+                    {item.review_alert ? (
+                      <div style={{ marginTop: 5 }}>
+                        <span style={{ background: '#fee2e2', borderRadius: 999, color: '#b91c1c', display: 'inline-block', fontSize: 12, fontWeight: 700, padding: '4px 8px' }}>
+                          {item.review_alert}
+                        </span>
+                      </div>
+                    ) : null}
                     {item.owner_email ? <><br /><small>{item.owner_email}</small></> : null}
                     {item.owner_username ? <><br /><small>@{item.owner_username}</small></> : null}
                     <br /><small>ID {item.owner_id.slice(0, 8)}</small>

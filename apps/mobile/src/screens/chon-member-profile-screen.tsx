@@ -44,10 +44,12 @@ import {
 } from 'react-native';
 import { ChonBrandIcon } from '@/components/chon-brand-icon';
 import { ChonFavoriteButton } from '@/components/chon-favorite-button';
+import { ChonGiftModal } from '@/components/chon-gift-modal';
 import { ChonMemberPhoto } from '@/components/chon-member-photo';
 import { ChonPrivatePhotoAccess } from '@/components/chon-private-photo-access';
 import { LuxyProfilePhotoModal } from '@/components/luxy-profile-photo-modal';
 import { LuxyUpgradeGateModal } from '@/components/luxy-upgrade-gate-modal';
+import { formatMemberLastSignIn } from '@/lib/member-last-sign-in';
 import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -78,6 +80,7 @@ export default function ChonMemberProfileScreen() {
   const [reportDescription, setReportDescription] = useState('');
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
 
   const profileQuery = useQuery({
     queryKey: ['luxy-member-profile', auth.userId, username],
@@ -278,7 +281,7 @@ export default function ChonMemberProfileScreen() {
               mediaId={profile.avatar_media_id}
               badgeInset={10}
               membershipBadgePlacement="top-left"
-              membershipBadgeSize="large"
+              membershipBadgeContext="profile"
               membershipTier={profile.membership_badge_visible ? profile.membership_tier : null}
               name={displayName}
               photoCount={profile.public_photo_count + profile.private_photo_count}
@@ -318,8 +321,28 @@ export default function ChonMemberProfileScreen() {
             </View>
           ) : null}
 
+          {!profile.blocked_by_viewer ? (
+            <Pressable
+              accessibilityLabel={`Tặng quà cho ${displayName}`}
+              accessibilityRole="button"
+              onPress={() => setGiftOpen(true)}
+              style={({ pressed }) => [styles.giftActionButton, pressed && styles.pressed]}
+              testID="chon-member-profile-gift-button"
+            >
+              <ChonBrandIcon name="gift" size={18} />
+              <Text style={styles.giftActionText}>Tặng quà</Text>
+            </Pressable>
+          ) : null}
+
           <View style={styles.sideMeta}>
-            <SideMetaRow icon="recent" label={formatLastActive(profile.last_active_at)} testID="chon-profile-fact-recent" />
+            <SideMetaRow
+              icon="recent"
+              label={formatMemberLastSignIn(profile.last_sign_in_at, {
+                status: social.presence_status,
+                lastActiveAt: social.last_active_at,
+              })}
+              testID="chon-profile-fact-recent"
+            />
             <SideMetaRow icon="location" label={profile.province_name ?? 'Việt Nam'} testID="chon-profile-fact-location" />
             <SideMetaRow icon="profile" label={`Thành viên từ ${formatMemberSince(profile.member_since)}`} testID="chon-profile-fact-member-since" />
           </View>
@@ -411,6 +434,12 @@ export default function ChonMemberProfileScreen() {
         onMessage={(draft) => void handleMessageAction(draft)}
         profileId={profile.id}
         visible={photoOpen}
+      />
+      <ChonGiftModal
+        onClose={() => setGiftOpen(false)}
+        recipientId={profile.id}
+        recipientName={displayName}
+        visible={giftOpen}
       />
       <LuxyUpgradeGateModal busy={upgradeBusy} onClose={() => setShowUpgrade(false)} onUpgrade={() => void handleUpgrade()} reason="message" visible={showUpgrade} />
       <SafetyModal
@@ -559,7 +588,6 @@ function SafetyModal(props: {
 }
 
 function LoadingScreen() { return <View style={styles.centeredPage}><ActivityIndicator color={chonColors.primaryRed} size="large" /><Text style={styles.mutedText}>Đang tải hồ sơ…</Text></View>; }
-function formatLastActive(value: string | null): string { if (!value) return 'Truy cập gần đây'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'Truy cập gần đây'; const diff = Date.now() - date.getTime(); if (diff < 15 * 60_000) return 'Đang online'; if (diff < 3_600_000) return `Truy cập ${Math.max(1, Math.floor(diff / 60_000))} phút trước`; if (diff < 86_400_000) return `Truy cập ${Math.max(1, Math.floor(diff / 3_600_000))} giờ trước`; return `Truy cập ${Math.max(1, Math.floor(diff / 86_400_000))} ngày trước`; }
 function formatMemberSince(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Chọn.Love' : date.toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }); }
 function interestedInSentence(profile: LuxyMemberProfile): string { return `Đang tìm ${interestedInLabel(profile.interested_in).toLowerCase()} cho một kết nối chất lượng`; }
 function interestedInLabel(value: LuxyMemberProfile['interested_in']): string { return value === 'female' ? 'Nữ' : value === 'male' ? 'Nam' : 'Nam / Nữ'; }
@@ -584,6 +612,8 @@ const styles = StyleSheet.create({
   heroPhotoPressTarget: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0, zIndex: 8 },
   heroFavorite: { bottom: 10, position: 'absolute', right: 10, zIndex: 9 },
   privateActionWrap: { marginTop: 10 },
+  giftActionButton: { alignItems: 'center', backgroundColor: chonColors.warmSurface, borderColor: chonColors.gold, borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 10, minHeight: 44, paddingHorizontal: 16 },
+  giftActionText: { color: chonColors.text, fontSize: chonTypography.sizes.body, fontWeight: '700' },
   sideMeta: { borderBottomColor: chonColors.border, borderBottomWidth: 1, borderTopColor: chonColors.border, borderTopWidth: 1, gap: 10, marginTop: 14, paddingVertical: 14 },
   sideMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 9, minHeight: 24 },
   sideMetaText: { color: chonColors.text, flex: 1, fontSize: chonTypography.sizes.body, lineHeight: chonTypography.lineHeights.body },
