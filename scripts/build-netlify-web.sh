@@ -6,6 +6,14 @@ corepack enable
 # Build the responsive Chon.Love member web app first.
 pnpm --filter @myfan/mobile build:web
 
+# Public brand assets must survive Expo export. Fail the release rather than
+# shipping HTML that points browsers or social crawlers at missing files.
+WEB_FAVICON="apps/mobile/dist/favicon.png"
+if [[ ! -s "${WEB_FAVICON}" ]]; then
+  echo "Missing Chọn.Love web favicon in Netlify publish output: ${WEB_FAVICON}" >&2
+  exit 1
+fi
+
 # The homepage social image is injected by Netlify Edge SEO for static public
 # routes. Fail the release if Expo did not copy the committed public asset into
 # the final Netlify publish directory; otherwise crawlers would receive a valid

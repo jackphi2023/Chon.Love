@@ -73,8 +73,8 @@ async function getSeoMetadata(url: URL): Promise<SeoMetadata | null> {
     canonicalUrl: `${PRODUCTION_ORIGIN}${url.pathname}`,
     imageUrl: STATIC_SOCIAL_IMAGE,
     type: 'website',
-    imageWidth: 480,
-    imageHeight: 360,
+    imageWidth: 360,
+    imageHeight: 270,
   };
 }
 

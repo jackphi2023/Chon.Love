@@ -29,6 +29,7 @@ export default function RootHtml({ children }: RootHtmlProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover" />
         <meta name="description" content={DESCRIPTION} />
         <meta name="theme-color" content="#081726" />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
         {SUPABASE_ORIGIN ? <link rel="dns-prefetch" href={SUPABASE_ORIGIN} /> : null}
         {SUPABASE_ORIGIN ? <link rel="preconnect" href={SUPABASE_ORIGIN} crossOrigin="anonymous" /> : null}
         <meta property="og:site_name" content="Chọn.love" />
@@ -36,8 +37,8 @@ export default function RootHtml({ children }: RootHtmlProps) {
         <meta property="og:title" content={DEFAULT_TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:image" content={DEFAULT_SOCIAL_IMAGE} />
-        <meta property="og:image:width" content="480" />
-        <meta property="og:image:height" content="360" />
+        <meta property="og:image:width" content="360" />
+        <meta property="og:image:height" content="270" />
         <meta property="og:image:alt" content="Chọn.love - Chọn đúng Người, Yêu đúng Gu" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={DEFAULT_TITLE} />
