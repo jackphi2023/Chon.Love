@@ -62,10 +62,10 @@ export function ChonMembershipBadge({
       pointerEvents="none"
       style={[
         styles.badge,
-        // Let the layout engine derive width from the source ratio. This makes the
-        // ratio itself the sizing contract instead of depending on two independently
-        // resolved dimensions that Web can reconcile differently for replaced content.
-        { aspectRatio: resolved.aspectRatio, height: resolved.height, top: inset },
+        // Keep both axes explicit. React Native Web can otherwise let replaced
+        // image content stretch an absolutely positioned wrapper even when the
+        // semantic height is correct, which breaks the shared mini/profile sizes.
+        { height: resolved.height, top: inset, width: resolved.width },
         certificate
           ? { left: '50%', transform: [{ translateX: -resolved.width / 2 }] }
           : placement === 'top-right'
