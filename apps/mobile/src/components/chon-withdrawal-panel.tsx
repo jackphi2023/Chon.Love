@@ -303,6 +303,7 @@ function EligibilityRow(props: { ready: boolean; label: string; readyText: strin
 function BankChoice(props: { account: MyPayoutBankAccount; selected: boolean; onPress: () => void }) {
   return (
     <Pressable
+      aria-checked={props.selected}
       accessibilityLabel={`${props.account.bank_code}, tài khoản kết thúc ${props.account.account_number_last4}`}
       accessibilityRole="radio"
       accessibilityState={{ checked: props.selected }}
