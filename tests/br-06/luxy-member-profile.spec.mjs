@@ -189,9 +189,11 @@ test('UI-PRO01 mobile profile keeps canonical Free promo below navigation and an
     const refreshedGiftAction = refreshedDock.getByRole('button', { name: `Tặng quà cho ${creator.displayName}` });
     const refreshedMessageAction = refreshedDock.getByRole('button', { name: `Gửi tin nhắn cho ${creator.displayName}` });
     await refreshedGiftAction.click();
-    await expect(page.getByText('Tặng quà', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Quà dành cho thành viên Cao cấp và Kim cương', { exact: true })).toBeVisible();
-    await page.getByLabel('Đóng', { exact: true }).click();
+    const giftPicker = page.getByTestId('chon-gift-picker');
+    await expect(giftPicker).toBeVisible();
+    await expect(giftPicker.getByRole('heading', { name: 'Tặng quà', exact: true })).toBeVisible();
+    await expect(giftPicker.getByText('Quà dành cho thành viên Cao cấp và Kim cương', { exact: true })).toBeVisible();
+    await giftPicker.getByRole('button', { name: 'Đóng', exact: true }).click();
 
     await testInfo.attach('ui-pro01-mobile-profile-verification-actions', {
       body: await page.screenshot({ fullPage: true }),
