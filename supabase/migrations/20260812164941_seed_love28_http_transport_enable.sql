@@ -1,0 +1,4 @@
+-- Production migration-history alignment marker.
+-- This one-time Love28 bootstrap transport ran in hosted production on 2026-08-12.
+-- Replaying its temporary HTTP transport on clean environments is neither required nor safe.
+-- Runtime state is governed by the later cleanup/disable migration; no schema change is required here.
