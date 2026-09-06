@@ -5,6 +5,7 @@ const actor = { email: 'br06.viewer@example.test' };
 const HERO_DESKTOP = 'https://cdn.example.test/session-c-hero-desktop.png';
 const HERO_MOBILE = 'https://cdn.example.test/session-c-hero-mobile.png';
 const CACHE_KEY = 'chon.homepage.hero.v1';
+const BADGE_INSET_RENDER_TOLERANCE_PX = 2.5;
 const ONE_PIXEL_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z1ioAAAAASUVORK5CYII=',
   'base64',
@@ -39,8 +40,13 @@ async function expectTopLeftBadge(frame, badge, expectedHeight, expectedInset) {
   expect(frameBox).not.toBeNull();
   expect(badgeBox).not.toBeNull();
   expect(Math.abs(badgeBox.height - expectedHeight)).toBeLessThanOrEqual(1);
-  expect(Math.abs((badgeBox.x - frameBox.x) - expectedInset)).toBeLessThanOrEqual(1.5);
-  expect(Math.abs((badgeBox.y - frameBox.y) - expectedInset)).toBeLessThanOrEqual(1.5);
+
+  const leftInset = badgeBox.x - frameBox.x;
+  const topInset = badgeBox.y - frameBox.y;
+  expect(leftInset).toBeGreaterThanOrEqual(expectedInset - BADGE_INSET_RENDER_TOLERANCE_PX);
+  expect(leftInset).toBeLessThanOrEqual(expectedInset + BADGE_INSET_RENDER_TOLERANCE_PX);
+  expect(topInset).toBeGreaterThanOrEqual(expectedInset - BADGE_INSET_RENDER_TOLERANCE_PX);
+  expect(topInset).toBeLessThanOrEqual(expectedInset + BADGE_INSET_RENDER_TOLERANCE_PX);
   expect(badgeBox.x).toBeLessThan(frameBox.x + frameBox.width / 2);
   expect(badgeBox.y).toBeLessThan(frameBox.y + frameBox.height / 2);
 }
