@@ -131,9 +131,6 @@ function validatePng(path, expectedWidth, expectedHeight) {
   expect(height === expectedHeight, `${path}: expected ${expectedHeight}px natural height, found ${height}px.`);
 }
 
-// UI-ASSET01 owns the canonical membership artwork. Validate every source file
-// byte-structurally and by its exact natural dimensions instead of relying on a
-// square or a retired certificate canvas.
 for (const [path, width, height] of [
   ['apps/mobile/assets/chon/membership-badges/premium-16.png', 29, 40],
   ['apps/mobile/assets/chon/membership-badges/premium-26.png', 33, 46],
@@ -166,9 +163,11 @@ expect(
 );
 expect(
   membershipBadgeAssets.includes('mini: 12') &&
-    membershipBadgeAssets.includes('connect: 15') &&
-    membershipBadgeAssets.includes('profile: 20'),
-  'OPT-06 semantic badge contexts must remain 12px mini, 15px Connect and 20px profile heights.',
+    membershipBadgeAssets.includes("input.context === 'connect'") &&
+    membershipBadgeAssets.includes('CHON_MEMBERSHIP_BADGE_ICON_HEIGHT_DESKTOP') &&
+    membershipBadge.includes("requestedContext === 'profile'") &&
+    membershipBadge.includes("? 'certificate'"),
+  'Session C badge contexts must keep mini at 12px, Connect at the canonical 26px desktop icon height, and Profile mapped to large certificate artwork.',
 );
 expect(
   membershipBadgeAssets.includes('asset.intrinsicWidth / asset.intrinsicHeight') &&
@@ -178,11 +177,16 @@ expect(
   'OPT-06 badge geometry must derive width/height from each source asset intrinsic ratio without square coercion or rounding drift.',
 );
 expect(
+  membershipBadge.includes("placement = 'top-left'") &&
+    membershipBadge.includes("placement === 'top-right' ? { right: inset } : { left: inset }"),
+  'Session C membership badge renderer must default every badge to top-left and only move right when a caller explicitly requests top-right.',
+);
+expect(
   connectCard.includes('membershipBadgeContext="connect"') &&
     connectCard.includes('membershipBadgePlacement="top-left"') &&
     connectCard.includes('photoCountPlacement="top-right"') &&
     connectCard.includes('photoCountSize="compact"'),
-  'OPT-06 Connect cards must use the canonical 15px top-left membership badge and compact 15px top-right photo count.',
+  'Session C Connect cards must use the canonical 26px top-left membership badge and compact 15px top-right photo count.',
 );
 expect(
   compactMemberPhoto.includes('membershipBadgeContext="mini"'),
@@ -213,10 +217,11 @@ expect(
 
 const profileBadgeE2e = read('tests/br-06/chon-public-member-profile-pro01.spec.mjs');
 expect(
-  profileBadgeE2e.includes('displayHeight: 20') &&
-    profileBadgeE2e.includes('naturalWidth: 33') && profileBadgeE2e.includes('naturalHeight: 46') &&
-    profileBadgeE2e.includes('naturalWidth: 38') && profileBadgeE2e.includes('naturalHeight: 50'),
-  'UI-PRO01 browser regression must enforce the 20px profile badge against the approved Premium/Diamond icon source dimensions.',
+  profileBadgeE2e.includes('displayHeight: 91') &&
+    profileBadgeE2e.includes('displayHeight: 110') &&
+    profileBadgeE2e.includes('naturalWidth: 179') && profileBadgeE2e.includes('naturalHeight: 199') &&
+    profileBadgeE2e.includes('naturalWidth: 180') && profileBadgeE2e.includes('naturalHeight: 208'),
+  'UI-PRO01 browser regression must enforce the large mobile/desktop Profile certificate artwork against the approved Premium/Diamond source dimensions.',
 );
 expect(
   profileBadgeE2e.includes('renderedRatio') && profileBadgeE2e.includes('naturalRatio') &&
@@ -226,15 +231,15 @@ expect(
 expect(
   profileBadgeE2e.includes("getByTestId('chon-member-profile-hero-photo')") && profileBadgeE2e.includes('chon-membership-badge-image-') &&
     profileBadgeE2e.includes('box.x - hero.x') && profileBadgeE2e.includes('box.y - hero.y'),
-  'UI-PRO01 browser regression must keep the profile badge inside the Chọn.Love hero frame at the top-left.',
+  'UI-PRO01 browser regression must keep the large profile badge inside the Chọn.Love hero frame at the top-left.',
 );
 
 const connectBadgeE2e = read('tests/br-06/chon-connect-c01.spec.mjs');
 expect(
   connectBadgeE2e.includes('expectConnectTopLeftMembershipBadge') &&
-    connectBadgeE2e.includes('badgeBox.height - 15') &&
+    connectBadgeE2e.includes('badgeBox.height - 26') &&
     connectBadgeE2e.includes('leftInset'),
-  'UI-C01 browser regression must enforce the 15px top-left Connect membership badge contract.',
+  'UI-C01 browser regression must enforce the 26px top-left Connect membership badge contract.',
 );
 expect(
   connectBadgeE2e.includes('expectCompactTopRightPhotoCount') &&
@@ -271,4 +276,4 @@ if (failures.length) {
   console.error(`Chon.Love branding/source-of-truth validation failed:\n${failures.map((x) => `- ${x}`).join('\n')}`);
   process.exit(1);
 }
-console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, OPT-06 membership badges preserve source aspect ratio across semantic contexts, unreleased Admin finance placeholders stay out of navigation, and legacy Activity/Creator routes are retired.');
+console.warn('Chon.Love branding/source-of-truth validation passed: current Expo Web + Admin UI are canonical, Session C membership badges preserve aspect ratio and accepted top-left sizing semantics, unreleased Admin finance placeholders stay out of navigation, and legacy Activity/Creator routes are retired.');

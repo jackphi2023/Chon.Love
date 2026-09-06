@@ -59,9 +59,11 @@ const BADGE_ASSETS: Record<
   },
 };
 
-const CONTEXT_HEIGHT: Record<Exclude<ChonMembershipBadgeContext, 'certificate'>, number> = {
+const CONTEXT_HEIGHT: Record<'mini' | 'profile', number> = {
   mini: 12,
-  connect: 15,
+  // `profile` is retained only as a compatibility icon context. Canonical member
+  // profile heroes use the explicit `certificate` context so a refactor cannot
+  // silently shrink their accepted large artwork back to a mini status icon.
   profile: 20,
 };
 
@@ -79,7 +81,10 @@ function resolveAsset(input: {
 }): ChonMembershipBadgeAsset {
   const tierAssets = BADGE_ASSETS[input.tier];
   if (input.context === 'certificate' || input.variant === 'certificate') return tierAssets.certificate;
-  if (input.context === 'mini' || input.context === 'connect') return tierAssets.iconMobile;
+  if (input.context === 'mini') return tierAssets.iconMobile;
+  // Connect is an accepted ~26px status surface on both responsive layouts. Use
+  // the dedicated 26px source rather than scaling the 16px raster up on mobile.
+  if (input.context === 'connect') return tierAssets.iconDesktop;
   if (input.context === 'profile') return tierAssets.iconDesktop;
   return input.desktop ? tierAssets.iconDesktop : tierAssets.iconMobile;
 }
@@ -115,7 +120,11 @@ export function resolveChonMembershipBadgeAsset(input: {
 
   if (typeof input.width === 'number') return dimensionsFromWidth(asset, input.width);
 
-  if (input.context && input.context !== 'certificate') {
+  if (input.context === 'connect') {
+    return dimensionsFromHeight(asset, CHON_MEMBERSHIP_BADGE_ICON_HEIGHT_DESKTOP);
+  }
+
+  if (input.context === 'mini' || input.context === 'profile') {
     return dimensionsFromHeight(asset, CONTEXT_HEIGHT[input.context]);
   }
 

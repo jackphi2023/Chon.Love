@@ -37,8 +37,8 @@ export default function RootHtml({ children }: RootHtmlProps) {
         <meta property="og:title" content={DEFAULT_TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:image" content={DEFAULT_SOCIAL_IMAGE} />
-        <meta property="og:image:width" content="360" />
-        <meta property="og:image:height" content="270" />
+        <meta property="og:image:width" content="480" />
+        <meta property="og:image:height" content="360" />
         <meta property="og:image:alt" content="Chọn.love - Chọn đúng Người, Yêu đúng Gu" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={DEFAULT_TITLE} />
