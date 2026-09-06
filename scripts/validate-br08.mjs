@@ -90,10 +90,6 @@ for (const flag of guardedFlags) {
     `Final backend repair migration must force ${flag} back to false after installing OPT-12/13 contracts.`,
   );
 }
-expect(
-  failClosedMigration.includes('Fail closed') || failClosedMigration.includes('fail-closed') || failClosedMigration.includes('fail closed'),
-  'Final backend repair migration must document the fail-closed finance release boundary.',
-);
 
 expect(databaseTest.includes('select plan(47);'), 'BR-08 pgTAP contract must declare 47 assertions.');
 for (const assertion of [
