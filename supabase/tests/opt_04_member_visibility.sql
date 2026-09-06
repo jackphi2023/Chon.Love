@@ -99,6 +99,42 @@ where id in (
   '34000000-0000-0000-0000-000000000004'
 );
 
+-- SESSION B approved-avatar gate: give each target a valid current approved
+-- avatar so this suite isolates listing/discovery visibility from media moderation.
+insert into public.media_assets(
+  id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,sha256,
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
+)
+select
+  media_id,
+  owner_id,
+  'profile-media',
+  owner_id::text || '/' || media_id::text || '/opt04-avatar.jpg',
+  'image/jpeg',
+  2048,
+  1200,
+  1600,
+  repeat('b',64),
+  'avatar'::public.media_visibility,
+  'approved'::public.media_moderation_status,
+  now(),
+  now(),
+  owner_id
+from (values
+  ('34000000-0000-0000-0000-000000000002'::uuid,'34010000-0000-0000-0000-000000000002'::uuid),
+  ('34000000-0000-0000-0000-000000000003'::uuid,'34010000-0000-0000-0000-000000000003'::uuid),
+  ('34000000-0000-0000-0000-000000000004'::uuid,'34010000-0000-0000-0000-000000000004'::uuid)
+) as avatar_fixture(owner_id,media_id);
+
+update public.profiles p
+set avatar_media_id=avatar_fixture.media_id
+from (values
+  ('34000000-0000-0000-0000-000000000002'::uuid,'34010000-0000-0000-0000-000000000002'::uuid),
+  ('34000000-0000-0000-0000-000000000003'::uuid,'34010000-0000-0000-0000-000000000003'::uuid),
+  ('34000000-0000-0000-0000-000000000004'::uuid,'34010000-0000-0000-0000-000000000004'::uuid)
+) as avatar_fixture(owner_id,media_id)
+where p.id=avatar_fixture.owner_id;
+
 insert into private.member_profile_verifications(user_id,listing_status,listing_submitted_at,listing_reviewed_at,listing_reason_code)
 values
   ('34000000-0000-0000-0000-000000000001','pending',now(),null,null),
