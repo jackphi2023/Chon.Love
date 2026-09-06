@@ -170,11 +170,15 @@ select is(
 );
 
 select ok(
-  private.config_boolean('withdrawal_requests_enabled') = true
-  and private.config_boolean('withdrawal_processing_enabled') = true
-  and private.config_boolean('withdrawal_payout_enabled') = true
-  and private.config_boolean('withdrawal_operational_review_enabled') = true,
-  'OPT-12 and OPT-13 explicitly release the guarded withdrawal lifecycle'
+  exists (select 1 from private.app_config where key = 'withdrawal_requests_enabled')
+  and exists (select 1 from private.app_config where key = 'withdrawal_processing_enabled')
+  and exists (select 1 from private.app_config where key = 'withdrawal_payout_enabled')
+  and exists (select 1 from private.app_config where key = 'withdrawal_operational_review_enabled')
+  and private.config_boolean('withdrawal_requests_enabled') = false
+  and private.config_boolean('withdrawal_processing_enabled') = false
+  and private.config_boolean('withdrawal_payout_enabled') = false
+  and private.config_boolean('withdrawal_operational_review_enabled') = false,
+  'OPT-12/13 contracts remain installed while withdrawal execution stays fail-closed until finance acceptance'
 );
 
 select ok(
