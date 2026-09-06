@@ -1,0 +1,3 @@
+-- Production migration-history alignment marker.
+-- Hosted production recorded the Love28 temporary transport cleanup at this version.
+-- The bootstrap transport must remain disabled; this marker preserves migration parity without replaying one-time seed operations.
