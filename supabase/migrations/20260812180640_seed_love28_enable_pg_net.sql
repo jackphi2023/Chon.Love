@@ -1,0 +1,3 @@
+-- Production migration-history alignment marker.
+-- Hosted production temporarily enabled pg_net for the one-time Love28 bootstrap on 2026-08-12.
+-- Do not replay that transport step on clean environments; later cleanup/disable state is authoritative.
