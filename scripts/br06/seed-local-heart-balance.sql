@@ -1,6 +1,7 @@
 -- BR-06 local-only economy fixture.
 -- Keep purchase and withdrawal acceptance data on canonical economy paths so the browser
--- exercises real heart lots, gift reward positions, withdrawal holds, and cancel releases.
+-- exercises real heart lots, gift reward positions, KYC/bank read models and finance gates
+-- without silently enabling production-style withdrawal execution.
 do $$
 declare
   v_viewer_id uuid;
@@ -71,6 +72,9 @@ begin
   on conflict(id) do update set
     status='verified',is_default=true,verified_at=now(),verified_by=v_moderator_id,deleted_at=null,updated_at=now();
 
+  -- Gift execution is intentionally enabled only in this isolated localhost fixture
+  -- because BR-06 exercises the real gift ledger. Withdrawal switches remain untouched
+  -- and must stay fail-closed after the repository migrations.
   update private.app_config
   set value_json='true'::jsonb,updated_at=now()
   where key='luxy_member_gifts_enabled';
@@ -126,8 +130,11 @@ begin
   if not exists(select 1 from private.bank_accounts ba where ba.user_id=v_viewer_id and ba.status='verified' and ba.deleted_at is null) then
     raise exception 'BR-06 OPT-12 verified bank fixture missing';
   end if;
-  if coalesce(private.config_boolean('withdrawal_requests_enabled'),false) is not true then
-    raise exception 'BR-06 OPT-12 withdrawal release switch missing';
+  if not exists(select 1 from private.app_config where key='withdrawal_requests_enabled') then
+    raise exception 'BR-06 OPT-12 withdrawal request switch contract missing';
+  end if;
+  if private.config_boolean('withdrawal_requests_enabled') is distinct from false then
+    raise exception 'BR-06 withdrawal requests must remain fail-closed in the shared browser fixture';
   end if;
 end
 $$;
