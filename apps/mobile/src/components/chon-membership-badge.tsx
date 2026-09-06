@@ -56,11 +56,13 @@ export function ChonMembershipBadge({
     width,
   });
   const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
-  // A literal `certificate` context is the standalone Membership presentation and
-  // is centered inside its stage. `profile` intentionally resolves to certificate
-  // artwork too, but remains anchored top-left on the member photo. This keeps the
-  // two semantic surfaces independent without adding one-off screen CSS overrides.
-  const centerCertificate = requestedContext === 'certificate';
+
+  // Membership renders the certificate artwork as a standalone element in a
+  // centered stage. Overlay badges (including the large Profile certificate
+  // context) remain absolutely anchored top-left unless a caller explicitly asks
+  // for top-right. Keeping these modes separate prevents Membership alignment
+  // from leaking into Connect/Profile geometry.
+  const standaloneCertificate = variant === 'certificate' && context === undefined && size === undefined;
 
   return (
     <View
@@ -68,13 +70,12 @@ export function ChonMembershipBadge({
       accessibilityRole="image"
       pointerEvents="none"
       style={[
-        styles.badge,
-        { height: resolved.height, top: inset, width: resolved.width },
-        centerCertificate
-          ? { left: '50%', transform: [{ translateX: -(resolved.width / 2) }] }
-          : placement === 'top-right'
-            ? { right: inset }
-            : { left: inset },
+        standaloneCertificate ? styles.standaloneCertificate : styles.badge,
+        { height: resolved.height, width: resolved.width },
+        standaloneCertificate ? null : { top: inset },
+        standaloneCertificate
+          ? null
+          : placement === 'top-right' ? { right: inset } : { left: inset },
       ]}
       testID={`chon-membership-badge-${tier}`}
     >
@@ -91,5 +92,6 @@ export function ChonMembershipBadge({
 
 const styles = StyleSheet.create({
   badge: { position: 'absolute', zIndex: 6 },
+  standaloneCertificate: { alignSelf: 'center', position: 'relative', zIndex: 6 },
   image: { height: '100%', width: '100%' },
 });
