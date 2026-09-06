@@ -1,6 +1,6 @@
 import '@/lib/style-sheet-compat';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Redirect, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
@@ -53,7 +53,7 @@ function WebDocumentMetadata() {
 function RootNavigator() {
   const pathname = usePathname();
   const auth = useAuth();
-  useLuxyMailboxRealtime(auth.userId);
+  const mailboxRealtimeStatus = useLuxyMailboxRealtime(auth.userId);
 
   if (auth.isRestoring) return null;
   if (!auth.userId && !isGuestPublicPath(pathname)) return <Redirect href="/" />;
@@ -61,6 +61,14 @@ function RootNavigator() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false }} />
+      {auth.userId ? (
+        <View
+          accessibilityElementsHidden
+          pointerEvents="none"
+          style={styles.realtimeProbe}
+          testID={`luxy-mailbox-realtime-${mailboxRealtimeStatus}`}
+        />
+      ) : null}
       <MemberProfileVerificationBadges />
       <MemberProfileMobileActions />
     </>
@@ -78,3 +86,7 @@ export default function RootLayout() {
     </AppErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  realtimeProbe: { display: 'none' },
+});
