@@ -50,7 +50,7 @@ async function expectConnectTopLeftMembershipBadge(photo, badge) {
   const badgeBox = await badge.boundingBox();
   expect(photoBox).not.toBeNull();
   expect(badgeBox).not.toBeNull();
-  expect(Math.abs(badgeBox.height - 15)).toBeLessThanOrEqual(1);
+  expect(Math.abs(badgeBox.height - 26)).toBeLessThanOrEqual(1);
   expect(badgeBox.width).toBeLessThan(badgeBox.height);
   const leftInset = badgeBox.x - photoBox.x;
   expect(leftInset).toBeGreaterThanOrEqual(0);
@@ -75,7 +75,7 @@ async function normalizeCreatorNotFavorited(card) {
   }
 }
 
-test('UI-C01/C02 keeps shared Connect cards compact with 15px top-left membership badges and top-right photo counts', async ({ browser }, testInfo) => {
+test('UI-C01/C02 keeps shared Connect cards compact with accepted 26px membership badges and top-right photo counts', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
