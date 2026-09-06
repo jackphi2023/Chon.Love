@@ -65,9 +65,11 @@ test('OPT-10 keeps mailbox, unread, chat delivery, read receipt, and reconnect r
       login(recipientPage, recipient),
     ]);
 
-    // Mount the recipient mailbox and its global realtime bridge before the sender writes.
+    // Mount the recipient mailbox and require the real Supabase SUBSCRIBED callback
+    // before the sender writes. This validates the realtime path without a timing sleep.
     await recipientPage.goto('/messages');
     await expect(recipientPage.getByTestId('luxy-messages-page')).toBeVisible({ timeout: 20_000 });
+    await expect(recipientPage.getByTestId('luxy-mailbox-realtime-connected')).toHaveCount(1, { timeout: 20_000 });
     const recipientNavMessages = recipientPage.getByRole('button', { name: 'Tin nhắn', exact: true });
     await expect(recipientNavMessages).toBeVisible();
     const navBefore = await recipientNavMessages.textContent();
