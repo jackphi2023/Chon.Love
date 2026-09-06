@@ -39,14 +39,15 @@ async function expectFactTextReadable(page) {
   expect(Number.parseFloat(style.fontSize)).toBeGreaterThanOrEqual(11.5);
 }
 
-async function expectProfileMembershipBadge(page) {
+async function expectProfileMembershipBadge(page, { minHeight, maxHeight }) {
   const badge = page.getByTestId('chon-membership-badge-diamond').first();
   await expect(badge).toBeVisible();
   const badgeBox = await badge.boundingBox();
   const heroBox = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
   expect(badgeBox).not.toBeNull();
   expect(heroBox).not.toBeNull();
-  expect(Math.abs(badgeBox.height - 20)).toBeLessThanOrEqual(1);
+  expect(badgeBox.height).toBeGreaterThanOrEqual(minHeight);
+  expect(badgeBox.height).toBeLessThanOrEqual(maxHeight);
   expect(badgeBox.width).toBeLessThan(badgeBox.height);
   expect(badgeBox.x - heroBox.x).toBeGreaterThanOrEqual(0);
   expect(badgeBox.x - heroBox.x).toBeLessThanOrEqual(14);
@@ -56,14 +57,14 @@ async function expectProfileMembershipBadge(page) {
 
 const recentActivityPattern = /Đang online|Đăng nhập|Chưa có lịch sử đăng nhập/;
 
-test('UI-PRO01 desktop keeps the semantic 20px top-left membership badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
+test('UI-PRO01 desktop keeps the large top-left Profile membership badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
     await login(page, 'luxy-search-desktop');
     await openProfile(page);
 
-    await expectProfileMembershipBadge(page);
+    await expectProfileMembershipBadge(page, { minHeight: 98, maxHeight: 122 });
     await expect(page.getByTestId('chon-profile-fact-location')).toContainText('Hà Nội');
     await expect(page.getByTestId('chon-profile-fact-member-since')).toContainText('Thành viên từ');
     await expect(page.getByTestId('chon-profile-fact-recent')).toContainText(recentActivityPattern);
@@ -80,14 +81,14 @@ test('UI-PRO01 desktop keeps the semantic 20px top-left membership badge, readab
   }
 });
 
-test('UI-PRO01 mobile keeps the semantic 20px top-left membership badge, horizontal album and no overflow at 390px', async ({ browser }, testInfo) => {
+test('UI-PRO01 mobile keeps the large top-left Profile membership badge, horizontal album and no overflow at 390px', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   try {
     await login(page, 'luxy-search-mobile', 'br06.outsider@example.test');
     await openProfile(page);
 
-    await expectProfileMembershipBadge(page);
+    await expectProfileMembershipBadge(page, { minHeight: 80, maxHeight: 102 });
     await expect(page.getByTestId('chon-member-profile-photo-strip')).toBeVisible();
     await expect(page.getByTestId('chon-private-photo-locked-tile')).toBeVisible();
     await expect(page.getByTestId('chon-profile-fact-recent')).toContainText(recentActivityPattern);
