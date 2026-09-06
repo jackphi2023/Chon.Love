@@ -33,16 +33,19 @@ export function ChonMembershipBadge({
   if (!isChonMembershipBadgeTier(tier)) return null;
 
   // `size` remains only as a compatibility bridge for callers not yet migrated.
-  // New Chọn.Love surfaces use semantic contexts so Connect/Profile/Mini geometry
-  // cannot silently drift apart. A legacy "large" badge over a member photo means
-  // the 20px profile status icon; certificate artwork is selected explicitly through
-  // variant="certificate" or context="certificate".
+  // New Chọn.Love surfaces use semantic contexts. The accepted member Profile
+  // presentation is intentionally large certificate artwork; Connect remains a
+  // compact status signal. Do not let a semantic refactor shrink Profile back to
+  // the mini icon geometry.
   const compatibilityContext: ChonMembershipBadgeContext | undefined = size === 'small'
     ? 'mini'
     : size === 'large'
-      ? variant === 'certificate' ? 'certificate' : 'profile'
+      ? 'certificate'
       : undefined;
-  const resolvedContext = context ?? compatibilityContext;
+  const requestedContext = context ?? compatibilityContext;
+  const resolvedContext: ChonMembershipBadgeContext | undefined = requestedContext === 'profile'
+    ? 'certificate'
+    : requestedContext;
   const resolvedVariant = resolvedContext === 'certificate' ? 'certificate' : variant;
   const resolvedDesktop = size === 'medium' ? true : size === 'small' ? false : desktop;
   const resolved = resolveChonMembershipBadgeAsset({
@@ -64,7 +67,7 @@ export function ChonMembershipBadge({
         styles.badge,
         // Keep both axes explicit. React Native Web can otherwise let replaced
         // image content stretch an absolutely positioned wrapper even when the
-        // semantic height is correct, which breaks the shared mini/profile sizes.
+        // semantic height is correct.
         { height: resolved.height, top: inset, width: resolved.width },
         certificate
           ? { left: '50%', transform: [{ translateX: -resolved.width / 2 }] }
