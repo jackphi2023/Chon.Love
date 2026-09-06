@@ -56,7 +56,6 @@ export function ChonMembershipBadge({
     width,
   });
   const label = tier === 'diamond' ? 'Thành viên Kim cương' : 'Thành viên Cao cấp';
-  const certificate = resolvedVariant === 'certificate';
 
   return (
     <View
@@ -65,15 +64,11 @@ export function ChonMembershipBadge({
       pointerEvents="none"
       style={[
         styles.badge,
-        // Keep both axes explicit. React Native Web can otherwise let replaced
-        // image content stretch an absolutely positioned wrapper even when the
-        // semantic height is correct.
+        // Keep both axes explicit and keep every badge anchored to a predictable
+        // top edge. Profile/Connect default to top-left; top-right remains only
+        // for callers that explicitly request it.
         { height: resolved.height, top: inset, width: resolved.width },
-        certificate
-          ? { left: '50%', transform: [{ translateX: -resolved.width / 2 }] }
-          : placement === 'top-right'
-            ? { right: inset }
-            : { left: inset },
+        placement === 'top-right' ? { right: inset } : { left: inset },
       ]}
       testID={`chon-membership-badge-${tier}`}
     >
