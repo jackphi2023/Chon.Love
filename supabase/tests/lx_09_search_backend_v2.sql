@@ -77,6 +77,45 @@ set profile_status='active',
       else now()-interval '5 days' end
 where p.id::text like '19000000-0000-0000-0000-00000000000%';
 
+-- SESSION B: canonical Connect/Search listing now requires a current approved
+-- avatar. Give every search candidate an approved avatar fixture so LX-09 keeps
+-- testing ranking/filter/privacy rather than bypassing the production gate.
+insert into public.media_assets(
+  id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,sha256,
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
+)
+select
+  media_id,
+  owner_id,
+  'profile-media',
+  owner_id::text || '/' || media_id::text || '/lx09-avatar.jpg',
+  'image/jpeg',
+  1024,
+  800,
+  800,
+  repeat('a',64),
+  'avatar'::public.media_visibility,
+  'approved'::public.media_moderation_status,
+  now(),
+  now(),
+  owner_id
+from (values
+  ('19000000-0000-0000-0000-000000000002'::uuid,'19010000-0000-0000-0000-000000000002'::uuid),
+  ('19000000-0000-0000-0000-000000000003'::uuid,'19010000-0000-0000-0000-000000000003'::uuid),
+  ('19000000-0000-0000-0000-000000000004'::uuid,'19010000-0000-0000-0000-000000000004'::uuid),
+  ('19000000-0000-0000-0000-000000000005'::uuid,'19010000-0000-0000-0000-000000000005'::uuid)
+) as avatar_fixture(owner_id,media_id);
+
+update public.profiles p
+set avatar_media_id=avatar_fixture.media_id
+from (values
+  ('19000000-0000-0000-0000-000000000002'::uuid,'19010000-0000-0000-0000-000000000002'::uuid),
+  ('19000000-0000-0000-0000-000000000003'::uuid,'19010000-0000-0000-0000-000000000003'::uuid),
+  ('19000000-0000-0000-0000-000000000004'::uuid,'19010000-0000-0000-0000-000000000004'::uuid),
+  ('19000000-0000-0000-0000-000000000005'::uuid,'19010000-0000-0000-0000-000000000005'::uuid)
+) as avatar_fixture(owner_id,media_id)
+where p.id=avatar_fixture.owner_id;
+
 -- OPT-01: LX-09 fixtures model established discoverable members. Explicitly approve
 -- their listing state so this suite continues testing search/filter/privacy behavior;
 -- pending/review semantics are covered by opt_01_approval_contract.sql.
@@ -143,7 +182,7 @@ select is((select count(*) from public.search_luxy_profiles_v2(p_languages=>arra
 select is((select count(*) from public.search_luxy_profiles_v2(p_occupation_text=>'trúc'::text)),1::bigint,'occupation text filter searches public occupation only');
 select is((select count(*) from public.search_luxy_profiles_v2(p_profile_text=>'nghiêm túc'::text)),1::bigint,'profile text filter searches public member copy');
 select is((select count(*) from public.search_luxy_profiles_v2(p_online_now=>true)),1::bigint,'online-now filter derives a bounded recent-activity state');
-select is((select count(*) from public.search_luxy_profiles_v2(p_has_photo=>false)),4::bigint,'has-photo filter can explicitly select profiles without visible photos');
+select is((select count(*) from public.search_luxy_profiles_v2(p_has_photo=>false)),0::bigint,'has-photo=false cannot bypass the canonical approved-avatar listing gate');
 select is((select id from public.search_luxy_profiles_v2(p_sort=>'recent') limit 1),'19000000-0000-0000-0000-000000000002'::uuid,'recent sort uses last_active_at');
 select is((select id from public.search_luxy_profiles_v2(p_sort=>'newest') limit 1),'19000000-0000-0000-0000-000000000003'::uuid,'newest sort uses member creation time');
 select is((select count(*) from public.search_luxy_profiles_v2(p_limit=>2,p_offset=>1)),2::bigint,'pagination is bounded and deterministic');
