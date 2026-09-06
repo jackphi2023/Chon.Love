@@ -116,6 +116,39 @@ insert into public.media_assets(
   'image/jpeg',2048,1200,1600,'avatar','pending_review',now()
 );
 
+-- SESSION B: listing approval and paid-tier bypass never bypass approved-avatar
+-- moderation. Give only the established Free/Premium listing fixtures valid
+-- current avatars; the fresh signup keeps its pending avatar intentionally.
+insert into public.media_assets(
+  id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
+) values
+(
+  '31000000-0000-4000-8000-000000000002',
+  '31000000-0000-0000-0000-000000000002',
+  'profile-media','31000000-0000-0000-0000-000000000002/31000000-0000-4000-8000-000000000002/avatar.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','approved',now(),now(),
+  '31000000-0000-0000-0000-000000000004'
+),
+(
+  '31000000-0000-4000-8000-000000000003',
+  '31000000-0000-0000-0000-000000000003',
+  'profile-media','31000000-0000-0000-0000-000000000003/31000000-0000-4000-8000-000000000003/avatar.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','approved',now(),now(),
+  '31000000-0000-0000-0000-000000000004'
+);
+
+update public.profiles
+set avatar_media_id=case id
+  when '31000000-0000-0000-0000-000000000002' then '31000000-0000-4000-8000-000000000002'::uuid
+  when '31000000-0000-0000-0000-000000000003' then '31000000-0000-4000-8000-000000000003'::uuid
+  else avatar_media_id
+end
+where id in (
+  '31000000-0000-0000-0000-000000000002',
+  '31000000-0000-0000-0000-000000000003'
+);
+
 insert into private.member_profile_verifications(user_id,listing_status,listing_submitted_at)
 values
   ('31000000-0000-0000-0000-000000000001','approved',now()),
