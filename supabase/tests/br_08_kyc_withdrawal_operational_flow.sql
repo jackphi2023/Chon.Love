@@ -7,16 +7,16 @@ select ok(exists(select 1 from information_schema.columns where table_schema='pr
 select ok(exists(select 1 from information_schema.columns where table_schema='private' and table_name='withdrawals' and column_name='processing_started_by'),'withdrawals track the processing operator');
 select ok(exists(select 1 from information_schema.columns where table_schema='private' and table_name='withdrawals' and column_name='payment_evidence_sha256'),'withdrawals require payout evidence hash');
 
-select is((select value_json#>>'{}' from private.app_config where key='kyc_operational_review_enabled'),'true','OPT-13 enables payout KYC review');
-select is((select value_json#>>'{}' from private.app_config where key='bank_account_operational_review_enabled'),'true','OPT-13 enables bank review');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_requests_enabled'),'true','OPT-12 enables guarded user withdrawal requests');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_operational_review_enabled'),'true','OPT-13 enables withdrawal review');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_processing_enabled'),'true','OPT-13 enables maker-checker processing');
-select is((select value_json#>>'{}' from private.app_config where key='withdrawal_payout_enabled'),'true','OPT-13 enables evidence-backed payout recording');
+select is((select value_json#>>'{}' from private.app_config where key='kyc_operational_review_enabled'),'false','KYC operational review defaults fail-closed until finance acceptance');
+select is((select value_json#>>'{}' from private.app_config where key='bank_account_operational_review_enabled'),'false','bank operational review defaults fail-closed until finance acceptance');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_requests_enabled'),'false','user withdrawal requests default fail-closed until finance acceptance');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_operational_review_enabled'),'false','withdrawal operational review defaults fail-closed until finance acceptance');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_processing_enabled'),'false','withdrawal maker-checker processing defaults fail-closed until finance acceptance');
+select is((select value_json#>>'{}' from private.app_config where key='withdrawal_payout_enabled'),'false','evidence-backed payout recording defaults fail-closed until finance acceptance');
 
 select ok(not has_function_privilege('authenticated','public.prepare_kyc_document_upload(text,bigint,text,integer,integer,text,text)','EXECUTE'),'authenticated users still cannot use legacy KYC document upload RPCs');
 select ok(not has_function_privilege('authenticated','public.finalize_kyc_document_upload(uuid,text)','EXECUTE'),'authenticated users still cannot finalize legacy KYC document uploads');
-select ok(has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),'authenticated users can request withdrawals after OPT-12 release');
+select ok(has_function_privilege('authenticated','public.request_withdrawal(uuid,bigint,uuid)','EXECUTE'),'authenticated users retain the guarded withdrawal request RPC contract');
 select ok(not has_function_privilege('service_role','public.admin_decide_withdrawal(uuid,uuid,text,text,text,uuid)','EXECUTE'),'legacy single-control withdrawal decision is revoked');
 select ok(has_function_privilege('service_role','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),'service role can call the audited operational withdrawal RPC');
 select ok(not has_function_privilege('authenticated','public.admin_operate_withdrawal(uuid,uuid,text,text,text,text,uuid)','EXECUTE'),'authenticated clients cannot call the operational withdrawal RPC');
@@ -95,7 +95,8 @@ select throws_ok(
   '42501','required_admin_role_missing','only finance_admin or super_admin can list KYC cases'
 );
 
--- Prove the emergency switches still fail closed even though OPT-13 intentionally releases them.
+-- Prove emergency switches fail closed by default, then selectively enable them only
+-- inside this rolled-back test transaction to exercise each guarded operational path.
 update private.app_config set value_json='false'::jsonb
 where key in ('kyc_operational_review_enabled','withdrawal_operational_review_enabled');
 select throws_ok(
