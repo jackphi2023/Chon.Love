@@ -109,20 +109,28 @@ jobs:
           export BR06_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           export BR06_E2E_PASSWORD='Br06-local-only-2026!'
           export BR06_FIXTURE_SQL_PATH='/tmp/br06-fixtures.sql'
+          export BR06_SEARCH_AVATAR_SQL_PATH='/tmp/br06-search-avatar-fixtures.sql'
 
           node scripts/br06/setup-local-fixtures.mjs
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/approve-opt01-listing-fixtures.sql
+          node scripts/br06/ensure-search-avatar-fixtures.mjs
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_SEARCH_AVATAR_SQL_PATH"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/seed-local-heart-balance.sql
 
-          # Production keeps VietQR and member gifts fail-closed until their explicit
-          # release gates. Browser UI coverage exercises those real RPC paths only in
-          # this isolated localhost database. Nothing below is a production migration.
+          # Production keeps VietQR, member gifts and withdrawals fail-closed until
+          # their explicit release gates. Browser UI coverage exercises those real RPC
+          # paths only in this isolated localhost database. Nothing below is a
+          # production migration and the fixture scripts refuse non-local Supabase URLs.
           psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           update private.app_config
           set value_json='true'::jsonb,
               updated_at=now()
-          where key in ('vietqr_web_payments_enabled','luxy_member_gifts_enabled');
+          where key in (
+            'vietqr_web_payments_enabled',
+            'luxy_member_gifts_enabled',
+            'withdrawal_requests_enabled'
+          );
 
           grant execute on function public.list_vietqr_heart_products() to authenticated;
           grant execute on function public.create_vietqr_heart_order(uuid,uuid) to authenticated;
@@ -174,6 +182,19 @@ jobs:
                   and v.listing_status='approved') <> 5 then
               raise exception 'BR-06 listing approval fixture mismatch';
             end if;
+            if (select count(*)
+                from public.profiles p
+                join public.media_assets m
+                  on m.id = p.avatar_media_id
+                 and m.owner_id = p.id
+                join auth.users u on u.id = p.id
+                where u.email in ('br06.fan@example.test','br06.outsider@example.test')
+                  and m.visibility = 'avatar'
+                  and m.moderation_status = 'approved'
+                  and m.uploaded_at is not null
+                  and m.deleted_at is null) <> 2 then
+              raise exception 'BR-06 Search actors must have approved current avatars';
+            end if;
             if not exists(
               select 1
               from private.heart_accounts ha
@@ -186,6 +207,9 @@ jobs:
             end if;
             if coalesce((select value_json #>> '{}' from private.app_config where key='luxy_member_gifts_enabled')::boolean,false) is not true then
               raise exception 'BR-06 local gift release switch was not enabled';
+            end if;
+            if coalesce((select value_json #>> '{}' from private.app_config where key='withdrawal_requests_enabled')::boolean,false) is not true then
+              raise exception 'BR-06 local withdrawal request switch was not enabled';
             end if;
             if exists(select 1 from auth.users where email ~ '^myfan([1-9]|1[0-6])@gmail[.]com$') then
               raise exception 'controlled Beta accounts must not exist in the local BR-06 database';
