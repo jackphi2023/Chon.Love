@@ -6,12 +6,12 @@ const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tie
 
 const BADGE_EXPECTATIONS = {
   mobile: {
-    premium: { displayHeight: 20, naturalWidth: 33, naturalHeight: 46 },
-    diamond: { displayHeight: 20, naturalWidth: 38, naturalHeight: 50 },
+    premium: { displayHeight: 91, naturalWidth: 179, naturalHeight: 199 },
+    diamond: { displayHeight: 91, naturalWidth: 180, naturalHeight: 208 },
   },
   desktop: {
-    premium: { displayHeight: 20, naturalWidth: 33, naturalHeight: 46 },
-    diamond: { displayHeight: 20, naturalWidth: 38, naturalHeight: 50 },
+    premium: { displayHeight: 110, naturalWidth: 179, naturalHeight: 199 },
+    diamond: { displayHeight: 110, naturalWidth: 180, naturalHeight: 208 },
   },
 };
 
@@ -178,7 +178,7 @@ test('UI-PRO01 public shared profile uses canonical logo, horizontal gallery and
   }
 });
 
-test('UI-PRO01 badge source and rendered size follow the Chon.Love 20px aspect-safe Premium/Diamond profile contract', async ({ browser }) => {
+test('UI-PRO01 badge source and rendered size follow the large aspect-safe Premium/Diamond profile certificate contract', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
