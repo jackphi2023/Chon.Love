@@ -38,6 +38,7 @@ export function MemberVerificationAdmin() {
       setError('Supabase Admin chưa được cấu hình.');
       return;
     }
+    setDetail(null);
     setBusy(true); setError(null);
     try {
       const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', {
@@ -69,6 +70,7 @@ export function MemberVerificationAdmin() {
       setError('Supabase Admin chưa được cấu hình.');
       return;
     }
+    setDetail(null);
     setBusy(true); setError(null);
     try {
       const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_detail', caseId: item.case_id } });
@@ -107,7 +109,7 @@ export function MemberVerificationAdmin() {
         <button disabled={busy} onClick={() => void load(offset)} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button>
         <div aria-label="Phân trang xác minh ảnh" style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
           <button disabled={busy || !hasPrevious} onClick={() => void load(Math.max(0, offset - PAGE_SIZE))} type="button">Trang trước</button>
-          <span>Trang {pageNumber}</span>
+          <span aria-live="polite">Trang {pageNumber}</span>
           <button disabled={busy || !hasNext} onClick={() => void load(offset + PAGE_SIZE)} type="button">Trang sau</button>
         </div>
       </div>
