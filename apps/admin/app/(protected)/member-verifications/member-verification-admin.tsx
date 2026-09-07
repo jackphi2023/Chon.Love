@@ -23,13 +23,16 @@ type Detail = {
   referenceImages: Array<{ mediaId: string; signedUrl: string }>;
 };
 
+const PAGE_SIZE = 50;
+
 export function MemberVerificationAdmin() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (requestedOffset = offset) => {
     const client = getAdminSupabaseClient();
     if (!client) {
       setError('Supabase Admin chưa được cấu hình.');
@@ -37,14 +40,28 @@ export function MemberVerificationAdmin() {
     }
     setBusy(true); setError(null);
     try {
-      const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_list', limit: 100, offset: 0 } });
+      const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', {
+        body: { action: 'admin_list', limit: PAGE_SIZE, offset: requestedOffset },
+      });
       if (invokeError) throw invokeError;
-      setItems((data?.items ?? []) as QueueItem[]);
+      const nextItems = (data?.items ?? []) as QueueItem[];
+      if (requestedOffset > 0 && nextItems.length === 0) {
+        const previousOffset = Math.max(0, requestedOffset - PAGE_SIZE);
+        setOffset(previousOffset);
+        const { data: previousData, error: previousError } = await client.functions.invoke('member-photo-verification', {
+          body: { action: 'admin_list', limit: PAGE_SIZE, offset: previousOffset },
+        });
+        if (previousError) throw previousError;
+        setItems((previousData?.items ?? []) as QueueItem[]);
+      } else {
+        setOffset(requestedOffset);
+        setItems(nextItems);
+      }
     } catch { setError('Không thể tải hàng chờ xác minh ảnh.'); }
     finally { setBusy(false); }
-  }, []);
+  }, [offset]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(0); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function openDetail(item: QueueItem) {
     const client = getAdminSupabaseClient();
@@ -75,20 +92,31 @@ export function MemberVerificationAdmin() {
       const { error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_review', caseId, decision, reason, requestId: crypto.randomUUID() } });
       if (invokeError) throw invokeError;
       setDetail(null);
-      await load();
+      await load(offset);
     } catch { setError('Không thể lưu quyết định review.'); }
     finally { setBusy(false); }
   }
 
+  const pageNumber = Math.floor(offset / PAGE_SIZE) + 1;
+  const hasPrevious = offset > 0;
+  const hasNext = items.length === PAGE_SIZE;
+
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <div><button disabled={busy} onClick={() => void load()} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button></div>
+      <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+        <button disabled={busy} onClick={() => void load(offset)} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button>
+        <div aria-label="Phân trang xác minh ảnh" style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
+          <button disabled={busy || !hasPrevious} onClick={() => void load(Math.max(0, offset - PAGE_SIZE))} type="button">Trang trước</button>
+          <span>Trang {pageNumber}</span>
+          <button disabled={busy || !hasNext} onClick={() => void load(offset + PAGE_SIZE)} type="button">Trang sau</button>
+        </div>
+      </div>
       {error ? <p role="alert" style={{ color: '#b91c1c' }}>{error}</p> : null}
       {items.length === 0 && !busy ? <p>Không có tài khoản đang chờ review.</p> : null}
       {items.map((item) => {
         const reason = String(item.automated_score_json?.pendingReason ?? 'manual_review_required');
         return (
-          <article key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+          <article data-testid="admin-photo-verification-row" key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <strong>{item.display_name || item.username || item.user_id}</strong>
             <div style={{ marginTop: 8, display: 'grid', gap: 4, fontSize: 14 }}>
               <span>User: {item.username || item.user_id}</span>
