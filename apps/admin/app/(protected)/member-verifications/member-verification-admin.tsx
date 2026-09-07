@@ -117,12 +117,19 @@ export function MemberVerificationAdmin() {
       {items.length === 0 && !busy ? <p>Không có tài khoản đang chờ review.</p> : null}
       {items.map((item) => {
         const reason = String(item.automated_score_json?.pendingReason ?? 'manual_review_required');
+        const livenessConfidence = typeof item.automated_score_json?.livenessConfidence === 'number'
+          ? item.automated_score_json.livenessConfidence
+          : null;
+        const livenessThreshold = typeof item.automated_score_json?.livenessThreshold === 'number'
+          ? item.automated_score_json.livenessThreshold
+          : null;
         return (
           <article data-testid="admin-photo-verification-row" key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <strong>{item.display_name || item.username || item.user_id}</strong>
             <div style={{ marginTop: 8, display: 'grid', gap: 4, fontSize: 14 }}>
               <span>User: {item.username || item.user_id}</span>
               <span>Giới tính khai báo: {item.declared_gender}</span>
+              <span>Face Liveness: {livenessConfidence == null ? 'N/A' : `${Number(livenessConfidence).toFixed(1)}%`}{livenessThreshold == null ? '' : ` / ngưỡng ${Number(livenessThreshold).toFixed(0)}%`}</span>
               <span>Face similarity: {item.max_similarity == null ? 'N/A' : `${Number(item.max_similarity).toFixed(1)}%`} / ngưỡng 60%</span>
               <span>Lý do pending: {reason}</span>
               <span>Tạo lúc: {new Date(item.created_at).toLocaleString('vi-VN')}</span>
