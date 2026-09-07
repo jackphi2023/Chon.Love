@@ -25,11 +25,14 @@ requireText(gateway, 'MAX_SESSIONS_PER_WINDOW = 5', 'member-level liveness rate 
 requireText(gateway, 'reference_image_sha256', 'AWS ReferenceImage is cryptographically bound to the liveness proof');
 requireText(gateway, 'face_liveness_not_above_threshold', 'low liveness fails closed');
 requireText(gateway, 'face_liveness_session_expired', 'expired liveness fails closed');
+requireText(gateway, 'detectImageMimeType', 'AWS ReferenceImage format is detected from bytes instead of assumed');
+requireText(gateway, 'RATE_LIMIT_RETRY_SECONDS = Math.ceil(RATE_WINDOW_MS / 1000)', 'rate-limit retry metadata matches the enforcement window');
 
 requireText(comparison, 'livenessSessionId', 'CompareFaces submission carries an authenticated liveness session id');
 requireText(comparison, 'face_liveness_required', 'CompareFaces cannot auto-approve without liveness proof');
 requireText(comparison, 'reference_image_sha256', 'CompareFaces verifies the submitted bytes against the AWS ReferenceImage digest');
 requireText(comparison, 'livenessVerified: true', 'moderation audit records liveness proof without exposing confidence to the member');
+requireText(comparison, 'selfie_image_type_mismatch', 'CompareFaces storage MIME must match the cryptographically-bound image bytes');
 
 requireText(migration, 'private.member_face_liveness_sessions', 'private liveness session ledger');
 requireText(migration, 'reference_image_sha256', 'ReferenceImage hash database column');

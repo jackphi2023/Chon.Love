@@ -44,7 +44,7 @@ const DEFAULT_LIVENESS_THRESHOLD = 80;
 const SESSION_TTL_MS = 3 * 60 * 1000;
 const RATE_WINDOW_MS = 3 * 60 * 1000;
 const MAX_SESSIONS_PER_WINDOW = 5;
-const RATE_LIMIT_RETRY_SECONDS = 30 * 60;
+const RATE_LIMIT_RETRY_SECONDS = Math.ceil(RATE_WINDOW_MS / 1000);
 const GENERIC_PENDING_MESSAGE = 'Xác minh người thật cần được kiểm tra thêm trước khi hồ sơ có thể kích hoạt.';
 
 const corsHeaders = {
@@ -95,6 +95,14 @@ function providerConfig(): ProviderConfig | null {
     roleArn,
     credentials: { accessKeyId, secretAccessKey, ...(sessionToken ? { sessionToken } : {}) },
   };
+}
+
+function detectImageMimeType(bytes: Uint8Array): 'image/jpeg' | 'image/png' | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 8
+    && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+    && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) return 'image/png';
+  return null;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -500,6 +508,32 @@ Deno.serve(async (request: Request) => {
       });
     }
 
+    const referenceMimeType = detectImageMimeType(referenceBytes);
+    if (!referenceMimeType) {
+      await updateLivenessSession(server, bound.id, {
+        state: 'completed',
+        aws_status: awsStatus,
+        confidence,
+        completed_at: new Date().toISOString(),
+        error_code: 'reference_image_unsupported_format',
+      });
+      const caseId = await queuePendingReview(server, userId, {
+        provider: 'aws_rekognition_face_liveness',
+        livenessStatus: awsStatus,
+        livenessConfidence: confidence,
+        livenessThreshold: bound.threshold,
+        pendingReason: 'face_liveness_reference_image_unsupported_format',
+        submittedAt: new Date().toISOString(),
+      }, GENERIC_PENDING_MESSAGE);
+      return respond(200, {
+        state: 'pending_review',
+        caseId,
+        message: GENERIC_PENDING_MESSAGE,
+        reason: 'face_liveness_reference_image_unsupported_format',
+        retryable: true,
+      });
+    }
+
     const referenceImageSha256 = await sha256Hex(referenceBytes);
     await updateLivenessSession(server, bound.id, {
       state: 'completed',
@@ -516,7 +550,7 @@ Deno.serve(async (request: Request) => {
       authorization,
       'submit',
       {
-        mimeType: 'image/jpeg',
+        mimeType: referenceMimeType,
         selfieBase64: bytesToBase64(referenceBytes),
         declaredGender: String(profile.gender),
         livenessSessionId: body.sessionId,

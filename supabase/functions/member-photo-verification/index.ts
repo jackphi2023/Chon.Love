@@ -99,6 +99,14 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
+function detectImageMimeType(bytes: Uint8Array): 'image/jpeg' | 'image/png' | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 8
+    && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+    && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) return 'image/png';
+  return null;
+}
+
 function pageLimit(value: unknown): number {
   return typeof value === 'number' && Number.isInteger(value)
     ? Math.min(Math.max(value, 1), 200)
@@ -515,11 +523,15 @@ Deno.serve(async (request: Request) => {
       && bioLength <= 4000;
     if (!profileCopyComplete) return respond(422, { error: 'signup_profile_details_required' });
 
-    if (typeof body.selfieBase64 !== 'string' || body.mimeType !== 'image/jpeg') {
-      return respond(400, { error: 'jpeg_selfie_required' });
+    if (typeof body.selfieBase64 !== 'string' || (body.mimeType !== 'image/jpeg' && body.mimeType !== 'image/png')) {
+      return respond(400, { error: 'supported_selfie_image_required' });
     }
 
     const selfieBytes = decodeBase64Image(body.selfieBase64);
+    const detectedSelfieMimeType = detectImageMimeType(selfieBytes);
+    if (!detectedSelfieMimeType || detectedSelfieMimeType !== body.mimeType) {
+      return respond(400, { error: 'selfie_image_type_mismatch' });
+    }
     const livenessProof = await verifiedLivenessProof(server, actorId, body.livenessSessionId, selfieBytes);
     if (!livenessProof) return respond(409, { error: 'face_liveness_required' });
     const media = await profileMedia(server, actorId);
@@ -532,10 +544,11 @@ Deno.serve(async (request: Request) => {
     if (profilePendingError) throw new Error(`profile_pending_update_failed:${profilePendingError.code}`);
 
     const attemptId = crypto.randomUUID();
-    const selfieStoragePath = `${actorId}/${attemptId}/selfie.jpg`;
+    const selfieExtension = detectedSelfieMimeType === 'image/png' ? 'png' : 'jpg';
+    const selfieStoragePath = `${actorId}/${attemptId}/selfie.${selfieExtension}`;
     const { error: uploadError } = await server.storage
       .from('member-verification')
-      .upload(selfieStoragePath, selfieBytes, { contentType: 'image/jpeg', cacheControl: '0', upsert: false });
+      .upload(selfieStoragePath, selfieBytes, { contentType: detectedSelfieMimeType, cacheControl: '0', upsert: false });
     if (uploadError) throw new Error(`selfie_storage_failed:${uploadError.message}`);
 
     const declaredGender = String(profile.gender);
