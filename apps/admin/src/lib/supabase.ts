@@ -25,6 +25,9 @@ export function getAdminSupabaseClient(): AdminSupabaseClient | null {
       persistSession: true,
       detectSessionInUrl: false,
       storageKey: ADMIN_AUTH_STORAGE_KEY,
+      // The shared client still limits insecure transport to localhost/127.0.0.1.
+      // Production builds never opt in, so a deployed Admin always requires HTTPS.
+      allowInsecureLocalhost: process.env.NODE_ENV !== 'production',
     },
   );
   return cachedClient;
