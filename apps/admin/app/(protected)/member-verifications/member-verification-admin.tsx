@@ -32,7 +32,7 @@ export function MemberVerificationAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
 
-  const load = useCallback(async (requestedOffset = offset) => {
+  const load = useCallback(async (requestedOffset: number) => {
     const client = getAdminSupabaseClient();
     if (!client) {
       setError('Supabase Admin chưa được cấu hình.');
@@ -59,9 +59,9 @@ export function MemberVerificationAdmin() {
       }
     } catch { setError('Không thể tải hàng chờ xác minh ảnh.'); }
     finally { setBusy(false); }
-  }, [offset]);
+  }, []);
 
-  useEffect(() => { void load(0); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(0); }, [load]);
 
   async function openDetail(item: QueueItem) {
     const client = getAdminSupabaseClient();
