@@ -95,8 +95,9 @@ export function AwsFaceLiveness({ disabled = false, onResult, onError }: AwsFace
       <FaceLivenessDetectorCore
         config={{ credentialProvider }}
         onAnalysisComplete={handleAnalysisComplete}
-        onError={async (error) => {
-          console.error('face_liveness_capture_error', error);
+        onError={async () => {
+          // Keep provider/session details out of the browser console. The member receives
+          // only a stable user-facing message; server-side outcomes remain auditable.
           onError('Camera xác minh chưa hoàn tất. Vui lòng thử lại và làm theo hướng dẫn trên màn hình.');
         }}
         region={session.region}
