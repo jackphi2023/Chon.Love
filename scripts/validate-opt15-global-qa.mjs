@@ -217,3 +217,5 @@ if (errors.length > 0) {
 
 console.warn('OPT-15 global QA source validation passed.');
 console.warn('Required gates: Application CI, Database, Browser E2E (BR-06 + BR-09), and LX-15 Contract. Merge/deploy remain blocked until OPT-16.');
+
+// SESSION-D-QA-FANOUT: no runtime behavior; forces all protected QA gates to rerun on one exact candidate SHA.
