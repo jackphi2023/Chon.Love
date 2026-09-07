@@ -1,0 +1,53 @@
+name: Session D Contract
+
+on:
+  push:
+    branches: ['repair/**', 'qa/**', main]
+    paths:
+      - 'supabase/migrations/20260907154500_session_d_photo_verification_queue_order.sql'
+      - 'supabase/tests/session_d_photo_verification_queue.sql'
+      - 'apps/admin/app/(protected)/member-verifications/**'
+      - 'tests/br-06/chon-admin-session-d.spec.mjs'
+      - 'playwright.br06.config.mjs'
+      - '.github/workflows/session-d-contract.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260907154500_session_d_photo_verification_queue_order.sql'
+      - 'supabase/tests/session_d_photo_verification_queue.sql'
+      - 'apps/admin/app/(protected)/member-verifications/**'
+      - 'tests/br-06/chon-admin-session-d.spec.mjs'
+      - 'playwright.br06.config.mjs'
+      - '.github/workflows/session-d-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: session-d-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  photo-verification-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run Session D photo verification queue contract
+        run: supabase test db supabase/tests/session_d_photo_verification_queue.sql --local
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
