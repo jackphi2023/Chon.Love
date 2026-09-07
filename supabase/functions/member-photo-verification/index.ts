@@ -69,6 +69,7 @@ const LIVENESS_RETRY_REASONS = new Set([
   'face_liveness_incomplete',
   'face_liveness_not_above_threshold',
   'face_liveness_reference_image_missing',
+  'face_liveness_reference_image_unsupported_format',
 ]);
 
 const corsHeaders = {
