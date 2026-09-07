@@ -8,12 +8,17 @@ function requireText(source, needle, label) {
   if (!source.includes(needle)) throw new Error(`Session D Face Liveness contract missing: ${label}`);
 }
 
+function forbidText(source, needle, label) {
+  if (source.includes(needle)) throw new Error(`Session D Face Liveness contract violation: ${label}`);
+}
+
 const gateway = read('supabase/functions/member-face-liveness/index.ts');
 const comparison = read('supabase/functions/member-photo-verification/index.ts');
 const migration = read('supabase/migrations/20260907163000_session_d_face_liveness_sessions.sql');
 const client = read('apps/mobile/src/lib/member-face-liveness.ts');
 const webCapture = read('apps/mobile/src/components/aws-face-liveness.web.tsx');
 const nativeBoundary = read('apps/mobile/src/components/aws-face-liveness.tsx');
+const onboarding = read('apps/mobile/app/onboarding/selfie.tsx');
 const config = read('supabase/config.toml');
 
 requireText(gateway, 'CreateFaceLivenessSessionCommand', 'server creates AWS Face Liveness sessions');
@@ -25,6 +30,7 @@ requireText(gateway, 'MAX_SESSIONS_PER_WINDOW = 5', 'member-level liveness rate 
 requireText(gateway, 'reference_image_sha256', 'AWS ReferenceImage is cryptographically bound to the liveness proof');
 requireText(gateway, 'face_liveness_not_above_threshold', 'low liveness fails closed');
 requireText(gateway, 'face_liveness_session_expired', 'expired liveness fails closed');
+requireText(gateway, 'face_liveness_reference_image_unsupported_format', 'unsupported AWS ReferenceImage fails closed');
 requireText(gateway, 'detectImageMimeType', 'AWS ReferenceImage format is detected from bytes instead of assumed');
 requireText(gateway, 'RATE_LIMIT_RETRY_SECONDS = Math.ceil(RATE_WINDOW_MS / 1000)', 'rate-limit retry metadata matches the enforcement window');
 
@@ -33,6 +39,11 @@ requireText(comparison, 'face_liveness_required', 'CompareFaces cannot auto-appr
 requireText(comparison, 'reference_image_sha256', 'CompareFaces verifies the submitted bytes against the AWS ReferenceImage digest');
 requireText(comparison, 'livenessVerified: true', 'moderation audit records liveness proof without exposing confidence to the member');
 requireText(comparison, 'selfie_image_type_mismatch', 'CompareFaces storage MIME must match the cryptographically-bound image bytes');
+requireText(
+  comparison,
+  "'face_liveness_reference_image_missing',\n  'face_liveness_reference_image_unsupported_format',\n]);",
+  'all retryable ReferenceImage failure reasons remain retryable after status reload',
+);
 
 requireText(migration, 'private.member_face_liveness_sessions', 'private liveness session ledger');
 requireText(migration, 'reference_image_sha256', 'ReferenceImage hash database column');
@@ -42,10 +53,12 @@ requireText(client, "functions.invoke('member-face-liveness'", 'member client us
 requireText(webCapture, 'FaceLivenessDetectorCore', 'web Step 8 renders real AWS Amplify Face Liveness');
 requireText(webCapture, 'credentialProvider', 'web capture receives temporary credentials through a provider');
 requireText(nativeBoundary, 'browser-only Amplify UI', 'native bundle is isolated from web-only Amplify Liveness');
+requireText(onboarding, 'testID="chon-liveness-web-required"', 'native Step 8 fails closed with an explicit web-verification requirement');
 requireText(config, '[functions.member-face-liveness]\nverify_jwt = true', 'Face Liveness Edge Function requires JWT');
 
-if (webCapture.includes('AWS_ACCESS_KEY_ID') || webCapture.includes('AWS_SECRET_ACCESS_KEY')) {
-  throw new Error('Session D Face Liveness contract violation: static AWS credentials must never be referenced by the web client');
-}
+forbidText(webCapture, 'AWS_ACCESS_KEY_ID', 'static AWS access keys must never be referenced by the web client');
+forbidText(webCapture, 'AWS_SECRET_ACCESS_KEY', 'static AWS secret keys must never be referenced by the web client');
+forbidText(webCapture, "console.error('face_liveness_capture_error', error)", 'raw provider/session errors must not be logged in the browser');
+forbidText(onboarding, 'LiveSelfieCamera', 'native Step 8 must not present a selfie flow that backend proof rules will always reject');
 
 process.stdout.write('Session D Face Liveness source contract passed.\n');
