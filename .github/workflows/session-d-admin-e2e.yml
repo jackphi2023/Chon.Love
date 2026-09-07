@@ -37,7 +37,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.17.1
+          version: 10.15.1
           run_install: false
 
       - name: Setup Node.js
@@ -54,7 +54,7 @@ jobs:
       - name: Install repository dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium
+      - name: Install Chromium and system dependencies
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Start local Supabase
