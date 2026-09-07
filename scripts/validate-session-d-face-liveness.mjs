@@ -45,4 +45,4 @@ if (webCapture.includes('AWS_ACCESS_KEY_ID') || webCapture.includes('AWS_SECRET_
   throw new Error('Session D Face Liveness contract violation: static AWS credentials must never be referenced by the web client');
 }
 
-console.log('Session D Face Liveness source contract passed.');
+process.stdout.write('Session D Face Liveness source contract passed.\n');
