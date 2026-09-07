@@ -54,6 +54,9 @@ jobs:
       - name: Install repository dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install isolated Playwright runner
+        run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0
+
       - name: Install Chromium and system dependencies
         run: pnpm exec playwright install --with-deps chromium
 
