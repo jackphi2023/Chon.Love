@@ -31,6 +31,8 @@ where user_id in (
 update public.profiles
 set profile_status='pending_review'::public.profile_status,
     discovery_enabled=false,
+    nearby_enabled=false,
+    province_id=(select min(id) from public.administrative_areas where country_code='VN' and is_active and parent_id is null),
     username=case id
       when '44000000-0000-4000-8000-000000000001' then 'sessiondmoderator'
       when '44000000-0000-4000-8000-000000000002' then 'sessiondoldest'
