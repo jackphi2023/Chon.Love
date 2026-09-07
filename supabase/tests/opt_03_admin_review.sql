@@ -1,6 +1,6 @@
 begin;
 
-select plan(13);
+select plan(18);
 
 select ok(
   has_function_privilege(
@@ -14,6 +14,20 @@ select ok(
     'EXECUTE'
   ),
   'Admin listing queue remains service-role only'
+);
+
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.admin_list_member_photo_verifications(uuid,integer,integer)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.admin_list_member_photo_verifications(uuid,integer,integer)',
+    'EXECUTE'
+  ),
+  'Admin photo-verification queue remains service-role only'
 );
 
 insert into auth.users(
@@ -126,6 +140,33 @@ insert into public.moderation_cases(
   'approve','trusted selfie verification completed before OPT-03',now()-interval '45 minutes'
 );
 
+-- D-FIX01: three open photo-verification rows make queue order and offset paging observable.
+-- The two newest rows deliberately share the same timestamp; case id is the deterministic tie-break.
+insert into public.moderation_cases(
+  id,reported_user_id,source,status,priority,rule_codes,automated_score_json,created_at
+) values
+(
+  '33000000-0000-4000-8000-000000000201',
+  '33000000-0000-0000-0000-000000000002',
+  'automated_scan','queued','high',array['member_photo_verification']::text[],
+  '{"provider":"aws_rekognition_compare_faces","maxSimilarity":41.25,"pendingReason":"face_similarity_not_above_threshold"}'::jsonb,
+  now()-interval '3 hours'
+),
+(
+  '33000000-0000-4000-8000-000000000202',
+  '33000000-0000-0000-0000-000000000003',
+  'automated_scan','queued','high',array['member_photo_verification']::text[],
+  '{"provider":"aws_rekognition_compare_faces","maxSimilarity":52.5,"pendingReason":"face_similarity_not_above_threshold"}'::jsonb,
+  now()-interval '1 hour'
+),
+(
+  '33000000-0000-4000-8000-000000000203',
+  '33000000-0000-0000-0000-000000000004',
+  'automated_scan','queued','high',array['member_photo_verification']::text[],
+  '{"provider":"aws_rekognition_compare_faces","maxSimilarity":59.5,"pendingReason":"face_similarity_not_above_threshold"}'::jsonb,
+  now()-interval '1 hour'
+);
+
 create temporary table opt03_aws_before on commit drop as
 select status,decision,automated_score_json,resolved_at
 from public.moderation_cases
@@ -134,6 +175,46 @@ where id='33000000-0000-4000-8000-000000000101';
 grant select on opt03_aws_before to service_role;
 
 set local role service_role;
+
+select is(
+  (select count(*) from public.admin_list_member_photo_verifications(
+    '33000000-0000-0000-0000-000000000001',100,0
+  )),
+  3::bigint,
+  'photo-verification queue returns all three open fixture cases'
+);
+
+select is(
+  (select case_id from public.admin_list_member_photo_verifications(
+    '33000000-0000-0000-0000-000000000001',1,0
+  )),
+  '33000000-0000-4000-8000-000000000203'::uuid,
+  'newest photo-verification case is first, with id desc as deterministic timestamp tie-break'
+);
+
+select is(
+  (select case_id from public.admin_list_member_photo_verifications(
+    '33000000-0000-0000-0000-000000000001',1,1
+  )),
+  '33000000-0000-4000-8000-000000000202'::uuid,
+  'photo-verification offset page 2 returns the next case without repeating page 1'
+);
+
+select is(
+  (select case_id from public.admin_list_member_photo_verifications(
+    '33000000-0000-0000-0000-000000000001',1,2
+  )),
+  '33000000-0000-4000-8000-000000000201'::uuid,
+  'photo-verification offset page 3 reaches the oldest fixture after the newer cases'
+);
+
+select is(
+  (select max_similarity from public.admin_list_member_photo_verifications(
+    '33000000-0000-0000-0000-000000000001',1,0
+  )),
+  59.5::numeric,
+  'photo-verification queue preserves the similarity evidence used by Admin review'
+);
 
 select is(
   (select count(*) from public.admin_list_member_listing_verifications(
