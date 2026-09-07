@@ -15,6 +15,8 @@ create table if not exists private.member_face_liveness_sessions (
     check (threshold >= 0 and threshold <= 100),
   challenge_type text not null
     check (challenge_type in ('FaceMovementAndLightChallenge', 'FaceMovementChallenge')),
+  reference_image_sha256 text
+    check (reference_image_sha256 is null or reference_image_sha256 ~ '^[0-9a-f]{64}$'),
   reference_image_stored boolean not null default false,
   error_code text,
   created_at timestamptz not null default now(),
@@ -43,5 +45,7 @@ comment on column private.member_face_liveness_sessions.aws_session_id is
   'Single-use AWS Face Liveness session id. AWS expires liveness session data after three minutes.';
 comment on column private.member_face_liveness_sessions.confidence is
   'Server-side audit value only. Do not return this score to member clients.';
+comment on column private.member_face_liveness_sessions.reference_image_sha256 is
+  'SHA-256 binding for the AWS liveness ReferenceImage. Prevents a client from reusing a valid liveness session with different face bytes.';
 
 commit;
