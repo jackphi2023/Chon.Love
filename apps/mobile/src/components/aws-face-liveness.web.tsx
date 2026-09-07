@@ -94,8 +94,8 @@ export function AwsFaceLiveness({ disabled = false, onResult, onError }: AwsFace
     <div data-testid="aws-face-liveness" style={{ margin: '0 auto', maxWidth: 560, width: '100%' }}>
       <FaceLivenessDetectorCore
         config={{ credentialProvider }}
-        onAnalysisComplete={() => void handleAnalysisComplete()}
-        onError={(error) => {
+        onAnalysisComplete={handleAnalysisComplete}
+        onError={async (error) => {
           console.error('face_liveness_capture_error', error);
           onError('Camera xác minh chưa hoàn tất. Vui lòng thử lại và làm theo hướng dẫn trên màn hình.');
         }}
