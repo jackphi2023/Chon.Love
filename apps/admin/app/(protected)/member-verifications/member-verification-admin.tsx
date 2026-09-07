@@ -23,13 +23,22 @@ type Detail = {
   referenceImages: Array<{ mediaId: string; signedUrl: string }>;
 };
 
+const PAGE_SIZE = 50;
+
+function appendUniqueCases(current: QueueItem[], incoming: QueueItem[]) {
+  const seen = new Set(current.map((item) => item.case_id));
+  return [...current, ...incoming.filter((item) => !seen.has(item.case_id))];
+}
+
 export function MemberVerificationAdmin() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (offset = 0, append = false) => {
     const client = getAdminSupabaseClient();
     if (!client) {
       setError('Supabase Admin chưa được cấu hình.');
@@ -37,14 +46,19 @@ export function MemberVerificationAdmin() {
     }
     setBusy(true); setError(null);
     try {
-      const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_list', limit: 100, offset: 0 } });
+      const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', {
+        body: { action: 'admin_list', limit: PAGE_SIZE, offset },
+      });
       if (invokeError) throw invokeError;
-      setItems((data?.items ?? []) as QueueItem[]);
+      const page = (data?.items ?? []) as QueueItem[];
+      setItems((current) => append ? appendUniqueCases(current, page) : page);
+      setNextOffset(offset + page.length);
+      setHasMore(page.length === PAGE_SIZE);
     } catch { setError('Không thể tải hàng chờ xác minh ảnh.'); }
     finally { setBusy(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(0, false); }, [load]);
 
   async function openDetail(item: QueueItem) {
     const client = getAdminSupabaseClient();
@@ -75,20 +89,20 @@ export function MemberVerificationAdmin() {
       const { error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_review', caseId, decision, reason, requestId: crypto.randomUUID() } });
       if (invokeError) throw invokeError;
       setDetail(null);
-      await load();
+      await load(0, false);
     } catch { setError('Không thể lưu quyết định review.'); }
     finally { setBusy(false); }
   }
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <div><button disabled={busy} onClick={() => void load()} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button></div>
+    <div data-testid="admin-member-photo-verification-queue" style={{ display: 'grid', gap: 16 }}>
+      <div><button disabled={busy} onClick={() => void load(0, false)} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button></div>
       {error ? <p role="alert" style={{ color: '#b91c1c' }}>{error}</p> : null}
       {items.length === 0 && !busy ? <p>Không có tài khoản đang chờ review.</p> : null}
       {items.map((item) => {
         const reason = String(item.automated_score_json?.pendingReason ?? 'manual_review_required');
         return (
-          <article key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+          <article data-testid={`admin-photo-verification-case-${item.case_id}`} key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <strong>{item.display_name || item.username || item.user_id}</strong>
             <div style={{ marginTop: 8, display: 'grid', gap: 4, fontSize: 14 }}>
               <span>User: {item.username || item.user_id}</span>
@@ -106,8 +120,21 @@ export function MemberVerificationAdmin() {
         );
       })}
 
+      {hasMore ? (
+        <div>
+          <button
+            data-testid="admin-photo-verification-load-more"
+            disabled={busy}
+            onClick={() => void load(nextOffset, true)}
+            type="button"
+          >
+            {busy ? 'Đang tải…' : 'Tải thêm'}
+          </button>
+        </div>
+      ) : null}
+
       {detail ? (
-        <section style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+        <section data-testid="admin-photo-verification-detail" style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
           <h2>So sánh trực quan</h2>
           <p>Link ảnh chỉ có hiệu lực 60 giây.</p>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
