@@ -23,28 +23,46 @@ type Detail = {
   referenceImages: Array<{ mediaId: string; signedUrl: string }>;
 };
 
+const PAGE_SIZE = 50;
+
 export function MemberVerificationAdmin() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (requestedOffset: number) => {
     const client = getAdminSupabaseClient();
     if (!client) {
       setError('Supabase Admin chưa được cấu hình.');
       return;
     }
+    setDetail(null);
     setBusy(true); setError(null);
     try {
-      const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_list', limit: 100, offset: 0 } });
+      const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', {
+        body: { action: 'admin_list', limit: PAGE_SIZE, offset: requestedOffset },
+      });
       if (invokeError) throw invokeError;
-      setItems((data?.items ?? []) as QueueItem[]);
+      const nextItems = (data?.items ?? []) as QueueItem[];
+      if (requestedOffset > 0 && nextItems.length === 0) {
+        const previousOffset = Math.max(0, requestedOffset - PAGE_SIZE);
+        setOffset(previousOffset);
+        const { data: previousData, error: previousError } = await client.functions.invoke('member-photo-verification', {
+          body: { action: 'admin_list', limit: PAGE_SIZE, offset: previousOffset },
+        });
+        if (previousError) throw previousError;
+        setItems((previousData?.items ?? []) as QueueItem[]);
+      } else {
+        setOffset(requestedOffset);
+        setItems(nextItems);
+      }
     } catch { setError('Không thể tải hàng chờ xác minh ảnh.'); }
     finally { setBusy(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(0); }, [load]);
 
   async function openDetail(item: QueueItem) {
     const client = getAdminSupabaseClient();
@@ -52,6 +70,7 @@ export function MemberVerificationAdmin() {
       setError('Supabase Admin chưa được cấu hình.');
       return;
     }
+    setDetail(null);
     setBusy(true); setError(null);
     try {
       const { data, error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_detail', caseId: item.case_id } });
@@ -75,24 +94,42 @@ export function MemberVerificationAdmin() {
       const { error: invokeError } = await client.functions.invoke('member-photo-verification', { body: { action: 'admin_review', caseId, decision, reason, requestId: crypto.randomUUID() } });
       if (invokeError) throw invokeError;
       setDetail(null);
-      await load();
+      await load(offset);
     } catch { setError('Không thể lưu quyết định review.'); }
     finally { setBusy(false); }
   }
 
+  const pageNumber = Math.floor(offset / PAGE_SIZE) + 1;
+  const hasPrevious = offset > 0;
+  const hasNext = items.length === PAGE_SIZE;
+
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <div><button disabled={busy} onClick={() => void load()} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button></div>
+      <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+        <button disabled={busy} onClick={() => void load(offset)} type="button">{busy ? 'Đang xử lý…' : 'Tải lại hàng chờ'}</button>
+        <div aria-label="Phân trang xác minh ảnh" style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
+          <button disabled={busy || !hasPrevious} onClick={() => void load(Math.max(0, offset - PAGE_SIZE))} type="button">Trang trước</button>
+          <span aria-live="polite">Trang {pageNumber}</span>
+          <button disabled={busy || !hasNext} onClick={() => void load(offset + PAGE_SIZE)} type="button">Trang sau</button>
+        </div>
+      </div>
       {error ? <p role="alert" style={{ color: '#b91c1c' }}>{error}</p> : null}
       {items.length === 0 && !busy ? <p>Không có tài khoản đang chờ review.</p> : null}
       {items.map((item) => {
         const reason = String(item.automated_score_json?.pendingReason ?? 'manual_review_required');
+        const livenessConfidence = typeof item.automated_score_json?.livenessConfidence === 'number'
+          ? item.automated_score_json.livenessConfidence
+          : null;
+        const livenessThreshold = typeof item.automated_score_json?.livenessThreshold === 'number'
+          ? item.automated_score_json.livenessThreshold
+          : null;
         return (
-          <article key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+          <article data-testid="admin-photo-verification-row" key={item.case_id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <strong>{item.display_name || item.username || item.user_id}</strong>
             <div style={{ marginTop: 8, display: 'grid', gap: 4, fontSize: 14 }}>
               <span>User: {item.username || item.user_id}</span>
               <span>Giới tính khai báo: {item.declared_gender}</span>
+              <span>Face Liveness: {livenessConfidence == null ? 'N/A' : `${Number(livenessConfidence).toFixed(1)}%`}{livenessThreshold == null ? '' : ` / ngưỡng ${Number(livenessThreshold).toFixed(0)}%`}</span>
               <span>Face similarity: {item.max_similarity == null ? 'N/A' : `${Number(item.max_similarity).toFixed(1)}%`} / ngưỡng 60%</span>
               <span>Lý do pending: {reason}</span>
               <span>Tạo lúc: {new Date(item.created_at).toLocaleString('vi-VN')}</span>

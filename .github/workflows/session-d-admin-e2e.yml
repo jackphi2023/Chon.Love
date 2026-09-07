@@ -1,0 +1,139 @@
+name: Session D Admin E2E
+
+on:
+  push:
+    branches: ['qa/**', main]
+    paths:
+      - 'apps/admin/**'
+      - 'tests/br-06/chon-admin-session-d.spec.mjs'
+      - 'playwright.admin-session-d.config.mjs'
+      - 'scripts/br06/setup-local-fixtures.mjs'
+      - 'supabase/**'
+      - '.github/workflows/session-d-admin-e2e.yml'
+  pull_request:
+    paths:
+      - 'apps/admin/**'
+      - 'tests/br-06/chon-admin-session-d.spec.mjs'
+      - 'playwright.admin-session-d.config.mjs'
+      - 'scripts/br06/setup-local-fixtures.mjs'
+      - 'supabase/**'
+      - '.github/workflows/session-d-admin-e2e.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: session-d-admin-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admin-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install isolated Playwright runner
+        run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0
+
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Create isolated Admin browser fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/session-d-supabase.env
+          set -a
+          source /tmp/session-d-supabase.env
+          set +a
+
+          export BR06_SUPABASE_URL="$API_URL"
+          export BR06_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          export BR06_E2E_PASSWORD='Br06-local-only-2026!'
+          export BR06_FIXTURE_SQL_PATH='/tmp/session-d-fixtures.sql'
+          node scripts/br06/setup-local-fixtures.mjs
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
+
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "BR06_E2E_PASSWORD=$BR06_E2E_PASSWORD"
+            echo "BR06_ADMIN_BASE_URL=http://127.0.0.1:3001"
+          } >> "$GITHUB_ENV"
+
+      - name: Start Admin test server
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+          NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+          pnpm --filter @myfan/admin dev --hostname 127.0.0.1 --port 3001 > /tmp/session-d-admin.log 2>&1 &
+          echo $! > /tmp/session-d-admin.pid
+
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error http://127.0.0.1:3001/login >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo 'Admin server did not become ready.' >&2
+          cat /tmp/session-d-admin.log >&2
+          exit 1
+
+      - name: Run Session D Admin browser acceptance
+        run: pnpm exec playwright test --config playwright.admin-session-d.config.mjs
+
+      - name: Print Admin server log on failure
+        if: failure()
+        run: cat /tmp/session-d-admin.log || true
+
+      - name: Upload Admin browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-d-admin-browser-evidence
+          path: |
+            playwright-report/admin-session-d
+            test-results/admin-session-d
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop Admin server
+        if: always()
+        run: |
+          if test -f /tmp/session-d-admin.pid; then
+            kill "$(cat /tmp/session-d-admin.pid)" 2>/dev/null || true
+          fi
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
