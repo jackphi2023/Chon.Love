@@ -2,7 +2,7 @@ name: Session D Admin E2E
 
 on:
   push:
-    branches: ['repair/**', 'qa/**', main]
+    branches: ['qa/**', main]
     paths:
       - 'apps/admin/**'
       - 'tests/br-06/chon-admin-session-d.spec.mjs'
