@@ -33,6 +33,9 @@ type LivenessSessionRow = {
   confidence: number | null;
   threshold: number;
   challenge_type: 'FaceMovementAndLightChallenge' | 'FaceMovementChallenge';
+  reference_image_sha256: string | null;
+  reference_image_stored: boolean;
+  error_code: string | null;
   expires_at: string;
 };
 
@@ -59,9 +62,14 @@ function respond(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
-function validUuid(value: unknown): value is string {
+function validAwsSessionId(value: unknown): value is string {
   return typeof value === 'string'
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
 function livenessThreshold(): number {
@@ -274,7 +282,7 @@ async function createLivenessSession(
       ChallengePreferences: [{ Type: challenge }],
     },
   }));
-  if (!result.SessionId || !validUuid(result.SessionId)) throw new Error('liveness_session_creation_failed');
+  if (!result.SessionId || !validAwsSessionId(result.SessionId)) throw new Error('liveness_session_creation_failed');
 
   const now = Date.now();
   const expiresAt = new Date(now + SESSION_TTL_MS).toISOString();
@@ -302,7 +310,7 @@ async function getBoundSession(server: SupabaseClient, userId: string, sessionId
   const { data, error } = await server
     .schema('private')
     .from('member_face_liveness_sessions')
-    .select('id,user_id,aws_session_id,region,state,confidence,threshold,challenge_type,expires_at')
+    .select('id,user_id,aws_session_id,region,state,confidence,threshold,challenge_type,reference_image_sha256,reference_image_stored,error_code,expires_at')
     .eq('user_id', userId)
     .eq('aws_session_id', sessionId)
     .maybeSingle();
@@ -381,12 +389,12 @@ Deno.serve(async (request: Request) => {
     }
 
     if (action !== 'complete') return respond(400, { error: 'unsupported_action' });
-    if (!validUuid(body.sessionId)) return respond(400, { error: 'invalid_liveness_session_id' });
+    if (!validAwsSessionId(body.sessionId)) return respond(400, { error: 'invalid_liveness_session_id' });
 
     const bound = await getBoundSession(server, userId, body.sessionId);
     if (!bound) return respond(404, { error: 'liveness_session_not_found' });
 
-    if (bound.state === 'completed' || bound.state === 'failed') {
+    if (bound.state === 'failed' || (bound.state === 'completed' && (bound.reference_image_stored || bound.error_code))) {
       const statusResponse = await invokePhotoVerification(supabaseUrl, anonKey, authorization, 'status');
       const payload = await statusResponse.json().catch(() => ({ state: 'pending_review' }));
       return respond(statusResponse.ok ? 200 : statusResponse.status, payload as Record<string, unknown>);
@@ -447,6 +455,7 @@ Deno.serve(async (request: Request) => {
         aws_status: awsStatus,
         confidence,
         completed_at: new Date().toISOString(),
+        error_code: 'below_threshold',
       });
       const caseId = await queuePendingReview(server, userId, {
         provider: 'aws_rekognition_face_liveness',
@@ -491,11 +500,14 @@ Deno.serve(async (request: Request) => {
       });
     }
 
+    const referenceImageSha256 = await sha256Hex(referenceBytes);
     await updateLivenessSession(server, bound.id, {
       state: 'completed',
       aws_status: awsStatus,
       confidence,
+      reference_image_sha256: referenceImageSha256,
       completed_at: new Date().toISOString(),
+      error_code: null,
     });
     const profile = await currentProfile(server, userId);
     const verificationResponse = await invokePhotoVerification(

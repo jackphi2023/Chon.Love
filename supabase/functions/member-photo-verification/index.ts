@@ -7,6 +7,7 @@ type JsonBody = Record<string, unknown> & {
   selfieBase64?: string;
   mimeType?: string;
   declaredGender?: string;
+  livenessSessionId?: string;
   caseId?: string;
   decision?: string;
   reason?: string;
@@ -62,6 +63,13 @@ const PROVIDER_PENDING_MESSAGE = 'Dịch vụ so sánh khuôn mặt đang tạm 
 const PROVIDER_RECOVERED_MESSAGE = 'Dịch vụ so sánh khuôn mặt đã sẵn sàng trở lại. Hãy chụp lại selfie để hệ thống tính điểm tương đồng.';
 const QUALITY_PENDING_MESSAGE = 'Hệ thống chưa tính được điểm tương đồng đáng tin cậy từ ảnh hiện tại. Hãy chụp lại selfie rõ mặt, đủ sáng và nhìn gần thẳng camera.';
 const PROFILE_CHANGED_MESSAGE = 'Thông tin hồ sơ đã thay đổi trong lúc xác minh. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.';
+const LIVENESS_PENDING_MESSAGE = 'Xác minh người thật cần được thực hiện lại trước khi hồ sơ có thể kích hoạt.';
+const LIVENESS_RETRY_REASONS = new Set([
+  'face_liveness_session_expired',
+  'face_liveness_incomplete',
+  'face_liveness_not_above_threshold',
+  'face_liveness_reference_image_missing',
+]);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,6 +88,15 @@ function respond(status: number, body: Record<string, unknown>): Response {
 
 function validUuid(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
+
+function validAwsSessionId(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
 function pageLimit(value: unknown): number {
@@ -103,6 +120,30 @@ function decodeBase64Image(value: string): Uint8Array {
     throw new Error('invalid_selfie_size');
   }
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+async function verifiedLivenessProof(
+  server: SupabaseClient,
+  userId: string,
+  sessionId: unknown,
+  referenceBytes: Uint8Array,
+): Promise<{ aws_session_id: string } | null> {
+  if (!validAwsSessionId(sessionId)) return null;
+  const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data, error } = await server
+    .schema('private')
+    .from('member_face_liveness_sessions')
+    .select('aws_session_id,state,confidence,threshold,reference_image_sha256,completed_at')
+    .eq('user_id', userId)
+    .eq('aws_session_id', sessionId)
+    .eq('state', 'completed')
+    .gte('completed_at', cutoff)
+    .maybeSingle();
+  if (error) throw new Error(`liveness_proof_lookup_failed:${error.code}`);
+  if (!data || typeof data.confidence !== 'number' || typeof data.threshold !== 'number') return null;
+  if (data.confidence < data.threshold || typeof data.reference_image_sha256 !== 'string') return null;
+  const submittedDigest = await sha256Hex(referenceBytes);
+  return submittedDigest === data.reference_image_sha256 ? { aws_session_id: data.aws_session_id } : null;
 }
 
 function verificationState(profileStatus: string | null, latestCase: CaseRow | null): VerificationState {
@@ -142,6 +183,9 @@ function pendingPresentation(caseRow: CaseRow | null, providerConfigured: boolea
     ? score.maxSimilarity
     : null;
 
+  if (reason && LIVENESS_RETRY_REASONS.has(reason)) {
+    return { message: LIVENESS_PENDING_MESSAGE, maxSimilarity: null, reason, retryable: true };
+  }
   if (reason === 'face_comparison_provider_not_configured' || score.provider === 'unconfigured') {
     return {
       message: providerConfigured ? PROVIDER_RECOVERED_MESSAGE : PROVIDER_PENDING_MESSAGE,
@@ -476,6 +520,8 @@ Deno.serve(async (request: Request) => {
     }
 
     const selfieBytes = decodeBase64Image(body.selfieBase64);
+    const livenessProof = await verifiedLivenessProof(server, actorId, body.livenessSessionId, selfieBytes);
+    if (!livenessProof) return respond(409, { error: 'face_liveness_required' });
     const media = await profileMedia(server, actorId);
     if (media.length === 0) return respond(422, { error: 'profile_photo_required' });
 
@@ -521,6 +567,8 @@ Deno.serve(async (request: Request) => {
       provider: providerState.client ? 'aws_rekognition_compare_faces' : 'unconfigured',
       providerConfigured: Boolean(providerState.client),
       providerConfigMissing: providerState.missing,
+      livenessSessionId: livenessProof.aws_session_id,
+      livenessVerified: true,
       requestSimilarityThreshold: REKOGNITION_REQUEST_THRESHOLD,
       threshold: FACE_SIMILARITY_THRESHOLD,
       maxSimilarity: maxSimilarity == null ? null : Number(maxSimilarity.toFixed(2)),

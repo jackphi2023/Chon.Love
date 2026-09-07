@@ -3,6 +3,7 @@ import { colors, spacing } from '@myfan/ui';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AwsFaceLiveness } from '@/components/aws-face-liveness';
 import { LiveSelfieCamera } from '@/components/live-selfie-camera';
 import {
   SignupHelpText,
@@ -32,6 +33,8 @@ function readableVerificationFailure(error: unknown): string {
     return 'Dịch vụ xác minh thành viên chưa sẵn sàng. Chon.Love đã ghi nhận lỗi hệ thống; vui lòng thử lại sau khi dịch vụ được cập nhật.';
   }
   if (message.includes('member_photo_verification_invoke_failed:401')) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại trước khi xác minh.';
+  if (message.includes('face_liveness_required')) return 'Bạn cần hoàn thành xác minh người thật bằng camera trước khi hệ thống so sánh khuôn mặt.';
+  if (message.includes('face_liveness_provider_not_configured') || message.includes('face_liveness_service_unavailable')) return 'Dịch vụ xác minh người thật đang tạm thời chưa sẵn sàng. Tài khoản sẽ không được tự động kích hoạt cho đến khi xác minh hoàn tất.';
   return 'Xác minh ảnh tạm thời không thành công. Vui lòng thử lại; nếu lỗi tiếp tục, Chon.Love sẽ kiểm tra dịch vụ xác minh.';
 }
 
@@ -90,15 +93,19 @@ export default function SelfieVerificationOnboarding() {
     return () => { active = false; };
   }, [auth.isRestoring, auth.userId, openConnectAfterApproval, router]);
 
+  function handleVerificationResult(verification: MemberPhotoVerificationResult) {
+    setResult(verification);
+    setSelfie(null);
+    if (verification.state === 'approved') openConnectAfterApproval();
+  }
+
   async function handleSubmit() {
     if (!selfie) return;
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
       const verification = await submitMemberPhotoVerification(selfie, declaredGender);
-      setResult(verification);
-      setSelfie(null);
-      if (verification.state === 'approved') openConnectAfterApproval();
+      handleVerificationResult(verification);
     } catch (error) {
       setErrorMessage(readableVerificationFailure(error));
     } finally {
@@ -164,14 +171,21 @@ export default function SelfieVerificationOnboarding() {
   }
 
   return (
-    <SignupShell description="Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã tải lên." onBack={() => router.replace('/onboarding/about')} step={8} testID="chon-selfie-verification" title="Chụp selfie xác minh">
+    <SignupShell description="Bước cuối để kích hoạt tài khoản Chon.Love. Hệ thống xác minh bạn là người thật trước khi so sánh khuôn mặt với ảnh hồ sơ đã tải lên." onBack={() => router.replace('/onboarding/about')} step={8} testID="chon-selfie-verification" title="Xác minh người thật">
       <View style={styles.ruleCard}>
         <Text style={styles.ruleTitle}>Điều kiện duyệt thành viên</Text>
-        <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
-        <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng thì chúng tôi kiểm tra thủ công để đảm bảo đúng chính xác là người thật về bạn.</Text>
+        <Text style={styles.ruleText}>• Camera xác minh chuyển động/khuôn mặt để xác nhận bạn là người thật.</Text>
+        <Text style={styles.ruleText}>• Sau đó khuôn mặt xác minh phải tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>
+        <Text style={styles.ruleText}>• Kết quả chưa đủ chắc chắn sẽ chuyển sang kiểm tra thủ công thay vì tự động từ chối.</Text>
       </View>
 
-      {selfie ? (
+      {Platform.OS === 'web' ? (
+        <AwsFaceLiveness
+          disabled={isSubmitting}
+          onError={setErrorMessage}
+          onResult={handleVerificationResult}
+        />
+      ) : selfie ? (
         <View style={styles.previewWrap}>
           <Image accessibilityLabel="Selfie vừa chụp" source={{ uri: selfie.previewUri }} style={styles.selfiePreview} />
           <Pressable accessibilityLabel="Chụp lại selfie" accessibilityRole="button" accessibilityState={{ disabled: isSubmitting }} disabled={isSubmitting} onPress={() => setSelfie(null)} style={styles.textButton}><Text style={styles.textButtonLabel}>Chụp lại</Text></Pressable>
@@ -181,7 +195,7 @@ export default function SelfieVerificationOnboarding() {
       )}
 
       {errorMessage ? <SignupHelpText tone="danger">{errorMessage}</SignupHelpText> : null}
-      <SignupSecondaryButton busy={isSubmitting} disabled={!selfie} label="Xác minh và kích hoạt tài khoản" onPress={() => void handleSubmit()} />
+      {Platform.OS !== 'web' ? <SignupSecondaryButton busy={isSubmitting} disabled={!selfie} label="Xác minh và kích hoạt tài khoản" onPress={() => void handleSubmit()} /> : null}
     </SignupShell>
   );
 }
