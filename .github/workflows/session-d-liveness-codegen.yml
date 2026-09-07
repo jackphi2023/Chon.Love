@@ -1,0 +1,171 @@
+name: Session D Liveness Codegen
+
+on:
+  push:
+    branches: ['repair/session-d-fix-20260907']
+    paths:
+      - '.github/workflows/session-d-liveness-codegen.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: repair/session-d-fix-20260907
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply guarded liveness integration patches
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one anchor, found {count}: {old[:80]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          liveness = 'supabase/functions/member-face-liveness/index.ts'
+          replace_once(
+              liveness,
+              "  challenge_type: 'FaceMovementAndLightChallenge' | 'FaceMovementChallenge';\n  expires_at: string;",
+              "  challenge_type: 'FaceMovementAndLightChallenge' | 'FaceMovementChallenge';\n  reference_image_sha256: string | null;\n  reference_image_stored: boolean;\n  error_code: string | null;\n  expires_at: string;",
+          )
+          replace_once(
+              liveness,
+              "function validUuid(value: unknown): value is string {\n  return typeof value === 'string'\n    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);\n}\n",
+              "function validAwsSessionId(value: unknown): value is string {\n  return typeof value === 'string'\n    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);\n}\n\nasync function sha256Hex(bytes: Uint8Array): Promise<string> {\n  const digest = await crypto.subtle.digest('SHA-256', bytes);\n  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');\n}\n",
+          )
+          replace_once(liveness, "if (!result.SessionId || !validUuid(result.SessionId))", "if (!result.SessionId || !validAwsSessionId(result.SessionId))")
+          replace_once(liveness, "if (!validUuid(body.sessionId))", "if (!validAwsSessionId(body.sessionId))")
+          replace_once(
+              liveness,
+              ".select('id,user_id,aws_session_id,region,state,confidence,threshold,challenge_type,expires_at')",
+              ".select('id,user_id,aws_session_id,region,state,confidence,threshold,challenge_type,reference_image_sha256,reference_image_stored,error_code,expires_at')",
+          )
+          replace_once(
+              liveness,
+              "    if (bound.state === 'completed' || bound.state === 'failed') {\n      const statusResponse = await invokePhotoVerification(supabaseUrl, anonKey, authorization, 'status');\n      const payload = await statusResponse.json().catch(() => ({ state: 'pending_review' }));\n      return respond(statusResponse.ok ? 200 : statusResponse.status, payload as Record<string, unknown>);\n    }",
+              "    if (bound.state === 'failed' || (bound.state === 'completed' && (bound.reference_image_stored || bound.error_code))) {\n      const statusResponse = await invokePhotoVerification(supabaseUrl, anonKey, authorization, 'status');\n      const payload = await statusResponse.json().catch(() => ({ state: 'pending_review' }));\n      return respond(statusResponse.ok ? 200 : statusResponse.status, payload as Record<string, unknown>);\n    }",
+          )
+          replace_once(
+              liveness,
+              "        confidence,\n        completed_at: new Date().toISOString(),\n      });\n      const caseId = await queuePendingReview(server, userId, {\n        provider: 'aws_rekognition_face_liveness',\n        livenessStatus: awsStatus,\n        livenessConfidence: confidence,\n        livenessThreshold: bound.threshold,\n        pendingReason: 'face_liveness_not_above_threshold',",
+              "        confidence,\n        completed_at: new Date().toISOString(),\n        error_code: 'below_threshold',\n      });\n      const caseId = await queuePendingReview(server, userId, {\n        provider: 'aws_rekognition_face_liveness',\n        livenessStatus: awsStatus,\n        livenessConfidence: confidence,\n        livenessThreshold: bound.threshold,\n        pendingReason: 'face_liveness_not_above_threshold',",
+          )
+          replace_once(
+              liveness,
+              "    await updateLivenessSession(server, bound.id, {\n      state: 'completed',\n      aws_status: awsStatus,\n      confidence,\n      completed_at: new Date().toISOString(),\n    });\n    const profile = await currentProfile(server, userId);",
+              "    const referenceImageSha256 = await sha256Hex(referenceBytes);\n    await updateLivenessSession(server, bound.id, {\n      state: 'completed',\n      aws_status: awsStatus,\n      confidence,\n      reference_image_sha256: referenceImageSha256,\n      completed_at: new Date().toISOString(),\n      error_code: null,\n    });\n    const profile = await currentProfile(server, userId);",
+          )
+
+          comparison = 'supabase/functions/member-photo-verification/index.ts'
+          replace_once(comparison, "  declaredGender?: string;\n  caseId?: string;", "  declaredGender?: string;\n  livenessSessionId?: string;\n  caseId?: string;")
+          replace_once(
+              comparison,
+              "const PROFILE_CHANGED_MESSAGE = 'Thông tin hồ sơ đã thay đổi trong lúc xác minh. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.';",
+              "const PROFILE_CHANGED_MESSAGE = 'Thông tin hồ sơ đã thay đổi trong lúc xác minh. Chon.Love sẽ kiểm tra thêm trước khi kích hoạt.';\nconst LIVENESS_PENDING_MESSAGE = 'Xác minh người thật cần được thực hiện lại trước khi hồ sơ có thể kích hoạt.';\nconst LIVENESS_RETRY_REASONS = new Set([\n  'face_liveness_session_expired',\n  'face_liveness_incomplete',\n  'face_liveness_not_above_threshold',\n  'face_liveness_reference_image_missing',\n]);",
+          )
+          replace_once(
+              comparison,
+              "function validUuid(value: unknown): value is string {\n  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);\n}\n",
+              "function validUuid(value: unknown): value is string {\n  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);\n}\n\nfunction validAwsSessionId(value: unknown): value is string {\n  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);\n}\n\nasync function sha256Hex(bytes: Uint8Array): Promise<string> {\n  const digest = await crypto.subtle.digest('SHA-256', bytes);\n  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');\n}\n",
+          )
+          replace_once(
+              comparison,
+              "  return Uint8Array.from(binary, (character) => character.charCodeAt(0));\n}\n\nfunction verificationState",
+              "  return Uint8Array.from(binary, (character) => character.charCodeAt(0));\n}\n\nasync function verifiedLivenessProof(\n  server: SupabaseClient,\n  userId: string,\n  sessionId: unknown,\n  referenceBytes: Uint8Array,\n): Promise<{ aws_session_id: string } | null> {\n  if (!validAwsSessionId(sessionId)) return null;\n  const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();\n  const { data, error } = await server\n    .schema('private')\n    .from('member_face_liveness_sessions')\n    .select('aws_session_id,state,confidence,threshold,reference_image_sha256,completed_at')\n    .eq('user_id', userId)\n    .eq('aws_session_id', sessionId)\n    .eq('state', 'completed')\n    .gte('completed_at', cutoff)\n    .maybeSingle();\n  if (error) throw new Error(`liveness_proof_lookup_failed:${error.code}`);\n  if (!data || typeof data.confidence !== 'number' || typeof data.threshold !== 'number') return null;\n  if (data.confidence < data.threshold || typeof data.reference_image_sha256 !== 'string') return null;\n  const submittedDigest = await sha256Hex(referenceBytes);\n  return submittedDigest === data.reference_image_sha256 ? { aws_session_id: data.aws_session_id } : null;\n}\n\nfunction verificationState",
+          )
+          replace_once(
+              comparison,
+              "  if (reason === 'face_comparison_provider_not_configured' || score.provider === 'unconfigured') {",
+              "  if (reason && LIVENESS_RETRY_REASONS.has(reason)) {\n    return { message: LIVENESS_PENDING_MESSAGE, maxSimilarity: null, reason, retryable: true };\n  }\n  if (reason === 'face_comparison_provider_not_configured' || score.provider === 'unconfigured') {",
+          )
+          replace_once(
+              comparison,
+              "    const selfieBytes = decodeBase64Image(body.selfieBase64);\n    const media = await profileMedia(server, actorId);",
+              "    const selfieBytes = decodeBase64Image(body.selfieBase64);\n    const livenessProof = await verifiedLivenessProof(server, actorId, body.livenessSessionId, selfieBytes);\n    if (!livenessProof) return respond(409, { error: 'face_liveness_required' });\n    const media = await profileMedia(server, actorId);",
+          )
+          replace_once(
+              comparison,
+              "      providerConfigured: Boolean(providerState.client),\n      providerConfigMissing: providerState.missing,",
+              "      providerConfigured: Boolean(providerState.client),\n      providerConfigMissing: providerState.missing,\n      livenessSessionId: livenessProof.aws_session_id,\n      livenessVerified: true,",
+          )
+
+          selfie = 'apps/mobile/app/onboarding/selfie.tsx'
+          replace_once(selfie, "import { LiveSelfieCamera } from '@/components/live-selfie-camera';", "import { AwsFaceLiveness } from '@/components/aws-face-liveness';\nimport { LiveSelfieCamera } from '@/components/live-selfie-camera';")
+          replace_once(
+              selfie,
+              "  if (message.includes('member_photo_verification_invoke_failed:401')) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại trước khi xác minh.';",
+              "  if (message.includes('member_photo_verification_invoke_failed:401')) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại trước khi xác minh.';\n  if (message.includes('face_liveness_required')) return 'Bạn cần hoàn thành xác minh người thật bằng camera trước khi hệ thống so sánh khuôn mặt.';\n  if (message.includes('face_liveness_provider_not_configured') || message.includes('face_liveness_service_unavailable')) return 'Dịch vụ xác minh người thật đang tạm thời chưa sẵn sàng. Tài khoản sẽ không được tự động kích hoạt cho đến khi xác minh hoàn tất.';",
+          )
+          replace_once(
+              selfie,
+              "  async function handleSubmit() {\n    if (!selfie) return;",
+              "  function handleVerificationResult(verification: MemberPhotoVerificationResult) {\n    setResult(verification);\n    setSelfie(null);\n    if (verification.state === 'approved') openConnectAfterApproval();\n  }\n\n  async function handleSubmit() {\n    if (!selfie) return;",
+          )
+          replace_once(
+              selfie,
+              "      const verification = await submitMemberPhotoVerification(selfie, declaredGender);\n      setResult(verification);\n      setSelfie(null);\n      if (verification.state === 'approved') openConnectAfterApproval();",
+              "      const verification = await submitMemberPhotoVerification(selfie, declaredGender);\n      handleVerificationResult(verification);",
+          )
+          replace_once(
+              selfie,
+              "    <SignupShell description=\"Bước cuối để kích hoạt tài khoản Chon.Love. Selfie phải được chụp trực tiếp bằng camera và sẽ được so với ảnh hồ sơ đã tải lên.\" onBack={() => router.replace('/onboarding/about')} step={8} testID=\"chon-selfie-verification\" title=\"Chụp selfie xác minh\">",
+              "    <SignupShell description=\"Bước cuối để kích hoạt tài khoản Chon.Love. Hệ thống xác minh bạn là người thật trước khi so sánh khuôn mặt với ảnh hồ sơ đã tải lên.\" onBack={() => router.replace('/onboarding/about')} step={8} testID=\"chon-selfie-verification\" title=\"Xác minh người thật\">",
+          )
+          replace_once(
+              selfie,
+              "        <Text style={styles.ruleText}>• Khuôn mặt selfie tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>\n        <Text style={styles.ruleText}>• Không đạt ngưỡng hoặc ảnh không đủ chất lượng thì chúng tôi kiểm tra thủ công để đảm bảo đúng chính xác là người thật về bạn.</Text>",
+              "        <Text style={styles.ruleText}>• Camera xác minh chuyển động/khuôn mặt để xác nhận bạn là người thật.</Text>\n        <Text style={styles.ruleText}>• Sau đó khuôn mặt xác minh phải tương đồng trên {MEMBER_PHOTO_SIMILARITY_THRESHOLD}% với ít nhất một ảnh hồ sơ.</Text>\n        <Text style={styles.ruleText}>• Kết quả chưa đủ chắc chắn sẽ chuyển sang kiểm tra thủ công thay vì tự động từ chối.</Text>",
+          )
+          old_capture = """      {selfie ? (\n        <View style={styles.previewWrap}>\n          <Image accessibilityLabel=\"Selfie vừa chụp\" source={{ uri: selfie.previewUri }} style={styles.selfiePreview} />\n          <Pressable accessibilityLabel=\"Chụp lại selfie\" accessibilityRole=\"button\" accessibilityState={{ disabled: isSubmitting }} disabled={isSubmitting} onPress={() => setSelfie(null)} style={styles.textButton}><Text style={styles.textButtonLabel}>Chụp lại</Text></Pressable>\n        </View>\n      ) : (\n        <LiveSelfieCamera disabled={isSubmitting} onCapture={(image) => { setErrorMessage(null); setSelfie(image); }} onError={setErrorMessage} />\n      )}"""
+          new_capture = """      {Platform.OS === 'web' ? (\n        <AwsFaceLiveness\n          disabled={isSubmitting}\n          onError={setErrorMessage}\n          onResult={handleVerificationResult}\n        />\n      ) : selfie ? (\n        <View style={styles.previewWrap}>\n          <Image accessibilityLabel=\"Selfie vừa chụp\" source={{ uri: selfie.previewUri }} style={styles.selfiePreview} />\n          <Pressable accessibilityLabel=\"Chụp lại selfie\" accessibilityRole=\"button\" accessibilityState={{ disabled: isSubmitting }} disabled={isSubmitting} onPress={() => setSelfie(null)} style={styles.textButton}><Text style={styles.textButtonLabel}>Chụp lại</Text></Pressable>\n        </View>\n      ) : (\n        <LiveSelfieCamera disabled={isSubmitting} onCapture={(image) => { setErrorMessage(null); setSelfie(image); }} onError={setErrorMessage} />\n      )}"""
+          replace_once(selfie, old_capture, new_capture)
+          replace_once(
+              selfie,
+              "      <SignupSecondaryButton busy={isSubmitting} disabled={!selfie} label=\"Xác minh và kích hoạt tài khoản\" onPress={() => void handleSubmit()} />",
+              "      {Platform.OS !== 'web' ? <SignupSecondaryButton busy={isSubmitting} disabled={!selfie} label=\"Xác minh và kích hoạt tài khoản\" onPress={() => void handleSubmit()} /> : null}",
+          )
+          PY
+
+      - name: Add pinned Amplify Liveness dependencies
+        run: pnpm add --filter @myfan/mobile aws-amplify@6.20.0 @aws-amplify/ui-react@6.15.6 @aws-amplify/ui-react-liveness@3.6.9
+
+      - name: Validate source and mobile types
+        run: |
+          node scripts/validate-session-d-face-liveness.mjs
+          pnpm --filter @myfan/mobile typecheck
+
+      - name: Commit generated integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/mobile/app/onboarding/selfie.tsx \
+            apps/mobile/package.json \
+            pnpm-lock.yaml \
+            supabase/functions/member-face-liveness/index.ts \
+            supabase/functions/member-photo-verification/index.ts
+          git diff --cached --check
+          git commit -m 'feat: enforce AWS Face Liveness before CompareFaces'
+          git push origin HEAD:repair/session-d-fix-20260907
