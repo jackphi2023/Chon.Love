@@ -19,12 +19,22 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  webServer: {
-    command: 'CI=1 pnpm --filter @myfan/mobile exec expo start --web --port 8081',
-    url: 'http://127.0.0.1:8081',
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  webServer: [
+    {
+      command: 'CI=1 pnpm --filter @myfan/mobile exec expo start --web --port 8081',
+      url: 'http://127.0.0.1:8081',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    {
+      command: 'NEXT_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY pnpm --filter @myfan/admin dev --hostname 127.0.0.1 --port 3001',
+      url: 'http://127.0.0.1:3001/login',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+  ],
 });
