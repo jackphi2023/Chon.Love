@@ -40,4 +40,13 @@ set
   ),
   updated_at=now();
 
+-- Session D Admin browser E2E uses the existing local-only moderator actor with an
+-- additional super_admin role. This script is executed only after the localhost
+-- guard in setup-local-fixtures.mjs and is never a production migration.
+insert into private.user_roles(user_id, role, granted_by)
+select u.id, 'super_admin'::private.user_role, u.id
+from auth.users u
+where u.email='br06.moderator@example.test'
+on conflict do nothing;
+
 commit;
