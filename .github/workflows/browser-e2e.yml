@@ -109,9 +109,12 @@ jobs:
           export BR06_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           export BR06_E2E_PASSWORD='Br06-local-only-2026!'
           export BR06_FIXTURE_SQL_PATH='/tmp/br06-fixtures.sql'
+          export BR06_SEARCH_AVATAR_SQL_PATH='/tmp/br06-search-avatars.sql'
 
           node scripts/br06/setup-local-fixtures.mjs
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
+          node scripts/br06/ensure-search-avatars.mjs
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_SEARCH_AVATAR_SQL_PATH"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/approve-opt01-listing-fixtures.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/seed-local-heart-balance.sql
 
@@ -178,6 +181,30 @@ jobs:
                 where u.email like 'br06.%@example.test'
                   and v.listing_status='approved') <> 5 then
               raise exception 'BR-06 listing approval fixture mismatch';
+            end if;
+            if (select count(*)
+                from public.profiles p
+                join auth.users u on u.id = p.id
+                join public.media_assets ma on ma.id = p.avatar_media_id and ma.owner_id = p.id
+                where u.email in (
+                  'br06.creator@example.test',
+                  'br06.fan@example.test',
+                  'br06.outsider@example.test'
+                )
+                  and ma.visibility = 'avatar'
+                  and ma.moderation_status = 'approved') <> 3 then
+              raise exception 'BR-06 Search members must each have a current approved avatar';
+            end if;
+            if (select count(*)
+                from public.profiles p
+                join auth.users u on u.id = p.id
+                where u.email in (
+                  'br06.creator@example.test',
+                  'br06.fan@example.test',
+                  'br06.outsider@example.test'
+                )
+                  and private.luxy_listing_hidden(p.id) is false) <> 3 then
+              raise exception 'BR-06 Search members must pass the production listing visibility predicate';
             end if;
             if not exists(
               select 1
