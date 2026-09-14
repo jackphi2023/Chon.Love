@@ -2,9 +2,11 @@ begin;
 
 select plan(3);
 
-select like(
-  lower(pg_get_functiondef('public.admin_list_member_photo_verifications(uuid,integer,integer)'::regprocedure)),
-  '%order by mc.created_at desc, mc.id desc%',
+select ok(
+  strpos(
+    lower(pg_get_functiondef('public.admin_list_member_photo_verifications(uuid,integer,integer)'::regprocedure)),
+    'order by mc.created_at desc, mc.id desc'
+  ) > 0,
   'photo verification queue is newest-first with stable id tie-breaker'
 );
 
