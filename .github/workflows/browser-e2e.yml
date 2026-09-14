@@ -115,14 +115,19 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/approve-opt01-listing-fixtures.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/seed-local-heart-balance.sql
 
-          # Production keeps VietQR and member gifts fail-closed until their explicit
-          # release gates. Browser UI coverage exercises those real RPC paths only in
-          # this isolated localhost database. Nothing below is a production migration.
+          # Production keeps VietQR, member gifts and withdrawal execution fail-closed
+          # until their explicit production release gates. Browser coverage exercises
+          # the real user RPC paths only inside this isolated localhost database.
+          # Nothing below is a production migration or hosted configuration change.
           psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           update private.app_config
           set value_json='true'::jsonb,
               updated_at=now()
-          where key in ('vietqr_web_payments_enabled','luxy_member_gifts_enabled');
+          where key in (
+            'vietqr_web_payments_enabled',
+            'luxy_member_gifts_enabled',
+            'withdrawal_requests_enabled'
+          );
 
           grant execute on function public.list_vietqr_heart_products() to authenticated;
           grant execute on function public.create_vietqr_heart_order(uuid,uuid) to authenticated;
@@ -186,6 +191,9 @@ jobs:
             end if;
             if coalesce((select value_json #>> '{}' from private.app_config where key='luxy_member_gifts_enabled')::boolean,false) is not true then
               raise exception 'BR-06 local gift release switch was not enabled';
+            end if;
+            if coalesce((select value_json #>> '{}' from private.app_config where key='withdrawal_requests_enabled')::boolean,false) is not true then
+              raise exception 'BR-06 local withdrawal request switch was not enabled';
             end if;
             if exists(select 1 from auth.users where email ~ '^myfan([1-9]|1[0-6])@gmail[.]com$') then
               raise exception 'controlled Beta accounts must not exist in the local BR-06 database';
