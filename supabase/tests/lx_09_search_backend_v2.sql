@@ -77,9 +77,10 @@ set profile_status='active',
       else now()-interval '5 days' end
 where p.id::text like '19000000-0000-0000-0000-00000000000%';
 
--- OPT-01: LX-09 fixtures model established discoverable members. Explicitly approve
--- their listing state so this suite continues testing search/filter/privacy behavior;
--- pending/review semantics are covered by opt_01_approval_contract.sql.
+-- These fixtures model established discoverable members. Free members therefore
+-- have explicit listing approval AND a current approved avatar. The production
+-- Connect contract intentionally hides pending/no-avatar profiles; those cases are
+-- covered by OPT-01/OPT-02/OPT-04 rather than weakened here.
 insert into private.member_profile_verifications(
   user_id,listing_status,listing_submitted_at,listing_reviewed_at,listing_reason_code
 )
@@ -92,6 +93,29 @@ set listing_status='approved',
     listing_reviewed_at=coalesce(private.member_profile_verifications.listing_reviewed_at,excluded.listing_reviewed_at),
     listing_reason_code=coalesce(private.member_profile_verifications.listing_reason_code,excluded.listing_reason_code),
     updated_at=now();
+
+insert into public.media_assets(
+  id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
+) values
+('19000000-0000-4000-8000-000000000102','19000000-0000-0000-0000-000000000002','profile-media','19000000-0000-0000-0000-000000000002/19000000-0000-4000-8000-000000000102/avatar.jpg','image/jpeg',1000,800,800,'avatar','approved',now(),now(),'19000000-0000-0000-0000-000000000001'),
+('19000000-0000-4000-8000-000000000103','19000000-0000-0000-0000-000000000003','profile-media','19000000-0000-0000-0000-000000000003/19000000-0000-4000-8000-000000000103/avatar.jpg','image/jpeg',1000,800,800,'avatar','approved',now(),now(),'19000000-0000-0000-0000-000000000001'),
+('19000000-0000-4000-8000-000000000104','19000000-0000-0000-0000-000000000004','profile-media','19000000-0000-0000-0000-000000000004/19000000-0000-4000-8000-000000000104/avatar.jpg','image/jpeg',1000,800,800,'avatar','approved',now(),now(),'19000000-0000-0000-0000-000000000001'),
+('19000000-0000-4000-8000-000000000105','19000000-0000-0000-0000-000000000005','profile-media','19000000-0000-0000-0000-000000000005/19000000-0000-4000-8000-000000000105/avatar.jpg','image/jpeg',1000,800,800,'avatar','approved',now(),now(),'19000000-0000-0000-0000-000000000001');
+
+update public.profiles
+set avatar_media_id=case id
+  when '19000000-0000-0000-0000-000000000002' then '19000000-0000-4000-8000-000000000102'::uuid
+  when '19000000-0000-0000-0000-000000000003' then '19000000-0000-4000-8000-000000000103'::uuid
+  when '19000000-0000-0000-0000-000000000004' then '19000000-0000-4000-8000-000000000104'::uuid
+  when '19000000-0000-0000-0000-000000000005' then '19000000-0000-4000-8000-000000000105'::uuid
+  else avatar_media_id end
+where id in (
+  '19000000-0000-0000-0000-000000000002',
+  '19000000-0000-0000-0000-000000000003',
+  '19000000-0000-0000-0000-000000000004',
+  '19000000-0000-0000-0000-000000000005'
+);
 
 select ok(
   has_function_privilege(
@@ -143,7 +167,7 @@ select is((select count(*) from public.search_luxy_profiles_v2(p_languages=>arra
 select is((select count(*) from public.search_luxy_profiles_v2(p_occupation_text=>'trúc'::text)),1::bigint,'occupation text filter searches public occupation only');
 select is((select count(*) from public.search_luxy_profiles_v2(p_profile_text=>'nghiêm túc'::text)),1::bigint,'profile text filter searches public member copy');
 select is((select count(*) from public.search_luxy_profiles_v2(p_online_now=>true)),1::bigint,'online-now filter derives a bounded recent-activity state');
-select is((select count(*) from public.search_luxy_profiles_v2(p_has_photo=>false)),4::bigint,'has-photo filter can explicitly select profiles without visible photos');
+select is((select count(*) from public.search_luxy_profiles_v2(p_has_photo=>true)),4::bigint,'discoverable candidates all satisfy the approved-avatar photo gate');
 select is((select id from public.search_luxy_profiles_v2(p_sort=>'recent') limit 1),'19000000-0000-0000-0000-000000000002'::uuid,'recent sort uses last_active_at');
 select is((select id from public.search_luxy_profiles_v2(p_sort=>'newest') limit 1),'19000000-0000-0000-0000-000000000003'::uuid,'newest sort uses member creation time');
 select is((select count(*) from public.search_luxy_profiles_v2(p_limit=>2,p_offset=>1)),2::bigint,'pagination is bounded and deterministic');

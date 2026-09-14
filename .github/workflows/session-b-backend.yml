@@ -1,0 +1,79 @@
+name: Session B Backend
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260906153000_opt_backend_financial_fail_closed.sql'
+      - 'supabase/migrations/20260906154000_opt_backend_connect_approved_avatar_gate.sql'
+      - 'supabase/migrations/20260906155000_opt_backend_performance_guard.sql'
+      - 'supabase/migrations/20260906160000_opt_backend_homepage_admin_acl.sql'
+      - 'supabase/migrations/20260906161000_opt_backend_contract_assertions.sql'
+      - 'supabase/migrations/20260914145238_opt_10_realtime_rls_helper_acl.sql'
+      - 'supabase/migrations/20260914145246_session_d_photo_verification_queue_order.sql'
+      - 'supabase/functions/member-photo-verification/index.ts'
+      - 'supabase/tests/session_b_*.sql'
+      - '.github/workflows/session-b-backend.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: session-b-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.110.0
+
+      - name: Verify Session B migration inventory
+        run: |
+          test -f supabase/migrations/20260906153000_opt_backend_financial_fail_closed.sql
+          test -f supabase/migrations/20260906154000_opt_backend_connect_approved_avatar_gate.sql
+          test -f supabase/migrations/20260906155000_opt_backend_performance_guard.sql
+          test -f supabase/migrations/20260906160000_opt_backend_homepage_admin_acl.sql
+          test -f supabase/migrations/20260906161000_opt_backend_contract_assertions.sql
+          test -f supabase/migrations/20260914145238_opt_10_realtime_rls_helper_acl.sql
+          test -f supabase/migrations/20260914145246_session_d_photo_verification_queue_order.sql
+          test -f supabase/functions/member-photo-verification/index.ts
+
+      - name: Verify existing selfie CompareFaces contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='supabase/functions/member-photo-verification/index.ts'
+          grep -F 'CompareFacesCommand' "$FILE"
+          grep -F 'const FACE_SIMILARITY_THRESHOLD = 60;' "$FILE"
+          grep -F "action !== 'submit'" "$FILE"
+          grep -F "body.mimeType !== 'image/jpeg'" "$FILE"
+          grep -F "provider: providerState.client ? 'aws_rekognition_compare_faces' : 'unconfigured'" "$FILE"
+          grep -F "pendingReason = 'face_similarity_not_above_threshold'" "$FILE"
+          grep -F 'maxSimilarity > FACE_SIMILARITY_THRESHOLD' "$FILE"
+          if grep -Eqi 'FaceLiveness|CreateFaceLivenessSession|GetFaceLivenessSessionResults' "$FILE"; then
+            echo 'Face Liveness must remain outside the current production verification contract.' >&2
+            exit 1
+          fi
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Clean reset from repository migrations
+        run: supabase db reset --local
+
+      - name: Run Realtime ACL contract
+        run: supabase test db supabase/tests/session_b_realtime_acl.sql --local
+
+      - name: Run photo queue contract
+        run: supabase test db supabase/tests/session_b_photo_queue_contract.sql --local
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true

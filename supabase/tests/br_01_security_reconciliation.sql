@@ -170,11 +170,11 @@ select is(
 );
 
 select ok(
-  private.config_boolean('withdrawal_requests_enabled') = true
-  and private.config_boolean('withdrawal_processing_enabled') = true
-  and private.config_boolean('withdrawal_payout_enabled') = true
-  and private.config_boolean('withdrawal_operational_review_enabled') = true,
-  'OPT-12 and OPT-13 explicitly release the guarded withdrawal lifecycle'
+  private.config_boolean('withdrawal_requests_enabled') = false
+  and private.config_boolean('withdrawal_processing_enabled') = false
+  and private.config_boolean('withdrawal_payout_enabled') = false
+  and private.config_boolean('withdrawal_operational_review_enabled') = false,
+  'withdrawal lifecycle remains server-side fail-closed before controlled finance production acceptance'
 );
 
 select ok(
