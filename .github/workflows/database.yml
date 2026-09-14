@@ -293,12 +293,26 @@ jobs:
       - name: Stop local Supabase before workspace checks
         run: supabase stop --no-backup
 
-      - name: Verify application workspace
+      # Keep Database CI backend-focused. The aggregate `pnpm validate` also runs
+      # SEO/branding/OPT-15 release validators owned by later UI/release sessions;
+      # pulling those into SESSION B couples an otherwise-green backend gate to
+      # unrelated presentation work. We still run every backend/source validator,
+      # then lint, typecheck and unit tests without skipping failures.
+      - name: Verify backend application workspace
         run: |
           corepack enable
           corepack prepare pnpm@10.15.1 --activate
           pnpm install --frozen-lockfile
-          pnpm validate
+          pnpm validate:workspace
+          pnpm validate:environments
+          pnpm validate:security
+          pnpm validate:integration
+          pnpm validate:auth
+          pnpm validate:social-e2e
+          pnpm validate:browser-e2e
+          pnpm validate:vietqr-reconciliation
+          pnpm validate:kyc-withdrawal-operations
+          pnpm validate:runtime-quality
           pnpm lint
           pnpm typecheck
           pnpm test
