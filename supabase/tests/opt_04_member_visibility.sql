@@ -17,26 +17,10 @@ insert into auth.users(
   created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,
   email_change_token_current,phone_change,phone_change_token,reauthentication_token
 ) values
-(
-  '00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000001',
-  'authenticated','authenticated','opt04-pending-viewer@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000002',
-  'authenticated','authenticated','opt04-approved@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000003',
-  'authenticated','authenticated','opt04-pending-target@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000004',
-  'authenticated','authenticated','opt04-premium@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-);
+('00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000001','authenticated','authenticated','opt04-pending-viewer@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000002','authenticated','authenticated','opt04-approved@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000003','authenticated','authenticated','opt04-pending-target@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','34000000-0000-0000-0000-000000000004','authenticated','authenticated','opt04-premium@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
 
 update auth.users
 set last_sign_in_at=case id
@@ -99,6 +83,36 @@ where id in (
   '34000000-0000-0000-0000-000000000004'
 );
 
+-- Search/Connect eligibility requires an approved avatar. The approved Free and
+-- active Premium fixtures receive approved avatars; pending fixtures intentionally do not.
+insert into public.media_assets(
+  id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
+) values
+(
+  '34000000-0000-4000-8000-000000000002',
+  '34000000-0000-0000-0000-000000000002',
+  'profile-media','34000000-0000-0000-0000-000000000002/34000000-0000-4000-8000-000000000002/avatar.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','approved',now(),now(),'34000000-0000-0000-0000-000000000001'
+),
+(
+  '34000000-0000-4000-8000-000000000004',
+  '34000000-0000-0000-0000-000000000004',
+  'profile-media','34000000-0000-0000-0000-000000000004/34000000-0000-4000-8000-000000000004/avatar.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','approved',now(),now(),'34000000-0000-0000-0000-000000000001'
+);
+
+update public.profiles
+set avatar_media_id=case id
+  when '34000000-0000-0000-0000-000000000002' then '34000000-0000-4000-8000-000000000002'::uuid
+  when '34000000-0000-0000-0000-000000000004' then '34000000-0000-4000-8000-000000000004'::uuid
+  else avatar_media_id
+end
+where id in (
+  '34000000-0000-0000-0000-000000000002',
+  '34000000-0000-0000-0000-000000000004'
+);
+
 insert into private.member_profile_verifications(user_id,listing_status,listing_submitted_at,listing_reviewed_at,listing_reason_code)
 values
   ('34000000-0000-0000-0000-000000000001','pending',now(),null,null),
@@ -141,7 +155,7 @@ select is(
 select is(
   (select count(*) from public.search_luxy_profiles_v2() where id='34000000-0000-0000-0000-000000000002'),
   1::bigint,
-  'Free pending member can still use Connect/Search V2 to see an approved member'
+  'Free pending member can use Search V2 to see an approved member with approved avatar'
 );
 
 select is(
@@ -153,7 +167,7 @@ select is(
 select is(
   (select count(*) from public.search_luxy_profiles_v2() where id='34000000-0000-0000-0000-000000000004'),
   1::bigint,
-  'Search V2 exposes active Premium member through paid override even while listing status is pending'
+  'Search V2 exposes active Premium member with approved avatar through paid override'
 );
 
 select is(
