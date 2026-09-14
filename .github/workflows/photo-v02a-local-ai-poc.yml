@@ -1,0 +1,80 @@
+name: PHOTO-V02A Local AI POC
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['poc/photo-v02a-local-ai']
+    paths:
+      - 'scripts/photo-v02a/**'
+      - 'docs/photo-v02a-local-ai-poc.md'
+      - '.github/workflows/photo-v02a-local-ai-poc.yml'
+  pull_request:
+    paths:
+      - 'scripts/photo-v02a/**'
+      - 'docs/photo-v02a-local-ai-poc.md'
+      - '.github/workflows/photo-v02a-local-ai-poc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-poc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned OpenCV runtime
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir \
+            opencv-python-headless==4.14.0.94 \
+            numpy==2.3.2
+          python - <<'PY'
+          import cv2
+          assert hasattr(cv2, 'FaceDetectorYN_create')
+          assert hasattr(cv2, 'FaceRecognizerSF_create')
+          print('OpenCV', cv2.__version__)
+          PY
+
+      - name: Download pinned YuNet and SFace assets
+        run: bash scripts/photo-v02a/download-assets.sh .photo-v02a
+
+      - name: Run 1 selfie x 5 profile CPU benchmark
+        run: |
+          python scripts/photo-v02a/local_face_poc.py \
+            --yunet .photo-v02a/models/yunet_int8bq.onnx \
+            --sface .photo-v02a/models/sface_int8.onnx \
+            --selfie .photo-v02a/samples/lena.jpg \
+            --iterations 7 \
+            --output artifacts/photo-v02a-benchmark.json
+
+      - name: Print benchmark summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('artifacts/photo-v02a-benchmark.json').read_text())
+          print('engine=', r['engine'])
+          print('opencv=', r['opencv_version'])
+          print('model_load_ms=', r['model_load_ms'])
+          print('warm_median_ms=', r['warm_summary']['median_ms'])
+          print('warm_p95_ms=', r['warm_summary']['p95_ms'])
+          print('peak_rss_mb=', r['peak_rss_mb'])
+          print('edge_screening_candidate=', r['edge_screening_candidate'])
+          print('cold_scores=', r['cold_verification']['scores'])
+          print('cold_top3_median=', r['cold_verification']['top3_median'])
+          PY
+
+      - name: Upload benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: photo-v02a-local-ai-benchmark
+          path: artifacts/photo-v02a-benchmark.json
+          if-no-files-found: error
+          retention-days: 14
