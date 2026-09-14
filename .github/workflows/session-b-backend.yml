@@ -10,6 +10,7 @@ on:
       - 'supabase/migrations/20260906161000_opt_backend_contract_assertions.sql'
       - 'supabase/migrations/20260914145238_opt_10_realtime_rls_helper_acl.sql'
       - 'supabase/migrations/20260914145246_session_d_photo_verification_queue_order.sql'
+      - 'supabase/functions/member-photo-verification/index.ts'
       - 'supabase/tests/session_b_*.sql'
       - '.github/workflows/session-b-backend.yml'
 
@@ -42,6 +43,24 @@ jobs:
           test -f supabase/migrations/20260906161000_opt_backend_contract_assertions.sql
           test -f supabase/migrations/20260914145238_opt_10_realtime_rls_helper_acl.sql
           test -f supabase/migrations/20260914145246_session_d_photo_verification_queue_order.sql
+          test -f supabase/functions/member-photo-verification/index.ts
+
+      - name: Verify existing selfie CompareFaces contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='supabase/functions/member-photo-verification/index.ts'
+          grep -F 'CompareFacesCommand' "$FILE"
+          grep -F 'const FACE_SIMILARITY_THRESHOLD = 60;' "$FILE"
+          grep -F "action !== 'submit'" "$FILE"
+          grep -F "body.mimeType !== 'image/jpeg'" "$FILE"
+          grep -F "provider: providerState.client ? 'aws_rekognition_compare_faces' : 'unconfigured'" "$FILE"
+          grep -F "pendingReason = 'face_similarity_not_above_threshold'" "$FILE"
+          grep -F 'maxSimilarity > FACE_SIMILARITY_THRESHOLD' "$FILE"
+          if grep -Eqi 'FaceLiveness|CreateFaceLivenessSession|GetFaceLivenessSessionResults' "$FILE"; then
+            echo 'Face Liveness must remain outside the current production verification contract.' >&2
+            exit 1
+          fi
 
       - name: Start local Supabase
         run: supabase start
