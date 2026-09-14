@@ -23,31 +23,11 @@ insert into auth.users(
   created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,
   email_change_token_current,phone_change,phone_change_token,reauthentication_token
 ) values
-(
-  '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000001',
-  'authenticated','authenticated','opt01-caller@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000002',
-  'authenticated','authenticated','opt01-free@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000003',
-  'authenticated','authenticated','opt01-paid@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000004',
-  'authenticated','authenticated','opt01-moderator@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000005',
-  'authenticated','authenticated','opt01-signup-free@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-);
+('00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000001','authenticated','authenticated','opt01-caller@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000002','authenticated','authenticated','opt01-free@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000003','authenticated','authenticated','opt01-paid@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000004','authenticated','authenticated','opt01-moderator@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','31000000-0000-0000-0000-000000000005','authenticated','authenticated','opt01-signup-free@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','','');
 
 update private.user_identity
 set date_of_birth=date '1992-01-01',
@@ -106,14 +86,41 @@ where id in (
   '31000000-0000-0000-0000-000000000005'
 );
 
+-- Connect/Search now requires a real approved avatar in addition to listing eligibility.
+-- Give the established Free and Premium fixtures approved avatars while leaving the
+-- newly completed signup fixture pending so OPT-01 still proves the review boundary.
 insert into public.media_assets(
   id,owner_id,storage_bucket,storage_path,mime_type,file_size_bytes,width,height,
-  visibility,moderation_status,uploaded_at
-) values(
+  visibility,moderation_status,uploaded_at,approved_at,approved_by
+) values
+(
+  '31000000-0000-4000-8000-000000000002',
+  '31000000-0000-0000-0000-000000000002',
+  'profile-media','31000000-0000-0000-0000-000000000002/31000000-0000-4000-8000-000000000002/avatar.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','approved',now(),now(),'31000000-0000-0000-0000-000000000004'
+),
+(
+  '31000000-0000-4000-8000-000000000003',
+  '31000000-0000-0000-0000-000000000003',
+  'profile-media','31000000-0000-0000-0000-000000000003/31000000-0000-4000-8000-000000000003/avatar.jpg',
+  'image/jpeg',2048,1200,1600,'avatar','approved',now(),now(),'31000000-0000-0000-0000-000000000004'
+),
+(
   '31000000-0000-4000-8000-000000000005',
   '31000000-0000-0000-0000-000000000005',
   'pending-media','31000000-0000-0000-0000-000000000005/31000000-0000-4000-8000-000000000005/original.jpg',
-  'image/jpeg',2048,1200,1600,'avatar','pending_review',now()
+  'image/jpeg',2048,1200,1600,'avatar','pending_review',now(),null,null
+);
+
+update public.profiles
+set avatar_media_id=case id
+  when '31000000-0000-0000-0000-000000000002' then '31000000-0000-4000-8000-000000000002'::uuid
+  when '31000000-0000-0000-0000-000000000003' then '31000000-0000-4000-8000-000000000003'::uuid
+  else avatar_media_id
+end
+where id in (
+  '31000000-0000-0000-0000-000000000002',
+  '31000000-0000-0000-0000-000000000003'
 );
 
 insert into private.member_profile_verifications(user_id,listing_status,listing_submitted_at)
@@ -122,11 +129,15 @@ values
   ('31000000-0000-0000-0000-000000000002','pending',now()),
   ('31000000-0000-0000-0000-000000000003','pending',now()),
   ('31000000-0000-0000-0000-000000000004','approved',now())
-on conflict(user_id) do update set listing_status=excluded.listing_status,listing_submitted_at=excluded.listing_submitted_at,updated_at=now();
+on conflict(user_id) do update
+set listing_status=excluded.listing_status,
+    listing_submitted_at=excluded.listing_submitted_at,
+    updated_at=now();
 
 insert into private.luxy_memberships(user_id,tier,status,messaging_enabled,starts_at,expires_at,source)
 values('31000000-0000-0000-0000-000000000003','premium','active',true,now()-interval '1 day',now()+interval '30 days','manual')
-on conflict(user_id) do update set tier='premium',status='active',starts_at=excluded.starts_at,expires_at=excluded.expires_at,updated_at=now();
+on conflict(user_id) do update
+set tier='premium',status='active',starts_at=excluded.starts_at,expires_at=excluded.expires_at,updated_at=now();
 
 insert into private.user_roles(user_id,role)
 values('31000000-0000-0000-0000-000000000004','moderator')
@@ -159,7 +170,7 @@ select ok(
 
 select ok(
   not private.luxy_listing_hidden('31000000-0000-0000-0000-000000000003'),
-  'active Premium member bypasses manual listing approval'
+  'active Premium member bypasses manual listing approval only with an approved avatar'
 );
 
 update public.profiles set discovery_enabled=false where id='31000000-0000-0000-0000-000000000002';
@@ -195,7 +206,7 @@ select is(
 select is(
   (select count(*) from public.search_luxy_profiles_v2() where id='31000000-0000-0000-0000-000000000003'),
   1::bigint,
-  'Search V2 includes active Premium member even while listing review is pending'
+  'Search V2 includes active Premium member with approved avatar even while listing review is pending'
 );
 
 reset role;
@@ -223,7 +234,7 @@ select set_config('request.jwt.claim.sub','31000000-0000-0000-0000-000000000001'
 select is(
   (select count(*) from public.search_luxy_profiles_v2() where id='31000000-0000-0000-0000-000000000002'),
   1::bigint,
-  'approved Free member appears in Search V2'
+  'approved Free member with approved avatar appears in Search V2'
 );
 
 reset role;
