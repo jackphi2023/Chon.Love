@@ -279,7 +279,7 @@ export default function ChonMemberProfileScreen() {
             <ChonMemberPhoto
               desktop={desktop}
               mediaId={profile.avatar_media_id}
-              badgeInset={10}
+              badgeInset={20}
               membershipBadgePlacement="top-left"
               membershipBadgeContext="profile"
               membershipTier={profile.membership_badge_visible ? profile.membership_tier : null}
