@@ -6,12 +6,12 @@ const premiumMember = { username: 'br06_viewer', displayName: 'BR06 Viewer', tie
 
 const BADGE_EXPECTATIONS = {
   mobile: {
-    premium: { displayHeight: 20, naturalWidth: 33, naturalHeight: 46 },
-    diamond: { displayHeight: 20, naturalWidth: 38, naturalHeight: 50 },
+    premium: { displayHeight: 32, naturalWidth: 33, naturalHeight: 46 },
+    diamond: { displayHeight: 32, naturalWidth: 38, naturalHeight: 50 },
   },
   desktop: {
-    premium: { displayHeight: 20, naturalWidth: 33, naturalHeight: 46 },
-    diamond: { displayHeight: 20, naturalWidth: 38, naturalHeight: 50 },
+    premium: { displayHeight: 32, naturalWidth: 33, naturalHeight: 46 },
+    diamond: { displayHeight: 32, naturalWidth: 38, naturalHeight: 50 },
   },
 };
 
@@ -59,8 +59,10 @@ async function expectMembershipArtwork(page, tier, viewport) {
   expect(hero, 'profile hero should render').not.toBeNull();
   expect(box.x).toBeGreaterThanOrEqual(hero.x);
   expect(box.y).toBeGreaterThanOrEqual(hero.y);
-  expect(box.x - hero.x).toBeLessThanOrEqual(14);
-  expect(box.y - hero.y).toBeLessThanOrEqual(14);
+  expect(box.x - hero.x).toBeGreaterThanOrEqual(19);
+  expect(box.x - hero.x).toBeLessThanOrEqual(21);
+  expect(box.y - hero.y).toBeGreaterThanOrEqual(19);
+  expect(box.y - hero.y).toBeLessThanOrEqual(21);
   expect(box.x + box.width).toBeLessThanOrEqual(hero.x + hero.width + 0.5);
   expect(box.y + box.height).toBeLessThanOrEqual(hero.y + hero.height + 0.5);
 }
@@ -178,7 +180,7 @@ test('UI-PRO01 public shared profile uses canonical logo, horizontal gallery and
   }
 });
 
-test('UI-PRO01 badge source and rendered size follow the Chon.Love 20px aspect-safe Premium/Diamond profile contract', async ({ browser }) => {
+test('UI-PRO01 badge source and rendered size follow the Chon.Love 32px aspect-safe Premium/Diamond profile contract', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {

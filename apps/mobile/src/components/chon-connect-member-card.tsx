@@ -34,6 +34,7 @@ export function ChonConnectMemberCard({
           desktop={desktop}
           fallbackFontSize={desktop ? 52 : 42}
           mediaId={profile.avatar_media_id}
+          badgeInset={15}
           membershipBadgeContext="connect"
           membershipBadgePlacement="top-left"
           membershipTier={profile.membership_badge_tier}
