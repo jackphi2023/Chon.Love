@@ -5,6 +5,9 @@ on:
     branches: [main, develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
     paths:
       - 'apps/mobile/**'
+      - 'apps/admin/**'
+      - 'tests/admin-ui/**'
+      - 'playwright.admin-ui.config.mjs'
       - 'packages/config/**'
       - 'packages/domain/**'
       - 'packages/supabase/**'
@@ -27,6 +30,9 @@ on:
   pull_request:
     paths:
       - 'apps/mobile/**'
+      - 'apps/admin/**'
+      - 'tests/admin-ui/**'
+      - 'playwright.admin-ui.config.mjs'
       - 'packages/config/**'
       - 'packages/domain/**'
       - 'packages/supabase/**'
@@ -260,3 +266,29 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
+
+  admin-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Admin presentation regression with synthetic API fixtures
+        run: pnpm exec playwright test --config playwright.admin-ui.config.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-ui-evidence
+          path: |
+            playwright-report/admin-ui
+            test-results
+          retention-days: 7

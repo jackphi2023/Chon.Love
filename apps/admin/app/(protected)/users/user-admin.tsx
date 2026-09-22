@@ -14,6 +14,7 @@ type UserItem = {
   profile_status: string;
   discovery_enabled: boolean;
   last_active_at: string | null;
+  signup_at: string | null;
   membership_tier: 'free' | 'premium' | 'diamond';
   membership_expires_at: string | null;
   identity_status: string;
@@ -214,7 +215,7 @@ export function UserAdmin() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 22 }}>
+    <div style={{ display: 'grid', gap: 22, minWidth: 0, gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <section style={{ border: '1px solid #fecaca', borderRadius: 12, display: 'grid', gap: 12, padding: 14 }}>
         <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' }}>
           <div>
@@ -261,10 +262,11 @@ export function UserAdmin() {
       {error ? <p role="alert" style={{ color: '#b91c1c' }}>{error}</p> : null}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: 1050, width: '100%' }}>
-          <thead><tr>{['Thành viên','Trạng thái','Gói','Xác thực','Hoạt động','Safety','Thao tác'].map((label) => <th key={label} style={{ borderBottom: '1px solid #ddd', padding: 10, textAlign: 'left' }}>{label}</th>)}</tr></thead>
+          <thead><tr>{['Thành viên','Tạo tài khoản','Trạng thái','Gói','Xác thực','Hoạt động','Safety','Thao tác'].map((label) => <th key={label} style={{ borderBottom: '1px solid #ddd', padding: 10, textAlign: 'left' }}>{label}</th>)}</tr></thead>
           <tbody>{items.map((item) => (
             <tr key={item.user_id}>
               <td style={{ padding: 10 }}><strong>{item.display_name || item.username || '—'}</strong><div>{item.email}</div><small>{item.age ? `${item.age} tuổi · ` : ''}{item.gender}</small></td>
+              <td style={{ padding: 10 }}><time dateTime={item.signup_at ?? undefined}>{dateTime(item.signup_at)}</time></td>
               <td style={{ padding: 10 }}>{item.profile_status}<br /><small>{item.discovery_enabled ? 'Discovery ON' : 'Discovery OFF'}</small></td>
               <td style={{ padding: 10 }}>{item.membership_tier}{item.membership_expires_at ? <><br /><small>đến {new Date(item.membership_expires_at).toLocaleDateString('vi-VN')}</small></> : null}</td>
               <td style={{ padding: 10 }}>CCCD: {item.identity_status}<br />LinkedIn: {item.linkedin_status}</td>

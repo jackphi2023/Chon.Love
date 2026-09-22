@@ -45,18 +45,19 @@ async function expectCompactTopRightPhotoCount(card, photo, membershipBadge) {
   expect(badgeBox.y + badgeBox.height).toBeLessThanOrEqual(photoBox.y + photoBox.height);
 }
 
-async function expectConnectTopLeftMembershipBadge(photo, badge) {
+async function expectConnectTopLeftMembershipBadge(photo, badge, expectedHeight) {
   const photoBox = await photo.boundingBox();
   const badgeBox = await badge.boundingBox();
   expect(photoBox).not.toBeNull();
   expect(badgeBox).not.toBeNull();
-  expect(Math.abs(badgeBox.height - 15)).toBeLessThanOrEqual(1);
+  expect(Math.abs(badgeBox.height - expectedHeight)).toBeLessThanOrEqual(1);
   expect(badgeBox.width).toBeLessThan(badgeBox.height);
   const leftInset = badgeBox.x - photoBox.x;
-  expect(leftInset).toBeGreaterThanOrEqual(0);
-  expect(leftInset).toBeLessThanOrEqual(14);
-  expect(badgeBox.y - photoBox.y).toBeGreaterThanOrEqual(0);
-  expect(badgeBox.y - photoBox.y).toBeLessThanOrEqual(14);
+  expect(leftInset).toBeGreaterThanOrEqual(14);
+  expect(leftInset).toBeLessThanOrEqual(16);
+  const topInset = badgeBox.y - photoBox.y;
+  expect(topInset).toBeGreaterThanOrEqual(14);
+  expect(topInset).toBeLessThanOrEqual(16);
 }
 
 async function expectResultsButton(button) {
@@ -75,7 +76,7 @@ async function normalizeCreatorNotFavorited(card) {
   }
 }
 
-test('UI-C01/C02 keeps shared Connect cards compact with 15px top-left membership badges and top-right photo counts', async ({ browser }, testInfo) => {
+test('UI-C01/C02 keeps shared Connect cards compact with 26px membership badges at 15px inset and top-right photo counts', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -89,7 +90,7 @@ test('UI-C01/C02 keeps shared Connect cards compact with 15px top-left membershi
     await expect(mobilePhoto).toBeVisible();
     const mobileBadge = mobileCreator.getByTestId('chon-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
-    await expectConnectTopLeftMembershipBadge(mobilePhoto, mobileBadge);
+    await expectConnectTopLeftMembershipBadge(mobilePhoto, mobileBadge, 26);
     const mobileBadgeImage = mobileBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(mobileBadgeImage).toBeVisible();
     const mobileBadgeSource = await getRenderedImageSource(mobileBadgeImage);
@@ -127,12 +128,12 @@ test('UI-C01/C02 keeps shared Connect cards compact with 15px top-left membershi
     const desktopPhoto = desktopCreator.getByTestId('chon-connect-member-photo');
     await expect(desktopPhoto).toBeVisible();
     const desktopBadge = desktopCreator.getByTestId('chon-membership-badge-diamond');
-    await expectConnectTopLeftMembershipBadge(desktopPhoto, desktopBadge);
+    await expectConnectTopLeftMembershipBadge(desktopPhoto, desktopBadge, 26);
     const desktopBadgeImage = desktopBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(desktopBadgeImage).toBeVisible();
     const desktopBadgeSource = await getRenderedImageSource(desktopBadgeImage);
     expect(desktopBadgeSource).toBeTruthy();
-    expect(desktopBadgeSource).toBe(mobileBadgeSource);
+    expect(desktopBadgeSource).not.toBe(mobileBadgeSource);
 
     await expectCompactTopRightPhotoCount(desktopCreator, desktopPhoto, desktopBadge);
     const desktopOverlayBox = await desktopCreator.getByTestId('chon-connect-card-info-overlay').boundingBox();

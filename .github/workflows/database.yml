@@ -226,6 +226,12 @@ jobs:
       - name: Run OPT-03 Admin review contract
         run: supabase test db supabase/tests/opt_03_admin_review.sql --local
 
+      - name: Run Session C Admin signup ordering contract
+        run: supabase test db supabase/tests/session_c_admin_signup_order.sql --local
+
+      - name: Run OPT-09 gift realtime publication contract
+        run: supabase test db supabase/tests/opt_09_gift_realtime_publication.sql --local
+
       - name: Run OPT-04 member visibility contract
         run: supabase test db supabase/tests/opt_04_member_visibility.sql --local
 

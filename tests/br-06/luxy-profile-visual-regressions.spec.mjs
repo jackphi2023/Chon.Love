@@ -46,17 +46,17 @@ async function expectProfileMembershipBadge(page) {
   const heroBox = await page.getByTestId('chon-member-profile-hero-photo').boundingBox();
   expect(badgeBox).not.toBeNull();
   expect(heroBox).not.toBeNull();
-  expect(Math.abs(badgeBox.height - 20)).toBeLessThanOrEqual(1);
+  expect(Math.abs(badgeBox.height - 110)).toBeLessThanOrEqual(1);
   expect(badgeBox.width).toBeLessThan(badgeBox.height);
-  expect(badgeBox.x - heroBox.x).toBeGreaterThanOrEqual(0);
-  expect(badgeBox.x - heroBox.x).toBeLessThanOrEqual(14);
-  expect(badgeBox.y - heroBox.y).toBeGreaterThanOrEqual(0);
-  expect(badgeBox.y - heroBox.y).toBeLessThanOrEqual(14);
+  expect(badgeBox.x - heroBox.x).toBeGreaterThanOrEqual(19);
+  expect(badgeBox.x - heroBox.x).toBeLessThanOrEqual(21);
+  expect(badgeBox.y - heroBox.y).toBeGreaterThanOrEqual(19);
+  expect(badgeBox.y - heroBox.y).toBeLessThanOrEqual(21);
 }
 
 const recentActivityPattern = /Đang online|Đăng nhập|Chưa có lịch sử đăng nhập/;
 
-test('UI-PRO01 desktop keeps the semantic 20px top-left membership badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
+test('UI-PRO01 desktop keeps the large 110px certificate top-left membership badge, readable facts and stable profile composition', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   try {
@@ -80,7 +80,7 @@ test('UI-PRO01 desktop keeps the semantic 20px top-left membership badge, readab
   }
 });
 
-test('UI-PRO01 mobile keeps the semantic 20px top-left membership badge, horizontal album and no overflow at 390px', async ({ browser }, testInfo) => {
+test('UI-PRO01 mobile keeps the large 110px certificate top-left membership badge, horizontal album and no overflow at 390px', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   try {
