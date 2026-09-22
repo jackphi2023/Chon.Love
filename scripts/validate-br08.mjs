@@ -7,7 +7,9 @@ const releaseManifest = readJson('config/releases/chon-web-v1.json');
 const migration = readText('supabase/migrations/20260731205924_br_08_kyc_withdrawal_operational_flow.sql');
 const opt12Migration = readText('supabase/migrations/20260828081500_opt_12_user_withdrawal_enable.sql');
 const opt13Migration = readText('supabase/migrations/20260828093000_opt_13_admin_withdrawal_operations.sql');
+const failClosedMigration = readText('supabase/migrations/20260906153000_opt_backend_financial_fail_closed.sql');
 const databaseTest = readText('supabase/tests/br_08_kyc_withdrawal_operational_flow.sql');
+const withdrawalConcurrencyTest = readText('supabase/tests/10_withdrawal_concurrency.sh');
 const edgeFunction = readText('supabase/functions/payout-admin/index.ts');
 const sharedClient = readText('packages/supabase/src/kyc-withdrawal-operations.ts');
 const sharedTest = readText('packages/supabase/src/kyc-withdrawal-operations.test.ts');
@@ -28,6 +30,7 @@ expect(packageJson.scripts?.['validate:kyc-withdrawal-operations'] === 'node scr
 expect(packageJson.scripts?.validate?.includes('validate:vietqr-reconciliation') && packageJson.scripts?.validate?.includes('validate:kyc-withdrawal-operations'), 'Aggregate validation must preserve BR-07 and include BR-08.');
 expect(applicationCi.includes('pnpm validate:kyc-withdrawal-operations'), 'Application CI must run the BR-08/OPT-12/OPT-13 source guard.');
 expect(databaseCi.includes('br_08_kyc_withdrawal_operational_flow.sql') && databaseCi.includes('Run BR-08 KYC and withdrawal operational flow'), 'Database CI must inventory and execute BR-08.');
+expect(databaseCi.includes('10_withdrawal_concurrency.sh'), 'Database CI must retain the withdrawal concurrency gate.');
 
 for (const object of [
   'private.payout_operation_events',
@@ -60,7 +63,7 @@ expect(migration.includes('revoke execute on function public.request_withdrawal'
 expect(migration.includes('revoke execute on function public.admin_decide_withdrawal') && migration.includes('service_role'), 'Legacy single-control withdrawal decision must be revoked.');
 expect(!migration.includes('grant usage on schema private') && !migration.includes('grant select on private.') && !migration.includes('grant all'), 'BR-08 must not expose private schema or tables.');
 
-expect(opt12Migration.includes("'withdrawal_requests_enabled'"), 'OPT-12 must explicitly own the withdrawal request release flag.');
+expect(opt12Migration.includes("'withdrawal_requests_enabled'"), 'OPT-12 must explicitly own the guarded withdrawal request flag.');
 expect(opt12Migration.includes("private.require_boolean_config('withdrawal_requests_enabled')"), 'OPT-12 request RPC must retain a fail-closed emergency switch.');
 expect(opt12Migration.includes('grant execute on function public.request_withdrawal(uuid,bigint,uuid) to authenticated,service_role'), 'OPT-12 must intentionally grant only the guarded request RPC to authenticated users and service role.');
 expect(opt12Migration.includes('approved_kyc_required') && opt12Migration.includes('verified_bank_account_required') && opt12Migration.includes('withdrawal_blocked_by_hold'), 'OPT-12 must preserve KYC, verified-bank and financial-hold gates.');
@@ -75,19 +78,40 @@ for (const flag of [
   'withdrawal_processing_enabled',
   'withdrawal_payout_enabled',
 ]) {
-  expect(opt13Migration.includes(`('${flag}','true'::jsonb`), `OPT-13 must intentionally release ${flag}.`);
+  expect(opt13Migration.includes(`('${flag}','true'::jsonb`), `Historical OPT-13 must contain the guarded finance release transition for ${flag}.`);
 }
 expect(opt13Migration.includes('revoke execute on function public.admin_operate_withdrawal') && opt13Migration.includes('from public,anon,authenticated'), 'OPT-13 must reassert that app roles cannot execute payout operations.');
 expect(opt13Migration.includes('grant execute on function public.admin_operate_withdrawal') && opt13Migration.includes('to service_role'), 'OPT-13 must keep payout mutation behind the service-role Edge boundary.');
 expect(!opt13Migration.includes('grant usage on schema private') && !opt13Migration.includes('grant select on private.'), 'OPT-13 must not expose private schema data to clients.');
 
+// SESSION B supersedes the historical release transitions above: production must finish fail-closed.
+for (const flag of [
+  'withdrawal_requests_enabled',
+  'kyc_operational_review_enabled',
+  'bank_account_operational_review_enabled',
+  'withdrawal_operational_review_enabled',
+  'withdrawal_processing_enabled',
+  'withdrawal_payout_enabled',
+  'vietqr_reconciliation_enabled',
+]) {
+  expect(failClosedMigration.includes(`('${flag}','false'::jsonb`), `SESSION B safety migration must force ${flag}=false.`);
+  expect(failClosedMigration.includes(`'${flag}'`), `SESSION B safety assertion must include ${flag}.`);
+}
+expect(failClosedMigration.includes("set value_json='false'::jsonb"), 'SESSION B finance migration must overwrite previously enabled historical flags back to false.');
+expect(failClosedMigration.includes('financial safety switch must remain disabled'), 'SESSION B finance migration must assert every protected switch remains disabled.');
+
 expect(databaseTest.includes('select plan(47);'), 'BR-08 pgTAP contract must declare 47 assertions.');
 for (const assertion of [
-  'OPT-13 enables payout KYC review',
-  'OPT-13 enables bank review',
-  'OPT-13 enables withdrawal review',
-  'authenticated users can request withdrawals after OPT-12 release',
+  'KYC operational review remains fail-closed before controlled finance release',
+  'bank operational review remains fail-closed before controlled finance release',
+  'user withdrawal requests remain fail-closed before controlled finance release',
+  'withdrawal review remains fail-closed before controlled finance release',
+  'withdrawal processing remains fail-closed before controlled finance release',
+  'withdrawal payout remains fail-closed before controlled finance release',
+  'authenticated users can reach the guarded withdrawal request RPC',
   'legacy single-control withdrawal decision is revoked',
+  'KYC review fails closed when its emergency switch is disabled',
+  'withdrawal review fails closed when its emergency switch is disabled',
   'a different finance operator cannot view assigned KYC PII',
   'the approving operator cannot start payout processing',
   'payout recording fails closed when its emergency switch is disabled',
@@ -97,6 +121,10 @@ for (const assertion of [
   'payout operation events cannot be deleted',
   'rollback;',
 ]) expect(databaseTest.includes(assertion), `Database contract must cover: ${assertion}.`);
+expect(databaseTest.includes("update private.app_config set value_json='true'::jsonb") && databaseTest.includes("kyc_operational_review_enabled") && databaseTest.includes("bank_account_operational_review_enabled") && databaseTest.includes("withdrawal_operational_review_enabled"), 'BR-08 test must open review switches only inside its rolled-back local transaction to exercise the operational flow.');
+expect(databaseTest.includes("where key='withdrawal_processing_enabled'") && databaseTest.includes("where key='withdrawal_payout_enabled'"), 'BR-08 test must explicitly exercise processing and payout emergency switches.');
+expect(withdrawalConcurrencyTest.includes('withdrawal') && withdrawalConcurrencyTest.includes('PASS'), 'Withdrawal concurrency test must remain present and fail-closed aware.');
+
 for (const forbidden of ['myfan1@gmail.com', 'myfan16@gmail.com', 'MYFAN_E2E_BETA_PASSWORD']) {
   expect(!databaseTest.includes(forbidden) && !edgeFunction.includes(forbidden), `BR-08/OPT-13 must not contain ${forbidden}.`);
 }
@@ -129,9 +157,9 @@ expect(legacyOperationsPage.includes('KycWithdrawalOperationsClient'), 'Legacy B
 expect(!legacyOperationsPage.includes('Luxy.Love Admin'), 'Legacy BR-08 route must not expose stale Luxy.Love branding.');
 expect(adminNavigation.includes("['KYC & rút tiền', '/withdrawals']"), 'Protected Admin navigation must link to canonical /withdrawals operations.');
 expect(!adminNavigation.includes("['Withdrawals', '/withdrawals']") && !adminNavigation.includes("['KYC & rút tiền', '/kyc-withdrawal-operations']"), 'Protected Admin navigation must not expose duplicate withdrawal routes.');
-expect(releaseManifest.financialFeaturesEnabled === false, 'Release manifest remains the production deployment boundary; OPT-12/13 source work does not authorize deployment.');
-expect(releaseManifest.mergeAllowed === false, 'OPT-12/13 must not authorize merge.');
-expect(releaseManifest.productionDeployAllowed === false, 'OPT-12/13 must not authorize production deployment.');
+expect(releaseManifest.financialFeaturesEnabled === false, 'Release manifest remains the production deployment boundary; finance execution stays disabled in SESSION B.');
+expect(releaseManifest.mergeAllowed === false, 'SESSION B must not authorize merge.');
+expect(releaseManifest.productionDeployAllowed === false, 'SESSION B must not authorize production deployment.');
 
 for (const path of ['docs/br-08/README.md','docs/br-08/TEST-MATRIX.md','docs/br-08/ACCEPTANCE.md','docs/br-08/STATUS.md','docs/br-08/IMPLEMENTATION-HEAD.md']) {
   try { readText(path); } catch { errors.push(`Missing BR-08 document: ${path}`); }
@@ -142,4 +170,4 @@ if (errors.length) {
   process.exit(1);
 }
 console.warn('BR-08 + OPT-12 + OPT-13 KYC and withdrawal source validation passed.');
-console.warn('Coverage: historical BR-08 fail-closed baseline, guarded OPT-12 user requests, and OPT-13 finance-only maker-checker operations with payment evidence and immutable audit controls.');
+console.warn('Coverage: historical guarded RPCs, SESSION B production fail-closed safety, rolled-back finance operations testing, maker-checker payout, evidence, immutable audit, and concurrency controls.');

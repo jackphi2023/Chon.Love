@@ -50,6 +50,26 @@ const imageSlots: Array<{ field: ImageField; label: string; hint: string }> = [
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 const maxUploadBytes = 8 * 1024 * 1024;
 
+async function validateHeroImage(file: File, field: UploadField): Promise<void> {
+  if (field !== 'hero_slider_desktop' && field !== 'hero_slider_mobile') return;
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode().catch(() => { throw new Error('hero_image_decode_failed'); });
+    const desktop = field === 'hero_slider_desktop';
+    const minWidth = desktop ? 1600 : 1080;
+    const minHeight = desktop ? 900 : 1920;
+    const targetRatio = desktop ? 16 / 9 : 9 / 16;
+    const ratio = image.naturalWidth / image.naturalHeight;
+    if (image.naturalWidth < minWidth || image.naturalHeight < minHeight || Math.abs(ratio / targetRatio - 1) > 0.05) {
+      throw new Error(desktop ? 'hero_desktop_dimensions' : 'hero_mobile_dimensions');
+    }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function editableFromSaved(saved: HomepageSettings): EditableSettings {
   return {
     hero_desktop_youtube_url: saved.hero_desktop_youtube_url,
@@ -170,6 +190,7 @@ export function HomepageAdmin() {
     setNotice(null);
     let uploadedPath: string | null = null;
     try {
+      await validateHeroImage(file, field);
       const { data: signedData, error: signedError } = await client.functions.invoke('homepage-media-admin', {
         body: { action: 'create_upload', field, contentType: file.type },
       });
@@ -269,9 +290,9 @@ export function HomepageAdmin() {
           <button disabled={busy || uploading !== null || settings.hero_slider_images.length >= HOMEPAGE_HERO_MAX_SLIDES} onClick={addHeroSlide} type="button">+ Thêm slide</button>
         </div>
         <div style={recommendationStyle}>
-          <strong>Kích thước khuyến nghị</strong>
+          <strong>Kích thước ảnh Hero</strong>
           <span>Desktop ngang: 1920 × 1080 px (16:9), tối thiểu 1600 × 900 px.</span>
-          <span>Mobile dọc: 1080 × 1920 px (9:16).</span>
+          <span>Mobile dọc: tối thiểu 1080 × 1920 px (9:16).</span>
           <span>Ưu tiên WebP / AVIF / JPG đã nén, nên khoảng 500 KB–1.5 MB; giới hạn kỹ thuật 8 MB/ảnh. Hero dùng chế độ cover/full như video nên hãy đặt chủ thể và chữ quan trọng ở vùng giữa để tránh bị crop ở các màn hình khác nhau.</span>
         </div>
         {settings.hero_slider_images.length === 0 ? (
@@ -413,6 +434,7 @@ function HeroImageEditor({
         disabled={busy}
         onChange={(event) => onFile(event.target.files?.[0])}
         type="file"
+        aria-label={`Upload ${label}`}
       />
       <label style={fieldStyle}>
         <span>URL ảnh</span>
@@ -428,6 +450,9 @@ function HeroImageEditor({
 
 function uploadErrorMessage(error: unknown): string {
   const detail = readableError(error);
+  if (detail.includes('hero_image_decode_failed')) return 'Không thể đọc ảnh Hero. Vui lòng chọn ảnh hợp lệ.';
+  if (detail.includes('hero_desktop_dimensions')) return 'Ảnh Desktop cần tối thiểu 1600 × 900 px, tỷ lệ 16:9 (sai lệch tối đa 5%).';
+  if (detail.includes('hero_mobile_dimensions')) return 'Ảnh Mobile cần tối thiểu 1080 × 1920 px, tỷ lệ 9:16 (sai lệch tối đa 5%).';
   if (detail.includes('image_too_large')) return 'Ảnh tối đa 8 MB.';
   if (detail.includes('unsupported_image_type')) return 'Chỉ hỗ trợ JPG, PNG, WebP hoặc AVIF.';
   return `Upload ảnh thất bại.${detail ? ` Chi tiết: ${detail}` : ' Kiểm tra quyền Super Admin và định dạng ảnh.'}`;

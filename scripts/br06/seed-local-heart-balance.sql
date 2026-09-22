@@ -126,8 +126,11 @@ begin
   if not exists(select 1 from private.bank_accounts ba where ba.user_id=v_viewer_id and ba.status='verified' and ba.deleted_at is null) then
     raise exception 'BR-06 OPT-12 verified bank fixture missing';
   end if;
-  if coalesce(private.config_boolean('withdrawal_requests_enabled'),false) is not true then
-    raise exception 'BR-06 OPT-12 withdrawal release switch missing';
+  -- Repository migrations must end fail-closed. The browser workflow explicitly
+  -- opens only the local request switch after this safety assertion so OPT-12 can
+  -- exercise request/cancel without changing production defaults.
+  if coalesce(private.config_boolean('withdrawal_requests_enabled'),false) is not false then
+    raise exception 'BR-06 withdrawal request switch must be fail-closed before local browser release';
   end if;
 end
 $$;

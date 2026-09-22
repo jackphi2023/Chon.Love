@@ -16,8 +16,9 @@ function deferred() {
   return { promise, resolve };
 }
 
-test('OPT-07 warm cache renders priority hero before settings RPC and keeps a local fallback underneath', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
+for (const width of [390, 430, 1280]) {
+test(`OPT-07 warm cache selects the correct hero at ${width}px before settings RPC`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
 
   await page.addInitScript(({ cacheKey, desktopUrl, mobileUrl }) => {
     localStorage.setItem(cacheKey, JSON.stringify({
@@ -64,7 +65,7 @@ test('OPT-07 warm cache renders priority hero before settings RPC and keeps a lo
     const priorityImage = slider.getByTestId('chon-homepage-hero-slide-image');
     await expect(priorityImage).toHaveAttribute('loading', 'eager');
     await expect(priorityImage).toHaveAttribute('fetchpriority', 'high');
-    await expect(priorityImage).toHaveAttribute('src', HERO_DESKTOP);
+    await expect(priorityImage).toHaveAttribute('src', width < 768 ? HERO_MOBILE : HERO_DESKTOP);
 
     // The settings RPC remains blocked while the warm cached slider is already
     // mounted. Browser/prefetch caches are intentionally allowed to satisfy the
@@ -87,3 +88,33 @@ test('OPT-07 warm cache renders priority hero before settings RPC and keeps a lo
     settingsGate.resolve();
   }
 });
+
+}
+
+for (const width of [390, 430, 1280]) {
+  test(`homepage cold settings select and decode the matching hero asset at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route('**/rest/v1/rpc/get_public_homepage_settings', (route) => route.fulfill({ json: {
+      hero_desktop_youtube_url: null, hero_mobile_youtube_url: null,
+      hero_slider_images: [{ id: '11111111-1111-4111-8111-111111111111', desktop_url: HERO_DESKTOP, mobile_url: HERO_MOBILE }],
+      section2_left_image_url: null, section2_right_image_url: null,
+      section3_background_image_url: null, section4_image_url: null, updated_at: '2026-09-22T00:00:00Z',
+    } }));
+    await page.route('https://cdn.example.test/**', (route) => {
+      const mobile = route.request().url() === HERO_MOBILE;
+      const w = mobile ? 900 : 1600;
+      const h = mobile ? 1200 : 600;
+      return route.fulfill({ contentType: 'image/svg+xml', body: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="#b87800"/></svg>` });
+    });
+    await page.goto('/');
+    const hero = page.getByTestId('chon-homepage-hero-slide-image');
+    await expect(hero).toHaveAttribute('src', width < 768 ? HERO_MOBILE : HERO_DESKTOP);
+    await expect.poll(() => hero.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+    await expect(hero).toHaveCSS('object-fit', 'cover');
+    const box = await hero.boundingBox();
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await testInfo.attach(`hero-${width}`, { body: await page.screenshot(), contentType: 'image/png' });
+  });
+}
