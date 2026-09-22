@@ -22,7 +22,7 @@ test('UI-PRO02 /profile resolves to one Chon.Love editor with canonical public v
     await expect(page.getByTestId('chon-my-profile-page')).toBeVisible();
 
     const publicUrl = page.getByTestId('chon-public-profile-url');
-    await expect(publicUrl).toContainText(/^https:\/\/www\.chon\.love\/thanh-vien\/id-[0-9a-f]{6}$/i);
+    await expect(publicUrl).toContainText(/^https:\/\/chon\.love\/thanh-vien\/id-[0-9a-f]{6}$/i);
     await expect(page.getByTestId('chon-share-profile')).toBeVisible();
     await expect(page.getByTestId('chon-copy-profile-link')).toBeVisible();
     await expect(page.getByTestId('chon-profile-looking-for-tags')).toContainText('Mong muốn tìm kiếm');

@@ -5,6 +5,9 @@ on:
     branches: [main, develop, 'feature/**', 'agent/**', 'release/**', 'hotfix/**']
     paths:
       - 'apps/mobile/**'
+      - 'apps/admin/**'
+      - 'tests/admin-ui/**'
+      - 'playwright.admin-ui.config.mjs'
       - 'packages/config/**'
       - 'packages/domain/**'
       - 'packages/supabase/**'
@@ -27,6 +30,9 @@ on:
   pull_request:
     paths:
       - 'apps/mobile/**'
+      - 'apps/admin/**'
+      - 'tests/admin-ui/**'
+      - 'playwright.admin-ui.config.mjs'
       - 'packages/config/**'
       - 'packages/domain/**'
       - 'packages/supabase/**'
@@ -109,20 +115,28 @@ jobs:
           export BR06_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           export BR06_E2E_PASSWORD='Br06-local-only-2026!'
           export BR06_FIXTURE_SQL_PATH='/tmp/br06-fixtures.sql'
+          export BR06_SEARCH_AVATAR_SQL_PATH='/tmp/br06-search-avatars.sql'
 
           node scripts/br06/setup-local-fixtures.mjs
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_FIXTURE_SQL_PATH"
+          node scripts/br06/ensure-search-avatars.mjs
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$BR06_SEARCH_AVATAR_SQL_PATH"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/approve-opt01-listing-fixtures.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/br06/seed-local-heart-balance.sql
 
-          # Production keeps VietQR and member gifts fail-closed until their explicit
-          # release gates. Browser UI coverage exercises those real RPC paths only in
-          # this isolated localhost database. Nothing below is a production migration.
+          # Production keeps VietQR, member gifts and withdrawal execution fail-closed
+          # until their explicit production release gates. Browser coverage exercises
+          # the real user RPC paths only inside this isolated localhost database.
+          # Nothing below is a production migration or hosted configuration change.
           psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           update private.app_config
           set value_json='true'::jsonb,
               updated_at=now()
-          where key in ('vietqr_web_payments_enabled','luxy_member_gifts_enabled');
+          where key in (
+            'vietqr_web_payments_enabled',
+            'luxy_member_gifts_enabled',
+            'withdrawal_requests_enabled'
+          );
 
           grant execute on function public.list_vietqr_heart_products() to authenticated;
           grant execute on function public.create_vietqr_heart_order(uuid,uuid) to authenticated;
@@ -174,6 +188,30 @@ jobs:
                   and v.listing_status='approved') <> 5 then
               raise exception 'BR-06 listing approval fixture mismatch';
             end if;
+            if (select count(*)
+                from public.profiles p
+                join auth.users u on u.id = p.id
+                join public.media_assets ma on ma.id = p.avatar_media_id and ma.owner_id = p.id
+                where u.email in (
+                  'br06.creator@example.test',
+                  'br06.fan@example.test',
+                  'br06.outsider@example.test'
+                )
+                  and ma.visibility = 'avatar'
+                  and ma.moderation_status = 'approved') <> 3 then
+              raise exception 'BR-06 Search members must each have a current approved avatar';
+            end if;
+            if (select count(*)
+                from public.profiles p
+                join auth.users u on u.id = p.id
+                where u.email in (
+                  'br06.creator@example.test',
+                  'br06.fan@example.test',
+                  'br06.outsider@example.test'
+                )
+                  and private.luxy_listing_hidden(p.id) is false) <> 3 then
+              raise exception 'BR-06 Search members must pass the production listing visibility predicate';
+            end if;
             if not exists(
               select 1
               from private.heart_accounts ha
@@ -186,6 +224,9 @@ jobs:
             end if;
             if coalesce((select value_json #>> '{}' from private.app_config where key='luxy_member_gifts_enabled')::boolean,false) is not true then
               raise exception 'BR-06 local gift release switch was not enabled';
+            end if;
+            if coalesce((select value_json #>> '{}' from private.app_config where key='withdrawal_requests_enabled')::boolean,false) is not true then
+              raise exception 'BR-06 local withdrawal request switch was not enabled';
             end if;
             if exists(select 1 from auth.users where email ~ '^myfan([1-9]|1[0-6])@gmail[.]com$') then
               raise exception 'controlled Beta accounts must not exist in the local BR-06 database';
@@ -225,3 +266,29 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
+
+  admin-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add --workspace-root --save-dev --lockfile=false @playwright/test@1.55.0
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Admin presentation regression with synthetic API fixtures
+        run: pnpm exec playwright test --config playwright.admin-ui.config.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-ui-evidence
+          path: |
+            playwright-report/admin-ui
+            test-results
+          retention-days: 7

@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-corepack enable
+# Netlify and CI provision the pinned package manager before this command.
+# Validate it without modifying global Node installation directories.
+EXPECTED_PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@')[1]")"
+ACTUAL_PNPM_VERSION="$(pnpm --version)"
+if [[ "${ACTUAL_PNPM_VERSION}" != "${EXPECTED_PNPM_VERSION}" ]]; then
+  echo "Expected pnpm ${EXPECTED_PNPM_VERSION}; found ${ACTUAL_PNPM_VERSION}." >&2
+  exit 1
+fi
 
 # Build the responsive Chon.Love member web app first.
 pnpm --filter @myfan/mobile build:web
@@ -31,6 +38,15 @@ export NEXT_PUBLIC_MYFAN_ENV="${NEXT_PUBLIC_MYFAN_ENV:-${EXPO_PUBLIC_MYFAN_ENV:-
 export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}}"
 
+# Deploy Preview/branch builds are intentionally isolated from production. A
+# local placeholder lets Netlify validate the static bundle while the app's
+# runtime remains unable to reach a real backend; production still fails closed
+# when the real public variables are absent.
+if [[ "${CONTEXT:-production}" != "production" ]]; then
+  export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-http://127.0.0.1:54321}"
+  export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-netlify-preview-placeholder}"
+fi
+
 if [[ -z "${NEXT_PUBLIC_SUPABASE_URL}" || -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY}" ]]; then
   echo "Missing public Supabase configuration for the Admin build." >&2
   exit 1
@@ -55,5 +71,10 @@ find apps/mobile/dist/admin/_next/static -type f -name '*.js' -size +0c -print -
 find apps/mobile/dist/admin/_next/static -type f -name '*.css' -size +0c -print -quit | grep -q .
 grep -q '/admin/_next/static/' apps/mobile/dist/admin/login/index.html
 grep -q '/admin/_next/static/' apps/mobile/dist/admin/dashboard/index.html
+
+# Bind the published artifact to the reviewed source/backend contract. This is
+# public operational metadata only; no environment values or credentials leak.
+node scripts/write-release-metadata.mjs
+test -s apps/mobile/dist/release.json
 
 echo "Built Chon.Love web + isolated /admin static application successfully."

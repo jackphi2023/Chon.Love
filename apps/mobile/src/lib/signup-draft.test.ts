@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildSignupPreferenceUserMetadata,
   clearSignupDraft,
@@ -11,7 +11,12 @@ import {
 } from './signup-draft';
 
 describe('signup onboarding draft', () => {
-  beforeEach(() => clearSignupDraft());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000);
+    clearSignupDraft();
+  });
+  afterEach(() => vi.useRealTimers());
 
   it('normalizes email OTP input to six digits', () => {
     expect(normalizeEmailOtp(' 12a3-4567 ')).toBe('123456');

@@ -4,9 +4,30 @@ const read = (path) => readFileSync(path, 'utf8');
 const errors = [];
 const expect = (condition, message) => { if (!condition) errors.push(message); };
 
+function readJpegDimensions(path) {
+  const bytes = readFileSync(path);
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  const sofMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+  let offset = 2;
+  while (offset + 3 < bytes.length) {
+    if (bytes[offset] !== 0xff) { offset += 1; continue; }
+    const marker = bytes[offset + 1];
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 1 >= bytes.length) break;
+    const segmentLength = bytes.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;
+    if (sofMarkers.has(marker) && segmentLength >= 7) {
+      return { height: bytes.readUInt16BE(offset + 3), width: bytes.readUInt16BE(offset + 5) };
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
 const description = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm';
 const titleSuffix = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
-const productionOrigin = 'https://www.chon.love';
+const productionOrigin = 'https://chon.love';
 const homepageThumbnailPath = 'apps/mobile/public/seo/chonlove-homepage-thumbnail.jpg';
 const homepageThumbnailUrl = `${productionOrigin}/seo/chonlove-homepage-thumbnail.jpg`;
 const rootLayout = read('apps/mobile/app/_layout.tsx');
@@ -37,10 +58,12 @@ expect(existsSync(homepageThumbnailPath), 'Dedicated homepage social thumbnail m
 if (existsSync(homepageThumbnailPath)) {
   const size = statSync(homepageThumbnailPath).size;
   expect(size > 10_000 && size < 1_000_000, 'Homepage social thumbnail must be a non-trivial optimized production image below 1MB.');
+  const dimensions = readJpegDimensions(homepageThumbnailPath);
+  expect(dimensions?.width === 480 && dimensions?.height === 360, 'Homepage social thumbnail must be a true 480x360 JPEG, not a renamed or metadata-only substitute.');
 }
 
 expect(rootHtml.includes(description), 'Default HTML metadata must use the approved SEO description.');
-expect(rootHtml.includes(homepageThumbnailUrl), 'Default HTML metadata must use the dedicated homepage social thumbnail on the production www.chon.love domain.');
+expect(rootHtml.includes(homepageThumbnailUrl), 'Default HTML metadata must use the dedicated homepage social thumbnail on the primary chon.love domain.');
 expect(rootHtml.includes('og:title') && rootHtml.includes('og:description') && rootHtml.includes('og:image'), 'Default HTML must expose Open Graph metadata.');
 expect(rootHtml.includes('twitter:card') && rootHtml.includes('twitter:image'), 'Default HTML must expose Twitter/X card metadata.');
 expect(rootHtml.includes('og:image:width') && rootHtml.includes('content="480"') && rootHtml.includes('og:image:height') && rootHtml.includes('content="360"'), 'Default HTML metadata must publish the optimized homepage thumbnail dimensions.');
@@ -91,7 +114,7 @@ expect(rootLayout.includes('Đăng ký |') && rootLayout.includes('Đăng nhập
 
 expect(netlifySeo.includes("'/thanh-vien/*'") && netlifySeo.includes("'/profile/*'"), 'Netlify Edge SEO must cover canonical member routes and reject legacy username routes.');
 expect(netlifySeo.includes("url.pathname.startsWith('/profile/')") && netlifySeo.includes("Response.redirect(new URL('/', url), 302)"), 'Legacy username profile deep links must redirect guests/crawlers to homepage.');
-expect(netlifySeo.includes(`const PRODUCTION_ORIGIN = '${productionOrigin}'`), 'Crawler metadata must canonicalize every public page to www.chon.love.');
+expect(netlifySeo.includes(`const PRODUCTION_ORIGIN = '${productionOrigin}'`), 'Crawler metadata must canonicalize every public page to the primary chon.love domain.');
 expect(netlifySeo.includes("`${PRODUCTION_ORIGIN}/seo/chonlove-homepage-thumbnail.jpg`"), 'Netlify Edge SEO static pages must use the dedicated homepage thumbnail URL.');
 expect(!netlifySeo.includes('/seo/chonlove-thumbnail.jpg'), 'Netlify Edge SEO must not use the retired global thumbnail.');
 expect(netlifySeo.includes('imageUrl: STATIC_SOCIAL_IMAGE') && netlifySeo.includes('imageWidth: 480') && netlifySeo.includes('imageHeight: 360'), 'Netlify Edge SEO static metadata must publish the optimized homepage thumbnail and dimensions.');

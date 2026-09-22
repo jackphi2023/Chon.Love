@@ -226,7 +226,7 @@ Deno.serve(async (request: Request) => {
         ? safeString((profile as Record<string, unknown>).public_profile_code, 16)
         : '';
       const shareProfileUrl = publicProfileCode
-        ? `https://www.chon.love/thanh-vien/id-${encodeURIComponent(publicProfileCode)}`
+        ? `https://chon.love/thanh-vien/id-${encodeURIComponent(publicProfileCode)}`
         : null;
 
       return respond(200, {

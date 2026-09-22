@@ -165,10 +165,11 @@ expect(
   'Chọn.Love membership badge renderer must delegate source/geometry to the canonical resolver and contain artwork without crop/stretch.',
 );
 expect(
-  membershipBadgeAssets.includes('mini: 12') &&
-    membershipBadgeAssets.includes('connect: 15') &&
-    membershipBadgeAssets.includes('profile: 20'),
-  'OPT-06 semantic badge contexts must remain 12px mini, 15px Connect and 20px profile heights.',
+  membershipBadgeAssets.includes("if (context === 'mini') return 12") &&
+    membershipBadgeAssets.includes("if (context === 'connect') return 26") &&
+    membershipBadgeAssets.includes('return CHON_MEMBERSHIP_BADGE_CERTIFICATE_HEIGHT_DESKTOP') &&
+    membershipBadgeAssets.includes("if (input.context === 'profile') return tierAssets.certificate"),
+  'OPT-06 semantic badge contexts must remain 12px mini, 26px Connect and historical large certificate Profile geometry.',
 );
 expect(
   membershipBadgeAssets.includes('asset.intrinsicWidth / asset.intrinsicHeight') &&
@@ -182,7 +183,7 @@ expect(
     connectCard.includes('membershipBadgePlacement="top-left"') &&
     connectCard.includes('photoCountPlacement="top-right"') &&
     connectCard.includes('photoCountSize="compact"'),
-  'OPT-06 Connect cards must use the canonical 15px top-left membership badge and compact 15px top-right photo count.',
+  'OPT-06 Connect cards must use the canonical 26px top-left membership badge and compact 15px top-right photo count.',
 );
 expect(
   compactMemberPhoto.includes('membershipBadgeContext="mini"'),
@@ -213,10 +214,10 @@ expect(
 
 const profileBadgeE2e = read('tests/br-06/chon-public-member-profile-pro01.spec.mjs');
 expect(
-  profileBadgeE2e.includes('displayHeight: 20') &&
-    profileBadgeE2e.includes('naturalWidth: 33') && profileBadgeE2e.includes('naturalHeight: 46') &&
-    profileBadgeE2e.includes('naturalWidth: 38') && profileBadgeE2e.includes('naturalHeight: 50'),
-  'UI-PRO01 browser regression must enforce the 20px profile badge against the approved Premium/Diamond icon source dimensions.',
+  profileBadgeE2e.includes('displayHeight: 110') &&
+    profileBadgeE2e.includes('naturalWidth: 179') && profileBadgeE2e.includes('naturalHeight: 199') &&
+    profileBadgeE2e.includes('naturalWidth: 180') && profileBadgeE2e.includes('naturalHeight: 208'),
+  'UI-PRO01 browser regression must enforce the 110px profile badge against the historical Premium/Diamond certificate source dimensions.',
 );
 expect(
   profileBadgeE2e.includes('renderedRatio') && profileBadgeE2e.includes('naturalRatio') &&
@@ -231,10 +232,11 @@ expect(
 
 const connectBadgeE2e = read('tests/br-06/chon-connect-c01.spec.mjs');
 expect(
-  connectBadgeE2e.includes('expectConnectTopLeftMembershipBadge') &&
-    connectBadgeE2e.includes('badgeBox.height - 15') &&
+  connectBadgeE2e.includes('expectConnectTopLeftMembershipBadge(mobilePhoto, mobileBadge, 26)') &&
+    connectBadgeE2e.includes('expectConnectTopLeftMembershipBadge(desktopPhoto, desktopBadge, 26)') &&
+    connectBadgeE2e.includes('badgeBox.height - expectedHeight') &&
     connectBadgeE2e.includes('leftInset'),
-  'UI-C01 browser regression must enforce the 15px top-left Connect membership badge contract.',
+  'UI-C01 browser regression must enforce the 26px top-left Connect membership badge contract.',
 );
 expect(
   connectBadgeE2e.includes('expectCompactTopRightPhotoCount') &&
@@ -242,8 +244,8 @@ expect(
   'UI-C01 browser regression must enforce the compact 15px top-right photo-count contract.',
 );
 expect(
-  connectBadgeE2e.includes('desktopBadgeSource).toBe(mobileBadgeSource)'),
-  'UI-C01 browser regression must prove mobile and desktop Connect cards route the semantic Connect badge to the same approved source asset.',
+  connectBadgeE2e.includes('desktopBadgeSource).not.toBe(mobileBadgeSource)'),
+  'UI-C01 browser regression must prove mobile and desktop Connect cards route the semantic Connect badge to the appropriate approved responsive source assets.',
 );
 
 const membershipBadgeE2e = read('tests/br-06/chon-membership-mem01.spec.mjs');

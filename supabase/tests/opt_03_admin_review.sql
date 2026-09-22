@@ -21,26 +21,10 @@ insert into auth.users(
   created_at,updated_at,confirmation_token,recovery_token,email_change_token_new,
   email_change_token_current,phone_change,phone_change_token,reauthentication_token
 ) values
-(
-  '00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000001',
-  'authenticated','authenticated','opt03-moderator@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000002',
-  'authenticated','authenticated','opt03-free-old@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now()-interval '3 days',now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000003',
-  'authenticated','authenticated','opt03-free-new@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now()-interval '1 hour',now(),'','','','','','',''
-),
-(
-  '00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000004',
-  'authenticated','authenticated','opt03-paid@example.test','',
-  '{"provider":"email","providers":["email"]}','{}',now()-interval '10 minutes',now(),'','','','','','',''
-);
+('00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000001','authenticated','authenticated','opt03-moderator@example.test','','{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000002','authenticated','authenticated','opt03-free-old@example.test','','{"provider":"email","providers":["email"]}','{}',now()-interval '3 days',now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000003','authenticated','authenticated','opt03-free-new@example.test','','{"provider":"email","providers":["email"]}','{}',now()-interval '1 hour',now(),'','','','','','',''),
+('00000000-0000-0000-0000-000000000000','33000000-0000-0000-0000-000000000004','authenticated','authenticated','opt03-paid@example.test','','{"provider":"email","providers":["email"]}','{}',now()-interval '10 minutes',now(),'','','','','','','');
 
 update private.user_identity
 set date_of_birth=date '1992-01-01',
@@ -113,8 +97,8 @@ values(
 on conflict(user_id) do update
 set tier='premium',status='active',starts_at=excluded.starts_at,expires_at=excluded.expires_at,updated_at=now();
 
--- Model the already-completed trusted selfie/AWS outcome as an immutable upstream fact.
--- OPT-03 listing review must not rewrite or reinterpret it.
+-- Model the already-completed live selfie + AWS Rekognition CompareFaces outcome as
+-- an immutable upstream fact. OPT-03 listing review must not rewrite it.
 insert into public.moderation_cases(
   id,reported_user_id,source,status,priority,rule_codes,automated_score_json,
   decision,decision_notes,resolved_at
@@ -122,8 +106,8 @@ insert into public.moderation_cases(
   '33000000-0000-4000-8000-000000000101',
   '33000000-0000-0000-0000-000000000003',
   'automated_scan','resolved','normal',array['member_photo_verification']::text[],
-  '{"provider":"aws_rekognition","faceSimilarity":88.5,"liveness":"passed"}'::jsonb,
-  'approve','trusted selfie verification completed before OPT-03',now()-interval '45 minutes'
+  '{"provider":"aws_rekognition","faceSimilarity":88.5,"comparison":"passed"}'::jsonb,
+  'approve','trusted selfie CompareFaces verification completed before OPT-03',now()-interval '45 minutes'
 );
 
 create temporary table opt03_aws_before on commit drop as
@@ -201,28 +185,28 @@ select is(
   (select status::text from public.moderation_cases
    where id='33000000-0000-4000-8000-000000000101'),
   (select status::text from opt03_aws_before),
-  'Admin listing review does not change trusted selfie/AWS case status'
+  'Admin listing review does not change trusted selfie CompareFaces case status'
 );
 
 select is(
   (select decision::text from public.moderation_cases
    where id='33000000-0000-4000-8000-000000000101'),
   (select decision::text from opt03_aws_before),
-  'Admin listing review does not change trusted selfie/AWS decision'
+  'Admin listing review does not change trusted selfie CompareFaces decision'
 );
 
 select is(
   (select automated_score_json from public.moderation_cases
    where id='33000000-0000-4000-8000-000000000101'),
   (select automated_score_json from opt03_aws_before),
-  'Admin listing review does not change AWS similarity/liveness evidence'
+  'Admin listing review does not change AWS CompareFaces similarity evidence'
 );
 
 select is(
   (select resolved_at from public.moderation_cases
    where id='33000000-0000-4000-8000-000000000101'),
   (select resolved_at from opt03_aws_before),
-  'Admin listing review does not rewrite AWS verification timing'
+  'Admin listing review does not rewrite selfie CompareFaces verification timing'
 );
 
 reset role;

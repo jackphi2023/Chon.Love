@@ -5,7 +5,7 @@ type RootHtmlProps = { children: ReactNode };
 
 const DESCRIPTION = 'Chon.Love là nền tảng hẹn hò dành cho người dùng thật và văn minh, hướng tới các mối quan hệ lành mạnh, chất lượng và xứng tầm';
 const DEFAULT_TITLE = 'Trang chủ | Chọn.love - Chọn đúng Người, Yêu đúng Gu';
-const DEFAULT_SOCIAL_IMAGE = 'https://www.chon.love/seo/chonlove-homepage-thumbnail.jpg';
+const DEFAULT_SOCIAL_IMAGE = 'https://chon.love/seo/chonlove-homepage-thumbnail.jpg';
 
 function getSupabaseOrigin(): string | null {
   const configured = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -37,8 +37,8 @@ export default function RootHtml({ children }: RootHtmlProps) {
         <meta property="og:title" content={DEFAULT_TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:image" content={DEFAULT_SOCIAL_IMAGE} />
-        <meta property="og:image:width" content="360" />
-        <meta property="og:image:height" content="270" />
+        <meta property="og:image:width" content="480" />
+        <meta property="og:image:height" content="360" />
         <meta property="og:image:alt" content="Chọn.love - Chọn đúng Người, Yêu đúng Gu" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={DEFAULT_TITLE} />
