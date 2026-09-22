@@ -112,7 +112,7 @@ type ProfileFormValues = {
   lifestyleTags: ProfileLifestyleTag[];
 };
 
-const PRODUCTION_ORIGIN = 'https://www.chon.love';
+const PRODUCTION_ORIGIN = 'https://chon.love';
 const MAX_LIFESTYLE_TAGS = 7;
 const LISTING_PENDING_WARNING = 'Bạn có thể xem các thành viên khác nhưng hồ sơ của bạn chưa hiển thị trong danh sách thành viên. Hồ sơ sẽ được hiển thị sau khi Admin duyệt, hoặc khi bạn nâng cấp Premium/Diamond để tăng uy tín.';
 

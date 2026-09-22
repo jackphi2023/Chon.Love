@@ -80,6 +80,9 @@ jobs:
       - name: Validate Netlify SEO Edge runtime
         run: node scripts/validate-netlify-edge-runtime.mjs
 
+      - name: Validate reviewed A–E release contract
+        run: pnpm validate:release-contract
+
       - name: Lint
         run: pnpm lint
 
@@ -89,8 +92,11 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-      - name: Build Admin and canonical Chon.Love Expo Web
+      - name: Build exact Netlify publish artifact with isolated public configuration
+        env:
+          EXPO_PUBLIC_MYFAN_ENV: development
+          EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-public-placeholder
         run: |
-          pnpm build
-          test -f apps/admin/out/login/index.html
-          test -f apps/admin/out/users/index.html
+          bash scripts/build-netlify-web.sh
+          test -s apps/mobile/dist/release.json

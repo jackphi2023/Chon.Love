@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   MEMBER_PHOTO_PENDING_MESSAGE,
   MEMBER_PHOTO_SIMILARITY_THRESHOLD,
   normalizeMemberPhotoVerificationResult,
 } from './member-photo-verification';
+
+// Normalize real response contracts without loading native auth storage in Node.
+vi.mock('./supabase', () => ({ getMobileSupabaseClient: () => null }));
 
 describe('member photo verification contract', () => {
   it('keeps automatic approval strictly above the 60% business threshold', () => {

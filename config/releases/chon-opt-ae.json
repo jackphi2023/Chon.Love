@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "chon-opt-ae-20260922",
+  "productionOrigin": "https://chon.love",
+  "projectRef": "asnydvqsduonyidjyyzq",
+  "financialFeaturesEnabled": false,
+  "selfieContract": "JPEG camera selfie; AWS CompareFaces similarity strictly above 60; otherwise pending review; Face Liveness excluded",
+  "migrations": {
+    "count": 160,
+    "latestVersion": "20260922141628",
+    "sha256": "ae9471b6b327a4fb4847882d6407907dc80009e0feef0b765af25949c464ccfe"
+  },
+  "databaseTypesSha256": "f64b1f897a439fc41ff1982d067f2fe5cb8e92c2860fb6889366544eff75255c",
+  "edgeFunctions": [
+    { "name": "homepage-media-admin", "hostedVersion": 3, "verifyJwt": true, "sourceSha256": "b9306729f11f78956cd7e1f412f9571427b607c0f7697e016774002efcb8d78c" },
+    { "name": "media-access", "hostedVersion": 2, "verifyJwt": true, "sourceSha256": "7c49b647ed0a89658027d772bce6a84c4b28bfcf90215e0f2cc38973a50238e7" },
+    { "name": "media-moderation", "hostedVersion": 3, "verifyJwt": true, "sourceSha256": "5c1877c0fa2420fc94272c48e587032221480c3e119c6114e14a929315dbb3fe" },
+    { "name": "member-photo-verification", "hostedVersion": 3, "verifyJwt": true, "sourceSha256": "5a8a6c5d6a4aff1c80e479b9bd7a60d08fd98028fdb1abe94b368d2c0c2d01d5" },
+    { "name": "member-profile-verification-admin", "hostedVersion": 2, "verifyJwt": true, "sourceSha256": "3e79ac26f3c2abe4d81a9a5a439fd480eee5c86fad4d273df38c3276a9335aa6" },
+    { "name": "public-profile-avatar", "hostedVersion": 2, "verifyJwt": false, "sourceSha256": "69d6d32caa54e5098ce37b03696202f3d24906f7cb82886ab174d96d4236cb16" },
+    { "name": "public-profile-media", "hostedVersion": 1, "verifyJwt": false, "sourceSha256": "be3b9076e842e718cd3428e9522a8d38819fd6d4b000a701ac3492c70f545d56" },
+    { "name": "public-profile-seo", "hostedVersion": 3, "verifyJwt": false, "sourceSha256": "4c282cb9ddec4a993c18e67d8b133114b22e304187e5ce1933b7dec7570ce691" },
+    { "name": "user-admin", "hostedVersion": 4, "verifyJwt": true, "sourceSha256": "e9838a35391a34323eeacf7bb22bf8bb47f0edced719aacb5d0042811783cef6" }
+  ]
+}

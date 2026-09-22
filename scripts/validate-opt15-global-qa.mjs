@@ -74,7 +74,7 @@ for (const token of [
   'pnpm lint',
   'pnpm typecheck',
   'pnpm test',
-  'pnpm build',
+  'bash scripts/build-netlify-web.sh',
 ]) {
   expect(ci.includes(token), `Application CI must retain ${token}.`);
 }

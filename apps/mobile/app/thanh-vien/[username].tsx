@@ -29,7 +29,7 @@ import { getMobileSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
 const TITLE_SUFFIX = 'Chọn.love - Chọn đúng Người, Yêu đúng Gu';
-const PRODUCTION_ORIGIN = 'https://www.chon.love';
+const PRODUCTION_ORIGIN = 'https://chon.love';
 
 function normalizeParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';

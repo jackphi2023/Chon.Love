@@ -1,6 +1,11 @@
 name: Session B Backend
 
 on:
+  push:
+    branches: [main, 'release/**']
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/session-b-backend.yml'
   pull_request:
     paths:
       - 'supabase/migrations/20260906153000_opt_backend_financial_fail_closed.sql'

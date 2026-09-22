@@ -92,3 +92,14 @@ verify_jwt = false
 
 [functions.public-profile-media]
 verify_jwt = false
+
+# Match the existing hosted public avatar endpoint. Its handler checks the safe
+# public-profile RPC plus current ownership, visibility and approved media state.
+[functions.public-profile-avatar]
+verify_jwt = false
+
+[functions.user-admin]
+verify_jwt = true
+
+[functions.member-profile-verification-admin]
+verify_jwt = true

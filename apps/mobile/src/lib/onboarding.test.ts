@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getReadableOnboardingError, parsePolicyVersions } from './onboarding';
+
+// Pure policy/error tests do not need the native auth-storage adapter.
+vi.mock('./supabase', () => ({ getMobileSupabaseClient: () => null }));
 
 describe('onboarding policy contract', () => {
   it('reads the current server policy versions', () => {

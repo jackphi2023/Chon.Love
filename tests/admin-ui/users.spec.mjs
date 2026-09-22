@@ -31,7 +31,7 @@ async function fixtures(page, allowed = true) {
       else if (body.action === 'detail') data = { item: {
         account: { email: items[0].email, created_at: items[0].signup_at },
         profile: { profile_status: 'active' }, membership: { tier: 'premium' },
-        share_profile_url: 'https://www.chon.love/thanh-vien/id-abc123',
+        share_profile_url: 'https://chon.love/thanh-vien/id-abc123',
         media: [{ id: 'avatar', visibility: 'avatar', moderation_status: 'approved', signed_url: 'https://admin-ui.example.test/storage/v1/object/sign/avatar', created_at: items[0].signup_at }],
         verification_selfies: [{ signed_url: 'https://admin-ui.example.test/storage/v1/object/sign/selfie', created_at: items[0].signup_at }],
       } };
@@ -54,7 +54,7 @@ for (const width of [390, 430, 1280]) {
     await expect(rows.first().locator('time')).toContainText('22/9/2026');
     await rows.first().getByRole('button', { name: 'Chi tiết', exact: true }).click();
     const share = page.getByRole('link', { name: 'Xem hồ sơ chia sẻ' });
-    await expect(share).toHaveAttribute('href', 'https://www.chon.love/thanh-vien/id-abc123');
+    await expect(share).toHaveAttribute('href', 'https://chon.love/thanh-vien/id-abc123');
     await expect(share).toHaveAttribute('target', '_blank');
     await expect(page.getByRole('heading', { name: 'Ảnh hồ sơ (1)' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Selfie xác thực (1)' })).toBeVisible();
