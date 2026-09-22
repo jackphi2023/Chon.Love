@@ -16,12 +16,13 @@ async function fixtures(page, allowed = true) {
       expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user,
     }));
   }, { user });
-  await page.route('http://127.0.0.1:54321/**', async (route) => {
+  await page.route('https://admin-ui.example.test/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' } });
     let data;
     if (path === '/auth/v1/user') data = user;
     else if (path === '/rest/v1/rpc/is_super_admin') data = allowed;
+    else if (path === '/rest/v1/rpc/admin_get_homepage_settings') data = { hero_desktop_youtube_url: null, hero_mobile_youtube_url: null, hero_slider_images: [], section2_left_image_url: null, section2_right_image_url: null, section3_background_image_url: null, section4_image_url: null, updated_at: '2026-09-22T00:00:00Z' };
     else if (path === '/auth/v1/logout') data = {};
     else if (path === '/functions/v1/user-admin') {
       const body = route.request().postDataJSON();
@@ -31,8 +32,8 @@ async function fixtures(page, allowed = true) {
         account: { email: items[0].email, created_at: items[0].signup_at },
         profile: { profile_status: 'active' }, membership: { tier: 'premium' },
         share_profile_url: 'https://www.chon.love/thanh-vien/id-abc123',
-        media: [{ id: 'avatar', visibility: 'avatar', moderation_status: 'approved', signed_url: 'http://127.0.0.1:54321/storage/v1/object/sign/avatar', created_at: items[0].signup_at }],
-        verification_selfies: [{ signed_url: 'http://127.0.0.1:54321/storage/v1/object/sign/selfie', created_at: items[0].signup_at }],
+        media: [{ id: 'avatar', visibility: 'avatar', moderation_status: 'approved', signed_url: 'https://admin-ui.example.test/storage/v1/object/sign/avatar', created_at: items[0].signup_at }],
+        verification_selfies: [{ signed_url: 'https://admin-ui.example.test/storage/v1/object/sign/selfie', created_at: items[0].signup_at }],
       } };
       else throw new Error(`Unexpected Admin mutation: ${body.action}`);
     } else if (path.startsWith('/storage/')) return route.fulfill({ contentType: 'image/png', body: png, headers: { 'access-control-allow-origin': '*' } });
@@ -70,4 +71,14 @@ test('ordinary member is denied Admin Users before protected content renders', a
   await page.goto('/admin/users/');
   await expect(page).toHaveURL(/\/admin\/login\/?$/);
   await expect(page.locator('tbody tr')).toHaveCount(0);
+});
+
+test('Admin rejects undersized Hero files before requesting an upload token', async ({ page }) => {
+  await fixtures(page);
+  await page.goto('/admin/homepage/');
+  await page.getByRole('button', { name: '+ Thêm slide', exact: true }).click();
+  await page.getByLabel('Upload Ảnh Desktop · ngang').setInputFiles({ name: 'tiny.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByText('Ảnh Desktop cần tối thiểu 1600 × 900 px, tỷ lệ 16:9 (sai lệch tối đa 5%).', { exact: true })).toBeVisible();
+  await page.getByLabel('Upload Ảnh Mobile · dọc').setInputFiles({ name: 'tiny.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByText('Ảnh Mobile cần tối thiểu 1080 × 1920 px, tỷ lệ 9:16 (sai lệch tối đa 5%).', { exact: true })).toBeVisible();
 });

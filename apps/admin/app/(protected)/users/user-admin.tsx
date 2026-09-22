@@ -215,7 +215,7 @@ export function UserAdmin() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 22 }}>
+    <div style={{ display: 'grid', gap: 22, minWidth: 0, gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <section style={{ border: '1px solid #fecaca', borderRadius: 12, display: 'grid', gap: 12, padding: 14 }}>
         <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' }}>
           <div>
