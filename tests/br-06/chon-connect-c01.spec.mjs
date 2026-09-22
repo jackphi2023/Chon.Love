@@ -76,7 +76,7 @@ async function normalizeCreatorNotFavorited(card) {
   }
 }
 
-test('UI-C01/C02 keeps shared Connect cards compact with 24/26px membership badges at 15px inset and top-right photo counts', async ({ browser }, testInfo) => {
+test('UI-C01/C02 keeps shared Connect cards compact with 26px membership badges at 15px inset and top-right photo counts', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -90,7 +90,7 @@ test('UI-C01/C02 keeps shared Connect cards compact with 24/26px membership badg
     await expect(mobilePhoto).toBeVisible();
     const mobileBadge = mobileCreator.getByTestId('chon-membership-badge-diamond');
     await expect(mobileBadge).toBeVisible();
-    await expectConnectTopLeftMembershipBadge(mobilePhoto, mobileBadge, 24);
+    await expectConnectTopLeftMembershipBadge(mobilePhoto, mobileBadge, 26);
     const mobileBadgeImage = mobileBadge.getByTestId('chon-membership-badge-image-diamond');
     await expect(mobileBadgeImage).toBeVisible();
     const mobileBadgeSource = await getRenderedImageSource(mobileBadgeImage);

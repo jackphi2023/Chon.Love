@@ -61,11 +61,12 @@ const BADGE_ASSETS: Record<
 
 function contextHeight(
   context: Exclude<ChonMembershipBadgeContext, 'certificate'>,
-  desktop: boolean,
 ): number {
   if (context === 'mini') return 12;
-  if (context === 'connect') return desktop ? 26 : 24;
-  return 32;
+  if (context === 'connect') return 26;
+  // Pre-OPT-16 Profile used size="large": a 110px certificate on both viewports.
+  // Preserve the accepted artwork/height while deriving width from its real ratio.
+  return CHON_MEMBERSHIP_BADGE_CERTIFICATE_HEIGHT_DESKTOP;
 }
 
 export function isChonMembershipBadgeTier(
@@ -84,7 +85,7 @@ function resolveAsset(input: {
   if (input.context === 'certificate' || input.variant === 'certificate') return tierAssets.certificate;
   if (input.context === 'mini') return tierAssets.iconMobile;
   if (input.context === 'connect') return input.desktop ? tierAssets.iconDesktop : tierAssets.iconMobile;
-  if (input.context === 'profile') return tierAssets.iconDesktop;
+  if (input.context === 'profile') return tierAssets.certificate;
   return input.desktop ? tierAssets.iconDesktop : tierAssets.iconMobile;
 }
 
@@ -120,7 +121,7 @@ export function resolveChonMembershipBadgeAsset(input: {
   if (typeof input.width === 'number') return dimensionsFromWidth(asset, input.width);
 
   if (input.context && input.context !== 'certificate') {
-    return dimensionsFromHeight(asset, contextHeight(input.context, input.desktop));
+    return dimensionsFromHeight(asset, contextHeight(input.context));
   }
 
   if (input.context === 'certificate' || input.variant === 'certificate') {

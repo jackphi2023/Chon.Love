@@ -5,9 +5,9 @@ Screens must not import these files directly.
 
 ## Semantic asset groups
 
-- `premium-16.png` / `diamond-16.png`: mobile Connect/mini source artwork, rendered at 24px in Connect and 12px in mini contexts.
-- `premium-26.png` / `diamond-26.png`: desktop Connect/Profile source artwork, rendered at 26px in desktop Connect and 32px on member Profile.
-- `premium-160.png` / `diamond-160.png`: large certificate artwork for Membership surfaces.
+- `premium-16.png` / `diamond-16.png`: mobile Connect/mini source artwork, rendered at 26px in Connect and 12px in mini contexts.
+- `premium-26.png` / `diamond-26.png`: desktop Connect source artwork, rendered at 26px.
+- `premium-160.png` / `diamond-160.png`: large certificate artwork for Membership surfaces and member Profile (110px high on mobile and desktop, restoring pre-OPT-16 `size="large"` at `40d00bd`; intrinsic aspect ratio preserved).
 
 All six files have transparent backgrounds. Semantic contexts select an appropriate source and downscale while preserving aspect ratio; certificate artwork uses `resizeMode="contain"` so it is never stretched or cropped.
 
