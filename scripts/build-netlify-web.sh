@@ -38,6 +38,15 @@ export NEXT_PUBLIC_MYFAN_ENV="${NEXT_PUBLIC_MYFAN_ENV:-${EXPO_PUBLIC_MYFAN_ENV:-
 export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}}"
 
+# Deploy Preview/branch builds are intentionally isolated from production. A
+# local placeholder lets Netlify validate the static bundle while the app's
+# runtime remains unable to reach a real backend; production still fails closed
+# when the real public variables are absent.
+if [[ "${CONTEXT:-production}" != "production" ]]; then
+  export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-http://127.0.0.1:54321}"
+  export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-netlify-preview-placeholder}"
+fi
+
 if [[ -z "${NEXT_PUBLIC_SUPABASE_URL}" || -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY}" ]]; then
   echo "Missing public Supabase configuration for the Admin build." >&2
   exit 1
